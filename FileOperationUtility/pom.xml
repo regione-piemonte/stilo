@@ -1,0 +1,58 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	
+	<groupId>it.eng.fileOperation</groupId>
+	<artifactId>FileOperationUtility</artifactId>
+	<version>1.3.2</version>
+  	<packaging>pom</packaging>
+	<name>FileOperationUtility</name>
+	<description>Parent POM</description>
+  
+	<properties>
+		<fileOperation.version>${project.version}</fileOperation.version>
+		<maven.compiler.source>1.7</maven.compiler.source>
+		<maven.compiler.target>1.7</maven.compiler.target>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<java.version>1.7</java.version>
+		
+		<!-- Definizione versioni librerie di terze parti -->		
+		<ojdbc.artifactId>ojdbc7</ojdbc.artifactId>
+		<ojdbc.version>12.1.0.2</ojdbc.version>
+		
+		<!-- Definizione repository -->
+		<!-- Da inserire url artifacotry maven in cui sono deployate le librerie -->
+		<repository.id></repository.id>
+		<repository.name></repository.name>
+		<repository.url></repository.url>
+		
+		<!-- definizioni versioni dipendenze presenti in SuiteUtility -->
+		<coreModule.version>1.0.5</coreModule.version>
+		<cryptoSigner.version>1.0.15</cryptoSigner.version>
+		<hsmClient.version>1.0.8</hsmClient.version>
+		<archiveUtility.version>1.0.2</archiveUtility.version>
+		<oomanager.version>1.9.7</oomanager.version>
+	</properties>
+	
+	<distributionManagement>
+		<repository>
+			<id>${repository.id}</id>
+			<name>${repository.name}</name>
+			<url>${repository.url}</url>
+		</repository>
+	</distributionManagement>
+	
+  	<profiles>
+		<profile>
+			<id>buildAll</id>
+			<properties>
+				<config>csi</config>
+			</properties>
+			<modules>
+				<module>ClientWSFileOp</module>
+				<module>FileOperationBusiness</module>
+				<module>FileOperationWar</module>
+			</modules>
+		</profile>		
+	</profiles>
+</project>

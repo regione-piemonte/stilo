@@ -1,0 +1,10 @@
+<handler-chains xmlns="http://java.sun.com/xml/ns/javaee">
+	<handler-chain>
+		<handler>
+			<handler-name>it.eng.module.foutility.handler.LogMessageHandler
+			</handler-name>
+			<handler-class>it.eng.module.foutility.handler.LogMessageHandler
+			</handler-class>
+		</handler>
+	</handler-chain>
+</handler-chains>
