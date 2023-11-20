@@ -1,0 +1,30 @@
+﻿# This is the list of [Stilo] authors for copyright purposes.
+
+Benedetti	Giulia
+Brunitto	Francesco
+Cacco	Federico
+Campello	Andrea
+Cartia	Valentina
+Castaldi	Fabio
+Collia	Gaetano
+Continolo	Piergiacinto
+Cristiano	Daniele
+Di Muzio	Lidia
+Fiozzi	Diego
+Forghieri	Nadia
+Formato	Stefania
+Garofalo	Marco
+Martinucci	Valentina
+Palermo	Giuseppe
+Passalacqua	Ottavio Rosario
+Peluso	Antonio
+Picone Chiodo	Ugo
+Rega	Michele Gennaro
+Russello	Fabrizio
+Stefanelli	Paolo Francesco
+Tesauro	Anna
+Zanin	Mattia
+
+# This does not necessarily list everyone who has contributed code, since in
+# some cases, their employer may be the copyright holder.  To see the full list 
+# of contributors, see the revision history in source control.
