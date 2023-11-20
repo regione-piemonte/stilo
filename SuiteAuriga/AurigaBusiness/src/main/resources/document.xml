@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+
+	<bean id="DocumentConfiguration" class="it.eng.utility.DocumentConfiguration">
+		<property name="operationWsAddress"
+			value="http://161.27.146.14:8080/FileopWarSVIL/business/soap/fileopNoOutput" />
+		<property name="algoritmo" value="SHA_256"></property>
+		<property name="encoding" value="BASE_64"></property>
+		<property name="timeout" value="180000"></property>
+	</bean>
+	
+	<bean id="signatureVerifyOptionBean" class="it.eng.utility.SignatureVerifyOptionBean">
+		<property name="detectCode" value="false" />
+		<property name="crlReliability" value="true" />
+		<property name="caReliability" value="false" />
+		<property name="tsaReliability" value="false" />
+		<property name="recursive" value="false" />
+		<property name="childValidation" value="true" />
+	</bean>
+</beans>

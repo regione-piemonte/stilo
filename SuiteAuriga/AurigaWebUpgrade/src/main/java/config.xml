@@ -1,0 +1,1139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<import resource="document.xml" />
+	<import resource="job.xml" />
+	
+	<context:component-scan base-package="it.eng.utility.ui.module.layout.server" />
+	
+	<bean id="RestServiceInvocationBefore" class="it.eng.config.AurigaMailRestServiceInvocationBefore">
+	
+	</bean>
+	
+	<bean id="sjcl" class="it.eng.utility.ui.module.core.server.service.SJCLServer">
+		<property name="password" value="iygwduyvw" />
+		<property name="enabled" value="false" />
+	</bean>
+
+	<bean id="profiler"
+		class="it.eng.auriga.ui.module.layout.server.common.UserPrivilegiUtilImpl" />
+
+	<bean id="FilterPrivilegiContainer"
+		class="it.eng.utility.ui.module.layout.shared.bean.FilterPrivilegiContainer">
+		<property name="configMap">
+			<util:map key-type="java.lang.String" value-type="java.util.List">
+				<entry key="IdUO1AssIO">
+					<util:list>
+						<value>DOCAOO</value>
+					</util:list>
+				</entry>
+			</util:map>
+		</property>
+	</bean>
+
+	<bean id="configurePrivilegi"
+		class="it.eng.utility.ui.module.layout.shared.bean.FilterPrivilegiImpl">
+		<property name="container" ref="FilterPrivilegiContainer"></property>
+	</bean>
+
+	<bean id="profilerConfigurator"
+		class="it.eng.utility.ui.module.layout.server.common.ServiceRestUserUtil">
+		<property name="privilegi" ref="profiler" />
+		<property name="filterPrivilegi" ref="configurePrivilegi" />
+	</bean>
+
+	<bean id="projectPropertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:menu.properties</value>
+			</list>
+		</property>
+	</bean>
+		
+	<import resource="menu.xml" />
+	<import resource="list.xml" />
+	<import resource="filter.xml" />
+	
+	<bean id="GenericPropertyConfigurator" class="it.eng.utility.ui.module.layout.shared.bean.GenericConfigBean">
+		<!-- Abilita la cifratura dei Json scambiati tra parte client e server -->
+		<property name="flagCifratura" value="#{sjcl.enabled}" />
+		<!-- Rimuove gli script dai Json scambiati tra parte client e server -->
+		<property name="flagRimuoviScript" value="true" />
+		<!-- Effettua l'escape html nei Json scambiati tra parte client e server, VA OMESSA O TENUTA A FALSE -->
+		<property name="flagEscapeHtml" value="false" />
+		<!-- Classe securityChecker PER ORA VA USATA SOLO IN LOCALE O SULLA 139 -->
+		<property name="securityChecker" value="it.eng.utility.ui.module.core.server.security.impl.RefererHeaderSecurityChecker" />
+		<property name="ente" value="1" />		
+		<property name="logoImage" value="logo.png" />
+		<property name="backgroundImage" value="blank.png" />	
+		<property name="backgroundColor" value="#EEEEEE" />							
+		<property name="defaultPortletWidth" value="900" />
+		<property name="defaultPortletHeight" value="512" />
+		<property name="maxValueLength" value="250" />
+		<property name="filterAppliedIcon" value="images/buttons/imbuto.png" />
+		<property name="checkIcon" value="images/ok.png" />
+		<property name="filtrableSelectPageSize" value="20" />
+		<property name="recordHeightDefault" value="15" />
+		<property name="displayValueSeparator" value="**" />
+		<property name="displayValueNull" value="--" />
+		<property name="annoPartenza" value="1989" />
+		<property name="delayTimeForDoubleClick" value="1000" />
+		<property name="colonneEstremiRecordMaxValueLength" value="50" />
+		<property name="waitingMessageDuration" value="5000" />
+		<property name="numMaxShortCut" value="6" />
+		<property name="welcomeMaxLength" value="50" />
+		<!--property name="maxNumIconeDesktop" value="6" /-->
+		<property name="nroMaxRecordsForResizeReorder" value="200" />
+		 <property name="maxNroDocFirmaMassivaClient" value="1" />
+		<property name="maxNroDocFirmaMassivaRemotaNonAuto" value="1" />
+		<!--property name="logoDominioFolder" value="images/loghiDomini/aurigaweb" /-->
+		<property name="editableExtension">
+			<util:list value-type="java.lang.String">
+				<value>doc</value>
+				<value>docx</value>
+				<value>xls</value>
+				<value>xlsx</value>
+				<value>odt</value>
+			</util:list>
+		</property>
+		<property name="emlExtension">
+			<util:list value-type="java.lang.String">
+				<value>eml</value>
+			</util:list>
+		</property>
+		<property name="emlMimetype">
+			<util:list value-type="java.lang.String">
+				<value>multipart/mixed</value>
+				<value>multipart/signed</value>
+				<value>message/rfc822</value>
+			</util:list>
+		</property>
+		<property name="showResetPasswordLogin" value="false" />
+		<property name="showAlertMaxRecord" value="true" />
+		<property name="scannerDefaultResolution" value="200" />
+		<property name="attivaMultilingua" value="false" />
+		<!--Se si vogliono caricare le label specializzate per cliente senza attivare il multilingua-->
+		<!--Per es. se voglio caricare Messages_it_IT_MILANO.properties dovrò impostare defaultLocale = it_IT_milano-->
+		<!--In quel caso va' anche valorizzato il parametro SPEC_LABEL_GUI in DB per le label dei menu' e dei filtri-->
+		<property name="defaultLocale" value="it_IT" />
+		<!-- Se TRUE, attiva i log per il debug lato client. Questo permette anche di intercettare gli errori javascript e di aprire una maschera di errore con la possibiltà di visualizzare lo stacktrace. --> 
+		<!-- ATTENZIONE: da attivare SOLO in SVILUPPO! -->
+	 	<property name="debugClientEnable" value="true" />	
+		<!-- Se TRUE, in tutte le chiamate da GUI a FileOperation viene passato lo stream del file e non l'uri. Questo permette di lavorare in locale (Windows) con FileOp della 139 (Linux). --> 
+		<!-- ATTENZIONE: da attivare SOLO in SVILUPPO! -->
+	 	<property name="callFileOpWithStream" value="true" />
+	 	<property name="maxRangeSearcByNumNoAlert" value="100" />
+	</bean>
+	
+	<bean id="HybridPropertyConfigurator" class="it.eng.areas.hybrid.deploy.beans.HybridPropertyConfigurator">
+		<!-- Hybrid - porta di connessione in modalità standard -->
+		<property name="hybridPort" value="8281" />
+		<!-- Hybrid - porta di connessione in modlità https -->
+		<property name="hybridPortSSL" value="8283" />
+		<!-- Hybrid - nome cartella work temporanea -->
+		<property name="hybridWorkFolder" value=".hybridWorkFolder" />
+		<!-- Hybrid - forza il funzionamento in https -->
+		<property name="hybridForceHttps" value="false" />
+	</bean>
+	
+	<bean id="SpringBeanWrapperConfig" class="it.eng.utility.springBeanWrapper.bean.SpringBeanWrapperConfigBean">
+		<property name="enableSpringBeanWrapper" value="true" />
+	</bean>
+	
+	<bean id="AppletParameterConfigurator"
+		class="it.eng.utility.ui.module.layout.shared.bean.AppletParameterConfigurator">
+		<property name="appletConfiguration">
+			<util:map key-type="java.lang.String" value-type="java.util.List">
+				<entry key="JPedal">
+					<util:list value-type="it.eng.utility.ui.module.layout.shared.bean.AppletParameterBean">
+						<bean class="it.eng.utility.ui.module.layout.shared.bean.AppletParameterBean">
+							<property name="name" value="fileOperation.wsEndpoint"></property>
+							<property name="value" value="http://172.27.1.139:8088/FileopWar/business/soap/fileop"></property>
+						</bean>
+						<bean class="it.eng.utility.ui.module.layout.shared.bean.AppletParameterBean">
+							<property name="name" value="verifyCert.wsEndpoint"></property>
+							<property name="value" value="http://172.27.1.139:8088/FileopWar/business/soap/crypto?wsdl"></property>
+						</bean>
+						<bean class="it.eng.utility.ui.module.layout.shared.bean.AppletParameterBean">
+							<property name="name" value="externalSaveAs"></property>
+							<property name="value" value="false"></property>
+						</bean>
+					</util:list>
+				</entry>
+				<entry key="SignerApplet">
+					<util:list value-type="it.eng.utility.ui.module.layout.shared.bean.AppletParameterBean">
+						<bean class="it.eng.utility.ui.module.layout.shared.bean.AppletParameterBean">
+							<property name="name" value="fileOperation.wsEndpoint"></property>
+							<property name="value" value="http://172.27.1.139:8088/FileopWar/business/soap/fileop"></property>
+						</bean>
+						<bean class="it.eng.utility.ui.module.layout.shared.bean.AppletParameterBean">
+							<property name="name" value="verifyCert.wsEndpoint"></property>
+							<property name="value" value="http://172.27.1.139:8088/FileopWar/business/soap/crypto?wsdl"></property>
+						</bean>
+					</util:list>
+				</entry>
+				<entry key="SignerAppletMulti">
+					<util:list value-type="it.eng.utility.ui.module.layout.shared.bean.AppletParameterBean">
+						<bean class="it.eng.utility.ui.module.layout.shared.bean.AppletParameterBean">
+							<property name="name" value="fileOperation.wsEndpoint"></property>
+							<property name="value" value="http://172.27.1.139:8088/FileopWar/business/soap/fileop"></property>
+						</bean>
+						<bean class="it.eng.utility.ui.module.layout.shared.bean.AppletParameterBean">
+							<property name="name" value="verifyCert.wsEndpoint"></property>
+							<property name="value" value="http://172.27.1.139:8088/FileopWar/business/soap/crypto?wsdl"></property>
+						</bean>
+					</util:list>
+				</entry>
+			</util:map>
+		</property>
+	</bean>
+	
+	<bean id="BusinessConfigurator" class="it.eng.core.service.client.config.Configuration"
+		factory-method="getInstance">
+		<property name="url" value="http://172.27.1.139:8088/AurigaBusiness"></property>
+		<!--property name="url" value="http://localhost:8080/AurigaBusiness"></property-->
+		<!--property name="url" value="http://10.63.10.111:8080/AurigaBusiness"></property-->
+		<!--property name="url" value="http://10.63.10.118:8080/AurigaBusiness"></property-->
+		<!--property name="url" value="http://161.27.146.14:8080/AurigaBusiness1"></property-->
+		<!--property name="url" value="http://161.27.146.28:8080/AurigaBusiness1"></property-->
+		<!--property name="url" value="http://161.27.199.204:8080/AurigaBusiness"></property-->	
+		<!--property name="url" value="http://172.16.17.32:8080/AurigaBusiness"></property-->
+		<!--property name="url" value="http://161.27.213.25:8090/AurigaBusiness"></property-->
+		<!--property name="url" value="http://172.16.84.124:9999/AurigaBusiness"></property-->	
+		<property name="businesstype" value="REST"></property>
+		<!--property name="sendAttachmentsByUri" value="true"></property-->
+	</bean>
+	
+	<!--bean id="AttachStorage" class="it.eng.utility.AurigaWebAttachStorage">
+	</bean-->
+	
+	<bean id="AurigaBusinessConfigurator" class="it.eng.config.AurigaBusinessClientConfig"
+		factory-method="getInstance">
+		<property name="url" value="http://172.27.1.139:8088/AurigaBusiness"></property>
+		<!--property name="url" value="http://localhost:8080/AurigaBusiness"></property-->
+		<!--property name="url" value="http://10.63.10.111:8080/AurigaBusiness"></property-->
+		<!--property name="url" value="http://10.63.10.118:8080/AurigaBusiness"></property-->
+		<!--property name="url" value="http://161.27.146.14:8080/AurigaBusiness1"></property-->
+		<!--property name="url" value="http://161.27.146.28:8080/AurigaBusiness1"></property-->
+		<!--property name="url" value="http://161.27.199.204:8080/AurigaBusiness"></property-->	
+		<!--property name="url" value="http://172.16.17.32:8080/AurigaBusiness"></property-->
+		<!--property name="url" value="http://161.27.213.25:8090/AurigaBusiness"></property-->
+		<!--property name="url" value="http://172.16.84.124:9999/AurigaBusiness"></property-->	
+		<property name="businesstype" value="REST"></property>
+	</bean>
+	
+	<bean id="MailConfigurator" class="it.eng.config.AurigaMailBusinessClientConfig"
+		factory-method="getInstance">
+		<property name="url" value="http://172.27.1.139:8085/AurigaMail"></property>
+	</bean>
+	
+	<!-- 
+	<bean id="EditorOrganigrammaConfigurator" class="it.eng.config.EditorOrganigrammaConfig"
+		factory-method="getInstance">
+		<property name="url" value="http://172.27.1.139:8088/EditorOrganigramma"></property>
+	</bean>
+	-->
+
+	<bean id="WSEndpointConfigurator" 
+        class="it.eng.auriga.ui.module.layout.shared.bean.WSEndpointConfigBean">
+		<property name="endpoints">
+			<util:map key-type="java.lang.String" value-type="java.lang.String">
+				
+			</util:map>
+		</property>
+	</bean>
+	
+	<bean id="ApplicationConfigurator"
+		class="it.eng.utility.ui.module.layout.shared.bean.ApplicationConfigBean">
+		<property name="idApplicazione" value="1"></property>
+	</bean>
+	
+	<bean id="MaxRowConfigurator"
+		class="it.eng.utility.ui.module.layout.shared.bean.MaxRowConfiguratorBean">
+		<property name="configurazioni">
+			<util:map key-type="java.lang.String" value-type="java.lang.Integer">
+				<entry key="AurigaRichiesteDataSource" value="50"></entry>
+			</util:map>
+		</property>
+	</bean>
+
+	<bean id="SchemaConfigurator"
+		class="it.eng.auriga.ui.module.layout.shared.bean.SchemaSelector">
+		<property name="schemi">
+			<util:list value-type="it.eng.auriga.ui.module.layout.shared.bean.SchemaBean">
+			    <!-- 139, Aosta -->
+	    		<bean class="it.eng.auriga.ui.module.layout.shared.bean.SchemaBean" id="OWNER_01">
+					<property name="name" value="OWNER_1"></property>
+					<property name="alias" value="ALIAS_01"></property>
+				</bean>
+				<!--
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.SchemaBean"	id="OWNER_TEST">
+					<property name="name" value="OWNER_TEST"></property>
+					<property name="alias" value="ALIAS_TEST"></property>
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.SchemaBean" id="PROD">
+					<property name="name" value="PROD_MI"></property>
+					<property name="alias" value="PROD_MI"></property>
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.SchemaBean" id="COLL_MAURIZIANO">
+					<property name="name" value="COLL_MAURIZIANO"></property>
+					<property name="alias" value="COLLAUDO"></property>
+				</bean>
+				-->
+			</util:list>
+		</property>
+	</bean>
+
+	<bean id="FileExtractorInstance"
+		class="it.eng.utility.ui.servlet.fileExtractor.FileExtractorInstance"
+		factory-method="getInstance">
+		<property name="mapExtractors">
+			<util:map key-type="java.lang.String" value-type="java.lang.String">
+				<entry key="FileToExtractBean"
+					value="it.eng.utility.ui.servlet.fileExtractor.impl.AurigaFileExtractor"></entry>
+				<entry key="RemoteExtractor"
+					value="it.eng.utility.ui.servlet.fileExtractor.impl.AurigaRemoteFileExtractor"></entry>
+			</util:map>
+		</property>
+	</bean>
+
+	<!-- Bean di configurazione per i parametri globali da usare nel modulo -->
+	<bean id="moduleConfig" class="it.eng.utility.module.config.ModuleConfig">
+		<property name="idDbStorage" value="AURIGATEMP@1"></property>
+	</bean>
+
+	<bean id="Storage" class="it.eng.utility.storageutil.StorageConfig">
+	</bean>
+	
+	<!--
+	<bean id="StorageSetter"
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetObject">
+			<ref local="Storage" />
+		</property>
+		<property name="targetMethod">
+			<value>configure</value>
+		</property>
+		<property name="arguments">
+			<list value-type="java.lang.String">
+				<value>C:\data</value>
+				<value>storage</value>
+				<value>/storage-poste.cfg.xml</value>
+			</list>
+		</property>
+	</bean>
+	-->
+	
+	<bean id="StorageSetter"
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetObject">
+			<ref local="Storage" />
+		</property>
+		<property name="targetMethod">
+			<value>configureWithOtherDatabase</value>
+		</property>
+		<property name="arguments">
+			<list value-type="java.lang.String">
+				<value>C:\\temp</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="messageSource"
+		class="org.springframework.context.support.ResourceBundleMessageSource">
+		<property name="basename" value="messages" />
+		<property name="useCodeAsDefaultMessage" value="true" />
+	</bean>
+	<!-- Utilizzato per accedere al contesto Spring -->
+	<bean id="coreAppContext" class="it.eng.core.config.SpringCoreContextProvider"></bean>
+
+	<bean id="RestBusinessConfig" class="it.eng.core.service.client.config.RestBusinessConfig">
+		<property name="connectionTimeout" value="120000"></property>
+		<property name="readTimeout" value="120000"></property>
+		<property name="errorMessage" value="Impossibile evadere la richiesta nel tempo stabilito. Riprovare più tardi"></property>
+	</bean>
+	
+	<bean id="VersioneConfig" class="it.eng.auriga.config.VersioneConfig">
+		<property name="versione" value="old"></property>
+	</bean>
+	
+	<bean id="StampaRegProtConfig"
+		class="it.eng.auriga.ui.module.layout.shared.bean.StampaRegProtConfig">
+		<property name="colsToPrint">
+			<array value-type="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="1" />
+					<property name="intestazione" value="Data e ora prot." />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="2" />
+					<property name="intestazione" value="N° prot." />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="3" />
+					<property name="intestazione" value="Tipo" />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="4" />
+					<property name="intestazione" value="Effettuato da" />
+					<property name="percentageWidth" value="12" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="5" />
+					<property name="intestazione" value="Prot. emergenza" />
+					<property name="percentageWidth" value="8" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="6" />
+					<property name="intestazione" value="Mittente/i" />
+					<property name="percentageWidth" value="12" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="7" />
+					<property name="intestazione" value="Destinatario/i" />
+					<property name="percentageWidth" value="12" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="8" />
+					<property name="intestazione" value="Oggetto" />
+					<property name="percentageWidth" value="19" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="9" />
+					<property name="intestazione" value="Fascicolo/i" />
+					<property name="percentageWidth" value="6" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="16" />
+					<property name="intestazione" value="Prot. ricevuto" />
+					<property name="percentageWidth" value="8" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="12" />
+					<property name="intestazione" value="Prot. annullato" />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="15" />
+					<property name="intestazione" value="Dati annullati" />
+					<property name="percentageWidth" value="5" />
+				</bean>	
+							
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="17" />
+					<property name="intestazione" value="Nr. allegati" />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<!--
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="13" />
+					<property name="intestazione" value="Data e ora di annullamento della registrazione" />
+					<property name="percentageWidth" value="4" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="14" />
+					<property name="intestazione" value="Estremi atto di annullamento della registrazione" />
+					<property name="percentageWidth" value="8" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="11" />
+					<property name="intestazione" value="Assegnatario/i della registrazione" />
+					<property name="percentageWidth" value="8" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="10" />
+					<property name="intestazione" value="Impronte dei file associati" />
+					<property name="percentageWidth" value="8" />
+				</bean>
+				-->
+			</array>
+		</property>
+	</bean>
+	
+	<!--  Usato per il report repertorio -->
+	<bean id="StampaRegRepertoriConfig"
+		class="it.eng.auriga.ui.module.layout.shared.bean.StampaRegProtConfig">
+		<property name="colsToPrint">
+			<array value-type="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="1" />
+					<property name="intestazione" value="Data e ora prot." />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="2" />
+					<property name="intestazione" value="N° prot." />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="3" />
+					<property name="intestazione" value="Tipo" />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="4" />
+					<property name="intestazione" value="Effettuato da" />
+					<property name="percentageWidth" value="12" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="5" />
+					<property name="intestazione" value="Prot. emergenza" />
+					<property name="percentageWidth" value="8" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="6" />
+					<property name="intestazione" value="Mittente/i" />
+					<property name="percentageWidth" value="12" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="7" />
+					<property name="intestazione" value="Destinatario/i" />
+					<property name="percentageWidth" value="12" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="8" />
+					<property name="intestazione" value="Oggetto" />
+					<property name="percentageWidth" value="19" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="9" />
+					<property name="intestazione" value="Fascicolo/i" />
+					<property name="percentageWidth" value="6" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="16" />
+					<property name="intestazione" value="Prot. ricevuto" />
+					<property name="percentageWidth" value="8" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="12" />
+					<property name="intestazione" value="Prot. annullato" />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="15" />
+					<property name="intestazione" value="Dati annullati" />
+					<property name="percentageWidth" value="5" />
+				</bean>	
+							
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="17" />
+					<property name="intestazione" value="Nr. allegati" />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				
+				<!-- (se registro di proposta atto/repertorio atti) 
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="18" />
+					<property name="intestazione" value="Ufficio proponente" />
+					<property name="percentageWidth" value="12" />
+				</bean>
+				-->
+				
+				<!-- (se registro di proposta atto)
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="19" />
+					<property name="intestazione" value="Stato della proposta" />
+					<property name="percentageWidth" value="7" />
+				</bean>
+				-->
+				
+				<!-- (se registro di proposta atto)
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="20" />
+					<property name="intestazione" value="Estremi repertorio" />
+					<property name="percentageWidth" value="6" />
+				</bean>
+				-->
+				
+				<!-- (se registro di repertorio atti)
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="21" />
+					<property name="intestazione" value="Estremi proposta" />
+					<property name="percentageWidth" value="6" />
+				</bean>
+				-->
+				
+				<!--  (se registro diverso dal Prot. Gen.) -->
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="22" />
+					<property name="intestazione" value="Estremi protocollo" />
+					<property name="percentageWidth" value="6" />
+				</bean>
+				
+				<!--  (se registro di proposta atto/repertorio atti)
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="23" />
+					<property name="intestazione" value="Periodo di pubblicazione" />
+					<property name="percentageWidth" value="8" />
+				</bean>
+				-->
+
+	            <!--  (se registro di proposta atto/repertorio atti)
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="24" />
+					<property name="intestazione" value="Data di adozione" />
+					<property name="percentageWidth" value="6" />
+				</bean>
+				-->
+			</array>
+		</property>
+	</bean>
+	
+	<!--  Usato per il report repertorio atti -->
+	<bean id="StampaRegRepertoriAttiConfig"
+		class="it.eng.auriga.ui.module.layout.shared.bean.StampaRegProtConfig">
+		<property name="colsToPrint">
+			<array value-type="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="1" />
+					<property name="intestazione" value="Data e ora prot." />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="2" />
+					<property name="intestazione" value="N° prot." />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="3" />
+					<property name="intestazione" value="Tipo" />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="4" />
+					<property name="intestazione" value="Effettuato da" />
+					<property name="percentageWidth" value="12" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="5" />
+					<property name="intestazione" value="Prot. emergenza" />
+					<property name="percentageWidth" value="8" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="6" />
+					<property name="intestazione" value="Mittente/i" />
+					<property name="percentageWidth" value="12" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="7" />
+					<property name="intestazione" value="Destinatario/i" />
+					<property name="percentageWidth" value="12" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="8" />
+					<property name="intestazione" value="Oggetto" />
+					<property name="percentageWidth" value="19" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="9" />
+					<property name="intestazione" value="Fascicolo/i" />
+					<property name="percentageWidth" value="6" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="16" />
+					<property name="intestazione" value="Prot. ricevuto" />
+					<property name="percentageWidth" value="8" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="12" />
+					<property name="intestazione" value="Prot. annullato" />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="15" />
+					<property name="intestazione" value="Dati annullati" />
+					<property name="percentageWidth" value="5" />
+				</bean>	
+							
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="17" />
+					<property name="intestazione" value="Nr. allegati" />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				
+				<!-- (se registro di proposta atto/repertorio atti) -->
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="18" />
+					<property name="intestazione" value="Ufficio proponente" />
+					<property name="percentageWidth" value="12" />
+				</bean>
+				
+				
+				<!-- (se registro di proposta atto)
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="19" />
+					<property name="intestazione" value="Stato della proposta" />
+					<property name="percentageWidth" value="7" />
+				</bean>
+				-->
+				
+				<!-- (se registro di proposta atto)
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="20" />
+					<property name="intestazione" value="Estremi repertorio" />
+					<property name="percentageWidth" value="6" />
+				</bean>
+				-->
+				
+				<!-- (se registro di repertorio atti) -->
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="21" />
+					<property name="intestazione" value="Estremi proposta" />
+					<property name="percentageWidth" value="6" />
+				</bean>
+				
+				
+				<!--  (se registro diverso dal Prot. Gen.) -->
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="22" />
+					<property name="intestazione" value="Estremi protocollo" />
+					<property name="percentageWidth" value="6" />
+				</bean>
+				
+				<!--  (se registro di proposta atto/repertorio atti) -->
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="23" />
+					<property name="intestazione" value="Periodo di pubblicazione" />
+					<property name="percentageWidth" value="8" />
+				</bean>
+				
+
+	            <!--  (se registro di proposta atto/repertorio atti) -->
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="24" />
+					<property name="intestazione" value="Data di adozione" />
+					<property name="percentageWidth" value="6" />
+				</bean>
+				
+			</array>
+		</property>
+	</bean>
+	
+
+	<!--  Usato per il report proposte  atti -->	
+	<bean id="StampaRegProposteAttiConfig"
+		class="it.eng.auriga.ui.module.layout.shared.bean.StampaRegProtConfig">
+		<property name="colsToPrint">
+			<array value-type="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="1" />
+					<property name="intestazione" value="Data e ora prot." />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="2" />
+					<property name="intestazione" value="N° prot." />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="3" />
+					<property name="intestazione" value="Tipo" />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="4" />
+					<property name="intestazione" value="Effettuato da" />
+					<property name="percentageWidth" value="12" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="5" />
+					<property name="intestazione" value="Prot. emergenza" />
+					<property name="percentageWidth" value="8" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="6" />
+					<property name="intestazione" value="Mittente/i" />
+					<property name="percentageWidth" value="12" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="7" />
+					<property name="intestazione" value="Destinatario/i" />
+					<property name="percentageWidth" value="12" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="8" />
+					<property name="intestazione" value="Oggetto" />
+					<property name="percentageWidth" value="19" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="9" />
+					<property name="intestazione" value="Fascicolo/i" />
+					<property name="percentageWidth" value="6" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="16" />
+					<property name="intestazione" value="Prot. ricevuto" />
+					<property name="percentageWidth" value="8" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="12" />
+					<property name="intestazione" value="Prot. annullato" />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="15" />
+					<property name="intestazione" value="Dati annullati" />
+					<property name="percentageWidth" value="5" />
+				</bean>	
+							
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="17" />
+					<property name="intestazione" value="Nr. allegati" />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				
+				<!-- (se registro di proposta atto/repertorio atti) -->
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="18" />
+					<property name="intestazione" value="Ufficio proponente" />
+					<property name="percentageWidth" value="12" />
+				</bean>
+				
+				
+				<!-- (se registro di proposta atto) -->
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="19" />
+					<property name="intestazione" value="Stato della proposta" />
+					<property name="percentageWidth" value="7" />
+				</bean>
+				
+				
+				<!-- (se registro di proposta atto) -->
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="20" />
+					<property name="intestazione" value="Estremi repertorio" />
+					<property name="percentageWidth" value="6" />
+				</bean>
+				
+				
+				<!-- (se registro di repertorio atti) 
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="21" />
+					<property name="intestazione" value="Estremi proposta" />
+					<property name="percentageWidth" value="6" />
+				</bean>
+				-->
+				
+				<!--  (se registro diverso dal Prot. Gen.) -->
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="22" />
+					<property name="intestazione" value="Estremi protocollo" />
+					<property name="percentageWidth" value="6" />
+				</bean>
+				
+				<!--  (se registro di proposta atto/repertorio atti) -->
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="23" />
+					<property name="intestazione" value="Periodo di pubblicazione" />
+					<property name="percentageWidth" value="8" />
+				</bean>
+				
+	            <!--  (se registro di proposta atto/repertorio atti) -->
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="24" />
+					<property name="intestazione" value="Data di adozione" />
+					<property name="percentageWidth" value="6" />
+				</bean>				
+			</array>
+		</property>
+	</bean>
+	
+
+	<bean id="StampaDistintaSpedizioneConfig"
+		class="it.eng.auriga.ui.module.layout.shared.bean.StampaDistintaSpedizioneConfig">
+		<property name="colsToPrint">
+			<array value-type="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="1" />
+					<property name="intestazione" value="Protocollo" />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="2" />
+					<property name="intestazione" value="Sigla" />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="3" />
+					<property name="intestazione" value="Data" />
+					<property name="percentageWidth" value="5" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="4" />
+					<property name="intestazione" value="Destinatario" />
+					<property name="percentageWidth" value="20" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="5" />
+					<property name="intestazione" value="Indirizzo" />
+					<property name="percentageWidth" value="20" />
+				</bean>
+				<bean class="it.eng.auriga.ui.module.layout.shared.bean.ColToPrint">
+					<property name="nroColonna" value="6" />
+					<property name="intestazione" value="Mezzo" />
+					<property name="percentageWidth" value="20" />
+				</bean>
+			</array>
+		</property>
+	</bean>	
+	<bean id="StampaEtichettaConIndirizzoConfig"
+		class="it.eng.auriga.ui.module.layout.shared.bean.StampaEtichettaConIndirizzoConfig">
+		<!-- Larghezza e altezza della etichetta espressa in cm -->
+		<property name="larghezzaEtichetta" value="7" />
+		<property name="altezzaEtichetta" value="3.71" />
+		<!-- Usata in StampaDistintaSpedizioneDataSource -->
+		<property name="nroColonna" value="3" />
+	</bean>
+	
+	<!-- Bean di mappatura utilizzato per le opzioni di stampa timbro per le email -->
+	<bean id="OpzioniTimbroAttachEmail"
+		class="it.eng.utility.ui.module.layout.shared.bean.OpzioniTimbroAttachEmail" scope="prototype">
+		<property name="timeout" value="60000"/>
+		<property name="codifica" value="BARCODE_PDF_417" />
+		<property name="rotazioneTimbro" value="VERTICALE" />
+		<property name="posizioneTimbro" value="BASSO_SN" />
+		<property name="posizioneIntestazione" value="INLINEA" />
+		<property name="timbroSingolo" value="false" />
+		<property name="paginaTimbro" ref="PaginaTimbroBean" />
+		<property name="mappaParametri" ref="MappaParametriBean" />
+		<property name="righeMultiple" value="false" />
+	</bean>
+	
+	<!-- VALORI: PRIMA,ULTIMA,TUTTE -->
+	<bean id="PaginaTimbroBean" class="it.eng.fileOperation.clientws.PaginaTimbro">
+		<property name="tipoPagina" value="PRIMA" />
+	</bean>
+	
+	<!-- Bean di mappatura utilizzato per le opzioni di stampa timbro per Barcode su A4 -->
+	<bean id="OpzioniCopertinaTimbroBean"
+		class="it.eng.utility.ui.module.layout.shared.bean.OpzioniCopertinaTimbroBean" scope="prototype">
+		<property name="timeout" value="60000" />
+		<property name="codifica" value="BARCODE_PDF_417" />
+		<property name="rotazioneTimbro" value="VERTICALE" />
+		<property name="posizioneTimbro" value="BASSO_SN" />
+		<property name="posizioneIntestazione" value="INLINEA" />
+		<property name="mappaParametri" ref="MappaParametriBean" />
+	</bean>
+	
+	<!-- Bean di mappatura utilizzato per le opzioni di stampa timbro in fase di post registrazione/aggiornamento documenti -->
+	<bean id="OpzioniTimbroAutoDocRegBean"
+		class="it.eng.utility.ui.module.layout.shared.bean.OpzioniTimbroAttachEmail" scope="prototype">
+		<property name="timeout" value="60000" />
+		<property name="codifica" value="BARCODE_PDF_417" />
+		<property name="rotazioneTimbro" value="VERTICALE" />
+		<property name="posizioneTimbro" value="ALTO_SN" />
+		<property name="posizioneIntestazione" value="INLINEA" />
+		<property name="mappaParametri" ref="MappaParametriBean" />
+		<property name="timbroSingolo" value="false" />
+		<property name="paginaTimbro" ref="PaginaTimbroAutoDocRegBean" />
+		<property name="righeMultiple" value="false" />
+	</bean>
+	
+	<!-- VALORI: PRIMA,ULTIMA,TUTTE -->
+	<bean id="PaginaTimbroAutoDocRegBean" class="it.eng.fileOperation.clientws.PaginaTimbro">
+		<property name="tipoPagina" value="TUTTE" />
+	</bean>
+	
+	<bean id="MappaParametriBean" class="it.eng.fileOperation.clientws.MappaParametri">
+		<property name="parametro">
+			<util:list value-type="it.eng.fileOperation.clientws.MappaParametri.Parametro">
+				<bean class="it.eng.fileOperation.clientws.MappaParametri.Parametro">
+					<property name="chiave" value="chiave1" />
+					<property name="valore" value="valore1" />
+				</bean>
+				<bean class="it.eng.fileOperation.clientws.MappaParametri.Parametro">
+					<property name="chiave" value="chiave2" />
+					<property name="valore" value="valore2" />
+				</bean>
+			</util:list>
+		</property>		
+	</bean>
+		
+	<bean id="authentication" class="it.eng.utility.authentication.Authentication">
+		<property name="authType" value="DB" />
+	</bean>
+	
+	<bean id="ldapAuth" class="it.eng.utility.authentication.LdapAuth">
+		<property name="hostLDAPServer" value="192.168.11.131" />
+		<property name="portLDAPServer" value="389" />
+		<property name="ssl" value="false" />
+		<property name="domain" value="estraspa.it" />
+		<property name="dn" value="dc=estraspa,dc=it" />
+		<property name="adminUser" value="cn=Guest GE. ESTRA,cn=Users,dc=estraspa,dc=it" />
+        <property name="adminPassword" value="estra_intranet" />
+		<property name="timeout" value="10000"/>
+		<property name="returnedAttsList">
+			<list value-type="java.lang.String">
+				<value>sn</value>
+				<value>givenName</value>
+				<value>samAccountName</value>
+				<value>description</value>
+			</list>
+		</property>
+	</bean>
+		
+    <!-- bean per la configurazione delle informazioni da leggere da LDAP quando si cerca dalla gui degli utenti--> 
+	<bean id="ldapAuthUserProperties" class="it.eng.utility.authentication.LdapAuthUserPropertiesBean">
+				<property name="cognome"                    value="sn"/>
+				<property name="nome"                       value="givenName"/>
+				<property name="username"                   value="samAccountName"/>				
+				<!-- inserire i corrispettivi attributi censiti in LDAP
+				<property name="codFiscale"					value="xxxx"/>
+				<property name="email"                      value="mail"/>
+				<property name="nromatricola"               value="xxxx"/>
+				<property name="titolo"                     value="xxxx"/>
+				<property name="qualifica"                  value="xxxx"/>
+				-->				
+	</bean>
+
+	<context:component-scan base-package="it.eng.auriga.ui.module.layout.server.init" />
+	
+	<!--context:component-scan base-package="it.eng.auriga.ui.module.layout.server.etichette" /-->
+	
+	<!--context:component-scan base-package="it.eng.utility.formati" /-->
+	
+	<bean id="defaultEtichette" class = "it.eng.auriga.ui.module.layout.server.etichette.ImpostaEtichettaBean">
+		<property name="tipoStampa" value="PDF"></property>
+		<property name="nomeStampante" value="Metto un valore a caso"></property>
+	</bean>
+	
+	<bean id="CustomMultipartProperty" class="it.eng.utility.ui.resolver.CustomMultipartProperty" lazy-init="true">
+    	<property name="tempRepository" value="C:\\temp"></property>
+        <property name="maxSize" value="100000000"></property>
+        <property name="threshold" value="1000000"></property> 
+	</bean>	
+	
+	<bean id="FormatConverterInterface" class = "it.eng.auriga.ui.module.layout.server.AurigaFormatPdfConverter">
+	</bean>
+
+	<bean id="officemanager" class="it.eng.utility.oomanager.config.OpenOfficeConfiguration">
+		<property name="maxTrytoconvert" value="2"></property>
+		<property name="instances">
+			<util:list value-type="it.eng.utility.oomanager.config.OpenOfficeInstance">
+				<bean class="it.eng.utility.oomanager.config.OpenOfficeInstance">
+ 					<property name="host" value="127.0.0.1"></property>
+					<property name="portList">
+						<util:list>
+							<value>9001</value>
+						</util:list>
+					</property>
+					<property name="servicename" value="OpenOffice_1"></property>
+					<property name="officeServiceHome" value="C:\applicazioni\OpenOffice\OpenOffice_4.1.5\"></property>
+				</bean>
+			</util:list>
+		</property>
+	</bean>
+
+ 	<util:map id="questionarioNuovaPraticaConfig" map-class="java.util.HashMap">
+    	<entry key="nomeWizard" value="WIZARD"/>
+      	<entry key="codApplicazione" value="SUAP"/>
+  	</util:map>
+	
+	<bean id="OdtConverter" class="it.eng.auriga.compiler.odt.OdtConverter">
+	</bean>
+
+	<bean id="OdtPathSetter"
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetObject">
+			<ref local="OdtConverter" />
+		</property>
+		<property name="targetMethod">
+			<value>setOdtPath</value>
+		</property>
+		<property name="arguments">
+			<list value-type="java.lang.String">
+				<value>D:\fileOdt\</value>
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="aurigaProxySetter" class="it.eng.utility.proxy.ProxySetter">
+		<property name="host" value="proxy.eng.it" />
+		<property name="port" value="3128" />
+		<property name="user" value="mravagna" />
+		<property name="password" value="silh7519" />
+	</bean>
+
+	<bean id="aurigaProxyManager" class="it.eng.utility.proxy.ProxyManager">
+		<property name="needProxy" value="true"></property>
+		<property name="proxySetter" ref="aurigaProxySetter"></property>
+	</bean>
+	
+	<!-- Permette di rendere invisibili alcuni campi nella maschera di proposta atto (viene considerato solo se ATTIVA_PROPOSTA_ATTO_2 è true (MILANO) -->
+	<bean id="avvioIterAttiFieldsVisibilityBean" class="it.eng.auriga.ui.module.layout.server.iterAtti.datasource.bean.AvvioIterAttiFieldsVisibilityBean">
+		<property name="tipoAttoId" value="#{new Integer(21)}"/>
+		<property name="hiddenFields">
+			<util:set value-type="java.lang.String">
+				<value>codRapidoOggetto</value>
+				<value>lookupTemplateOggetto</value>
+				<value>salvaComeTemplateOggetto</value>
+				<value>uploadFilePrimario</value>
+			</util:set>
+		</property>
+	</bean>
+	
+	<!-- bean per la configurazione dei modelli custom dei documenti da utilizzare per la stampa pdf del file primario per le istanze dei processi degli atti -->
+	<bean id="attiModelliCustom" class="it.eng.auriga.ui.module.layout.server.iterAtti.datasource.bean.AttiModelliCustomBean">
+		<property name="configMap">
+			<util:map key-type="java.lang.String" value-type="java.lang.String">
+				<entry key="modello_pubblicazione" value="Versione per pubblicazione"></entry>
+				<entry key="modello_validazione_DDN" value="Validazione DDN"></entry>
+				<entry key="modello_visto_contabilita" value="Visto settore contabile"></entry>
+				<entry key="modello_rigetto_contabilita" value="Rigetto settore contabile"></entry>
+			</util:map>
+		</property>
+	</bean>
+	
+	<bean id="WSEndPointArubaHsm" class="it.eng.auriga.ui.module.layout.shared.bean.WSEndPointArubaHsmBean">
+		<property name="wsdlArubaHsm" value="https://asbfe/ArubaSignService/ArubaSignService?wsdl" />
+		<property name="serviceNS" value="http://arubasignservice.arubapec.it/" />
+		<property name="serviceName" value="ArubaSignServiceService" />
+		<!-- Parametri per la marca -->
+		<property name="marcaServiceUrl" value="http://services.globaltrustfinder.com/adss/tsa" />
+		<property name="marcaServiceUid" value="" />
+		<property name="marcaServicePwd" value="" />
+	</bean>
+	
+	<bean id="TemplateStorageImpl" class="it.eng.auriga.compiler.impl.TemplateStorageAurigaWebImpl">
+	</bean>
+	
+<!-- 	<bean id="SUEClientConfig" class="it.eng.sue.client.config.SUEClientConfig"> -->
+<!-- 		<property name="endpoint" value="https://api.comune.milano.it:443/ImpresaInUnGiornoScrivaniaServizi/1.0/" /> -->
+<!-- 		<property name="proxyConfig" ref="ProxySUEClientConfig" /> -->
+<!-- 		<property name="tokenAuthentication" value="b7998a07-d941-3feb-91e7-1995e165f50e" /> -->
+<!-- 		<property name="readTimeout" value="120000" /> -->
+<!-- 		<property name="connectTimeout" value="120000" /> -->
+<!-- 		<property name="errorMessage" value="Il servizio SUE non risponde. Riprovare più tardi" /> -->
+<!-- 	</bean> -->
+	
+<!-- 	<bean id="ProxySUEClientConfig" class="it.eng.sue.client.config.ProxyConfig"> -->
+<!-- 		<property name="proxyHost" value="proxy.eng.it" /> -->
+<!-- 		<property name="proxyPort" value="3128" /> -->
+<!-- 		<property name="proxyUser" value="" /> -->
+<!-- 		<property name="proxyPassword" value="" /> -->
+<!-- 		<property name="useProxy" value="true" /> -->
+<!-- 	</bean> -->
+
+	
+
+	<bean id="cleanerProperties" class="org.htmlcleaner.CleanerProperties" />
+
+	<bean id="pdfConverter" class="it.eng.utility.pdfproducer.PdfConverterFactory"
+		factory-method="create">
+		<constructor-arg value="FLYING_SOUCER_HTML_CLEANER" />
+		<constructor-arg value="/pdfproducer/" />
+		<constructor-arg ref="cleanerProperties" />
+	</bean>
+	
+</beans>

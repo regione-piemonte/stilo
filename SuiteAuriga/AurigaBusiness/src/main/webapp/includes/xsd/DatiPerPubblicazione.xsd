@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="DatiPubblicazione">
+		<xs:annotation>
+			<xs:documentation>Dati della pubblicazione richiesta</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="DataInizioPubblicazione" type="xs:date">
+					<xs:annotation>
+						<xs:documentation>Data inizio pubblicazione richiesta</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="GiorniPubblicazione" type="xs:positiveInteger">
+					<xs:annotation>
+						<xs:documentation>N.ro di giorni per cui l'atto deve rimanere in pubblicazione</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="TipoAtto">
+					<xs:annotation>
+						<xs:documentation>Descrizione del tipo di atto (determina dirigenziale, delibera di giunta, delibera di consiglio, mozione, ecc)</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="xs:string">
+								<xs:attribute name="Id" type="xs:string">
+									<xs:annotation>
+										<xs:documentation>Identificativo del tipo di atto</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+							</xs:extension>
+						</xs:simpleContent>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="EstremiRegistrazioneAtto">
+					<xs:annotation>
+						<xs:documentation>Estremi di registrazione dell'atto da pubblicare</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="SiglaRegistro" type="xs:string"/>
+							<xs:element name="DataRegistrazione" type="xs:dateTime"/>
+							<xs:element name="Nro">
+								<xs:simpleType>
+									<xs:restriction base="xs:positiveInteger">
+										<xs:totalDigits value="7"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="SpecificitaAtto" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Indicazione di eventuali specificità dell'atto (es per dettagliare la tipologia)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Richiedente" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Descrizione del soggetto interno o esterno che richiede la pubblicazione</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Oggetto">
+					<xs:annotation>
+						<xs:documentation>Oggetto dell'atto da far apparire in pubblicazione</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:whiteSpace value="preserve"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="Esecutivita" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Dati di esecutività dell'atto</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Data" type="xs:date"/>
+							<xs:element name="Immediata" type="xs:boolean" minOccurs="0"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="FilePrincipale" type="FileType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>File principale dell'atto (in versione pubblicabile)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Allegati" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Eventuali file allegati dell'atto da pubblicare</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Allegato" type="FileType" maxOccurs="unbounded"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:complexType name="FileType">
+		<xs:sequence>
+			<xs:element name="DisplayFilename" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Nome con cui visualizzare il file sul sito di pubblicazione</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Mimetype" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Mimetype del file</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Dimensione" type="xs:positiveInteger">
+				<xs:annotation>
+					<xs:documentation>Dimensione del file in bytes</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Firmato">
+				<xs:annotation>
+					<xs:documentation>Indica se il file è firmato digitalmente</xs:documentation>
+				</xs:annotation>
+				<xs:complexType>
+					<xs:simpleContent>
+						<xs:extension base="xs:boolean">
+							<xs:attribute name="TipoFirma">
+								<xs:annotation>
+									<xs:documentation>Indica il formato della firma se il file è firmato digitalmente con firma digitale (se presenti più firme è il formato della busta crittografica più esterna)</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="CAdES"/>
+										<xs:enumeration value="PAdES"/>
+										<xs:enumeration value="XAdES"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:attribute>
+						</xs:extension>
+					</xs:simpleContent>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>

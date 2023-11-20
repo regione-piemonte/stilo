@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+docType:"Dokumenta tips",docTypeOther:"Cits dokumenta tips",label:"Dokumenta īpašības",margin:"Lapas robežas",marginBottom:"Apakšā",marginLeft:"Pa kreisi",marginRight:"Pa labi",marginTop:"Augšā",meta:"META dati",metaAuthor:"Autors",metaCopyright:"Autortiesības",metaDescription:"Dokumenta apraksts",metaKeywords:"Dokumentu aprakstoši atslēgvārdi (atdalīti ar komatu)",other:"\x3ccits\x3e",previewHtml:'\x3cp\x3eŠis ir \x3cstrong\x3eparauga teksts\x3c/strong\x3e. Jūs izmantojiet \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e.\x3c/p\x3e',
+title:"Dokumenta īpašības",txtColor:"Teksta krāsa",xhtmlDec:"Ietvert XHTML deklarācijas"});

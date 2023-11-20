@@ -1,0 +1,159 @@
+1        PACKAGE DMPK_RUOLI_AMM AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        
+12        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+13        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        
+20        	/**** Funzione per ricercare i ruoli amministrativi definiti ****/
+21        	FUNCTION TrovaRuoliAmm(
+22        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+23        																	-- (obblig). Codice identificativo del token di connessione
+24        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+25        			FlgPreimpostaFiltroIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1 i filtri e l'ordinamento vengono settati secondo le impostazioni dell'utente di lavoro, altrimenti restano come passati in input
+26        			--------------- inizio filtri di ricerca-------------------
+27        			IdRuoloIO				IN OUT	DMT_RUOLI_AMM.ID_RUOLO_AMM%type,		-- 1° filtro di ricerca: identificativo del ruolo
+28        			DesRuoloIO				IN OUT	DMT_RUOLI_AMM.DES_RUOLO_AMM%type,		-- 2° filtro di ricerca: descrizione del ruolo (ricerca case-insensitive in like)
+29        			CIProvRuoloIO			IN OUT	DMT_RUOLI_AMM.PROV_CI_RUOLO_AMM%TYPE,	-- 3° filtro di ricerca: codice che identifica il ruolo in un eventuale sistema esterno di provenienza (ricerca esatta case-sensitive)
+30        			FlgInclRuoliAppIO			IN OUT	PLS_INTEGER,					-- (valori 1/NULL) Se 1 significa che vengono ricercati anche ruoli che ricomprendono ruoli che matchano i primi 3 filtri
+31        			FlgInclAnnullatiIO		IN OUT	INTEGER,						-- (valori 1/0/NULL) 4° filtro di ricerca: se 1 vengono estratti anche i ruoli logicamente annullati, altrimenti no
+32        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+33        			ColOrderByIO			IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 5). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+34        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+35        																	-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+36        			FlgDescOrderByIO  		IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+37        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+38        			FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+39        			NroPaginaIO      			IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+40           			BachSizeIO				IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+41        																	-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+42        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+43        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+44        			NroTotRecOut			OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+45             			NroRecInPaginaOut 		OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+46        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+47        			ListaXMLOut				OUT		NOCOPY CLOB,					-- Lista dei ruoli trovati (XML conforme a schema LISTA_STD.xsd)
+48        																	-- Ogni ruolo è un tag Riga che contiene le seguenti colonne:
+49        																	-- 1: Identificativo del ruolo
+50        																	-- 2: Descrizione del ruolo
+51        																	-- 3: (valori 1/0) Se 1 è un ruolo che si espleta limitatamente alla UO in cui lo si assume, se 0 è un ruolo che si espleta in tutto il soggetto produttore/AOO (es: Sindaco, Direttore Generale, Assessore ecc)
+52        																	-- 4: (valori 1/0) Se 1 si tratta di un ruolo riservato di sistema e dunque non modificabile/cancellabile da applicativo
+53        																	-- 5: (valori 1/0) Se 1 si tratta di un ruolo annullato
+54        																	-- 6: (valori 1/0) Se 1 è un ruolo che include altri ruoli
+55        																	-- 7: Timestamp di creazione del ruolo(nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+56        																	-- 8: Descrizione dell'utente di creazione del ruolo
+57        																	-- 9: Timestamp di ultima modifica dei dati del ruolo(nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+58        																	-- 10: Descrizione dell'utente di ultima modifica dei dati del ruolo
+59        			FlgAbilInsOut	 		OUT 		PLS_INTEGER ,            			-- (valori 1/0) Se 1 si ha abilitazione a creazione di nuovi ruoli
+60        			FlgAbilUpdOut 			OUT 		PLS_INTEGER ,            			-- (valori 1/0) Se 1 si ha abilitazione a modifica di ruoli
+61        			FlgAbilDelOut 			OUT 		PLS_INTEGER,            			-- (valori 1/0) Se 1 si ha abilitazione a cancellazione di ruoli
+62        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+63        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+64        			ErrMsgOut				OUT 		VARCHAR2,						-- Messaggio d'errore
+65        			RigaTagNameIn			IN		VARCHAR2 DEFAULT NULL,				-- (opzionale) Come rinominare il tag Riga dell'XML ListaXMLOut di output
+66        			ColTagNameIn			IN		DMVA_STRING DEFAULT NULL)			-- (opzionale) Come rinominare i tag delle colonne in alternativa a Colonna Nro=.. nell'XML ListaXMLOut di output
+67        			return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+68        
+69        	/***** Funzione per ottenere tutti i dati di dettaglio del ruolo amministrativo *****/
+70        	function LoadDettRuoloAmm(
+71        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+72        																	-- (obblig). Codice identificativo del token di connessione
+73        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+74        			IdRuoloIO				IN OUT	DMT_RUOLI_AMM.ID_RUOLO_AMM%type,		-- (obblig.) Identificativo del ruolo
+75        			DesRuoloOut				OUT		DMT_RUOLI_AMM.DES_RUOLO_AMM%type,		-- Descrizione del ruolo
+76        			FlgLimUOOut				OUT		DMT_RUOLI_AMM.FLG_LIM_UO%type,		-- (valori 1/0) Se 1 è un ruolo che si espleta limitatamente alla UO in cui lo si assume, se 0 è un ruolo che si espleta in tutto il soggetto produttore/AOO
+77        			CIProvRuoloOut			OUT		DMT_RUOLI_AMM.PROV_CI_RUOLO_AMM%TYPE,	-- Codice che identifica il ruolo in un eventuale sistema esterno di provenienza
+78        			FlgLockedOut			OUT		PLS_INTEGER,					-- (valori 1/0) Indicatore di ruolo riservato dal sistema e non modificabile/cancellabile da GUI
+79        			RowidOut				OUT		VARCHAR2,						-- Rowid del record del ruolo
+80        			XMLRuoliInclusiOut		OUT		NOCOPY CLOB,					-- Lista dei ruoli inclusi nel ruolo (XML conforme a schema LISTA_STD.xsd)
+81        																	-- Ogni valore possibile è un tag "Riga" che contiene le seguenti colonne:
+82        																	-- 1: Id. del ruolo
+83        																	-- 2: Descrizione del ruolo
+84        			BachSizeOut				OUT		PLS_INTEGER,					-- Indica il massimo n.ro di record per ogni pagina da mostrare nella lista dei ruoli inclusi
+85        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+86        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+87        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+88        			return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+89        
+90        	/***** funzione per creare o modificare un ruolo amministrativo ******/
+91        	function IURuoloAmm(
+92        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+93        																	-- (obblig). Codice identificativo del token di connessione
+94        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+95        			IdRuoloIO				IN OUT	DMT_RUOLI_AMM.ID_RUOLO_AMM%type,		-- Identificativo del ruolo da modificare. Se non valorizzato il ruolo è da inserire ex-novo
+96        																	-- In output, salvo in caso di errore, è sempre valorizzato
+97        			DesRuoloIn				IN		DMT_RUOLI_AMM.DES_RUOLO_AMM%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+98        																	-- (obblig.) Descrizione del ruolo
+99        			FlgLimUOIn				IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+100        																	-- (valori 1/0/NUL) Se 1 è un ruolo che si espleta limitatamente alla UO in cui lo si assume, se 0 o NULL è un ruolo che si espleta in tutto il soggetto produttore/AOO
+101        			CIProvRuoloIn			IN		DMT_RUOLI_AMM.PROV_CI_RUOLO_AMM%TYPE DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+102        																	-- Codice che identifica il ruolo in un eventuale sistema esterno di provenienza
+103        			FlgLockedIn				IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+104        																	-- (valori 1/0/NULL) Indicatore di ruolo riservato dal sistema e non modificabile/cancellabile da GUI
+105        			FlgModRuoliInclusiIn		IN		VARCHAR2 DEFAULT 'I',				-- (valori I/C) Indica se i ruoli inclusi nel ruolo e indicati nell'argomento successivo sono forniti in modo incrementale (=I) (solo quelli da inserire/cancellare) oppure completo (=C), vale a dire che dovranno soppiantare tutti quelli già specificati in caso di ruolo da aggiornare
+106        			XMLRuoliInclusiIn			IN		CLOB DEFAULT NULL,					-- Lista dei ruoli inclusi nel ruolo (XML conforme a schema LISTA_STD.xsd)
+107        																	-- Ogni valore possibile è un tag "Riga" che contiene le seguenti colonne:
+108        																	-- 1: Id. del ruolo
+109        																	-- 2: Descrizione del ruolo
+110        																	-- 3: (valori 1/0/NULL) Flag di ruolo incluso da eliminare
+111        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+112        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+113        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+114        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+115        			WarningMsgOut			OUT		VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+116        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+117        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+118        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+119        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+120        
+121        
+122        	/*** Funzione di eliminazione di un ruolo										***/
+123        	/*** Si può specificare se l'eliminazione deve essere fisica o solo logica (annullamento)		***/
+124        	/*** Se non lo si specifica il sistema fa quella fisica se possibile, se no quella logica		***/
+125        	function DRuoloAmm(
+126        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+127        																	-- (obblig). Codice identificativo del token di connessione
+128        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+129        			IdRuoloIn				IN		DMT_RUOLI_AMM.ID_RUOLO_AMM%type,		-- (obblig.) Identificativo del ruolo da cancellare
+130        			FlgCancFisicaIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL): Se 1 si richiede la cancellazione fisica; se 0 l'annullamento logico; se non è valorizzato quella possibile delle 2.
+131        			MotiviIn				IN		DMT_ACTIVITIES.NOTE%type DEFAULT NULL,	-- Motivi della cancellazione/annullamento
+132        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+133        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+134        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+135        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+136        			WarningMsgOut			OUT		VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+137        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+138        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+139        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+140        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+141        
+142        	/***** funzione per cancellare o aggiungere un ruolo incluso ******/
+143        	function InsDelRuoloIncluso(
+144        			CodIdConnectionTokenIn	IN    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+145        																	-- (obblig). Codice identificativo del token di connessione
+146        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+147        			IdRuoloPadreIn			IN 		DMT_RUOLI_AMM.ID_RUOLO_AMM%type,		-- (obblig.) Identificativo del ruolo padre
+148        			DesRuoloInclIn			IN		DMT_RUOLI_AMM.DES_RUOLO_AMM%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+149        											-- (obblig.) Descrizione del ruolo
+150        			FlgRuoloInclDaElimIn	IN		VARCHAR2,	-- (valori 1/0/NULL) Se è valorizzato a 1 vogliamo eliminare il ruolo incluso, altrimenti siamo in inserimento
+151        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+152        																				-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+153        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+154        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+155        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+156        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+157        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+158        
+159        END DMPK_RUOLI_AMM;

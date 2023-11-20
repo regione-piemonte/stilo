@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Administrator (EMBRACE) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:complexType name="ModelloType">
+		<xs:annotation>
+			<xs:documentation>Estremi per identificare un modello documentale</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="Identificativo" type="xs:integer">
+				<xs:annotation>
+					<xs:documentation>Identificativo del modello nel sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Nome" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Nome del modello</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:choice>
+	</xs:complexType>
+	<xs:element name="FileModelloDocToExtract">
+		<xs:annotation>
+			<xs:documentation>ROOT element. Contiene gli estremi per individuare il file da estrarre</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Modello" type="ModelloType">
+					<xs:annotation>
+						<xs:documentation>Estremi del modello</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="NroVersione" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Nro di versione da estarre; se non specificata si intende l'ultima valida</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:positiveInteger">
+							<xs:minInclusive value="1"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<job id="actaDocumentJob" xmlns="http://xmlns.jcp.org/xml/ns/javaee" version="1.0">
+
+    <!-- Standard flow for main Documents - including Attachments and Classification -->
+    <step id="actaDocumentStep" next="actaAttachmentStep">
+        <properties>
+            <property name="job-document-max" value="5"/>
+        </properties>
+        <chunk item-count="3">
+            <reader ref="actaDocumentItemReader"/>
+            <processor ref="actaDocumentItemProcessor"/>
+            <writer ref="actaDocumentItemWriter"/>
+        </chunk>
+    </step>
+
+    <!-- Recovery flow for Attachments previously failed -->
+    <step id="actaAttachmentStep" next="actaClassificationStep">
+        <properties>
+            <property name="job-document-max" value="10"/>
+        </properties>
+        <chunk item-count="3">
+            <reader ref="actaAttachmentItemReader"/>
+            <processor ref="actaAttachmentItemProcessor"/>
+            <writer ref="actaAttachmentItemWriter"/>
+        </chunk>
+    </step>
+
+    <!-- Recovery flow for Classification previously failed -->
+    <step id="actaClassificationStep">
+        <properties>
+            <property name="job-document-max" value="10"/>
+        </properties>
+        <chunk item-count="3">
+            <reader ref="actaClassificationItemReader"/>
+            <processor ref="actaClassificationItemProcessor"/>
+            <writer ref="actaClassificationItemWriter"/>
+        </chunk>
+    </step>
+
+</job>

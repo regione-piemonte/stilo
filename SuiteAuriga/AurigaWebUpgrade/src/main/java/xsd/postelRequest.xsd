@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xs:schema version="1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="parts" type="partsType"/>
+    <!-- Root -->
+    <xs:complexType name="partsType">
+        <xs:sequence>
+            <!-- List of documents involved into flow -->
+            <xs:element name="documents" type="documentsType"/>
+            <!-- Single sender for all documents -->
+            <xs:element name="sender" type="senderType"/>
+            <!-- List of receivers for all documents -->
+            <xs:element name="receivers" type="receiversType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- List of documents involved into flow -->
+    <xs:complexType name="documentsType">
+        <xs:sequence>
+            <xs:element name="document" type="documentType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="documentaryUnit" type="xs:int" use="required"/>
+    </xs:complexType>
+
+    <!-- Single sender for all documents -->
+    <xs:complexType name="senderType">
+        <xs:sequence>
+            <xs:element ref="contact"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- List of receivers for all documents -->
+    <xs:complexType name="receiversType">
+        <xs:sequence>
+            <xs:element name="receiver" type="receiverType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Document detail -->
+    <xs:simpleType name="documentType">
+        <xs:restriction base="xs:string"/>
+    </xs:simpleType>
+
+    <!-- Receiver detail -->
+    <xs:complexType name="receiverType">
+        <xs:sequence>
+            <xs:element ref="contact"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- Contact detail -->
+    <xs:element name="contact" type="contactType"/>
+
+    <!-- Contact detail -->
+    <xs:complexType name="contactType">
+        <xs:all>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="surname" type="xs:string"/>
+            <xs:element name="phoneNumber" type="xs:string"/>
+            <xs:element name="town" type="xs:string"/>
+            <xs:element name="hamlet" type="xs:string"/>
+            <xs:element name="zipCode" type="xs:string"/>
+            <xs:element name="province" type="xs:string"/>
+            <xs:element name="state" type="xs:string"/>
+            <xs:element name="zone" type="xs:string"/>
+            <xs:element name="fiscalCode" type="xs:string"/>
+            <xs:element name="businessName" type="xs:string"/>
+            <xs:element name="postalOffice" type="xs:string"/>
+            <xs:element name="postalCode" type="xs:string"/>
+            <xs:element name="complementAddress" type="xs:string"/>
+            <xs:element name="complementNominative" type="xs:string"/>
+            <xs:element name="address" type="addressType"/>
+            <xs:element name="addressTypology" type="addressTypologyType"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- Address detail -->
+    <xs:complexType name="addressType">
+        <xs:all>
+            <xs:element name="civicNumber" type="xs:string"/>
+            <xs:element name="dug" type="xs:string"/>
+            <xs:element name="toponym" type="xs:string"/>
+            <xs:element name="exponent" type="xs:string"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- Enum for address typology -->
+    <xs:simpleType name="addressTypologyType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="NORMALE"/>
+            <xs:enumeration value="CASELLA POSTALE"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

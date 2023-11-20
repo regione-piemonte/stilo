@@ -1,0 +1,5 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+ Copyright (c) 2003-2020, CKSource - Frederico Knabben. All rights reserved.
+ For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
+*/
+CKEDITOR.plugins.setLang("devtools","gu",{title:"પ્રાથમિક માહિતી",dialogName:"વિન્ડોનું નામ",tabName:"ટેબનું નામ",elementId:"પ્રાથમિક આઈડી",elementType:"પ્રાથમિક પ્રકાર"});

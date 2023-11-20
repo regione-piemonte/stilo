@@ -1,0 +1,29 @@
+The steps to detect a leak:
+
+- Login into the application
+
+- Open Web Dev Tools
+
+- Take a first snapshot of the global namespace
+  var s1 = scopeleaks.snapshot();
+
+- Open and close a window (e.g. Sales Order)
+
+- Take a second snapshot and compare
+  var leaks = scopeleaks.leaks(s1); // leaks will have an array with all the global variables that are not null
+  
+- Show element
+
+  	var leaks = scopeleaks.leaks(s1); 
+  	
+	function funzione() {
+	  for (let i = 0; i < leaks.length; i++) {
+	  	console.log(leaks[i]);
+	  }
+	  console.log(leaks.length);
+	}
+	
+	funzione();
+
+
+  http://planet.openbravo.com/blog/finding-and-fixing-memory-leaks-in-a-smartclient-based-application/

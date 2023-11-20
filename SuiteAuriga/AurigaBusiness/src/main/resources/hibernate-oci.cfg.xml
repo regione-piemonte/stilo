@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+		"-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+		"http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        
+        <property name="default_schema">AURI_OWNER_1</property>
+        <property name="hibernate.connection.provider_class">it.eng.core.business.OCIConnectionProvider</property> 
+		
+		<property name="connection.url">jdbc:oracle:oci:@172.27.1.139:1521:AURIGA</property>
+        <property name="connection.username">AURI_OWNER_1</property>
+        <property name="connection.password">auri_owner_1</property>
+        
+      	<property name="oci.min_limit">1</property>
+      	<property name="oci.max_limit">10</property>
+      	<property name="oci.increment">1</property>
+      	<property name="oci.timeout">10</property>
+		
+    </session-factory>
+</hibernate-configuration>

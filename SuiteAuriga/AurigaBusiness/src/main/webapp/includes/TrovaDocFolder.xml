@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+	<TrovaDocFolder>		    	
+		<!--  filtro per cercare FOLDER  -->
+		
+		<!-- ricerca nome fascicolo -->
+		<FiltriPrincipali>
+			<TipoOggettiDaCercare>F</TipoOggettiDaCercare>
+		</FiltriPrincipali>
+		<FiltriAvanzati>
+			<Fascicolo>
+				<Nome>TEST 8</Nome>
+			</Fascicolo>
+		</FiltriAvanzati>
+		
+		<!-- ricerca full text
+		      <FiltriPrincipali>
+			<TipoOggettiDaCercare>F</TipoOggettiDaCercare>
+			<FiltroFullText>
+				<ListaParole>TIPO FOLDER DA WS</ListaParole>
+				<FlagTutteLeParole>1</FlagTutteLeParole>
+			</FiltroFullText>
+		      </FiltriPrincipali>
+                                 -->
+			
+		<!--  filtro per cercare DOCUMENTI DEL FOLDER 
+		        <FiltriPrincipali>
+			<TipoOggettiDaCercare>D</TipoOggettiDaCercare>
+			<FiltroFullText>
+				<ListaParole>TIPO FOLDER DA WS</ListaParole>
+				<FlagTutteLeParole>1</FlagTutteLeParole>
+			</FiltroFullText>
+		       </FiltriPrincipali>			
+		       <FiltriAvanzati>     
+			<AttributoAdd>       
+				<Nome>COD_SOCIETA</Nome>       
+				<OperatoreLogico>uguale</OperatoreLogico>       
+				<ValoreConfronto_1>01</ValoreConfronto_1>     
+			</AttributoAdd>     
+			<AttributoAdd>       
+				<Nome>COD_CLIENTE</Nome>       
+				<OperatoreLogico>uguale</OperatoreLogico>       
+				<ValoreConfronto_1>14</ValoreConfronto_1>     
+			</AttributoAdd>   
+		      </FiltriAvanzati>   
+		-->	 
+		<LimitaEstrazioneAlCampo>1</LimitaEstrazioneAlCampo> 
+		<Ordinamento>
+			<PerCampo>3</PerCampo>
+			</Ordinamento>
+			<Off-line>1</Off-line>
+	</TrovaDocFolder>

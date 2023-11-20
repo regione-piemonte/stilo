@@ -1,0 +1,101 @@
+1        PACKAGE DMPK_INT_CS_REGISTRI AUTHID CURRENT_USER IS
+2        
+3        	/****** funzione per ricavare i controlli da fare su un file-registro letto dal ftp *******/
+4        	function GetCtrlSuRegistro(
+5                    NomeCartellaFtpIn		IN				VARCHAR2,										-- (obblig.) Nome della cartella ftp da cui è stato letto il file del registro
+6        			NomeFileRegistroIn		IN				VARCHAR2,										-- (obblig.) Nome del file registro letto da ftp
+7        			MimetypeOut				OUT				VARCHAR2,										-- Mimetype del/i formati ammessi per il registro. Se più di uno sono separati da ;
+8        			FlgRichFirmaOut			OUT				PLS_INTEGER,									-- (valori 1/0) Se 1 indica che il file DEVE essere firmato digitalmente con firma valida
+9        			ErrContextOut           OUT            	VARCHAR2,                                       -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+10                    ErrCodeOut              OUT            	PLS_INTEGER,                                    -- N.ro errore di uscita
+11                    ErrMsgOut               OUT         	VARCHAR2                                        -- Messaggio d'errore
+12                    ) return PLS_INTEGER;                                                                	-- (valori 1/0) 1 = successo, 0 = errore
+13        
+14        	function TestEsistenzaRegistro(
+15        			NomeCartellaFtpIn		IN				VARCHAR2,										-- (obblig.) Nome della cartella ftp da cui è stato letto il file del registro
+16        			NomeFileRegistroIn		IN				VARCHAR2,										-- (obblig.) Nome del file registro letto da ftp
+17        			TsRicezioneSuFtpIn	    IN				VARCHAR2,										-- (obblig.) Data e ora in cui il registro è stato scritto sul ftp (nel formato DD/MM/RRRR HH24:MI:SS)
+18        			FlgEsisteOut			OUT				PLS_INTEGER,									-- Se 1 indica che il registro è già stato registrato in tabella, se 0 no
+19        			ErrContextOut           OUT            	VARCHAR2,                                       -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+20                    ErrCodeOut              OUT            	PLS_INTEGER,                                    -- N.ro errore di uscita
+21                    ErrMsgOut               OUT         	VARCHAR2                                        -- Messaggio d'errore
+22                    ) return PLS_INTEGER;                                                                	-- (valori 1/0) 1 = successo, 0 = errore
+23        
+24        	/***** funzione per registrare un file-registro letto su ftp in tabella T_REGISTRI_X_CS **********/
+25        	/***** va chiamata solo se NON è già stato registrato un file con la data terna:		**********/
+26        	/*****			NOME_CARTELLA_FTP + NOME_FILE + TS_RICEZIONE							**********/
+27        	function RegistraFile(
+28        			NomeCartellaFtpIn		IN				VARCHAR2,										-- (obblig.) Nome della cartella ftp da cui è stato letto il file del registro
+29        			NomeFileRegistroIn		IN				VARCHAR2,										-- (obblig.) Nome del file registro letto da ftp
+30        			TsRicezioneSuFtpIn	    IN				VARCHAR2,											-- (obblig.) Data e ora in cui il registro è stato scritto sul ftp (nel formato DD/MM/RRRR HH24:MI:SS)
+31        			EsitoCtrlFileIn        	IN				T_REGISTRI_X_CS.ESITO_CTRL_FILE%type,			-- (obblig.; valori OK/KO) Esito del controllo del file. Valori ammessi: OK e KO
+32        			ErrTypeCtrlFileIn    	IN				T_REGISTRI_X_CS.ERR_TY_CTRL_FILE%type,			-- (obblig. se EsitoCtrlFileIn=KO) Tipo di errore rilevato nel controllo del file:
+33        																									-- Valori possibili:
+34        																									--		nome_cartella_non_previsto
+35        																									--		nome_file_non_valido
+36        																									--		formato_non_corretto
+37        																									--		dimensione0
+38        																									--		file_corrotto
+39        																									--		firma_non_valida
+40        																									--		firma_assente
+41        																									--		file_profilo_non_corretto
+42        																									--		altro
+43        			ErrMsgCtrlFileIn		IN				CLOB,											-- (obblig. se EsitoCtrlFileIn=KO)  Messaggio completo con l'errore/i rilevato nel controllo del file
+44        			ImprontaFileIn			IN				T_REGISTRI_X_CS.IMPRONTA%type,					-- (obblig. se EsitoCtrlFileIn=OK)	Impronta calcolata sul file
+45        			EncodingImprontaIn		IN				T_REGISTRI_X_CS.ENCODING_IMPRONTA%type,			-- (obblig. se EsitoCtrlFileIn=OK)	Encoding usato nel calcolo dell'impronta: base64 o hex
+46        			AlgoritmoImprontaIn		IN				T_REGISTRI_X_CS.ALGORITMO_IMPRONTA%type,		-- (obblig. se EsitoCtrlFileIn=OK)	Algoritmo di calcolo dell'impronta: SHA-1, SHA-256, MD5
+47        			URIArchiviazioneIn		IN				VARCHAR2,										-- URI - in notazione di StorageUtil -
+48        			IdRegistroOut			OUT				T_REGISTRI_X_CS.ID_REGISTRO%type,				-- Id. univoco assegnato al registro (valorizzato sempre in caso di successo se la funzione restituisce 1)
+49        			FlgRollBckFullIn		IN 				PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+50        																									-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+51        			FlgAutoCommitIn			IN 				PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+52        			ErrContextOut           OUT            	VARCHAR2,                                       -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+53                    ErrCodeOut              OUT            	PLS_INTEGER,                                    -- N.ro errore di uscita
+54                    ErrMsgOut               OUT         	VARCHAR2,                                       -- Messaggio d'errore
+55                    XMLProfiloRegistroIn	IN				CLOB DEFAULT NULL								-- Eventuale xml con ulteriori dati del profilo dati del registro
+56        			) return PLS_INTEGER;                                                                	-- (valori 1/0) 1 = successo, 0 = errore
+57        
+58        	/****** funzione per ottenere il SIPManifest.xml con cui versare in conservazione un dato registro censito in T_REGISTRI_X_CS 	*******/
+59            /****** traccia in DB un nuovo tentativo di invio in conservazione del registro specificato	in input							*******/
+60        	function VersamentoRegistro(
+61                    IdRegistroIn       		IN				T_REGISTRI_X_CS.ID_REGISTRO%type,  				-- (obblig.) Id. che identifica il registro memorizzato in T_REGISTRI_X_CS
+62        			IdSIPOut				OUT				VARCHAR2,										-- Id. assegnato al Pacchetto di Versamento - SIP - generato
+63        			SIPManifestOut          OUT				NOCOPY CLOB,                                    -- SIPManifest.xml da inserire nel Pacchetto di Versamento con cui versare in conservazione il registro
+64                    FlgRollBckFullIn		IN 				PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+65        																									-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+66        			FlgAutoCommitIn			IN 				PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+67        			ErrContextOut           OUT            	VARCHAR2,                                       -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+68                    ErrCodeOut              OUT            	PLS_INTEGER,                                    -- N.ro errore di uscita
+69                    ErrMsgOut               OUT         	VARCHAR2                                        -- Messaggio d'errore
+70                    ) return PLS_INTEGER;                                                                	-- (valori 1/0) 1 = successo, 0 = errore
+71        
+72        	/****** traccia in DB l'avvenuto invio in conservazione del registro specificato in input		*******/
+73        	function RegistraVersamento(
+74                    IdRegistroIn       		IN				T_REGISTRI_X_CS.ID_REGISTRO%type,  				-- (obblig.) Id. che identifica il registro memorizzato in T_REGISTRI_X_CS
+75        			IdSIPIn					IN				VARCHAR2,										-- (obblig.) Id. univoco assegnato al Pacchetto di Versamento - SIP - del sistema di conservazione
+76        			FlgRollBckFullIn		IN 				PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+77        																									-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+78        			FlgAutoCommitIn			IN 				PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+79        			ErrContextOut           OUT            	VARCHAR2,                                       -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+80                    ErrCodeOut              OUT            	PLS_INTEGER,                                    -- N.ro errore di uscita
+81                    ErrMsgOut               OUT         	VARCHAR2                                        -- Messaggio d'errore
+82                    ) return PLS_INTEGER;                                                                	-- (valori 1/0) 1 = successo, 0 = errore
+83        
+84        	/***** funzione per riportare su un registro inviato in conservazione l''esito del versamento **********/
+85        	/***** in input va indicato l'Id. SIP del Pacchetto di Vesamento cui cui è stato versato 	  **********/
+86        	/***** La funzione va chiamata quando viene recuperato il Rapporto di Versamento 			  **********/
+87        	function RegistraEsitoVersamento(
+88        			IdSIPVersamentoIn		IN				T_REGISTRI_X_CS.ID_SIP%type,					-- (obblig.) Id. del SIP con cui il registro è stato versato in conservazione
+89        			EsitoVersamentoIn		IN				T_REGISTRI_X_CS.ESITO_INVIO_CS%type,			-- (obblig.) Esito del versamento in conservazione del registro: OK (accettato), KO (rifiutato), W (accettato con avvertimenti)
+90        			TsGenerazioneRdVIn		IN				VARCHAR2,											-- (obblig.) Data e ora di generazione del Rapporto di Versamento (riportate nell'xml del RdV stesso) (nel formato DD/MM/RRRR HH24:MI:SS)
+91        			XMLRdVIn				IN				CLOB,											-- (obblig) XML corrispondente al Rapporto di Versamento restituito dal sistema di conservazione
+92        			IdDocInConservazioneIn	IN				T_REGISTRI_X_CS.ID_DOC_IN_CS%type,				-- (obblig. se EsitoVersamentoIn = OK o W) Id. documento assegnato al documento del registro nel sistema di conservazione (riportato nel RdV)
+93        			FlgRollBckFullIn		IN 				PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+94        																									-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+95        			FlgAutoCommitIn			IN 				PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+96        			ErrContextOut           OUT            	VARCHAR2,                                       -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+97                    ErrCodeOut              OUT            	PLS_INTEGER,                                    -- N.ro errore di uscita
+98                    ErrMsgOut               OUT         	VARCHAR2                                        -- Messaggio d'errore
+99                    ) return PLS_INTEGER;                                                                	-- (valori 1/0) 1 = successo, 0 = errore
+100        
+101        END DMPK_INT_CS_REGISTRI;

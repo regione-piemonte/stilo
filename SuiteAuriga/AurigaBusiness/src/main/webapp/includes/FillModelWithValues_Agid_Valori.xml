@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<RT xmlns="http://www.digitpa.gov.it/schemas/2011/Pagamenti/">
+	<versioneOggetto>1</versioneOggetto>
+	<dominio>
+		<identificativoDominio>95044230654</identificativoDominio>
+		<identificativoStazioneRichiedente>00967720285_01</identificativoStazioneRichiedente>
+	</dominio>
+	<identificativoMessaggioRicevuta>0000000276684C001</identificativoMessaggioRicevuta>
+	<dataOraMessaggioRicevuta>2017-07-03T14:36:24</dataOraMessaggioRicevuta>
+	<riferimentoMessaggioRichiesta>AouRuggi-/-703</riferimentoMessaggioRichiesta>
+	<riferimentoDataRichiesta>2017-07-03</riferimentoDataRichiesta>
+	<istitutoAttestante>
+		<identificativoUnivocoAttestante>
+			<tipoIdentificativoUnivoco>A</tipoIdentificativoUnivoco>
+			<codiceIdentificativoUnivoco>CIPBITMM</codiceIdentificativoUnivoco>
+		</identificativoUnivocoAttestante>
+		<denominazioneAttestante>ICBPI</denominazioneAttestante>
+		<codiceUnitOperAttestante>COD_UNIT_OPER_ICBPI</codiceUnitOperAttestante>
+		<denomUnitOperAttestante>DENOMINAZIONE_UNIT_OPE_ICBPI</denomUnitOperAttestante>
+		<indirizzoAttestante>Corso Europa</indirizzoAttestante>
+		<civicoAttestante>18</civicoAttestante>
+		<capAttestante>20122</capAttestante>
+		<localitaAttestante>Milano</localitaAttestante>
+		<provinciaAttestante>MI</provinciaAttestante>
+		<nazioneAttestante>IT</nazioneAttestante>
+	</istitutoAttestante>
+	<enteBeneficiario>
+		<identificativoUnivocoBeneficiario>
+			<tipoIdentificativoUnivoco>G</tipoIdentificativoUnivoco>
+			<codiceIdentificativoUnivoco>95044230654</codiceIdentificativoUnivoco>
+		</identificativoUnivocoBeneficiario>
+		<denominazioneBeneficiario>AouRuggi</denominazioneBeneficiario>
+	</enteBeneficiario>
+	<soggettoVersante>
+		<identificativoUnivocoVersante>
+			<tipoIdentificativoUnivoco>F</tipoIdentificativoUnivoco>
+			<codiceIdentificativoUnivoco>PRVPRV12A56H703Y</codiceIdentificativoUnivoco>
+		</identificativoUnivocoVersante>
+		<anagraficaVersante>PROVA PROVA</anagraficaVersante>
+	</soggettoVersante>
+	<soggettoPagatore>
+		<identificativoUnivocoPagatore>
+			<tipoIdentificativoUnivoco>F</tipoIdentificativoUnivoco>
+			<codiceIdentificativoUnivoco>PRVPRV12A56H703Y</codiceIdentificativoUnivoco>
+		</identificativoUnivocoPagatore>
+		<anagraficaPagatore>PROVA PROVA</anagraficaPagatore>
+	</soggettoPagatore>
+	<datiPagamento>
+		<codiceEsitoPagamento>0</codiceEsitoPagamento>
+		<importoTotalePagato>40.66</importoTotalePagato>
+		<identificativoUnivocoVersamento>200170000010954</identificativoUnivocoVersamento>
+		<CodiceContestoPagamento>N/A</CodiceContestoPagamento>
+		<datiSingoloPagamento>
+			<singoloImportoPagato>40.66</singoloImportoPagato>
+			<esitoSingoloPagamento>PAGATO</esitoSingoloPagamento>
+			<dataEsitoSingoloPagamento>2017-07-03</dataEsitoSingoloPagamento>
+			<identificativoUnivocoRiscossione>0000000276684</identificativoUnivocoRiscossione>
+			<causaleVersamento>/RFB/200170000010954/40</causaleVersamento>
+			<datiSpecificiRiscossione>2/789456</datiSpecificiRiscossione>
+		</datiSingoloPagamento>
+	</datiPagamento>
+</RT>

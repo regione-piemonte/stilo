@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<job id="luceneIndexerJob_DEF_CTX_SO">
+    <step id="luceneIndexerStep_DEF_CTX_SO" >
+        <batchlet ref="luceneIndexerJob_DEF_CTX_SO"/>
+    </step>
+</job>

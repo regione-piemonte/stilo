@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html ng-app="chatApp" id="ng-app">
+
+	<head>		
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, maximum-scale=1, initial-scale=1">
+		<meta name="description" content="Auriga Chat">
+		
+		<title>Auriga Chat</title>
+		
+		<!-- includes -->
+		<script src="http://cdn.sockjs.org/sockjs-0.3.min.js"></script>
+		<script src="script/angular.js"></script>
+		<script src="script/angular-route.js"></script>
+		<script src="script/angular-resource.js"></script>
+		
+		<!-- CSS -->
+		<style type="text/css">
+		* {
+			-webkit-box-sizing: border-box;
+			-moz-box-sizing: border-box;
+			box-sizing: border-box;
+		}
+		#chatContainer {
+			background: #eee;
+			border: 1px solid #aaa;
+			width: 100%;
+			height: 400px;
+			overflow: hidden;
+			position: relative;
+		}	
+		.container {
+			height: 100%;
+			width: 100%;
+		}
+		textarea.form-control {
+			background: #eee;
+			border: 1px solid #aaa;
+			height: 100%;
+			width: 100%;
+		}
+		input {
+			background: #fff;
+			border: 1px solid #aaa;
+			width: 100%;
+			font-size: 1.1em;
+			padding: 5px;
+		}	
+		#chatContainer>div {
+			position: absolute;
+			bottom: 10px;
+			left: 10px;
+		}
+		p {
+			margin: 0 0 0.4em 0;
+			padding: 0;
+		}	
+		.system {
+			color: #e44;
+		}	
+		.message {
+			color: #222;
+		}	
+		.me {
+			color: #00a;
+		}
+		</style>				
+		
+		<!-- service e controller -->
+		<script>						
+			var chatApp = angular.module('chatApp', [ 'ngResource' ]);
+			chatApp.controller('chatCtrl', ['$scope', '$location', '$resource',
+				function($scope, $location, $resource) {
+					$scope.users = [];	
+					var chatServerUrl = 'http://' + $location.host() + ':9999/chat';
+					var applicationUrl = $window.location.href;
+					applicationUrl = applicationUrl.replace('chat.html','');
+					var sock = new SockJS(chatServerUrl);
+					var sockId = false;
+					sock.onopen = function() {
+						inputUsername.value = '';									
+						$resource(applicationUrl + 'springdispatcher/chat/login').get({}, function(response) {
+							inputUsername.value = response.username;
+							sock.send(JSON.stringify({
+								type : 'login',
+								username : inputUsername.value							
+							}));
+							appendMessage('system', 'Connesso! Benvenuto nella chat di Auriga.');							
+						});						
+					};
+					sock.onmessage = function(e) {
+						var data = JSON.parse(e.data);
+						switch (data.type) {
+							case 'init':													
+								sockId = data.id;
+								$scope.users = excludeMeFromUsers(data.users);
+								$scope.$apply();
+								appendMessage('message', data.history);
+								break;		
+							case 'newUser':
+								$scope.users = excludeMeFromUsers(data.users);
+								$scope.$apply();
+								appendMessage('system', 'L\'utente ' + data.username	+ ' è entrato nella chat');
+								break;
+							case 'userLeft':
+								$scope.users = excludeMeFromUsers(data.users);		
+								$scope.$apply();
+								appendMessage('system', 'L\'utente ' + data.username	+ ' è uscito dalla chat');
+								break;							
+							case 'message':
+								if(sockId === data.id) {
+									appendMessage('me', data.username + ': ' + data.message, data.id);
+								} else {
+									appendMessage('message', data.username + ': ' + data.message);	
+								}								
+								break;												
+							case 'error':
+								alert(data.error);
+								break;					
+						}
+					}														
+					// Send message
+					$scope.sendMessage = function() {
+						if (!sockId || !message.value.length)
+							return;
+						sock.send(JSON.stringify({
+							type : 'sendMessage',
+							username : inputUsername.value,
+							message : message.value.substr(0, 128)
+						}));
+						message.value = '';
+					};		
+					// Private chat
+					$scope.privateChat = function(user) {
+						alert(user.connid);
+					};
+				} 
+			]);			
+			function excludeMeFromUsers(users) {				
+				var otherUsers = [];				 
+				if(!inputUsername.value) {
+					return users;
+				}
+				for (var i = 0; i < users.length; i++) {
+					if(inputUsername.value != users[i].username) {
+						otherUsers.push(users[i]);
+					}					
+				}				
+				return otherUsers;
+			};
+			function appendMessage(type, message, id) {
+				if (typeof message == 'string')
+					message = [ message ];
+				for (var i = 0; i < message.length; i++) {
+					textAreaChat.value = textAreaChat.value + '\n' + message[i].replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+				}
+				textAreaChat.scrollTop = textAreaChat.scrollHeight;
+			};
+		</script>				
+	</head>
+	
+	<body ng-controller="chatCtrl">		
+		<input id="inputUsername" type="hidden">
+		<table height="100%" width="100%">
+			<tr>
+				<td>
+				 	<div class="container">
+						<textarea id="textAreaChat" rows="26" class="form-control" readonly>Connessione in corso...</textarea>
+					</div>	
+					<form id="formMessage" ng-submit="sendMessage()">
+						<input id="message" type="text" placeholder="Inserire il testo del messaggio">
+					</form>
+				</td>		
+				<td valign="top" width="120px">
+					<div align="center" ng-repeat="user in users">
+						<a href="#" ng-click="privateChat(user);">{{user.username}}</a>
+				    </div>
+				</td>
+			</tr>
+		</table>		
+	</body>
+	
+</html>

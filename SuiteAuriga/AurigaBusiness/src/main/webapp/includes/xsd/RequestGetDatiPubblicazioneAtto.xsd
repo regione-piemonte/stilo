@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:complexType name="NumerazioneType">
+		<xs:sequence>
+			<xs:element name="SiglaRegistro" type="xs:string"/>
+			<xs:element name="Anno" type="xs:gYear"/>
+			<xs:element name="Nro" type="xs:positiveInteger"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="RequestGetDatiPubblicazioneAtto">
+		<xs:annotation>
+			<xs:documentation>Root element della request per recuperare i dati di pubblicazione di un atto ed eventualmente la relata di pubblicazione</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:choice>
+					<xs:element name="IdUDAtto" type="xs:integer">
+						<xs:annotation>
+							<xs:documentation>Identificativo univoco dell'unità documentaria corrispondente all'atto di interesse</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element name="EstremiNumerazioneAtto" type="NumerazioneType">
+						<xs:annotation>
+							<xs:documentation>Estremi di numerazione definitiva dell'atto di cui recuperare i dati di pubblicazione</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+				</xs:choice>
+				<xs:element name="RecuperaRelataPubblicazione" type="xs:boolean" default="false">
+					<xs:annotation>
+						<xs:documentation>Indica se in allegato alla response deve  essere restituita o meno la relata di pubblicazione qualora sia disponibile</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This is a wrapper for all the other build files. -->
+<project basedir="." name="project_name">
+
+	<target name="changeManifest">
+		<jar file="${theFile}" update="true">
+			<manifest>
+				<!--attribute name="Permissions" value="sandbox"/ -->
+				<attribute name="Permissions" value="all-permissions" />
+				<attribute name="Codebase" value="*" />
+				<attribute name="Caller-Allowable-Codebase" value="*" />
+				<attribute name="Application-Library-Allowable-Codebase"
+					value="*" />
+				<attribute name="Trusted-Library" value="true" />
+				<attribute name="Class-Path" value="" />
+			</manifest>
+		</jar>
+		<signjar jar="${theFile}" storetype="pkcs12" keystore="cert/EII.pfx"
+			alias="le-f2353e4c-2799-43c8-8d51-9ae806c407f5" storepass="pelllo123" />
+	</target>
+	<target name="changeManifestCycle">
+		<echo message="plugin classpath:  ${libToSign}" />
+		<foreach target="changeManifest" param="theFile">
+			<fileset dir="${libToSign}" casesensitive="yes">
+				<include name="**/*.jar" />
+			</fileset>
+		</foreach>
+		<war destfile="${fileWar}" webxml="${webDir}/WEB-INF/web.xml">
+			<fileset dir="${webDir}">
+				<include name="**/*.*" />
+			</fileset>
+		</war>
+	</target>
+
+</project>

@@ -1,0 +1,1270 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<xs:simpleType name="FlagSiNoType">
+		<xs:annotation>
+			<xs:documentation>1=Sì, 0=No</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="1"/>
+			<xs:enumeration value="0"/>
+			<xs:enumeration value=""/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="FlagConsentiNegaType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="C"/>
+			<xs:enumeration value="N"/>
+			<xs:enumeration value=""/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="AttributoAddizionaleType">
+		<xs:sequence>
+			<xs:element name="Nome" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Nome identificativo dell'attributo</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:choice>
+				<xs:element name="ValoreSemplice" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Valore dell'attributo  se di tipo semplice e monovalore</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Lista">
+					<xs:annotation>
+						<xs:documentation>Valore/i dell'attributo (come  lista di record) se multivalore e/o strutturato</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Riga" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>Rappresenta un record-valore</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Colonna" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>Colonna / elemento del record-valore (sono tante colonne quante i sotto-attributi che compongono l'attributo nel caso sia strutturato)</xs:documentation>
+											</xs:annotation>
+											<xs:complexType mixed="true">
+												<xs:attribute name="Nro" type="xs:positiveInteger" use="required">
+													<xs:annotation>
+														<xs:documentation>Identifica la colonna</xs:documentation>
+													</xs:annotation>
+												</xs:attribute>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:simpleType name="LibreriaType">
+		<xs:annotation>
+			<xs:documentation>Nome che identifica una libreria contenente unità documentarie e fascicoli</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="100"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="NomeUDType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="100"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="OggettoUDType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="1000"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="OggettoFascType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="1000"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="SiglaRegNumType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="30"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="IdInSistemaEsternoType">
+		<xs:annotation>
+			<xs:documentation>Codice che identifica un oggetto in un sistema esterno</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="30"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="TipoCartaceoType">
+		<xs:annotation>
+			<xs:documentation>Tipo di cartaceo; valori possibili: OU=Originale unico; ONU=Originale non unico; C=Copia</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="OU"/>
+			<xs:enumeration value="ONU"/>
+			<xs:enumeration value="C"/>
+			<xs:enumeration value=""/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="OggDiTabDiSistemaType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un oggetto censito in una tabella di sistema del sistema documentale</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="CodId" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Identificativo del dato di sistema nella banca dati del sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Decodifica_Nome" type="xs:string"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:simpleType name="AnnoType">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1900"/>
+			<xs:maxInclusive value="2100"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="NumRegType">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="9999999"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="NroLivelloGerarchiaType">
+		<xs:annotation>
+			<xs:documentation>Nro di un livello di una struttura gerarchica come la struttura organizzativa o il titolario di classificazione: 1 è il livello più alto (ad esempio il settore o il titolo), 2 il successivo (ad esempio il servizio o la classe) e così via</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="10"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="CodLivelloGerarchiaType">
+		<xs:restriction base="xs:string"/>
+	</xs:simpleType>
+	<xs:complexType name="LivelloGerarchiaType">
+		<xs:attribute name="Nro" type="NroLivelloGerarchiaType" use="required"/>
+		<xs:attribute name="Codice" type="CodLivelloGerarchiaType" use="required"/>
+	</xs:complexType>
+	<xs:complexType name="UOType">
+		<xs:annotation>
+			<xs:documentation>Indica una UO attraverso il suo identificativo, i suoi livelli e attraverso la sua denominazione. </xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="IdUO" type="xs:integer"/>
+			<xs:element name="LivelloUO" type="LivelloGerarchiaType" maxOccurs="unbounded"/>
+			<xs:element name="DenominazioneUO" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>La denominazione della UO preceduta dalle denominazioni delle UO di livello superiore (separate da " | "). Es:   "Settore Edilizia | Ufficio Rilasci"</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="UserType">
+		<xs:sequence>
+			<xs:element name="IdInSistemaEsterno" type="IdInSistemaEsternoType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Identificativo dell'utente nel sistema che invoca il Web Service</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="IdInterno" type="xs:integer">
+				<xs:annotation>
+					<xs:documentation>Id. dell'utente all'interno del sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Decodifica_CognomeNome" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Descrizione / cognome e nome dell'utente nel sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="ScrivaniaVirtualeType">
+		<xs:annotation>
+			<xs:documentation>La scrivania virtuale rappresenta un utente non come persona fisica, ma nella funzione che svolge presso una certa UO. Può essere indicata univocamente indicando UO e utente; oppure il sistema può cercare di identificarla anche o solo a partire dalla sua descrizione</xs:documentation>
+		</xs:annotation>
+		<xs:all>
+			<xs:element name="UO" type="UOType"/>
+			<xs:element name="Utente" type="UserType"/>
+			<xs:element name="DesScrivaniaVirt" type="xs:string"/>
+		</xs:all>
+	</xs:complexType>
+	<xs:complexType name="RuoloAmmContestualizzatoType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un ruolo amministrativo eventualmente circoscritto ad un certo livello della struttura organizzativa piuttosto che ad una specifica UO (es: Dirigente, Dirigente di Settore, Dirigente del settore X, Dirigenti dei Servizi del Settore X, Segretarie del Settore dell'Ufficio X)</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="RuoloAmm" type="OggDiTabDiSistemaType"/>
+			<xs:choice>
+				<xs:element name="VsLivelloUO" type="NroLivelloGerarchiaType" minOccurs="0"/>
+				<xs:element name="VsTipoUO" type="OggDiTabDiSistemaType" minOccurs="0"/>
+			</xs:choice>
+			<xs:element name="VsUO" type="UOEstesaType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="RegistrazioneNumerazioneType">
+		<xs:all>
+			<xs:element name="CategoriaReg">
+				<xs:annotation>
+					<xs:documentation>Categoria di registrazione / numerazione; valori ammessi PG=Protocollo Generale; PP=Protocollo Particolare; R=Repertorio; E=Registrazione d'emergenza; A=Altra numerazione data esternamente al sistema documentale; I=Altra numerazione data internamente al sistema documentale</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="PG"/>
+						<xs:enumeration value="PP"/>
+						<xs:enumeration value="R"/>
+						<xs:enumeration value="E"/>
+						<xs:enumeration value="A"/>
+						<xs:enumeration value="I"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="SiglaReg" type="SiglaRegNumType"/>
+			<xs:element name="AnnoReg" type="AnnoType" minOccurs="0"/>
+			<xs:element name="NumReg" type="NumRegType"/>
+			<xs:element name="DataOraReg" type="xs:dateTime" minOccurs="0"/>
+			<xs:element name="UOReg" type="UOType" minOccurs="0"/>
+			<xs:element name="UserReg" type="UserType" minOccurs="0"/>
+			<xs:element name="FlagRegAnnullata" type="FlagSiNoType" minOccurs="0"/>
+		</xs:all>
+		<xs:attribute name="IdRegNum" type="IdInSistemaEsternoType"/>
+	</xs:complexType>
+	<xs:complexType name="ComuneItalianoType">
+		<xs:sequence>
+			<xs:element name="CodISTATComune" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:pattern value="[0-9]{6}"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="NomeComune" type="xs:string"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="EstremiRegNumType">
+		<xs:all>
+			<xs:element name="CategoriaReg" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Categoria di registrazione / numerazione; valori ammessi PG=Protocollo Generale; PP=Protocollo Particolare; R=Repertorio; E=Registrazione d'emergenza; A=Altra numerazione data esternamente al sistema documentale; I=Altra numerazione data internamente al sistema documentale</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="PG"/>
+						<xs:enumeration value="PP"/>
+						<xs:enumeration value="R"/>
+						<xs:enumeration value="E"/>
+						<xs:enumeration value="A"/>
+						<xs:enumeration value="I"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="SiglaReg" type="SiglaRegNumType"/>
+			<xs:element name="AnnoReg" type="AnnoType"/>
+			<xs:element name="NumReg" type="NumRegType"/>
+		</xs:all>
+	</xs:complexType>
+	<xs:complexType name="StatoNazionaleType">
+		<xs:sequence>
+			<xs:element name="CodISTATStato" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:pattern value="[0-9]{3}"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="NomeStato" type="xs:string"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="SoggettoEsternoType">
+		<xs:annotation>
+			<xs:documentation>Soggetto (persona fisica o giuridica) esterno all'AOO</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="CodIdInAnagrafe" type="IdInSistemaEsternoType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Codice identificativo del soggetto nell'anagrafe residenti/ditte.
+Sul documento il soggetto è riportato con i dati di seguito riportati, non con quelli eventuali presenti in anagrafe.</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="FlagFisica" type="FlagSiNoType">
+				<xs:annotation>
+					<xs:documentation>Indica se persona fisica (1) o giuridica (0)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Denominazione_Cognome" type="xs:string"/>
+			<xs:element name="Nome" type="xs:string" minOccurs="0"/>
+			<xs:element name="CodiceFiscale" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="16"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="PartitaIva" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="11"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="Sesso" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:pattern value="M|F|-"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="DataNascitaIstituzione" type="xs:date" minOccurs="0"/>
+			<xs:element name="ComuneNascita" type="ComuneItalianoType" minOccurs="0"/>
+			<xs:element name="StatoNascita" type="StatoNazionaleType" minOccurs="0"/>
+			<xs:element name="StatoCittadinanza" type="StatoNazionaleType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="ToponimoType">
+		<xs:sequence>
+			<xs:element name="CodToponomastico" type="xs:string" minOccurs="0"/>
+			<xs:element name="DescrizioneToponimo" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Descrizione del toponimo (incluso il tipo: Via, Vicolo, Piazza ecc)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="IndirizzoType">
+		<xs:all>
+			<xs:element name="Toponimo" type="ToponimoType" minOccurs="0"/>
+			<xs:element name="Civico" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>N.ro civico ed eventuale esponente</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Interno" type="xs:string" minOccurs="0"/>
+			<xs:element name="Scala" type="xs:string" minOccurs="0"/>
+			<xs:element name="Piano" type="xs:integer" minOccurs="0"/>
+			<xs:element name="Localita" type="xs:string" minOccurs="0"/>
+			<xs:element name="CAP" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:pattern value="[0-9]{5}"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="ComuneIndirizzo" type="ComuneItalianoType" minOccurs="0"/>
+			<xs:element name="NomeCittaEstera" type="xs:string" minOccurs="0"/>
+			<xs:element name="StatoIndirizzo" type="StatoNazionaleType" minOccurs="0"/>
+		</xs:all>
+	</xs:complexType>
+	<xs:complexType name="EmailType">
+		<xs:all>
+			<xs:element name="IndirizzoEmail" type="xs:string"/>
+			<xs:element name="FlagPEC" type="FlagSiNoType" minOccurs="0"/>
+			<xs:element name="FlagCasellaIstituzionaleAOO" type="FlagSiNoType" minOccurs="0"/>
+		</xs:all>
+	</xs:complexType>
+	<xs:complexType name="DestinatarioEsternoType">
+		<xs:complexContent>
+			<xs:extension base="SoggettoEsternoType">
+				<xs:sequence>
+					<xs:element name="PerConoscenza" fixed="1" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>Se presente indica che è destinatario per conoscenza</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element name="IndirizzoDest" type="IndirizzoType" minOccurs="0"/>
+					<xs:element name="IndirizzoEmailDest" type="EmailType" minOccurs="0"/>
+					<xs:element name="DataOraSpedAlDest" type="xs:dateTime" minOccurs="0"/>
+					<xs:element name="MezzoTrasmissioneAlDest" type="OggDiTabDiSistemaType" minOccurs="0"/>
+					<xs:element name="DataRaccomandataAlDest" type="xs:date" minOccurs="0"/>
+					<xs:element name="NroRaccomandataAlDest" type="xs:string" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="SoggettoEstEstesoType">
+		<xs:annotation>
+			<xs:documentation>Soggetto esterno che ha una relazione con un documento, fascicolo, proced. ecc. diversa da quella di mittente/destinatario</xs:documentation>
+		</xs:annotation>
+		<xs:complexContent>
+			<xs:extension base="SoggettoEsternoType">
+				<xs:sequence>
+					<xs:element name="NaturaRelazioneConUD" type="OggDiTabDiSistemaType">
+						<xs:annotation>
+							<xs:documentation>Natura della relazione del soggetto con l'unità documentaria (valore da apposita tabella di sistema)</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element name="DettNaturaRelazioneConUD" type="xs:string" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>Dettaglio della natura della relazione soggetto-UD</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="SoggettoInternoType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un soggetto interno all'AOO che può essere: una UO, un utente, una scrivania virtuale (che rappresenta l'utente non come persona, ma nella funzione che svolge presso una certa UO), un gruppo (di utenti o UO o scrivanie virtuali) o un ruolo amministrativo (es: Dirigente, Direttore Generale ecc). Quando si assegna ad un gruppo o un ruolo il sistema assegna a tutti gli utenti, UO e scrivanie del gruppo o aventi il ruolo</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="UO" type="UOType"/>
+			<xs:element name="Utente" type="UserType"/>
+			<xs:element name="ScrivaniaVirtuale" type="ScrivaniaVirtualeType"/>
+			<xs:element name="Gruppo" type="OggDiTabDiSistemaType"/>
+			<xs:element name="RuoloAmmContestualizzato" type="RuoloAmmContestualizzatoType"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="SoggettoInternoEstesoType">
+		<xs:complexContent>
+			<xs:extension base="SoggettoInternoType">
+				<xs:sequence>
+					<xs:element name="NaturaRelazioneConUD" type="OggDiTabDiSistemaType"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="ClassifFascicoloEstesoType">
+		<xs:complexContent>
+			<xs:extension base="ClassifFascicoloType">
+				<xs:sequence>
+					<xs:annotation>
+						<xs:documentation>Altri dati del fascicolo</xs:documentation>
+					</xs:annotation>
+					<xs:element name="OggettoFasc" type="OggettoFascType" minOccurs="0"/>
+					<xs:element name="TipoFasc" type="OggDiTabDiSistemaType" minOccurs="0"/>
+					<xs:element name="InCaricoA" type="AssegnatarioEffType" minOccurs="0"/>
+					<xs:element name="ApertoDa" type="UOUserType" minOccurs="0"/>
+					<xs:element name="AttributoAddFasc" type="AttributoAddizionaleType" minOccurs="0" maxOccurs="unbounded">
+						<xs:annotation>
+							<xs:documentation>Attributi addizionali (oltre quelli già previsti dal tracciato) del fascicolo. ATTENZIONE: gli attributi addizionali sono solo quelli previsti per il tipo del fascicolo; dunque se questo non è valorizzato non ci sono attributi addizionali</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="AssegnatarioEffType">
+		<xs:choice>
+			<xs:element name="UO" type="UOType"/>
+			<xs:element name="Utente" type="UserType"/>
+			<xs:element name="ScrivaniaVirtuale" type="ScrivaniaVirtualeType"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="UOUserType">
+		<xs:choice>
+			<xs:element name="UO" type="UOType"/>
+			<xs:element name="Utente" type="UserType"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="UOEstesaType">
+		<xs:complexContent>
+			<xs:extension base="UOType">
+				<xs:sequence>
+					<xs:element name="FlagIncluseSottoUO" type="FlagSiNoType" default="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="SoggettoInternoInACLType">
+		<xs:choice>
+			<xs:element name="InteroEnte" fixed="1"/>
+			<xs:element name="InteraAOO" fixed="1"/>
+			<xs:element name="ScrivanieDiUO" type="UOEstesaType"/>
+			<xs:element name="Utente" type="UserType"/>
+			<xs:element name="ScrivaniaVirtuale" type="ScrivaniaVirtualeType"/>
+			<xs:element name="Gruppo" type="OggDiTabDiSistemaType"/>
+			<xs:element name="RuoloAmmContestualizzato" type="RuoloAmmContestualizzatoType"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="FileUDxPrivilegioType">
+		<xs:choice>
+			<xs:element name="AllFiles" fixed="1">
+				<xs:annotation>
+					<xs:documentation>Serve a indicare che il privilegio è su tutti i file dell'unità documentaria</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="SuFile" type="xs:positiveInteger" maxOccurs="unbounded">
+				<xs:annotation>
+					<xs:documentation>Serve a listare i file su cui agisce il privilegio: 0=indica il file primario; n=indica il file associato all'n-esimo allegato (allegati da 1 in su)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="PrivilegioSuFileType">
+		<xs:sequence>
+			<xs:element name="Files" type="FileUDxPrivilegioType"/>
+		</xs:sequence>
+		<xs:attribute name="ConsentiNega" type="FlagConsentiNegaType" use="required"/>
+	</xs:complexType>
+	<xs:complexType name="ACLRecordType">
+		<xs:complexContent>
+			<xs:extension base="SoggettoInternoInACLType">
+				<xs:sequence>
+					<!-- segue la lista dei possibili privilegi sull'unità documentaria-->
+					<xs:element name="VisualizzazioneDati" type="FlagConsentiNegaType"/>
+					<xs:element name="VisualizzazioneFile" type="PrivilegioSuFileType"/>
+					<xs:element name="ModificaDati" type="FlagConsentiNegaType"/>
+					<xs:element name="ModificaFile" type="PrivilegioSuFileType"/>
+					<xs:element name="ModificaPermessi" type="FlagConsentiNegaType"/>
+					<xs:element name="Copia" type="FlagConsentiNegaType"/>
+					<xs:element name="Eliminazione" type="FlagConsentiNegaType"/>
+					<xs:element name="Recupero" type="FlagConsentiNegaType"/>
+					<xs:element name="AccessoLimitatoVerFilePubblicate" type="FileUDxPrivilegioType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="AssegnazioneInternaType">
+		<xs:complexContent>
+			<xs:extension base="SoggettoInternoType">
+				<xs:sequence>
+					<xs:element name="DataOraAssegnazione" type="xs:dateTime"/>
+					<xs:element name="FlagPerConoscenza" type="FlagSiNoType" default="0"/>
+					<xs:element name="LivelloPriorita" minOccurs="0">
+						<xs:simpleType>
+							<xs:restriction base="xs:string">
+								<xs:enumeration value="ALTA"/>
+								<xs:enumeration value="MEDIA"/>
+								<xs:enumeration value="BASSA"/>
+								<xs:enumeration value=""/>
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:element>
+					<xs:element name="MotivoAssegnazione" type="OggDiTabDiSistemaType" minOccurs="0"/>
+					<xs:element name="MessaggioAssegnazione" type="xs:string" minOccurs="0"/>
+					<xs:element name="DecorrenzaAssegnazione" type="xs:date" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>Data futura da cui decorrerà l'assegnazione</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<!-- i due elementi successivi servono per avere evidenze di scadenze se i tempi richiesti in questi elementi sono scaduti o prossimi alla scadenza -->
+					<xs:element name="RichiestaPresaInCaricoEntroGiorniNro" type="xs:positiveInteger" minOccurs="0"/>
+					<xs:element name="RichiestaRispostaEntroGiorniNro" type="xs:positiveInteger" minOccurs="0"/>
+					<xs:element name="RichiestaNotificaMail" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>Serve per richiedere notifica mail della presa in carico o presa visione del documento da parte dell'assegnatario</xs:documentation>
+						</xs:annotation>
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="IndirizzoEmailNotifica" type="xs:string" maxOccurs="unbounded"/>
+								<xs:element name="NotificaPer">
+									<xs:simpleType>
+										<xs:restriction base="xs:string">
+											<xs:enumeration value="PresaInCarico"/>
+											<xs:enumeration value="PresaVisione"/>
+											<xs:enumeration value="Entrambe"/>
+											<xs:enumeration value=""/>
+										</xs:restriction>
+									</xs:simpleType>
+								</xs:element>
+								<xs:element name="FlagPrimaUltima" default="P">
+									<xs:annotation>
+										<xs:documentation>Indica se la notifica deve essere data alla prima (P) o all'ultima (U) presa in carico e/o presa visione. Serve solo se l'assegnatario corrisponde a più utenti (il che può accadere se si tratta di una UO, un gruppo o un ruolo).</xs:documentation>
+									</xs:annotation>
+									<xs:simpleType>
+										<xs:restriction base="xs:string">
+											<xs:enumeration value="P"/>
+											<xs:enumeration value="U"/>
+											<xs:enumeration value=""/>
+										</xs:restriction>
+									</xs:simpleType>
+								</xs:element>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="ClassifUAType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta una classificazione e/o un'unità archivistica (UA), vale a dire un fascicolo basato sul titolario di calssificazione e identificato attraverso anno, classificazione, n.ro progressivo (all'interno di anno e classificazione) ed eventuale n.ro di sottofascicolo</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="IdFolder" type="xs:integer" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Id. del fascicolo archvistico</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="AnnoAperturaUA" type="AnnoType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Anno di apertura del fascicolo</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="LivelloClassificazione" type="LivelloGerarchiaType" maxOccurs="unbounded">
+				<xs:annotation>
+					<xs:documentation>Livelli di calssificazione (n.ro d'ordine gerarchico e codice identificativo di ciascuno)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroProgrUA" type="xs:positiveInteger" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Nro del fascicolo (progressivo all'interno di anno e classificazione)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroSottofasc" type="xs:positiveInteger" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>N.ro di sottofascicolo</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="FolderCustomType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un folder che non sia un'unità archivistica</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="IdFolder" type="xs:integer"/>
+			<xs:element name="Path_Nome" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Path e nome del folder. </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="ClassifFascicoloType">
+		<xs:choice>
+			<xs:element name="ClassifUA" type="ClassifUAType">
+				<xs:annotation>
+					<xs:documentation>Classificazione e/o fascicolo dell'archivio ufficiale basato sul titolario di classificazione (unità archivistica) assegnati all'unità documentaria.</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="FolderCustom" type="FolderCustomType">
+				<xs:annotation>
+					<xs:documentation>Fascicolo, che non sia un'unità archivistica, in cui si trova l'unità documentaria</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="VersioneElettronicaType">
+		<xs:annotation>
+			<xs:documentation>Contiene le informazioni di un file associato all'unità documentaria</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="NomeFile" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Nome dell'ultima versione del file valida e visibile all'utente. Se vuoto significa che non c'è alcuna versione del file valida e visibile</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NomeFileOriginale" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Nome originale del file indicato da chi ha archiviato il documento. Potrebbe essere diverso da NomeFile in caso il nome originale manchi di estensione/abbia estensioni errate o contenga caratteri non ammessi</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="ImprontaFile" type="DigestType">
+				<xs:annotation>
+					<xs:documentation>Impronta del file con relativo algoritmo ed encoding di calcolo</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroUltimaVersione" type="xs:positiveInteger" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>N.ro dell'ultima versione del file valida e visibile all'utente</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DimensioneFile" type="xs:integer">
+				<xs:annotation>
+					<xs:documentation>Dimensione del file in bytes</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="DifferenteDaAttuale" type="FlagSiNoType" use="optional">
+			<xs:annotation>
+				<xs:documentation>Indica se la versione del documento riportata nel tag e relativa ad una "fotografia storica" dei dati è diversa da quella attuale</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="ModificatoAlTsRich" type="FlagSiNoType" use="optional">
+			<xs:annotation>
+				<xs:documentation>Indica se la versione del documento è stata variata proprio alla data e ora a cui si è richiesta la "fotografia storica" dei dati</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="AllegatoUDType">
+		<xs:annotation>
+			<xs:documentation>Contiene i dati di un documento allegato di un''unità documentaria</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<!-- almeno uno dei due elementi seguenti è obbligatorio -->
+			<xs:element name="IdDoc" type="xs:integer">
+				<xs:annotation>
+					<xs:documentation>Identificativo univoco del documento allegato</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="TipoDocAllegato" type="OggDiTabDiSistemaType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Tipo dell'allegato </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DesAllegato" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Descrizione / oggetto dell'allegato</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="OriginaleCartaceo" type="FlagSiNoType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Indica se l'allegato è originariamente cartaceo</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="TipoCartaceo" type="TipoCartaceoType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Indica il tipo di cartaceo: originale unico o non unico o copia</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="VersioneElettronica" type="VersioneElettronicaType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Contiene le informazioni sull'eventuale versione elettronica dell'allegato</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="AttributoAddAlleg" type="AttributoAddizionaleType" minOccurs="0" maxOccurs="unbounded">
+				<xs:annotation>
+					<xs:documentation>Attributo addizionale (oltre quelli già previsti dal tracciato) con cui è caratterizzato l'allegato. </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="DatiUD">
+		<xs:annotation>
+			<xs:documentation>ROOT element dello schema</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="IdUD" type="xs:integer">
+					<xs:annotation>
+						<xs:documentation>Identificativo univoco assegnato all'unità documentaria nel sistema documentale</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="IdDocPrimario" type="xs:integer">
+					<xs:annotation>
+						<xs:documentation>Identificativo univoco del documento primario dell'unità documentaria</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="NomeUD">
+					<xs:annotation>
+						<xs:documentation>Nome dell'unità documentaria</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="NomeUDType">
+								<xs:attribute name="DifferenteDaAttuale" type="FlagSiNoType" use="optional">
+									<xs:annotation>
+										<xs:documentation>Indica se il valore del campo riportato nel tag e relativo ad una "fotografia storica" dei dati è diverso da quello attuale</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+								<xs:attribute name="ModificatoAlTsRich" type="FlagSiNoType" use="optional">
+									<xs:annotation>
+										<xs:documentation>Indica se il valore del campo è stato variato proprio alla data e ora a cui si è richiesta la "fotografia storica" dei dati</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+							</xs:extension>
+						</xs:simpleContent>
+					</xs:complexType>
+				</xs:element>
+				<!-- ATTENZIONE: dei due elementi successivi almeno uno deve essere valorizzato -->
+				<xs:element name="RegistrazioneData" type="RegistrazioneNumerazioneType" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Estremi e altri dati realtivi ad una registrazione o numerazione data all'unità documentaria esternamente o internamente al sistema documentale</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="OggettoUD">
+					<xs:annotation>
+						<xs:documentation>Oggetto dell'unità documentaria</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="OggettoUDType">
+								<xs:attribute name="DifferenteDaAttuale" type="FlagSiNoType" use="optional">
+									<xs:annotation>
+										<xs:documentation>Indica se il valore del campo riportato nel tag e relativo ad una "fotografia storica" dei dati è diverso da quello attuale</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+								<xs:attribute name="ModificatoAlTsRich" type="FlagSiNoType" use="optional">
+									<xs:annotation>
+										<xs:documentation>Indica se il valore del campo è stato variato proprio alla data e ora a cui si è richiesta la "fotografia storica" dei dati</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+							</xs:extension>
+						</xs:simpleContent>
+					</xs:complexType>
+				</xs:element>
+				<!-- i 5 elementi seguenti sono relativi al documento primario dell'unità documentaria-->
+				<xs:element name="TipoDoc" type="OggDiTabDiSistemaType">
+					<xs:annotation>
+						<xs:documentation>Tipo del documento primario (possibile solo uno dei valori in apposita tabella del sistema documentale)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="OriginaleCartaceo" type="FlagSiNoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Indica se il documento primario è originariamente cartaceo</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="TipoCartaceo" type="TipoCartaceoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Indica il tipo di cartaceo: originale unico o non unico o copia</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="VersioneElettronica" type="VersioneElettronicaType">
+					<xs:annotation>
+						<xs:documentation>Contiene le informazioni sull'eventuale file primario dell'unità documentaria</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="TipoProvenienza" default="I" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Indica se unità documentaria in entrata (E), uscita (U) o interna (I)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:enumeration value="E"/>
+							<xs:enumeration value="U"/>
+							<xs:enumeration value="I"/>
+							<xs:enumeration value=""/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="NroAllegati" type="xs:integer">
+					<xs:annotation>
+						<xs:documentation>Nro di allegati dell'unità documentaria.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="DatiProduzione" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Dati di produzione del documento</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="DataStesura" type="xs:date" minOccurs="0"/>
+							<xs:element name="LuogoStesura" type="xs:string" minOccurs="0"/>
+							<xs:element name="Estensore" type="UserType" minOccurs="0" maxOccurs="unbounded"/>
+							<xs:element name="UffProduttore" type="UOType" minOccurs="0" maxOccurs="unbounded"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="DatiEntrata" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Dati di acquisizione dall'esterno dell'unità documentaria</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="DataOraArrivo" type="xs:dateTime" minOccurs="0"/>
+							<xs:element name="DataDocRicevuto" type="xs:date" minOccurs="0"/>
+							<xs:element name="EstremiRegistrazioneDocRicevuto" type="xs:string" minOccurs="0"/>
+							<xs:element name="RiferimentiDocRicevuto" type="xs:string" minOccurs="0"/>
+							<xs:element name="MezzoTrasmissione" type="OggDiTabDiSistemaType" minOccurs="0"/>
+							<xs:element name="DataRaccomandata" type="xs:date" minOccurs="0"/>
+							<xs:element name="NroRaccomandata" type="xs:string" minOccurs="0"/>
+							<xs:element name="MittenteEsterno" type="SoggettoEsternoType" minOccurs="0" maxOccurs="unbounded"/>
+							<xs:element name="FirmatarioEsterno" type="SoggettoEsternoType" minOccurs="0" maxOccurs="unbounded"/>
+							<xs:element name="IndirizzoProv" type="IndirizzoType" minOccurs="0"/>
+							<xs:element name="IndirizzoEmailProv" type="EmailType" minOccurs="0"/>
+							<xs:element name="UtenteRicezione" type="UserType" minOccurs="0"/>
+							<xs:element name="UffRicezione" type="UOType" minOccurs="0"/>
+							<xs:element name="UtenteCtrlAmmissib" type="UserType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Utente che ha eseguito il controllo di ammissibilità in caso di documento pervenuto via PEC o via fax server</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="DatiUscita" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Dati di uscita dell'unità documentaria </xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="DataOraSped" type="xs:dateTime" minOccurs="0"/>
+							<xs:element name="MezzoTrasmissione" type="OggDiTabDiSistemaType" minOccurs="0"/>
+							<xs:element name="DataRaccomandata" type="xs:date" minOccurs="0"/>
+							<xs:element name="NroRaccomandata" type="xs:string" minOccurs="0"/>
+							<xs:element name="DestinatarioEsterno" type="DestinatarioEsternoType" minOccurs="0" maxOccurs="unbounded"/>
+							<xs:element name="UtenteSpedizione" type="UserType" minOccurs="0"/>
+							<xs:element name="UffSpedizione" type="UOType" minOccurs="0"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="AltroSoggEsterno" type="SoggettoEstEstesoType" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Permette di indicare, oltre a mittenti, destinatari e firmatari, altri soggetti esterni che possono essere interessati/coinvolti dal documento (es: contraenti se trattasi di contratto, ecc)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="AssegnazioneInterna" type="AssegnazioneInternaType" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Contiene indicazione degli assegnatari interni attuali (non cioè i primi assegnatari) dell'unità documentaria e dettagli sull'assegnazione ad essi.  </xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="CopiaDaTenereA" type="SoggettoInternoType" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Soggetti interno, non assegnatario, a cui è rimasta copia del documento. </xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="AltroSoggettoInterno" type="SoggettoInternoEstesoType" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Soggetto interno  che ha un ruolo/relazione con l'unità documentaria (oltre ai soggetti interni altrimenti specificati nel tracciato)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="CollocazioneClassificazioneUD">
+					<xs:annotation>
+						<xs:documentation>Contiene le eventuali classificazioni dell'unità documentaria e l'indicazione di dove è collocata l'unità documentaria stessa (libreria, folder-fascicolo, workspace): almeno un folder o un workspace è presente</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="LibreriaUD" type="LibreriaType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Libreria in cui si trova l'unità documentaria</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="ClassifFascicolo" type="ClassifFascicoloEstesoType" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>Contiene le informazioni di una classificazione dell'unità documentaria e/o di un fascicolo  in cui si trova l'unità documentaria. Il fascicolo può essere di due tipi: unità archivistica (folderizzazione basata sul titolario di classificazione), ovvero un fascicolo ufficiale dell'archivio dell'Ente; fascicolo "custom" (identificato da un path). </xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="Workspace" type="OggDiTabDiSistemaType" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>Riporta gli estremi di un workspace in cui si trova l'unità documentaria</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<!-- documenti allegati (con o senza file associato) -->
+				<xs:element name="AllegatoUD" type="AllegatoUDType" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Dati di un documento allegato dell'unità documentaria. Gli allegati sono restituiti in ordine dal 1° all'ultimo registrato in DB.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<!-- l'emento successivo serve ad indicare qual è l'unità documentaria precedente a quella da caricare (ad esempio quella di cui quella da caricare è la risposta) -->
+				<xs:element name="InRispostaAUD" type="EstremiRegNumType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Estremi di registrazione/numerazione per identificare l'unità documentaria di cui quella corrente rappresenta una risposta/il successivo.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="LivelloRiservatezzaInterno" type="xs:positiveInteger" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Livello di riservatezza per i soggetti interni all'AOO (valori interi da 1 in su)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FlagVietatoAccessoEsterno" type="FlagSiNoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Indica se soggetti esterni possono consultare o meno l'unità documentaria</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="VietatoAccessoEsternoFinoAl" type="xs:date" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Indica la data fino a cui l'accesso al documento è precluso ai soggetti esterni</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="PermessoVsSoggInterno" type="ACLRecordType" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Privilegi sull'unità documentaria assentiti o negati ad un soggetto interno. Dunque attraverso questo elemento si ricostruisce l'ACL (Access Control List) dell'unità documentaria. </xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="LivelloEvidenza" type="xs:positiveInteger" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Livello di evidenza/priorità dell'unità documentaria (valori interi da 1 in su)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Stato" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Stato dell'unità documentaria</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:complexContent>
+							<xs:extension base="OggDiTabDiSistemaType">
+								<xs:attribute name="DifferenteDaAttuale" type="FlagSiNoType" use="optional">
+									<xs:annotation>
+										<xs:documentation>Indica se il valore del campo riportato nel tag e relativo ad una "fotografia storica" dei dati è diverso da quello attuale</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+								<xs:attribute name="ModificatoAlTsRich" type="FlagSiNoType" use="optional">
+									<xs:annotation>
+										<xs:documentation>Indica se il valore del campo è stato variato proprio alla data e ora a cui si è richiesta la "fotografia storica" dei dati</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+							</xs:extension>
+						</xs:complexContent>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="StatoDettaglio" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Stato di dettaglio dell'unità documentaria</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:complexContent>
+							<xs:extension base="OggDiTabDiSistemaType">
+								<xs:attribute name="DifferenteDaAttuale" type="FlagSiNoType" use="optional">
+									<xs:annotation>
+										<xs:documentation>Indica se il valore del campo riportato nel tag e relativo ad una "fotografia storica" dei dati è diverso da quello attuale</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+								<xs:attribute name="ModificatoAlTsRich" type="FlagSiNoType" use="optional">
+									<xs:annotation>
+										<xs:documentation>Indica se il valore del campo è stato variato proprio alla data e ora a cui si è richiesta la "fotografia storica" dei dati</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+							</xs:extension>
+						</xs:complexContent>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="NoteUD" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Note dell'unità documentaria</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="xs:string">
+								<xs:attribute name="DifferenteDaAttuale" type="FlagSiNoType" use="optional">
+									<xs:annotation>
+										<xs:documentation>Indica se il valore del campo riportato nel tag e relativo ad una "fotografia storica" dei dati è diverso da quello attuale</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+								<xs:attribute name="ModificatoAlTsRich" type="FlagSiNoType" use="optional">
+									<xs:annotation>
+										<xs:documentation>Indica se il valore del campo è stato variato proprio alla data e ora a cui si è richiesta la "fotografia storica" dei dati</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+							</xs:extension>
+						</xs:simpleContent>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="AttributoAddUD" type="AttributoAddizionaleType" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Attributo addizionale (oltre quelli già previsti dal tracciato) con cui e' caratterizzata l'unità documentaria. </xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="DataOraCreazione" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Data e ora di creazione dell'unità documentaria nel formato configurato come standard per data e ora</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="UtenteDiCreazione" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Descrizione dell'utente di creazione dell'unità documentaria</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="DataOraUltimaModifica" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Data di ultima modifica dell'unità documentaria nel formato configurato come standard per data e ora</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="UtenteUltimaModifica" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Descrizione dell'utente di ultima modifica dei dati dell'unità documentaria</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="DataOraUltimoAccesso" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Data e ora di ultimo accesso all'unità documentaria (in visualizzazione), ovviamaente prima di quello attuale, da parte dell'utente connesso (nel formato configurato come standard per data e ora)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="LockInfo" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Estremi - utente e data - di un eventuale lock apposto sull'unità documentaria o su folder/workspace cui appartiene. Se è vuoto vuol dire che non c'è alcun lock</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="BitmapAbilitazioniAzioniUD" type="xs:string">
+					<xs:annotation>
+						<xs:documentation> E' una stringa di 1/0 in cui ogni carattere rappresenta l'abilitazione (1) o meno (0) dell'utente connesso ad una certa azione sull'unità documentaria
+						1° carattere: Editing/modifica dei metadati
+						2° carattere: Cancellazione dell'unità documentaria
+						3° carattere: Invio dell'unità documentaria
+						4° carattere: Notifica dell'unità documentaria
+						5° carattere: Presa in carico dell'unità documentaria
+						6° carattere: Avvio di un processo sull'unità documentaria
+						7° carattere: Lock dell'unità documentaria
+						8° carattere: Unlock dell'unità documentaria
+						9° carattere: Aggiunta ai preferiti
+						10°carattere: Eliminazione dai preferiti
+						11°carattere: Abilitazione a creare prima versione non pubblicata di un nuovo documento non primario
+						12°carattere: Presa visione dell'unità documentaria 			
+						13° carattere: Abilitazione a creare la prima versione per un nuovo documento non primario			
+						14° carattere: Abilitazione alla modifica dei permessi</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="BitmapAbilitazioniAzioniFilePrimario" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Stringa di 1/0 din cui ogni carattere rappresenta l'abilitazione (1) o meno (0) dell'utente connesso ad una certa azione sul file primario (l'ultima versione visibile). I significati dei bit (caratteri di posizione i-esima) sono:
+					1° carattere: Abilitazione al versioning/modifica del file
+					2° carattere: Abilitazione alla firma del file
+					3° carattere: Abilitazione alla cancellazione di tutte le versioni del file
+					4° carattere: Abilitazione alla modifica delle note del file 
+					 5° carattere: Abilitazione alla modifica dello stato di pubblicazione del file
+					8° carattere: Abilitazione al creare nuova versione non pubblicata
+			</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="RuoloUtenteRispettoUD" type="OggDiTabDiSistemaType" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Ruoli che ha l'utente connesso rispetto all'unità documentaria
+						</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="DatiInvioEmail" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Dati delle mail di trasmissione dell'unità documentaria richieste con WS di AddUd e UpdUd</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Destinatario" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>Dati della trasmissione e-mail a uno specifico destinatario</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="IndirizzoEmail" type="xs:string">
+											<xs:annotation>
+												<xs:documentation>Indirizzo mail destinatario</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="StatoInvioConsegna">
+											<xs:annotation>
+												<xs:documentation>Stato di invio/trasmissione al dato destinatario (valorizzato sempre)</xs:documentation>
+											</xs:annotation>
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+													<xs:enumeration value="da_inviare"/>
+													<xs:enumeration value="inviata"/>
+													<xs:enumeration value="accettata"/>
+													<xs:enumeration value="non_accettata"/>
+													<xs:enumeration value="avvertimenti_in_consegna"/>
+													<xs:enumeration value="errori_in_consegna"/>
+													<xs:enumeration value="consegnata"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+										<xs:element name="TsInvio" type="xs:dateTime" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Data e ora invio della mail (ultima se più di una al dato destinatario)</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="CasellaMittente" type="xs:string" minOccurs="0"/>
+										<xs:element name="MessageID" type="xs:string" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Identificativo univoco del messaggio mail se la mail è stata inviata (quello univoco al di fuori di Auriga). in caso di più invii al destinatario è l'id dell'ultima mail</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="RicevuteNotifiche" minOccurs="0" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>Ricevute/notifiche PEC/e-mail collegate alla mail inviata</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="MessageID" type="xs:string">
+														<xs:annotation>
+															<xs:documentation>Identificativo univoco del messaggio di ricevuta/notifica</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Categoria" type="xs:string">
+														<xs:annotation>
+															<xs:documentation>Indica il tipo di ricevuta/notifica: INTEROP_ECC (notifica interoperabile di eccezione), INTEROP_CONF (notifica interoperabile di conferma), INTEROP_AGG (notifica interoperabile di aggiornamento), INTEROP_ANN (notifica interoperabile di annullamento di registrazione), PEC_RIC_ACC = ricevuta PEC di accettazione, PEC_RIC_NO_ACC = ricevuta PEC di mancata accettazione, PEC_RIC_PREAS_C = ricevuta PEC di presa in carico da parte del provider ricevente, PEC_RIC_CONS = ricevuta  PEC di avvenuta consegna, PEC_RIC_PREAVV_NO_CONS = preavviso di mancata consegna, PEC_RIC_NO_CONS = ricevuta PEC di mancata consegna, DELIVERY_STATUS_NOT = notifiche di trasporto dei mail server/provider, PEO_RIC_CONF = Conferma di lettura (posta ordinaria); PEC_RIC_CONF = Conferma di lettura (posta certificata)</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="TsInvio" type="xs:dateTime" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Data e ora invio della ricevuta/notifica</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="TsRicezione" type="xs:dateTime" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Data e ora di arrivo della ricevuta/notifica</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="TipoRicevuta" type="xs:string" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Tipo di ricevuta PEC: C = completa, B = breve, S = Sintetica</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Subject" type="xs:string" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Oggetto della ricevuta/notifica</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Body" type="xs:string" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Testo/corpo della ricevuta/notifica</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="UDInElenco" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Nel caso si tratti di unità dcumentaria che è un elenco qui c'è la lista delle unità documentarie presenti nell'elenco</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="IdUD" type="xs:integer">
+								<xs:annotation>
+									<xs:documentation>ID_UD dell'unità documentaria in elenco</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="IdDocPrimario" type="xs:integer">
+								<xs:annotation>
+									<xs:documentation>Id. del documento principale dell'unità documentaria in elenco</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="EstremiReg" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>Estremi di registrazione dell'unità documentaria in elenco</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="DataReg" type="xs:dateTime">
+								<xs:annotation>
+									<xs:documentation>Data e ora di registrazione dell'unità documentaria in elenco</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="Oggetto" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>Oggetto dell'unità documentaria in elenco</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="Mittenti">
+								<xs:annotation>
+									<xs:documentation>Mittente/i dell'unità documentaria in elenco</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:complexType name="DigestType">
+		<xs:sequence>
+			<xs:element name="Digest">
+				<xs:annotation>
+					<xs:documentation>Impronta del file</xs:documentation>
+				</xs:annotation>
+				<xs:complexType>
+					<xs:simpleContent>
+						<xs:extension base="xs:string">
+							<xs:attribute name="Encoding" use="required">
+								<xs:annotation>
+									<xs:documentation>Encoding per il calcolo delll'impronta: hex o base64</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="hex"/>
+										<xs:enumeration value="base64"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:attribute>
+							<xs:attribute name="Algoritmo" type="xs:string" use="required">
+								<xs:annotation>
+									<xs:documentation>Algoritmo di calcolo dell'impronta</xs:documentation>
+								</xs:annotation>
+							</xs:attribute>
+						</xs:extension>
+					</xs:simpleContent>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>

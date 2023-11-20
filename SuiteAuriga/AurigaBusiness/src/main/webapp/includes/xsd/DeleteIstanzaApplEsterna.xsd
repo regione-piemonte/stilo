@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Administrator (EMBRACE) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="DeleteIstanzaApplEsterna">
+		<xs:annotation>
+			<xs:documentation>Root element: contiene gli estremi per identificare l'applicazione esterna/sua specifica istanza e indicare il tipo di cancellazione da effettuarvi (fisica o logica)</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="CodiceApplicazione">
+					<xs:annotation>
+						<xs:documentation>Codice identificativo dell'applicazione</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="30"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="CodiceIstanzaApplicazione" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Codice identificativo dell'istanza dell'applicazione (se applicazione con più istanze, ad esempio una di test e una di produzione)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="30"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="FlagDelLogicaFisica">
+					<xs:annotation>
+						<xs:documentation>Indica se la cancellazione deve essere fisica (=F) o logica (=L)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:enumeration value="F"/>
+							<xs:enumeration value="L"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

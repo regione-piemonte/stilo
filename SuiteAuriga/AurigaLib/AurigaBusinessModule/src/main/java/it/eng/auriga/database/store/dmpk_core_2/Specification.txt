@@ -1,0 +1,206 @@
+1        package DMPK_CORE_2 AUTHID CURRENT_USER as
+2        
+3        
+4        	/****************************************************		INFORMAZIONI GENERALI		***********************************************************/
+5        	/************** Argomenti delle stored per il controllo della transazione:																	*******/
+6        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 								*******/
+7        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored											*******/
+8        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log						*******/
+9        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *******/
+10        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 						*******/
+11        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 																		*******/
+12        	
+13        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0				*******/
+14        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:							*******/
+15        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 																	*******/
+16        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito																		*******/
+17        	/**************		   >1000 errore non grave gestito																						*******/
+18        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore										*******/
+19        
+20        
+21        	----- funzione per ricercare i documenti inviati nella coda di firma massiva (libro firma)
+22        	function TrovaDocInLibroFirma(
+23        			CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+24        																										-- (obblig). Codice identificativo del token di connessione
+25        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,					-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+26        			FiltriIO					IN OUT	NOCOPY CLOB,											-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd). 
+27        																										-- Ogni filtro è un tag "Variabile" dell'XML
+28        																										-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+29        																										-- I nomi dei filtri possibili sono:
+30        																										-- firmatario (obblig): nominativo firmatario. Ricerca esatta
+31        																										-- InviatiInFirmaDal: estremo inferiore dell'intervallo di ricerca sulla data di invio in firma (nel formato del parametro FMT_STD_DATA)
+32        																										-- InviatiInFirmaAl: estremo superiore dell'intervallo di ricerca sulla data di invio in firma (nel formato del parametro FMT_STD_DATA)
+33        																										-- ListaIdTipiDoc: lista con gli id. del/dei tipi documenti da filtrare (separati da , o ;)
+34        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+35        			ColOrderByIO				IN OUT	VARCHAR2,												-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne 16, 17, 11). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+36        																										-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+37        																										-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+38        			FlgDescOrderByIO  			IN OUT	VARCHAR2,												-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+39        																										-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
+40        			FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            					-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+41        			NroPaginaIO      			IN OUT	PLS_INTEGER,                  							-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+42        			BachSizeIO					IN OUT	PLS_INTEGER,											-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+43        																										-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+44        			OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,								-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+45        			FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,								-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+46        			NroTotRecOut				OUT		PLS_INTEGER,											-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+47        			NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     						-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+48        			FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,								-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+49        																										-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema. 
+50        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+51        			ResultOut					OUT		NOCOPY CLOB, 											-- Lista delle richieste trovate (XML conforme a schema LISTA_STD.xsd)
+52        																										-- Ogni record di richiesta è un tag Riga che può contenere le seguenti colonne: 
+53        																										-- 1: ID_DOC del documento
+54        																										-- 2: Nro versione file da firmare
+55        																										-- 3: Display filename del file da firmare
+56        																										-- 4: N.ro provvisorio dell'UD cui appartiene il documento da firmare (alfanumerico)
+57        																										-- 5: N.ro definitivo dell'UD cui appartiene il documento da firmare (alfanumerico)
+58        																										-- 6: Tipo del documento da firmare
+59        																										-- 7: URI del file da firmare
+60        																										-- 8: Mimetype del file da firmare
+61        																										-- 9:(valori 1/0) Flag di file pdf o in formato convertibile in pdf
+62        																										-- 10:(valori 1/0) Indica se il file da firmare è già firmato (1) o meno
+63        																										-- 11: Data e ora di invio alla firma (nel formato dato dal parametro FMT_STD_TIMESTAMP)
+64        																										-- 12: Utente che ha inviato in firma (o indicazione se invio automatico)
+65        																										-- 13:ID_UD dell'unità documentaria a cui appartiene il documento da firmare
+66        																										-- 14: ID_PROCESS dell'eventuale processo in cui viene lavorata l'UD cui appartiene il documento da firmare
+67        																										-- 15: Nome del passo di processo che verrà completato in automatico apponendo la firma
+68        																										-- 16: N.ro provvisorio dell'UD da usare per ordinamento
+69        																										-- 17: N.ro definitivo dell'UD da usare per ordinamento
+70        																										-- 18: Nome identificativo task workflow
+71        			ErrContextOut				OUT		VARCHAR2,												-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+72        			ErrCodeOut					OUT		PLS_INTEGER,											-- N.ro errore di uscita
+73        			ErrMsgOut					OUT 	VARCHAR2)												-- Messaggio d'errore
+74        			return PLS_INTEGER;																			-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+75        
+76        	----- funzione per apporre o rifiutare la firma su uno o più documenti in libro firma
+77        	----- in caso di errore su una singolo documento l'elaborazione NON si interrompe e procede con il successivo.
+78        	----- su ogni documento elaborato viene subito fatta la commit se richiesta 
+79        	function FirmaSuDocInLibroFirma(
+80        			CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,			-- (obblig). Codice identificativo del token di connessione
+81        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,					-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+82        			AzioneIn					IN		VARCHAR2,												-- Azione da effettuare (obblig). Valori ammessi: firma, rifiuta_firma
+83        			FirmatarioIn				IN		VARCHAR2,												-- Firmatario (obblig.) che accetta o rifiuta la firma
+84        			DocInfoIn					IN		CLOB,													-- Lista XML Standard con le informazioni dei documenti su cui effettuare la firma o rifiuto della firma	
+85        																										-- Ogni riga-documento da firmare contiene le colonne:
+86        																										-- 1: ID_DOC
+87        																										-- 2: URI del file firmato
+88        																										-- 3: Tipo di firma apposta: CAdES o PAdES o XAdES
+89        																										-- 4: mimetype del file firmato
+90        																										-- 5: dimensione del file firmato
+91        																										-- 6: impronta del file firmato
+92        																										-- 7: algorimo di calcolo impronta del file firmato
+93        																										-- 8: encoding di calcolo impronta del file firmato
+94        																										-- 9: firmatari del file firmato (se più di uno separati da |*|)
+95        			EsitiOut					OUT		NOCOPY CLOB,											-- Lista XML con esiti dell'operazione sui singoli oggetti:
+96        																										-- Contiene le colonne
+97        																										-- 1: ID_DOC
+98        																										-- 2: Nro versione file firmato
+99        																										-- 3: Estremi del documento da mostare a GUI
+100        																										-- 4: Esito OK o KO
+101        																										-- 5: Codice e Messaggio di errore
+102        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,								-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+103        																										-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+104        			FlgAutoCommitIn				IN 		PLS_INTEGER DEFAULT NULL,								-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+105        			ErrContextOut				OUT		VARCHAR2,												-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+106        			ErrCodeOut					OUT		PLS_INTEGER,											-- N.ro errore di uscita
+107        			ErrMsgOut					OUT 	VARCHAR2)												-- Messaggio d'errore
+108        			return PLS_INTEGER;																			-- Vale 1 se non ci sono stati errori generali (vale a dire NON sul singolo documento), altrimenti 0
+109        
+110        	
+111        	----- funziona per inviare o rimuovere dal libro firma documenti
+112        	----- in caso di errore su una singolo documento l'elaborazione NON si interrompe e procede con il successivo.
+113        	----- su ogni documento elaborato viene subito fatta la commit se richiesta 
+114        	function InviaRimuoviDocLibroFirma(
+115        			CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,			-- (obblig). Codice identificativo del token di connessione
+116        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,					-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+117        			AzioneIn					IN		VARCHAR2,												-- Azione da effettuare (obblig). Valori ammessi: invio, rimuovi
+118        			FirmatarioIn				IN		VARCHAR2 DEFAULT NULL,									-- Firmatario (obblig. se per i documenti da firmare non si passa l'id. processo) alla/dalla cui firma inviare/togliere i documenti
+119        			DocInfoIn					IN		CLOB,													-- Lista XML Standard con le informazioni dei documenti da inviare/rimuovere al/dal libro firma
+120        																										-- Ogni riga-documento da firmare contiene le colonne:
+121        																										-- 1: ID_UD (obblig)
+122        																										-- 2: ID del tipo documento da firmare
+123        																										-- 3: ID_PROCESS del processo eventuale in cui è lavorata l'UD e dal quale si richiama l'azione di invio/rimozione dal libro firma
+124        			EsitiOut					OUT		NOCOPY CLOB,											-- Lista XML con esiti dell'operazione sui singoli oggetti:
+125        																										-- Contiene le colonne
+126        																										-- 1: ID_UD
+127        																										-- 2: ID_PROCESS
+128        																										-- 3: Estremi del documento da mostare a GUI
+129        																										-- 4: Esito OK o KO
+130        																										-- 5: Codice e Messaggio di errore
+131        																										-- 6: ID_DOC del documento inviato/tolto dal libro firma
+132        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,								-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+133        																										-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+134        			FlgAutoCommitIn				IN 		PLS_INTEGER DEFAULT NULL,								-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+135        			ErrContextOut				OUT		VARCHAR2,												-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+136        			ErrCodeOut					OUT		PLS_INTEGER,											-- N.ro errore di uscita
+137        			ErrMsgOut					OUT 	VARCHAR2)												-- Messaggio d'errore
+138        			return PLS_INTEGER;																			-- Vale 1 se non ci sono stati errori generali (vale a dire NON sul singolo documento), altrimenti 0
+139        
+140        	
+141        	--------------funzione per inserire un'unità documentaria nella coda delle UD da pubblicare all'Albo/Bollettino di Auriga
+142        	--------------può essere anche una richiesta di pubblicazione differita (con decorrenza non immediata)
+143        	function InsUDInCodaRichPubbl(
+144        			IdUDIn						IN		DMT_UNITA_DOC.ID_UD%type,								-- (obblig.) ID_UD dell'unità documentaria da pubblicare
+145        			TsInizioPubblIn				IN		DATE,													-- (obblig.) Data e ora di inizio pubblicazione. Deve essere una data e ora <=data e ora correnti
+146        			GGPubblIn					IN		INTEGER,												-- (obblig.) Nro giorni di pubblicazione
+147        			CodApplRichPubblIn			IN		VARCHAR2 DEFAULT NULL,									-- Cod. applicazione che ha richiesto la pubblicazione
+148        			IdUserRichPubblIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,					-- Id. dell'eventuale utente di sistema che ha esplicitamente richiesto la pubblicazione
+149        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,								-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+150        																										-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+151        			FlgAutoCommitIn				IN 		PLS_INTEGER DEFAULT NULL,								-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+152        			ErrContextOut				OUT		VARCHAR2,												-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+153        			ErrCodeOut					OUT		PLS_INTEGER,											-- N.ro errore di uscita
+154        			ErrMsgOut					OUT 	VARCHAR2)												-- Messaggio d'errore
+155        			return PLS_INTEGER;																			-- Vale 1 se non ci sono stati errori, altrimenti 0
+156        
+157        	----------procedura per mettere nella coda dell'indicizzatore dati e file di un'unità documentaria pubblicata
+158        	procedure IndicizzaPubblicazione(IdUDIn IN INTEGER);
+159        	
+160        	---------- procedura per inviare in pubblicazione all'Albo/Bollettino di Auriga un'UD
+161        	---------- la pubblicazione se va a buon fine diventa subito effettiva e lo stato dell'UD diventa "in pubblicazione" 
+162        	---------- se invece va in errore l'errore viene tracciato nella DMT_ACTIVITIES (COD_TP_ACT = Pubblicazione)
+163        	---------- E' preferibile invocare prima la InsUDInCodaRichPubbl; se la pubblicazione è già stata richiesta attraverso la InsUDInCodaRichPubbl
+164        	---------- quando diventa effettiva la richiesta viene rimossa dalla coda di richieste
+165        	procedure PubblicaUD(
+166        			IdUDIn						IN		DMT_UNITA_DOC.ID_UD%type,								-- (obblig.) ID_UD dell'unità documentaria da pubblicare
+167        			TsInizioPubblIn				IN		DATE,													-- (obblig.) Data e ora di inizio pubblicazione. Deve essere una data e ora <=data e ora correnti
+168        			GGPubblIn					IN		INTEGER,												-- (obblig.) Nro giorni di pubblicazione
+169        			CodApplRichPubblIn			IN		VARCHAR2 DEFAULT NULL,									-- Cod. applicazione che ha richiesto la pubblicazione
+170        			IdUserRichPubblIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL);					-- Id. dell'eventuale utente di sistema che ha esplicitamente richiesto la pubblicazione
+171        
+172        	--------------procedura che elabora le richieste di pubblicazione all'Albo/Bollettino di Auriga pending
+173        	--------------e le manda in pubblicazione effettiva se il tempo di inizio pubblicazione è trascorso
+174        	procedure ElaboraCodaRichPubbl;
+175        	
+176        	------------- procedura che toglie dalla pagina delle pubblicazioni in corso dell'Albo/Bollettino di Auriga
+177        	------------- le pubblicazioni per cui è terminato il periodo di pubblicazione
+178        	procedure RimuoviPubblTerminate;
+179        	
+180        	-----------------procedura che sottomette il job di generazione relata di pubblicazioni per tutte le pubblicazioni terminate da tot giorni che non hanno relata 
+181        	-----------------se il n.ro di giorni non è indicato vengono prese quelle terminate nell'ultimo giorno
+182        	procedure SubmitJobGenRelatePubbl (NroGiorniIn	IN	INTEGER DEFAULT 1);
+183        	
+184        	---- funzione per verificare se un dato utente di cui viene passato in input l'id. corrisponde all'owner di un certificato di firma in cu dati sono passati in input
+185        	function CheckUserVsCertificatoFirma(
+186        			IdUserIn					IN		DMT_USERS.ID_USER%type,
+187        			DatiCertificatoFirmaIn		IN		VARCHAR2
+188        			) return PLS_INTEGER;				-- Restituisce 1 se l'utente corrisponde al certificato, altrimenti 0
+189        			
+190        	-------funziona per togliere una numerazione generata per un'unità documentaria e arretrare il numeratore
+191        	------ se nel frattempo altre UD sono state numerate in quel registro dà errore
+192        	function RollbackNumerazioneUD(
+193        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig). Codice identificativo del token di connessione
+194        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,			-- Id. dell'utente a nome di cui si mette il lock. Se non valorizzato è l'utente connesso
+195        			IdUDIn					IN		DMT_UNITA_DOC.ID_UD%type,						-- (obblig.) Identificativo dell'unità documentaria
+196        			CodCategoriaNumIn		IN		VARCHAR2,										-- (obblig.) Tipo di regsitro: PG = Protocollo Gen. ; PP = Protocollo Particolare, R = Repertorio, I = Altra numerazione interna
+197        			SiglaRegIn				IN		VARCHAR2,										-- Sigla del registro di numerazione (obblig. se CodCategoriaNumIn non è PG)
+198        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+199        																							-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+200        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+201        			ErrContextOut		OUT		VARCHAR2,											-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+202        			ErrCodeOut			OUT		PLS_INTEGER,										-- N.ro errore di uscita
+203        			ErrMsgOut			OUT 		VARCHAR2										-- Messaggio d'errore
+204        			) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+205        
+206        end DMPK_CORE_2;

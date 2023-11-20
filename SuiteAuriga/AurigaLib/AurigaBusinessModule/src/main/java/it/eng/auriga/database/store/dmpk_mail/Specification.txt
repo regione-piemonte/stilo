@@ -1,0 +1,129 @@
+1        PACKAGE DMPK_MAIL AUTHID CURRENT_USER IS
+2        
+3          ----------------------- Customizable Section -----------------------
+4        
+5          -- Customize the SMTP host, port and your domain name below.
+6          smtp_host   VARCHAR2(256) := 'smtp.eng.it';
+7          smtp_port   PLS_INTEGER   := 25;
+8          smtp_domain VARCHAR2(256) := 'engineering.it';
+9        
+10          -- Customize the signature that will appear in the email's MIME header.
+11          -- Useful for versioning.
+12          MAILER_ID   CONSTANT VARCHAR2(256) := 'Mailer by Oracle UTL_SMTP';
+13        
+14          --------------------- End Customizable Section ---------------------
+15        
+16          -- A unique string that demarcates boundaries of parts in a multi-part email
+17          -- The string should not appear inside the body of any part of the email.
+18          -- Customize this if needed or generate this randomly dynamically.
+19          BOUNDARY        CONSTANT VARCHAR2(256) := '-----7D81B75CCC90D2974F7A1CBD';
+20        
+21          FIRST_BOUNDARY  CONSTANT VARCHAR2(256) := '--' || BOUNDARY || utl_tcp.CRLF;
+22          LAST_BOUNDARY   CONSTANT VARCHAR2(256) := '--' || BOUNDARY || '--' ||
+23                                                      utl_tcp.CRLF;
+24        
+25          -- A MIME type that denotes multi-part email (MIME) messages.
+26          MULTIPART_MIME_TYPE CONSTANT VARCHAR2(256) := 'multipart/mixed; boundary="'||
+27                                                          BOUNDARY || '"';
+28          MAX_BASE64_LINE_WIDTH CONSTANT PLS_INTEGER   := 76 / 4 * 3;
+29        
+30          -- A simple email API for sending email in plain text in a single call.
+31          -- The format of an email address is one of these:
+32          --   someone@some-domain
+33          --   "Someone at some domain" <someone@some-domain>
+34          --   Someone at some domain <someone@some-domain>
+35          -- The recipients is a list of email addresses  separated by
+36          -- either a "," or a ";"
+37          PROCEDURE mail(sender     IN VARCHAR2,
+38        		 recipients IN VARCHAR2,
+39        		 subject    IN VARCHAR2,
+40        		 message    IN VARCHAR2);
+41        
+42          -- Extended email API to send email in HTML or plain text with no size limit.
+43          -- First, begin the email by begin_mail(). Then, call write_text() repeatedly
+44          -- to send email in ASCII piece-by-piece. Or, call write_mb_text() to send
+45          -- email in non-ASCII or multi-byte character set. End the email with
+46          -- end_mail().
+47          FUNCTION begin_mail(sender     IN VARCHAR2,
+48        		      recipients IN VARCHAR2,
+49        		      subject    IN VARCHAR2,
+50        		      mime_type  IN VARCHAR2    DEFAULT 'text/plain',
+51        		      priority   IN PLS_INTEGER DEFAULT NULL)
+52        		      RETURN utl_smtp.connection;
+53        
+54          -- Write email body in ASCII
+55          PROCEDURE write_text(conn    IN OUT NOCOPY utl_smtp.connection,
+56        		       message IN VARCHAR2);
+57        
+58          -- Write email body in non-ASCII (including multi-byte). The email body
+59          -- will be sent in the database character set.
+60          PROCEDURE write_mb_text(conn    IN OUT NOCOPY utl_smtp.connection,
+61        			  message IN            VARCHAR2);
+62        
+63          -- Write email body in binary
+64          PROCEDURE write_raw(conn    IN OUT NOCOPY utl_smtp.connection,
+65        		      message IN RAW);
+66        
+67          -- APIs to send email with attachments. Attachments are sent by sending
+68          -- emails in "multipart/mixed" MIME format. Specify that MIME format when
+69          -- beginning an email with begin_mail().
+70        
+71          -- Send a single text attachment.
+72          PROCEDURE attach_text(conn         IN OUT NOCOPY utl_smtp.connection,
+73        			data         IN VARCHAR2,
+74        			mime_type    IN VARCHAR2 DEFAULT 'text/plain',
+75        			inline       IN BOOLEAN  DEFAULT TRUE,
+76        			filename     IN VARCHAR2 DEFAULT NULL,
+77        		        last         IN BOOLEAN  DEFAULT FALSE);
+78        
+79          -- Send a binary attachment. The attachment will be encoded in Base-64
+80          -- encoding format.
+81          PROCEDURE attach_base64(conn         IN OUT NOCOPY utl_smtp.connection,
+82        			  data         IN RAW,
+83        			  mime_type    IN VARCHAR2 DEFAULT 'application/octet',
+84        			  inline       IN BOOLEAN  DEFAULT TRUE,
+85        			  filename     IN VARCHAR2 DEFAULT NULL,
+86        			  last         IN BOOLEAN  DEFAULT FALSE);
+87        
+88          -- Send an attachment with no size limit. First, begin the attachment
+89          -- with begin_attachment(). Then, call write_text repeatedly to send
+90          -- the attachment piece-by-piece. If the attachment is text-based but
+91          -- in non-ASCII or multi-byte character set, use write_mb_text() instead.
+92          -- To send binary attachment, the binary content should first be
+93          -- encoded in Base-64 encoding format using the demo package for 8i,
+94          -- or the native one in 9i. End the attachment with end_attachment.
+95          PROCEDURE begin_attachment(conn         IN OUT NOCOPY utl_smtp.connection,
+96        			     mime_type    IN VARCHAR2 DEFAULT 'text/plain',
+97        			     inline       IN BOOLEAN  DEFAULT TRUE,
+98        			     filename     IN VARCHAR2 DEFAULT NULL,
+99        			     transfer_enc IN VARCHAR2 DEFAULT NULL);
+100        
+101          -- End the attachment.
+102          PROCEDURE end_attachment(conn IN OUT NOCOPY utl_smtp.connection,
+103        			   last IN BOOLEAN DEFAULT FALSE);
+104        
+105          -- End the email.
+106          PROCEDURE end_mail(conn IN OUT NOCOPY utl_smtp.connection);
+107        
+108          -- Extended email API to send multiple emails in a session for better
+109          -- performance. First, begin an email session with begin_session.
+110          -- Then, begin each email with a session by calling begin_mail_in_session
+111          -- instead of begin_mail. End the email with end_mail_in_session instead
+112          -- of end_mail. End the email session by end_session.
+113          FUNCTION begin_session RETURN utl_smtp.connection;
+114        
+115          -- Begin an email in a session.
+116          PROCEDURE begin_mail_in_session(conn       IN OUT NOCOPY utl_smtp.connection,
+117        				  sender     IN VARCHAR2,
+118        				  recipients IN VARCHAR2,
+119        				  subject    IN VARCHAR2,
+120        				  mime_type  IN VARCHAR2  DEFAULT 'text/plain',
+121        				  priority   IN PLS_INTEGER DEFAULT NULL);
+122        
+123          -- End an email in a session.
+124          PROCEDURE end_mail_in_session(conn IN OUT NOCOPY utl_smtp.connection);
+125        
+126          -- End an email session.
+127          PROCEDURE end_session(conn IN OUT NOCOPY utl_smtp.connection);
+128        
+129        END;

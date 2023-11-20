@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+docTypeOther:"باشقا پۈتۈك تىپى",label:"بەت خاسلىقى",margin:"بەت گىرۋەك",marginBottom:"ئاستى",marginLeft:"سول",marginRight:"ئوڭ",marginTop:"ئۈستى",meta:"مېتا سانلىق مەلۇمات",metaAuthor:"يازغۇچى",metaCopyright:"نەشر ھوقۇقى",metaDescription:"بەت يۈزى چۈشەندۈرۈشى",metaKeywords:"بەت يۈزى ئىندېكىس ھالقىلىق سۆزى (ئىنگلىزچە پەش [,] بىلەن ئايرىلىدۇ)",other:"باشقا",previewHtml:'\x3cp\x3eبۇ بىر قىسىم \x3cstrong\x3eكۆرسەتمىگە ئىشلىتىدىغان تېكىست \x3c/strong\x3eسىز نۆۋەتتە \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e.نى ئىشلىتىۋاتىسىز.\x3c/p\x3e',
+title:"بەت خاسلىقى",txtColor:"تېكىست رەڭگى",xhtmlDec:"XHTML ئېنىقلىمىسىنى ئۆز ئىچىگە ئالىدۇ"});

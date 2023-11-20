@@ -1,0 +1,559 @@
+1        PACKAGE DMPK_POLICY AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        
+12        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+13        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        	/***** funzione per testare se una certa funzionalità è dsponibile in un dato dominio di lavoro ******/
+20        	function TestDispFunzInDominio(
+21        			IdDominioIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- Identificativo del dominio per cui testare se la funzione è disponibile (se NULL è il dominio schema)
+22        			CodFunzIn			IN		VARCHAR2						-- (obblig.) Codice della funzione da testare (stringa restituita dalla function dmpk_utility.GetCodFunz per quella funzione)
+23        			) return PLS_INTEGER;										-- 1 = test positivo, 0=test negativo, valori negativi in caso di errore
+24        
+25        	/***** Funzione per ottenere gli id. delle scrivanie per cui un dato utente può lavorare ad un certo timestamp ******/
+26        	function TrovaScrivanieUser (
+27        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+28        			IdSpAOOIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- (obblig.) Identificativo del soggetto produttore o AOO a cui appartengono le scrivanie da trovare
+29        			FlgTpRelIn			IN		VARCHAR2 DEFAULT NULL,				-- Indica il tipo di relazione che devono avere con l'utente le scrivanie da trovare
+30        																-- Valori ammessi:
+31        																--	NULL	=	Qualsiasi
+32        																-- 	A 	= 	Appartenenza alla UO in cui si colloca la scrivania (implica abilitazione a lavorare su documenti e fascicoli assegnati alla UO/scrivania con i propri privilegi)
+33        																-- 	L 	= 	Abilitazione a lavorare su documenti e fascicoli assegnati alla scrivania con i propri privilegi
+34        																-- 	D 	= 	Delega a lavorare su documenti e fascicoli della scrivania con i privilegi della stessa
+35        																-- una concatenazione dei valori precedenti separati da ;
+36        			TsRifIn			IN		VARCHAR2 default TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS'))
+37        																-- Stringa con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) a cui la relazione tra utente e scrivania deve essere valida. Se non valorizzato si intende sysdate
+38        			return DMTO_ID;											-- Lista con gli id. delle scrivanie trovate
+39        
+40        	/***** Funzione per ottenere gli id. delle UO per cui un dato utente può lavorare ad un certo timestamp ******/
+41        	function TrovaUOLavoroUser (
+42        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+43        			IdSpAOOIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- (obblig.) Identificativo del soggetto produttore o AOO a cui appartengono le UO da trovare
+44        			FlgTpRelIn			IN		VARCHAR2 DEFAULT NULL,				-- Indica il tipo di relazione che devono avere con l'utente le UO da trovare
+45        																-- Valori ammessi:
+46        																--	NULL	=	Qualsiasi
+47        																-- 	A 	= 	Appartenenza (implica abilitazione a lavorare su documenti e fascicoli assegnati alla UO con i propri privilegi)
+48        																-- 	L 	= 	Abilitazione a lavorare su documenti e fascicoli assegnati alla UO con i propri privilegi
+49        																-- 	D 	= 	Delega a lavorare su documenti e fascicoli come se si fosse quella UO (con i suoi privilegi)
+50        																-- una concatenazione dei valori precedenti separati da ;
+51        			TsRifIn			IN		VARCHAR2 default TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS'))
+52        																-- Stringa con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) a cui la relazione tra utente e UO deve essere valida. Se non valorizzato si intende sysdate
+53        			return DMTO_ID;											-- Lista con gli id. delle UO trovate
+54        
+55        	/***************funzione per ottenere l'ID della UO di appartenenza di un utente ad un dato timestamp *******/
+56        	function GetIdUOAppUser(
+57        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+58        			IdSpAOOIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- (obblig.) Identificativo del soggetto produttore o AOO in cui trovare la UO di appartenenza
+59        			TsRifIn			IN		VARCHAR2 default TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS'))
+60        																			-- Stringa con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) a cui la relazione tra utente e UO deve essere valida. Se non valorizzato si intende sysdate
+61        			return INTEGER;												-- Id. della UO di appartenenza (se esiste)
+62        
+63        	/****** funzione per ottenere i gruppi di privilegi di un dato utente su un dato dominio (anche quelli che eredita dall'eventuale profilo) ******/
+64        	function GetGruppiPrivUtente(
+65        			IdUserIn			IN		DMT_USERS.ID_USER%type,	-- (obblig.) Id. dell'utente
+66        			FlgTpDominioIn		IN 		PLS_INTEGER,			-- Indica il tipo di dominio in cui trovare i gruppi di privilegi dell'utente
+67        																-- Valori ammessi: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+68        			IdDominioIn			IN 		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type
+69        																-- Id. del dominio in cui trovare i gruppi di privilegi dell'utente (valorizzato se FlgTpDominioIn!=1)
+70        			) return DMTO_ID;									-- Lista con gli id. dei gruppi di privilegi trovati
+71        
+72        	/****** funzione per ottenere i ruoli di un dato utente su un dato dominio ******/
+73        	function GetRuoliUtente(
+74        			IdUserIn			IN		DMT_USERS.ID_USER%type,	-- (obblig.) Id. dell'utente
+75        			FlgTpDominioIn		IN 		PLS_INTEGER,			-- (obblig.) Indica il tipo di dominio in cui trovare i ruoli dell'utente
+76        																-- Valori ammessi: 2 = Soggetto produttore; 3 = AOO
+77        			IdDominioIn			IN 		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type
+78        																-- (obblig.) Id. del dominio in cui trovare i ruoli dell'utente
+79        			) return DMTO_ID;									-- Lista con gli id. dei ruoli trovati
+80        
+81        	/******* funzione per trovare i soggetti interni (l'utente stesso, UO e scrivanie) associati ad un utente (da relazioni di associazione, delega, a lavorare per)  in un dato dominio e in un dato istante	*****/
+82        	function GetSoggIntCorrelatiUtente(
+83        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Id. dell'utente
+84        			IdDominioIn			IN		INTEGER,						-- Id. del dominio in cui trovare i soggetti interni per cui l'utente può lavorare
+85        			FlgTpSoggIn			IN 		VARCHAR2 DEFAULT NULL,				-- Indica il tipo di soggetti da estrarre
+86        																-- NULL = Qualsiasi
+87        																-- UT = L'utente stesso
+88        																-- UO = Unità operative
+89        																-- SV = Scrivanie
+90        																-- una concatenazione dei valori precedenti separati da ;
+91        			FlgTpRelIn			IN		VARCHAR2 DEFAULT NULL,				-- Indica il tipo di relazione che devono avere con l'utente le UO e/o scrivanie da estrarre
+92        																-- Valori ammessi:
+93        																--	NULL	=	Qualsiasi
+94        																-- 	A 	= 	Appartenenza (implica abilitazione a lavorare su documenti e fascicoli assegnati alla UO con i propri privilegi)
+95        																-- 	L 	= 	Abilitazione a lavorare su documenti e fascicoli assegnati alla UO con i propri privilegi
+96        																-- 	D 	= 	Delega a lavorare su documenti e fascicoli come se si fosse quella UO (con i suoi privilegi)
+97        																-- una concatenazione dei valori precedenti separati da ;
+98        			TsRifIn			IN		VARCHAR2 default TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS')
+99        																-- Stringa con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) a cui la relazione tra utente e UO/scrivania deve essere valida. Se non valorizzato si intende sysdate
+100        			)return DMTO_STRING;										-- Lista dei soggetti interni trovati: sigla del tipo (UO/SV/UT) concatenta con l'identificativo (es. UT102, UO1004 ecc)
+101        
+102        	/***** Funzione per testare se una data UO/scrivania/utente/profilo/ruolo ha privilegio 		*******/
+103        	/***** su un dato oggetto di definizione del contesto organizzativo,archivistico e procedurale 	*******/
+104        	function TestPrivSuOggDefContesto(
+105        			FlgTpObjPrivOnIn		IN		VARCHAR2,						-- (obblig.) Indica il tipo di oggetto su cui testare se c'è privilegio
+106        																-- Valori ammessi:
+107        																--	F	=	Funzionalità del sistema;
+108        																--	TP	=	Tipo di processo/procedimento;
+109        																--	TD	=	Tipo di documento;
+110        																--	TF	=	Tipo di folder;
+111        																--	C	=	Classificazione;
+112        																--	TR	=	Tipo di registrazione (protocollo o repertorio o altro);
+113        																--	MR	=	Modello di registrazione
+114        			CIObjPrivOnIn		IN		DMT_PRIVILEGI.CI_OGG_PRIVILEGIO%type,	-- (obblig.) Codice identificativo dell'oggetto su cui testare se c'è privilegio (se funzione è la stringa restituita dalla function dmpk_utility.GetCodFunz per quella funzione)
+115        			FlgTpObjPrivToIn		IN		VARCHAR2,						-- (obblig.) Indica il tipo di oggetto che si vuole testare se ha il privilegio
+116        																-- Valori ammessi:
+117        																--	UO	=	U.O.
+118        																-- 	SV	=	Scrivania virtuale
+119        																--	UT	=	Utente
+120        																--	PR	=	Profilo
+121        																--	GP	=	Gruppo di privilegi
+122        																--	RA	=	Ruolo amministrativo (consentito solo se si testa abilitazione a funzione, ovvero se FlgTpObjPrivOnIn=F)
+123        			IdObjPrivToIn		IN		INTEGER,						-- (obblig.)  Identificativo (ID_UO o ID_SCRIVANIA o ID_USER o ID_PROFILO o ID_GRUPPO_PRIV o ID_RUOLO_AMM) dell'oggetto che si vuole testare se ha il privilegio
+124        			FlgTpDominioIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (gestito solo se FlgTpObjPrivToIn='UT' o 'RA' e obblig. se FlgTpObjPrivToIn='RA') Indica il tipo del dominio in cui testare se l'utente o ruolo ha il privilegio.
+125        																-- Valori ammessi: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+126        																-- Se NULL e FlgTpObjPrivToIn='UT' si intende che il tipo del dominio sia quello del dominio di default dell'utente
+127        			IdDominioIn			IN 		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type DEFAULT NULL,
+128        																-- (gestito solo se FlgTpObjPrivToIn='UT' o 'RA'; obblig. se FlgTpDominioIn vale 2 o 3) Identificativo del dominio (vale a dire l'id. del soggetto produttore o AOO) in cui testare se l'utente/ruolo ha il privilegio
+129        																-- Se NULL e se anche FlgTpDominioIn è NULL e FlgTpObjPrivToIn='UT' si intende che il dominio in cui testare se l'utente ha il privilegio è il suo dominio di default
+130        			OpzPrivilegioIn		IN		VARCHAR2 DEFAULT NULL)				-- Indica la/le opzione (se più di una separate da ;) con cui il privilegio deve essere concesso affinchè il test dia esito positivo
+131        																-- Opzioni possibili:
+132        																-- 	FC	=	Full control
+133        																--	I	=	Inserimento (e anche modifica)
+134        																--	M	=	Modifica
+135        																--	A	=	ad Assegnare/Avviare/registrare/creare
+136        																--	F	=	a Firmare
+137        																--	AF	=	ad Aprire Fascicoli
+138        																--	SP	=	relativamente agli archivi di tutto il soggetto produttore
+139        																--	eSP	=	relativamente agli archivi di tutti i soggetti produttori in banca dati
+140        			return PLS_INTEGER;										-- Valori possibili:
+141        																--	1	=	test positivo
+142        																--	0	=	test negativo
+143        																--	interi negativi = errore (il result è il codice d'errore)
+144        
+145        	-----analoga alla funzione precedente ma con una serie di input in più per rendere la verifica più efficiente se usata in una where condition di una query
+146        	function TestPrivSuOggDefContesto_L(
+147        			FlgTpObjPrivOnIn		IN		VARCHAR2,			-- (obblig.) Indica il tipo di oggetto su cui testare se c'è privilegio
+148        																-- Valori ammessi:
+149        																--	F	=	Funzionalità del sistema;
+150        																--	TP	=	Tipo di processo/procedimento;
+151        																--	TD	=	Tipo di documento;
+152        																--	TF	=	Tipo di folder;
+153        																--	C	=	Classificazione;
+154        																--	TR	=	Tipo di registrazione (protocollo o repertorio o altro);
+155        																--	MR	=	Modello di registrazione
+156        			CIObjPrivOnIn		IN		DMT_PRIVILEGI.CI_OGG_PRIVILEGIO%type,	-- (obblig.) Codice identificativo dell'oggetto su cui testare se c'è privilegio (se funzione è la stringa restituita dalla function dmpk_utility.GetCodFunz per quella funzione)
+157        			FlgTpObjPrivToIn		IN		VARCHAR2,						-- (obblig.) Indica il tipo di oggetto che si vuole testare se ha il privilegio
+158        																-- Valori ammessi:
+159        																--	UO	=	U.O.
+160        																-- 	SV	=	Scrivania virtuale
+161        																--	UT	=	Utente
+162        																--	PR	=	Profilo
+163        																--	GP	=	Gruppo di privilegi
+164        																--	RA	=	Ruolo amministrativo (consentito solo se si testa abilitazione a funzione, ovvero se FlgTpObjPrivOnIn=F)
+165        			IdObjPrivToIn		IN		INTEGER,						-- (obblig.)  Identificativo (ID_UO o ID_SCRIVANIA o ID_USER o ID_PROFILO o ID_GRUPPO_PRIV o ID_RUOLO_AMM) dell'oggetto che si vuole testare se ha il privilegio
+166        			FlgTpDominioIn		IN 		PLS_INTEGER DEFAULT NULL,	-- (obblig.) Indica il tipo del dominio in cui testare
+167        																-- Valori ammessi: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+168        			IdDominioIn			IN 		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type DEFAULT NULL,
+169        																-- Identificativo del dominio (vale a dire l'id. del soggetto produttore o AOO) in cui testare
+170        			OpzPrivilegioIn		IN		VARCHAR2 DEFAULT NULL,				-- Indica la/le opzione (se più di una separate da ;) con cui il privilegio deve essere concesso affinchè il test dia esito positivo
+171        																-- Opzioni possibili:
+172        																-- 	FC	=	Full control
+173        																--	I	=	Inserimento (e anche modifica)
+174        																--	M	=	Modifica
+175        																--	A	=	ad Assegnare/Avviare/registrare/creare
+176        																--	F	=	a Firmare
+177        																--	AF	=	ad Aprire Fascicoli
+178        																--	SP	=	relativamente agli archivi di tutto il soggetto produttore
+179        																--	eSP	=	relativamente agli archivi di tutti i soggetti produttori in banca dati
+180        			IdSpAppIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type DEFAULT NULL,
+181        																-- Id. del soggetto produttore di appartenenza di quello specificato in IdDominioIn
+182        			UOCollegSVUtenteTabIn	IN		DMTO_ID DEFAULT NULL,
+183        																-- Id.d delle UO a cui è collegato l'utente per cui effettuare il test (indicato in IdObjPrivToIn)
+184        																-- o della UO in cui si colloca la scrivania indicata in IdObjPrivToIn (se la scrivania eredita i permessi)
+185        																-- o delle UO superiori alla UO IdObjPrivToIn (quelle da cui c'è ereditarietà i permessi)
+186        			SVCollegUtenteTabIn	IN		DMTO_ID DEFAULT NULL,	-- Id.d delle scrivanie virtuali occupate dall'utente per cui effettuare il test (indicato in IdObjPrivToIn)
+187        			RuoliTabIn			IN		DMTO_ID DEFAULT NULL,	-- Ruoli dell'utente per cui effettuare il test (indicato in IdObjPrivToIn) sul dato dominio
+188        																-- o ruoli innestati nel ruolo indicato in IdObjPrivToIn
+189        			IdProfiloIn			IN		INTEGER DEFAULT NULL,	-- Id. del profilo dell'utente/UO/Scrivania per cui effettuare il test (indicato in IdObjPrivToIn) sul dato dominio
+190        			GruppiPrivTabIn		IN 		DMTO_ID DEFAULT NULL,	-- Id. dei gruppi di privilegi posseduti dall'utenteUO/Scrivania per cui effettuare il test (indicato in IdObjPrivToIn) o dal suo profilo
+191        			FlgRichAbilXVisualizzIn	IN	PLS_INTEGER DEFAULT NULL,
+192        																-- (valori 1/0/NULL) Se 1 indica che è richiesta abilitazione esplicita x visualizzare documentazione afferente a CIObjPrivOnIn
+193        			FlgRichAbilXTrattIn	IN	PLS_INTEGER DEFAULT NULL,
+194        																-- (valori 1/0/NULL) Se 1 indica che è richiesta abilitazione esplicita x gestire documentazione afferente a CIObjPrivOnIn
+195        			FlgRichAbilXAssegnIn	IN	PLS_INTEGER DEFAULT NULL,
+196        																-- (valori 1/0/NULL) Se 1 indica che è richiesta abilitazione esplicita x assegnare CIObjPrivOnIn
+197        			FlgRichAbilXFirmaIn	IN	PLS_INTEGER DEFAULT NULL,
+198        																-- (valori 1/0/NULL) Se 1 indica che è richiesta abilitazione esplicita x firmare documentazione afferente a CIObjPrivOnIn
+199        			FlgRichAbilXApFascIn IN	PLS_INTEGER DEFAULT NULL,
+200        																-- (valori 1/0/NULL) Se 1 indica che è richiesta abilitazione esplicita x aprire fascicoli nella calssifica indicata in CIObjPrivOnIn
+201        			IdObjPrivOnSupIn	IN	INTEGER DEFAULT NULL		-- Identificativo della classifica o tipologia superiore di quella indicata in CIObjPrivOnIn
+202        			)return PLS_INTEGER;								-- Valori possibili:
+203        																--	1	=	test positivo
+204        																--	0	=	test negativo
+205        																--	interi negativi = errore (il result è il codice d'errore)
+206        
+207        
+208        	/****** Funzione per testare se un certo utente può registrare/numerare ad un certo tipo di registrazione un''unità documentaria 	*****/
+209        	/****** Si può richiedere anche il controllo che il tipo del doc. primario sia compatibile con la registrazione				*****/
+210        	function TestAbilRegistrazioneUD(
+211        			FlgTpDominioAutIn		IN		PLS_INTEGER,					-- (obblig). Indica il tipo di dominio di lavoro: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+212        			IdDominioAutIn		IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- (obblig. se FlgTpDominioAutIn vale 2 o 3) Identificativo del dominio di lavoro, vale a dire l'id. del soggetto produttore o AOO se FlgTpDominioAutOut vale 2 o 3
+213        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell'utente per cui testare
+214        			CodCategoriaIn		IN		DMT_TIPI_REGISTRAZIONE.COD_CATEGORIA%type,-- (obblig.) Codice della categoria di registrazione da testare
+215        			SiglaRegIn			IN		DMT_TIPI_REGISTRAZIONE.COD_CATEGORIA%type,-- Eventuale sigla del tipo di registrazione/numerazione della data categoria
+216        			TsRegIn			IN		VARCHAR2 DEFAULT TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS'),
+217        																-- Timestamp di registrazione per cui fare il test. Se NULL si intende pari alla data e ora corrrenti
+218        			FlgCtrlDocTypeIn		IN		PLS_INTEGER DEFAULT 1,				-- (valori 1/0/NULL) Se 1 viene anche controllata la compatibilità del tipo del documento primario da registrare (da specificare nell'argomento successivo) con il tipo della registrazione
+219        			IdDocTypeIn			IN		DMT_DOCUMENTS.ID_DOC_TYPE%type DEFAULT NULL,
+220        																-- Id. del tipo del documento primario.
+221        																-- Gestito solo se l'argomento precedente FlgCtrlDocTypeIn = 1
+222        			FlgTpRegGestInternaOut	OUT		PLS_INTEGER,					-- (valori 1/0) Se 1 è un tipo di registrazione/numerazione che viene data all'interno del sistema, altrimenti significa che è data esternamente
+223        			DtInizioGestInternaOut	OUT		DATE,							-- Data a partire dalla quale la registrazione/numerazione viene/verrà data all'interno del sistema
+224        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+225        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+226        			ErrMsgOut			OUT 		VARCHAR2)						-- Messaggio d'errore
+227        			return PLS_INTEGER;										-- Vale 1 se il test è positivo, altrimenti 0
+228        
+229        	----overload della precedente, ma senza output, per essere utilizzabile in una select
+230        	function TestAbilRegistrazioneUD(
+231        			FlgTpDominioAutIn		IN		PLS_INTEGER,					-- (obblig). Indica il tipo di dominio di lavoro: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+232        			IdDominioAutIn		IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- (obblig. se FlgTpDominioAutIn vale 2 o 3) Identificativo del dominio di lavoro, vale a dire l'id. del soggetto produttore o AOO se FlgTpDominioAutOut vale 2 o 3
+233        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell'utente per cui testare
+234        			CodCategoriaIn		IN		DMT_TIPI_REGISTRAZIONE.COD_CATEGORIA%type,-- (obblig.) Codice della categoria di registrazione da testare
+235        			SiglaRegIn			IN		DMT_TIPI_REGISTRAZIONE.COD_CATEGORIA%type,-- Eventuale sigla del tipo di registrazione/numerazione della data categoria
+236        			TsRegIn			IN		VARCHAR2 DEFAULT TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS'),
+237        																-- Timestamp di registrazione per cui fare il test. Se NULL si intende pari alla data e ora corrrenti
+238        			FlgCtrlDocTypeIn		IN		PLS_INTEGER DEFAULT 1,				-- (valori 1/0/NULL) Se 1 viene anche controllata la compatibilità del tipo del documento primario da registrare (da specificare nell'argomento successivo) con il tipo della registrazione
+239        			IdDocTypeIn			IN		DMT_DOCUMENTS.ID_DOC_TYPE%type DEFAULT NULL)
+240        																-- Id. del tipo del documento primario.
+241        																-- Gestito solo se l'argomento precedente FlgCtrlDocTypeIn = 1
+242        			return PLS_INTEGER;										-- Vale 1 se il test è positivo, altrimenti 0
+243        
+244        	/****** Funzione per testare se un utentre, in un dato dominio di lavoro, ha accesso ha unità documentarie con un dato tipo di registrazione/numerazione *******/
+245        	function TestAbilVsUDRegistrataA(
+246        			FlgTpDominioAutIn		IN		PLS_INTEGER,					-- (obblig). Indica il tipo di dominio di lavoro: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+247        			IdDominioAutIn		IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- (obblig. se FlgTpDominioAutIn vale 2 o 3) Identificativo del dominio di lavoro, vale a dire l'id. del soggetto produttore o AOO se FlgTpDominioAutOut vale 2 o 3
+248        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell'utente per cui testare
+249        			CodCategoriaIn		IN		DMT_TIPI_REGISTRAZIONE.COD_CATEGORIA%type,-- (obblig.) Codice della categoria della registrazione/numerazione
+250        			SiglaRegIn			IN		DMT_TIPI_REGISTRAZIONE.COD_CATEGORIA%type,-- Eventuale sigla del tipo di registrazione/numerazione della data categoria
+251        			AccessTypeIn		IN		VARCHAR2 DEFAULT 'V')				-- (obblig.) Indica il tipo di accesso che deve avere l'utente sulle unità documentarie con il dato tipo di registrazione affinchè il test dia esito positivo
+252        																-- Valori possibili:
+253        																--	V	=	Sola visualizzazione
+254        																--	M	=	Per modifica
+255        																--	F	=	Per Firmare
+256        			return PLS_INTEGER;										-- Vale 1 se il test è positivo, altrimenti 0
+257        
+258        	/****** Funzione per testare se l'ACL di un'unità documentaria dà ad un dato utente accesso di un certo tipo sull'unità stessa (o specifiche sue parti) ******/
+259        	function TestACLUdGrantAccess(
+260        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+261        			IdSpAOOIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- (obblig.) Identificativo del soggetto produttore o AOO cui è relativa l'unità documentaria
+262        			ACLIn				IN		DMTO_ACL_UD,					-- ACL dell'unità documentaria
+263        			AccessTypeIn		IN		VARCHAR2 DEFAULT 'VM',				-- (obblig.) Tipo di accesso da verificare se dato o meno all'utente sull'unità documentaria che ha l'ACL in input:
+264        																-- Valori ammessi:
+265        																-- VM	= Per consultazione dei metadati
+266        																-- VF	= Per consultazione dei documenti elettronici
+267        																-- VF_PUBBL	= Per consultazione di versione elettronica pubblicata
+268        																-- VF_PRIV	= Per consultazione di versione elettronica NON pubblicata
+269        																-- MM	= Per modifica dei metadati
+270        																-- MF	= Per modifica (intesa anche come versionamento o cancellazione di versione ecc) dei documenti elettronici
+271        																-- MF_PUBBL	= Per creazione di nuova versione elettronica pubblicata o modifica (intesa anche cancellazione) di versione pubblicata
+272        																-- MF_PRIV	= Per creazione di nuova versione elettronica NON pubblicata o modifica (intesa anche cancellazione) di versione NON pubblicata
+273        																-- MP = Per modifica dell'ACL stessa
+274        																-- EL	= Per cancellazione dell'intera unità documentaria
+275        																-- CO = Per copia dell'unità documentaria in altro folder
+276        																-- RC = Per ripristino dell'unità documentaria se cancellata logicamente
+277        			IdDocTargetIn		IN		DMT_DOCUMENTS.ID_DOC%type DEFAULT NULL,	-- Id. del documento dell'unità documentaria su cui verificare se è dato l'acceso del tipo richiesto
+278        																-- è obbligatorio e viene gestito solo se AccessTypeIn è VF o MF o VF_PUBBL o VF_PRIV o MF_PUBBL o MF_PRIV
+279        			NroVerTargetIn		IN		PLS_INTEGER DEFAULT NULL)			-- N.ro progressivo della versione elettronica del documento IdDocTargetIn su cui verificare se è dato l'acceso del tipo richiesto
+280        																-- è obbligatorio solo se AccessTypeIn è VF
+281        																-- viene gestito solo se AccessTypeIn è VF o MF
+282        			return PLS_INTEGER;										-- restituisce 1 se l'accesso è dato, 0 se non lo è, valori negativi in caso di errrore
+283        
+284        	-------overload della funzione precedente; anzichè passare l'ACL si passa l'id. dell'unità documentaria
+285        	function TestACLUdGrantAccess(
+286        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+287        			IdUDIn			IN		DMT_UNITA_DOC.ID_UD%type,			-- (obblig. se IdDocTargetIn non è valorizzato) Identificativo dell''unità documentaria di cui testare se l'ACL dà o meno accesso di un certo tipo all'utente
+288        			AccessTypeIn		IN		VARCHAR2 DEFAULT 'VM',				-- (obblig.) Tipo di accesso da verificare se dato o meno all'utente sull'unità documentaria che ha l'ACL in input:
+289        																-- Valori ammessi:
+290        																-- VM	= Per consultazione dei metadati
+291        																-- VF	= Per consultazione dei documenti elettronici
+292        																-- VF_PUBBL	= Per consultazione di versione elettronica pubblicata
+293        																-- VF_PRIV	= Per consultazione di versione elettronica NON pubblicata
+294        																-- MM	= Per modifica dei metadati
+295        																-- MF	= Per modifica (intesa anche come versionamento o cancellazione di versione ecc) dei documenti elettronici
+296        																-- MF_PUBBL	= Per creazione di nuova versione elettronica pubblicata o modifica (intesa anche cancellazione) di versione pubblicata
+297        																-- MF_PRIV	= Per creazione di nuova versione elettronica NON pubblicata o modifica (intesa anche cancellazione) di versione NON pubblicata
+298        																-- MP = Per modifica dell'ACL stessa
+299        																-- EL	= Per cancellazione dell'intera unità documentaria
+300        																-- CO = Per copia dell'unità documentaria in altro folder
+301        																-- RC = Per ripristino dell'unità documentaria se cancellata logicamente
+302        			IdDocTargetIn		IN		DMT_DOCUMENTS.ID_DOC%type DEFAULT NULL,	-- Id. del documento dell'unità documentaria su cui verificare se è dato l'acceso del tipo richiesto
+303        																-- è obbligatorio e viene gestito solo se AccessTypeIn è VF o MF o VF_PUBBL o VF_PRIV o MF_PUBBL o MF_PRIV
+304        			NroVerTargetIn		IN		PLS_INTEGER DEFAULT NULL)			-- N.ro progressivo della versione elettronica del documento IdDocTargetIn su cui verificare se è dato l'acceso del tipo richiesto
+305        																-- è obbligatorio solo se AccessTypeIn è VF
+306        																-- viene gestito solo se AccessTypeIn è VF o MF
+307        			return PLS_INTEGER;										-- restituisce 1 se l'accesso è dato, 0 se non lo è, valori negativi in caso di errrore
+308        
+309        	/****** Funzione per testare se il profilo di un'unità documentaria dà ad un dato utente accesso di un certo tipo sull'unità stessa 				******/
+310        	/****** dove con profilo si intendono le sue caratteristiche ad esclusione dell'ACL													******/
+311        	function TestProfUDGrantAccess(
+312        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+313        			IdUDIn			IN		DMT_UNITA_DOC.ID_UD%type,			-- (obblig.) Identificativo dell''unità documentaria di cui testare se il profilo dà o meno accesso di un certo tipo all'utente
+314        			AccessTypeIn		IN		VARCHAR2 DEFAULT 'V',				-- (obblig.) Tipo di accesso da verificare se dato o meno all'utente sull'unità documentaria in input:
+315        																-- Valori ammessi:
+316        																-- V 	= Per consultazione
+317        																-- M	= Per modifica
+318        																-- C	= Per cancellazione
+319        			FlgIgnoreDelLogIn		IN		PLS_INTEGER DEFAULT NULL)			-- (valori 1/0) Se 1 l'accesso in visualizzazione/cancellazione viene dato anche se c'è annullamento logico/scarto
+320        			return PLS_INTEGER;										-- restituisce 1 se l'accesso è dato, 0 se non lo è, valori negativi in caso di errrore
+321        
+322        	/****** Funzione per testare se il profilo di un documento (e della relativa unità documentaria) dà ad un dato utente accesso di un certo tipo sul documento stesso 	******/
+323        	/****** dove con profilo si intendono le sue caratteristiche ad esclusione dell'ACL													 		******/
+324        	function TestProfDocGrantAccess(
+325        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+326        			IdDocIn			IN		DMT_DOCUMENTS.ID_DOC%type,			-- (obblig.) Identificativo del documento di cui testare se il profilo dà o meno accesso di un certo tipo all'utente
+327        			AccessTypeIn		IN		VARCHAR2 DEFAULT 'V',				-- (obblig.) Tipo di accesso da verificare se dato o meno all'utente sul documento in input:
+328        																-- Valori ammessi:
+329        																-- V 	= Per consultazione
+330        																-- M	= Per modifica
+331        																-- F	= Per firma
+332        																-- C	= Per cancellazione
+333        			FlgIgnoreDelLogIn		IN		PLS_INTEGER DEFAULT NULL)			-- (valori 1/0) Se 1 l'accesso in visualizzazione/cancellazione viene dato anche se c'è annullamento logico/scarto
+334        			return PLS_INTEGER;										-- restituisce 1 se l'accesso è dato, 0 se non lo è, valori negativi in caso di errrore
+335        
+336        	/****** Funzione per testare se l'ACL di un folder dà ad un dato utente accesso di un certo tipo sul folder stesso ******/
+337        	function TestACLFolderGrantAccess(
+338        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+339        			IdSpAOOIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- (obblig.) Identificativo del soggetto produttore o AOO cui è relativo il folder
+340        			ACLIn				IN		DMTO_ACL_FOLDER,					-- ACL del folder
+341        			AccessTypeIn		IN		VARCHAR2 DEFAULT 'VM'				-- (obblig.) Tipo di accesso da verificare se dato o meno all'utente sul folder che ha l'ACL in input:
+342        																-- Valori ammessi:
+343        																-- VM	= Per consultazione dei metadati
+344        																-- MM	= Per modifica dei metadati
+345        																-- MP = Per modifica dell'ACL stessa
+346        																-- EL	= Per cancellazione del folder
+347        																-- CO = Per copia del folder in altro folder
+348        																-- RC = Per ripristino del folder se cancellato logicamente
+349        																-- MCD = Per modifica del contenuto di unità documentarie
+350        																-- MCF = Per modifica del contenuto di folder
+351        			)return PLS_INTEGER;										-- restituisce 1 se l'accesso è dato, 0 se non lo è, valori negativi in caso di errrore
+352        
+353        	-------overload della funzione precedente; anzichè passare l'ACL si passa l'id. del folder
+354        	function TestACLFolderGrantAccess(
+355        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+356        			IdFolderIn			IN		DMT_FOLDER.ID_FOLDER%type,			-- (obblig.) Identificativo del folder di cui testare se l'ACL dà o meno accesso di un certo tipo all'utente
+357        			AccessTypeIn		IN		VARCHAR2 DEFAULT 'VM'				-- (obblig.) Tipo di accesso da verificare se l'ACL del folder in input dà o meno all'utente:
+358        																-- Valori ammessi:
+359        																-- VM	= Per consultazione dei metadati
+360        																-- MM	= Per modifica dei metadati
+361        																-- MP = Per modifica dell'ACL stessa
+362        																-- EL	= Per cancellazione del folder
+363        																-- CO = Per copia del folder in altro folder
+364        																-- RC = Per ripristino del folder se cancellato logicamente
+365        																-- MCD = Per modifica del contenuto di unità documentarie
+366        																-- MCF = Per modifica del contenuto di folder
+367        			)return PLS_INTEGER;										-- restituisce 1 se l'accesso è dato, 0 se non lo è, valori negativi in caso di errrore
+368        
+369        	/****** Funzione per testare se il profilo di un folder (anche una libreria) dà ad un dato utente accesso di un certo tipo sul folder stesso 			******/
+370        	/****** dove con profilo si intendono le sue caratteristiche ad esclusione dell'ACL													******/
+371        	function TestProfFolderGrantAccess(
+372        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+373        			IdFolderIn			IN		DMT_FOLDER.ID_FOLDER%type,			-- (obblig.) Identificativo del folder x cui testare se il profilo dà o meno accesso di un certo tipo all'utente
+374        			AccessTypeIn		IN		VARCHAR2 DEFAULT 'V',				-- (obblig.) Tipo di accesso da verificare se dato o meno all'utente sul folder in input:
+375        																-- Valori ammessi:
+376        																-- V 	= Per consultazione
+377        																-- M	= Per modifica dei metadati
+378        																-- C	= Per cancellazione
+379        																-- AD	= Per aggiunta di unità documentarie
+380        																-- AF = Per aggiunta di sub-folder
+381        																-- EC = Per eliminazione di contenuti (unità documentarie o folder)
+382        			FlgIgnoreDelLogIn		IN		PLS_INTEGER DEFAULT NULL)			-- Se 1 l'accesso in visualizzazione/cancellazione viene dato anche se c'è annullamento logico/scarto
+383        			return PLS_INTEGER;										-- restituisce 1 se l'accesso è dato, 0 se non lo è, valori negativi in caso di errrore
+384        
+385        	/****** Funzione per testare se l'ACL di un workspace dà ad un dato utente accesso di un certo tipo sul workspace stesso ******/
+386        	function TestACLWorkspaceGrantAccess(
+387        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+388        			IdSpAOOIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- (obblig.) Identificativo del soggetto produttore o AOO cui è relativo il workspace
+389        			ACLIn				IN		DMTO_ACL_WORKSPACE,					-- ACL del workspace
+390        			AccessTypeIn		IN		VARCHAR2 DEFAULT 'VM'				-- (obblig.) Tipo di accesso da verificare se dato o meno all'utente sul folder che ha l'ACL in input:
+391        																-- Valori ammessi:
+392        																-- VM	= Per consultazione dei metadati
+393        																-- MM	= Per modifica dei metadati
+394        																-- MP = Per modifica dell'ACL stessa
+395        																-- EL	= Per cancellazione del workspace
+396        																-- RC = Per ripristino del workspace se cancellato logicamente
+397        																-- MC = Per modifica del contenuto
+398        			)return PLS_INTEGER;										-- restituisce 1 se l'accesso è dato, 0 se non lo è, valori negativi in caso di errrore
+399        
+400        	-------overload della funzione precedente; anzichè passare l'ACL si passa l'id. del workspace
+401        	function TestACLWorkspaceGrantAccess(
+402        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+403        			IdWorkspaceIn		IN		DMT_WORKSPACES.ID_WORKSPACE%type,		-- (obblig.) Identificativo del workspace di cui testare se l'ACL dà o meno accesso di un certo tipo all'utente
+404        			AccessTypeIn		IN		VARCHAR2 DEFAULT 'VM'				-- (obblig.) Tipo di accesso da verificare se l'ACL del workspace in input dà o meno all'utente:
+405        																-- Valori ammessi:
+406        																-- VM	= Per consultazione dei metadati
+407        																-- MM	= Per modifica dei metadati
+408        																-- MP = Per modifica dell'ACL stessa
+409        																-- EL	= Per cancellazione del workspace
+410        																-- RC = Per ripristino del workspace se cancellato logicamente
+411        																-- MC = Per modifica del contenuto 																-- MCF = Per modifica del contenuto di folder
+412        			)return PLS_INTEGER;										-- restituisce 1 se l'accesso è dato, 0 se non lo è, valori negativi in caso di errrore
+413        
+414        	/****** Funzione per testare se l'ACL di un attributo addizionale dà ad un dato utente e in un dato dominio (schema / sogg. prod. / AOO) accesso di un certo tipo sull'attributo ******/
+415        	function TestACLAttrAddGrantAccess(
+416        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+417        			IdSpAOOIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- Identificativo del soggetto produttore o AOO di lavoro dell'utente in cui fare il test. Se NULL si intende che il test va fatto nel dominio di lavoro "schema"
+418        			ACLIn				IN		DMTO_ACL_ATTRIBUTE,				-- ACL dell'attributo
+419        			AccessTypeIn		IN		VARCHAR2 DEFAULT 'V'				-- (obblig.) Tipo di accesso da verificare se dato o meno all'utente sull'attributo che ha l'ACL in input:
+420        																-- Valori ammessi:
+421        																-- V	= Per consultazione
+422        																-- M	= Per modifica
+423        			)return PLS_INTEGER;										-- restituisce 1 se l'accesso è dato, 0 se non lo è, valori negativi in caso di errrore
+424        
+425        	-------overload della funzione precedente; anzichè passare l'ACL si passa il nome identificativo dell'attributo addizionale
+426        	function TestACLAttrAddGrantAccess(
+427        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+428        			IdSpAOOIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- Identificativo del soggetto produttore o AOO di lavoro dell'utente in cui fare il test. Se NULL si intende che il test va fatto nel dominio di lavoro "schema"
+429        			AttrNameIn			IN		DMT_ATTRIBUTES_DEF.ATTR_NAME%type,		-- (obblig.) Nome identificativo dell'attributo addizionale di cui testare se l'ACL dà o meno accesso di un certo tipo all'utente (nel dato dominio)
+430        			AccessTypeIn		IN		VARCHAR2 DEFAULT 'V'				-- (obblig.) Tipo di accesso da verificare se l'ACL dell'attributo addizionale in input dà o meno all'utente:
+431        																-- Valori ammessi:
+432        																-- V	= Per consultazione
+433        																-- M	= Per modifica
+434        			)return PLS_INTEGER;										-- restituisce 1 se l'accesso è dato, 0 se non lo è, valori negativi in caso di errrore
+435        
+436        	/****** Funzione per testare se l'ACL di un attività di processo dà ad un dato utente accesso di un certo tipo sulla data attività in un dato processo ******/
+437        	/****** ATTENZIONE: non effettua alcun controllo di coerenza tra IdProcessIn, FaseProcessNameIn, ActivityNameIn e ACLIn						 ******/
+438        	function TestACLAttivitaProcGrantAccess(
+439        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+440        			IdProcessIn			IN		DMT_PROCESSES.ID_PROCESS%type,		-- (obblig) Identificativo del processo cui è relativa l'attività
+441        			FaseProcessNameIn		IN		DMT_DETT_ATTIVITA_WF.PROCESS_NAME%type,	-- (obblig. e gestito solo se AccessTypeIn='E') Nome identificativo (PROCESS_NAME) della fase di processo cui è relativa l'attività
+442        			ActivityNameIn		IN		DMT_DETT_ATTIVITA_WF.ACTIVITY_NAME%type,	-- (obblig. e gestito solo se AccessTypeIn='E') Nome identificativo (ACTIVITY_NAME) dell'attività di processo
+443        			ACLIn				IN		DMTO_ACL_ATTIVITA,				-- ACL dell'attività di processo
+444        			AccessTypeIn		IN		VARCHAR2 DEFAULT 'V',				-- (obblig.) Tipo di accesso da verificare se dato o meno all'utente sull'attività di processo che ha l'ACL in input:
+445        																-- Valori ammessi:
+446        																-- V	= Per consultazione
+447        																-- E	= Per esecuzione
+448        			MotivoNonEseguibileOut	OUT		VARCHAR2						-- Motivo per cui il test di accesso "per esecuzione" dà esito negativo
+449        			)return PLS_INTEGER;										-- restituisce 1 se l'accesso è dato, 0 se non lo è, valori negativi in caso di errrore
+450        
+451        	-----overload della precedente, con l'unica differenza che non ha l'argomento in output e quindi è utilizzabile in una select
+452        	function TestACLAttivitaProcGrantAccess(
+453        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+454        			IdProcessIn			IN		DMT_PROCESSES.ID_PROCESS%type,		-- (obblig) Identificativo del processo cui è relativa l'attività
+455        			FaseProcessNameIn		IN		DMT_DETT_ATTIVITA_WF.PROCESS_NAME%type,	-- (obblig. e gestito solo se AccessTypeIn='E') Nome identificativo (PROCESS_NAME) della fase di processo cui è relativa l'attività
+456        			ActivityNameIn		IN		DMT_DETT_ATTIVITA_WF.ACTIVITY_NAME%type,	-- (obblig. e gestito solo se AccessTypeIn='E') Nome identificativo (ACTIVITY_NAME) dell'attività di processo
+457        			ACLIn				IN		DMTO_ACL_ATTIVITA,				-- ACL dell'attività di processo
+458        			AccessTypeIn		IN		VARCHAR2 DEFAULT 'V'				-- (obblig.) Tipo di accesso da verificare se dato o meno all'utente sull'attività di processo che ha l'ACL in input:
+459        																-- Valori ammessi:
+460        																-- V	= Per consultazione
+461        																-- E	= Per esecuzione
+462        			)return PLS_INTEGER;										-- restituisce 1 se l'accesso è dato, 0 se non lo è, valori negativi in caso di errrore
+463        
+464        	----altro overload, solo che in questo caso l'ACL non è in input ma viene ricavata dagli altri input
+465        	function TestACLAttivitaProcGrantAccess(
+466        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+467        			IdProcessIn			IN		DMT_PROCESSES.ID_PROCESS%type,		-- (obblig) Identificativo del processo cui è relativa l'attività
+468        			FaseProcessNameIn		IN		DMT_DETT_ATTIVITA_WF.PROCESS_NAME%type,	-- (obblig. e gestito solo se AccessTypeIn='E') Nome identificativo (PROCESS_NAME) della fase di processo cui è relativa l'attività
+469        			ActivityNameIn		IN		DMT_DETT_ATTIVITA_WF.ACTIVITY_NAME%type,	-- (obblig. e gestito solo se AccessTypeIn='E') Nome identificativo (ACTIVITY_NAME) dell'attività di processo
+470        			AccessTypeIn		IN		VARCHAR2 DEFAULT 'V',				-- (obblig.) Tipo di accesso da verificare se dato o meno all'utente sull'attività di processo che ha l'ACL in input:
+471        																-- Valori ammessi:
+472        																-- V	= Per consultazione
+473        																-- E	= Per esecuzione
+474        			MotivoNonEseguibileOut	OUT		VARCHAR2						-- Motivo per cui il test di accesso "per esecuzione" dà esito negativo
+475        			)return PLS_INTEGER;										-- restituisce 1 se l'accesso è dato, 0 se non lo è, valori negativi in caso di errrore
+476        
+477        	/**** serve ad ottenere il profilo di un utente e le sue abilitazioni generali ******/
+478        	procedure GetUserProfileData(
+479        			FlgTpDominioIn			IN 		PLS_INTEGER DEFAULT NULL,		-- Indica il tipo del dominio in cui estrarre i dati del profilo dell'utente
+480        																-- Valori ammessi: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+481        																-- Se NULL si intende che il tipo del dominio sia quello del dominio di default dell'utente
+482        			IdDominioIn				IN 		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type DEFAULT NULL,
+483        																-- Identificativo del dominio (vale a dire l'id. del soggetto produttore o AOO) in cui estrarre i dati del profilo dell'utente
+484        																-- Se NULL e se anche FlgTpDominioIn è NULL si intende che il dominio in cui estrarre i dati del profilo dell'utente è il suo dominio di default
+485        			IdUserIn  				IN		DMT_USERS.ID_USER%type,			-- (obblig.) Identificativo dell''utente
+486        			IdProfiloOut			OUT		DMT_PROFILI.ID_PROFILO%type,	-- Id. dell'eventuale profilo posseduto dall'utente sul dato dominio
+487        			FlgVisibIndipACLOut 		OUT		VARCHAR2,					-- (D/F/W o loro concatenazione) Indica se e su quali oggetti della repository l'utente ha visibilità indipendentemente dalla loro ACL
+488        			FlgVisibIndipUserAbilOut	OUT		VARCHAR2,					-- (D/F/W/P o loro concatenazione) Indica se e su quali oggetti della repository documentale e procedurale l'utente ha visibilità senza necessità di essere abilitato alla loro tipologia, classificazione, tipo di registrazione
+489        			MaxLivRiservatezzaOut		OUT		PLS_INTEGER,				-- Indica il massimo livello di riservatezza che possono avere oggetti della repository cui abbia accesso l'utente
+490        			FlgGestIndipACLOut		OUT		VARCHAR2,					-- (D/F/W o loro concatenazione) Indica se e quali oggetti della repository l'utente può gestire indipendentemente dalla loro ACL
+491        			FlgGestIndipUserAbilOut		OUT		VARCHAR2					-- (D/F/W/P o loro concatenazione) Indica se e quali oggetti della repository documentale e procedurale l'utente può gestire senza necessità di essere abilitato alla loro tipologia, classificazione, tipo di registrazione
+492        			);
+493        
+494        	/**** serve ad ottenere i dati del profilo di un utente relativi alle sue abilitazioni generali ******/
+495        	procedure GetUserProfileMainData(
+496        			FlgTpDominioIn			IN 		PLS_INTEGER DEFAULT NULL,		-- Indica il tipo del dominio in cui estrarre i dati del profilo dell'utente
+497        																-- Valori ammessi: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+498        																-- Se NULL si intende che il tipo del dominio sia quello del dominio di default dell'utente
+499        			IdDominioIn				IN 		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type DEFAULT NULL,
+500        																-- Identificativo del dominio (vale a dire l'id. del soggetto produttore o AOO) in cui estrarre i dati del profilo dell'utente
+501        																-- Se NULL e se anche FlgTpDominioIn è NULL si intende che il dominio in cui estrarre i dati del profilo dell'utente è il suo dominio di default
+502        			IdUserIn  				IN		DMT_USERS.ID_USER%type,			-- (obblig.) Identificativo dell''utente
+503        			FlgVisibIndipACLOut 		OUT		VARCHAR2,					-- (D/F/W o loro concatenazione) Indica se e su quali oggetti della repository l'utente ha visibilità indipendentemente dalla loro ACL
+504        			FlgVisibIndipUserAbilOut	OUT		VARCHAR2,					-- (D/F/W/P o loro concatenazione) Indica se e su quali oggetti della repository documentale e procedurale l'utente ha visibilità senza necessità di essere abilitato alla loro tipologia, classificazione, tipo di registrazione
+505        			MaxLivRiservatezzaOut		OUT		PLS_INTEGER,				-- Indica il massimo livello di riservatezza che possono avere oggetti della repository cui abbia accesso l'utente
+506        			FlgGestIndipACLOut		OUT		VARCHAR2,					-- (D/F/W o loro concatenazione) Indica se e quali oggetti della repository l'utente può gestire indipendentemente dalla loro ACL
+507        			FlgGestIndipUserAbilOut		OUT		VARCHAR2					-- (D/F/W/P o loro concatenazione) Indica se e quali oggetti della repository documentale e procedurale l'utente può gestire senza necessità di essere abilitato alla loro tipologia, classificazione, tipo di registrazione
+508        			);
+509        
+510        	/****** serve a testare se un dato utente è abilitato alla riproduzione - i.e. scarico, stampa ecc - di un dato documento *******/
+511        	function TestReproducibilityDoc(
+512        			IdUserIn				IN		DMT_USERS.ID_USER%type,			-- (obblig.) Identificativo dell'utente per cui testare se abilitato o meno alla riproduzione
+513        			IdDocIn					IN		DMT_DOCUMENTS.ID_DOC%type		-- (obblig.) Identificativo del documento di cui testare se è riproducibile o meno
+514        			)return PLS_INTEGER;										-- restituisce 1 se si è abilitatai alla riproduzione, 0 se non lo si è, valori negativi in caso di errrore
+515        
+516        	/****** serve a testare se un dato utente - all'interno di un certo dominio - è abilitato alla riproduzione - i.e. scarico, stampa ecc - dei documenti di un dato tipo o non tipizzati *******/
+517        	function TestReproducibilityDocTy(
+518        			FlgTpDominioIn				IN 		PLS_INTEGER,				-- Indica il tipo del dominio in cui testare l'abilitazione alla riproduzione
+519        															-- Valori ammessi: 2 = Soggetto produttore; 3 = AOO
+520        			IdDominioIn				IN 		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- (obblig.) Identificativo del dominio (vale a dire l'id. del soggetto produttore o AOO) in cui testare l'abilitazione alla riproduzione
+521        			IdUserIn				IN		DMT_USERS.ID_USER%type,			-- (obblig.) Identificativo dell'utente per cui testare se abilitato o meno alla riproduzione
+522        			IdDocTypeIn				IN		DMT_DOC_TYPES.ID_DOC_TYPE%type		-- Identificativo del tipo del documento
+523        															-- Se non valorizzato si testa l'abilitazione a riprodurre documenti non tipizzati
+524        			)return PLS_INTEGER;										-- restituisce 1 se si è abilitatai alla riproduzione, 0 se non lo si è, valori negativi in caso di errrore
+525        
+526        	/****** serve a testare se con certe abilitazioni di riproduzione sì è abilitati alla riproduzione - i.e. scarico, stampa ecc - dei documenti di un dato tipo o non tipizzati *******/
+527        	function TestReproducibility(
+528        			AbilReprodDocNoRestrictionIn		IN		PLS_INTEGER,				-- (valori 1/0/NULL) Se 1 indica che si deve testare per chi è abilitato alla riproduzione di documenti senza restrizioni in riproduzione
+529        			AbilReprodAllDocIn			IN		PLS_INTEGER,				-- (valori 1/0/NULL) Se 1 indica che si deve testare per chi è abilitato alla riproduzione di documenti con o senza restrizioni in riproduzione
+530        			IdDocTypeIn				IN		DMT_DOC_TYPES.ID_DOC_TYPE%type		-- Identificativo del tipo del documento
+531        															-- Se non valorizzato si testa l'abilitazione a riprodurre documenti non tipizzati
+532        			)return PLS_INTEGER;										-- restituisce 1 se si è abilitatai alla riproduzione, 0 se non lo si è, valori negativi in caso di errrore
+533        
+534        	/****** serve a testare se un dato utente il cui id. è specificato in input sia abilitato a vedere in chiaro - i.e. non schermati - tutti i dati e file di un dato documento qualora questo abbia un qualche grado di riservatezza ****/
+535        	function TestVisibInChiaroDoc(
+536        			IdDominioAutIn		IN 		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,
+537        																			-- Id. del soggetto produttore/AOO nel cui archivio si trova il documento
+538        																			-- se non valorizzato viene ricavato dall'Id del documento
+539        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+540        			IdDocIn				IN		DMT_DOCUMENTS.ID_DOC%type,			-- (obblig.) Identificativo del documento di cui testare la visibilità in chiaro
+541        			IdUDIn				IN		DMT_UNITA_DOC.ID_UD%type,			-- Id. unità documentaria di appartenenza del documento. Se non specificata viene ricavata dall'IdDocIn
+542        			FlgVisibInChiaroIn	IN		DMT_DOCUMENTS.FLG_VISIB_IN_CHIARO%type
+543        																			-- Valore del campo FLG_VISIB_IN_CHIARO del documento. Se non specificato viene ricavato dall'IdDocIn
+544        			) return PLS_INTEGER;											-- restituisce 1 se l'accesso in chiaro è assentito, 0 se non lo è, valori negativi in caso di errrore
+545        
+546        	/****** serve a testare se un dato utente il cui id. è specificato in input sia abilitato a vedere in chiaro - i.e. non schermati - tutti i dati di un dato folder qualora questo abbia un qualche grado di riservatezza ****/
+547        	function TestVisibInChiaroFolder(
+548        			IdDominioAutIn		IN 		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,
+549        																			-- Id. del soggetto produttore/AOO nel cui archivio si trova il folder
+550        																			-- se non valorizzato viene ricavato dall'Id del folder
+551        			IdUserIn			IN		DMT_USERS.ID_USER%type,				-- (obblig.) Identificativo dell''utente
+552        			IdFolderIn			IN		DMT_FOLDER.ID_FOLDER%type,			-- (obblig.) Identificativo del folder di cui testare la visibilità in chiaro
+553        			TipoIdRespFolderIn	IN		VARCHAR2,							-- Indica tipo e id. del responsabile del folder: SV o UO + l'id della UO o scrivania virtuale responsabile
+554        																			-- se non valorizzato viene ricavato dall'Id del folder
+555        			FlgVisibInChiaroIn	IN		DMT_FOLDER.FLG_VISIB_IN_CHIARO%type
+556        																			-- Valore del campo FLG_VISIB_IN_CHIARO del folder. Se non specificato viene ricavato dall'IdFolderIn
+557        			) return PLS_INTEGER;											-- restituisce 1 se l'accesso in chiaro è assentito, 0 se non lo è, valori negativi in caso di errrore
+558        
+559        END DMPK_POLICY;

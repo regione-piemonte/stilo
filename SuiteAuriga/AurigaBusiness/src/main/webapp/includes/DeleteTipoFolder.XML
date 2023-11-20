@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+	<DeleteTipoFolder>
+		<CodId>10001</CodId>
+		<FlagDelLogicaFisica>F</FlagDelLogicaFisica>
+	</DeleteTipoFolder>

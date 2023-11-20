@@ -1,0 +1,539 @@
+1        PACKAGE DMPK_COLLABORATION AUTHID CURRENT_USER IS
+2        
+3        	/********* è il package che si occupa della definizione di tutte le entità legate alla sicurezza (tranne utenti, UO e ruoli) e della loro profilatura ********/ 
+4        
+5        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+6        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+7        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+8        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+9        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+10        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+11        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+12        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+13        
+14        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+15        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+16        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+17        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+18        	/**************		   >1000 errore non grave gestito														*******/
+19        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+20        
+21        	---------funzione che testa se un UD è tale per cui vadano attivate su di essa le restrizioni previste per la docuentazione cartacea
+22        	function TestUDxAttivRestrCartaceo(
+23        			IdUDIn				IN		DMT_UNITA_DOC.ID_UD%type				-- (obblig.) ID_UD dell'Unità Documentaria su cui fare la verifica
+24        			) return PLS_INTEGER;												-- restituise:
+25        																				-- 1 se vanno attivate le restrizioni previste per la docuentazione cartacea
+26        																				-- 0 se vanno attivate le restrizioni previste per la docuentazione cartacea
+27        																				-- valori negativi in caso di verifica impossibile a causa di errori
+28        
+29        	------- funzione per testare se un UD cartacea può essere assegnata da un determinato utente ad un determinato assegnatario
+30        	function TestAssUDConRestrCartaceo(
+31        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type,					-- (obblig.) Id. dell'utente sta assegnando
+32        			IdUDIn				IN		DMT_UNITA_DOC.ID_UD%type,				-- (obblig.) ID_UD dell'Unità Documentaria su cui fare la verifica
+33        			TypeAssIn			IN		VARCHAR2,								-- (obblig.) Tipo dell'assenatario. Valori ammessi:
+34        																				-- UO: Unità Operativa
+35        																				-- SV = Scrivania utente
+36        			IdAssIn				IN		INTEGER									-- (obblig.) Id. dell'assegnatario (ID_UO o ID_SCRIVANIA)
+37        			) return PLS_INTEGER;												-- restituise:
+38        																				-- 1 se l'assegnazione è consentita
+39        																				-- 0 se l'assegnazione NON è consentita
+40        																				-- valori negativi in caso di verifica impossibile a causa di errori
+41        
+42        	/*********** funzione per ottenere la lista degli indirizzi e-mail o n.ri di cellulare relativi a un insieme di soggetti interni (RecipientsXMLIn) cui si deve inviare una notifica via e-mail o SMS ******/
+43        	function GetListaContattiSoggInt(
+44        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig). Codice identificativo del token di connessione
+45        			RecipientsXMLIn		IN		CLOB,								-- (obblig.) Lista dei soggetti interni destinatari della notifica (xml conforme a schema LISTA_STD.xsd)
+46        																	-- Ogni destinatario è un tag "Riga" con le seguenti colonne:
+47        																	--						1: (obblig.) Indicatore del tipo di destinastario
+48        																	--							Valori possibili:
+49        																	-- 							UT 	= Utente
+50        																	--							SV	= Scrivania virtuale
+51        																	--							UO	= Unità organizzativa (vale a dire tutte le scrivanie virtuali ad essa afferenti)
+52        																	--							G	= Gruppo
+53        																	--							R	= Ruolo amministrativo contestualizzato ovvero i soggetti che hanno un certo ruolo amministrativo (eventualmente rispetto ad una certa UO o un dato livello della struttura organizzativa/tipo di UO o entrambi)
+54        																	--						2: Identificativo del destinatario
+55        																	--							è un ID_UO di DMT_STRUTTURA_ORG se colonna 1=UO,
+56        																	--							è un ID_GRUPPO di DMT_GRUPPI se colonna 1 =G
+57        																	--							è un ID_USER di DMT_USERS se colonna 1 =UT
+58        																	--							è un ID_SCRIVANIA di DMT_SCRIVANIE_VIRTUALI se colonna 1 =SV
+59        																	--							è un ID_RUOLO_AMM di DMT_RUOLI_AMM se colonna 1 =R
+60        																	--						3: Denominazione/nome del destinatario (se trattasi di UO può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+61        																	--						4: Identificativo della UO cui appartiene la scrivania destinataria
+62        																	--						5: Nri livello della UO destinataria o a cui appartiene la scrivania destinataria (tutti o alcuni; però se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno specificati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; sono separati dal separatore dei livelli valido per il soggetto produttore/AOO di appartenenza della UO)
+63        																	--						6: Denominazione della UO cui appartiene la scrivania destinataria (può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+64        																	--						7: Codice che identifica nell'applicazione esterna da cui ci si connette l'utente destinatario o quello che occupa la scrivania destinataria
+65        																	--						8: Denominazione dell'utente che occupa la scrivania destinataria
+66        																	--						9: (valore 1) Indica che il destinatario, se UO, sono anche tutte le sue sotto-UO
+67        																	--						10: (valori interi da 1 a n) Livello della struttura organizzativa in cui si espleta il ruolo amministrativo destinatario
+68        																	--						11: Se colonna 1 =R: Codice del tipo di unità organizzativa in cui si espleta il ruolo amministrativo destinatario (alternativo alla colonna 10)
+69        																	--						    Se colonna 1 =UT o SV: Username (delle credenziali locali) dell'utente destinatario o che occupa la scrivania destinataria 
+70        																	--						12: Se colonna 1 =R: Descrizione del tipo di unità organizzativa (es: settore, servizio, ecc) in cui si espleta il ruolo amministrativo destinatario (alternativo alla colonna 10)
+71        																	--						    Se colonna 1 =UT o SV: N.ro di matricola dell'utente destinatario o che occupa la scrivania destinataria 
+72        																	--						13: Identificativo della UO in cui si espleta il ruolo amministrativo destinatario o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario
+73        																	--						14: Denominazione/nome della UO in cui si espleta il ruolo amministrativo destinatario o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario (può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+74        																	--						15: Nri livello della UO in cui si espleta il ruolo amministrativo destinatario o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario (tutti o alcuni; però se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno specificati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; sono separati dal separatore dei livelli valido per il soggetto produttore/AOO di appartenenza della UO)
+75        																	--						16:(valore 1) Indica che il ruolo amministrativo destinatario si espleta anche nelle sotto-UO della/e UO rintracciate tramite i valori delle 3 colonne precedenti
+76        			TipoContattoIn	IN			VARCHAR2,							-- (obblig.) valori ammessi: eMail, TelCell
+77        			ListaContattiOut	OUT			VARCHAR2,							-- Lista degli indirizzi email o n.ri di cellulare dei destinatari (se gruppi o ruoli contestualizzati della loro esplosione) separati da ,
+78        			ErrContextOut	OUT			VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+79        			ErrCodeOut		OUT			PLS_INTEGER,						-- N.ro errore di uscita
+80        			ErrMsgOut		OUT 			VARCHAR2,							-- Messaggio d'errore
+81        			FlgCallByGUIIn	IN			PLS_INTEGER DEFAULT 1					-- (1/0/NULL) Se 1 la stored è chiamata dalla GUI della web application per cui gli id. dei soggetti non vengono considerati se non sono popolati anche altri campi visibili a video o se non sono congruenti con i valori dei campi stessi
+82        			) return PLS_INTEGER;											-- (valori 1/0) 1 = successo, 0 = errore
+83        
+84        	/*********** overload della precedente funzione: serve a ottenere la lista degli indirizzi e-mail o n.ri di cellulare relativi a una U.O./utente/scrivania cui si deve inviare una notifica via e-mail o SMS ******/
+85        	function GetListaContattiSoggInt(
+86        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig). Codice identificativo del token di connessione
+87        			EstremiSoggIntIn		IN		VARCHAR2,							-- (obblig.) Tipo (UO, UT, SV) + identificativo (ID_UO, ID_USER, ID_SCRIVANIA) del soggetto interno destinatario della notifica 
+88        			TipoContattoIn	IN			VARCHAR2,							-- (obblig.) valori ammessi: eMail, TelCell
+89        			ListaContattiOut	OUT			VARCHAR2,							-- Lista degli indirizzi email o n.ri di cellulare del destinatario separati da ,
+90        			ErrContextOut	OUT			VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+91        			ErrCodeOut		OUT			PLS_INTEGER,						-- N.ro errore di uscita
+92        			ErrMsgOut		OUT 			VARCHAR2							-- Messaggio d'errore
+93        			) return PLS_INTEGER;											-- (valori 1/0) 1 = successo, 0 = errore
+94        
+95        	/******* serve a effettuare l'invio (= movimentazione con assegnazione) di un unità documentaria o folder						******/
+96        	/******* Tra gli output restituisce gli identificativi delle copie di unità documentaria inviate (ed eventualmente anche create)		******/
+97        	function Invio(
+98        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig). Codice identificativo del token di connessione
+99        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,		-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+100        			FlgTypeObjToSendIn	IN		VARCHAR2,							-- (obblig., valori F/U) Tipo di oggetto da inviare: F = Folder, U = Unità documentaria 
+101        			IdObjToSendIn		IN		INTEGER,							-- (obblig.) Identificativo (ID_FOLDER o ID_UD) del folder o unità documentaria da inviare
+102        			FlgSendContenutiIn	IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0; viene considerato solo se si invia un folder) Se 1 significa che oltre al folder verranno inviati i suoi sub-folder e documenti che sono assegnati dove è anche il folder da inviare (e che naturalmente sono gestibili dall'utente di lavoro)
+103        			RecipientsXMLIn		IN		CLOB,								-- (obblig.) Lista dei destinatari (xml conforme a schema LISTA_STD.xsd)
+104        																	-- Ogni destinatario è un tag "Riga" con le seguenti colonne:
+105        																	--						1: (obblig.) Indicatore del tipo di destinastario
+106        																	--							Valori possibili:
+107        																	-- 							UT 	= Utente
+108        																	--							SV	= Scrivania virtuale
+109        																	--							UO	= Unità organizzativa (vale a dire tutte le scrivanie virtuali ad essa afferenti)
+110        																	--							G	= Gruppo
+111        																	--							R	= Ruolo amministrativo contestualizzato ovvero i soggetti che hanno un certo ruolo amministrativo (eventualmente rispetto ad una certa UO o un dato livello della struttura organizzativa/tipo di UO o entrambi)
+112        																	--						2: Identificativo del destinatario
+113        																	--							è un ID_UO di DMT_STRUTTURA_ORG se colonna 1=UO,
+114        																	--							è un ID_GRUPPO di DMT_GRUPPI se colonna 1 =G
+115        																	--							è un ID_USER di DMT_USERS se colonna 1 =UT
+116        																	--							è un ID_SCRIVANIA di DMT_SCRIVANIE_VIRTUALI se colonna 1 =SV
+117        																	--							è un ID_RUOLO_AMM di DMT_RUOLI_AMM se colonna 1 =R
+118        																	--						3: Denominazione/nome del destinatario (se trattasi di UO può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+119        																	--						4: Identificativo della UO cui appartiene la scrivania destinataria
+120        																	--						5: Nri livello della UO destinataria o a cui appartiene la scrivania destinataria (tutti o alcuni; però se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno specificati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; sono separati dal separatore dei livelli valido per il soggetto produttore/AOO di appartenenza della UO)
+121        																	--						6: Denominazione della UO cui appartiene la scrivania destinataria (può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+122        																	--						7: Codice che identifica nell'applicazione esterna da cui ci si connette l'utente destinatario o quello che occupa la scrivania destinataria
+123        																	--						8: Denominazione dell'utente che occupa la scrivania destinataria
+124        																	--						9: (valore 1) Indica che il destinatario, se UO, sono anche tutte le sue sotto-UO
+125        																	--						10: (valori interi da 1 a n) Livello della struttura organizzativa in cui si espleta il ruolo amministrativo destinatario
+126        																	--						11: Se colonna 1 =R: Codice del tipo di unità organizzativa in cui si espleta il ruolo amministrativo destinatario (alternativo alla colonna 10)
+127        																	--						    Se colonna 1 =UT o SV: Username (delle credenziali locali) dell'utente destinatario o che occupa la scrivania destinataria 
+128        																	--						12: Se colonna 1 =R: Descrizione del tipo di unità organizzativa (es: settore, servizio, ecc) in cui si espleta il ruolo amministrativo destinatario (alternativo alla colonna 10)
+129        																	--						    Se colonna 1 =UT o SV: N.ro di matricola dell'utente destinatario o che occupa la scrivania destinataria 
+130        																	--						13: Identificativo della UO in cui si espleta il ruolo amministrativo destinatario o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario
+131        																	--						14: Denominazione/nome della UO in cui si espleta il ruolo amministrativo destinatario o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario (può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+132        																	--						15: Nri livello della UO in cui si espleta il ruolo amministrativo destinatario o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario (tutti o alcuni; però se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno specificati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; sono separati dal separatore dei livelli valido per il soggetto produttore/AOO di appartenenza della UO)
+133        																	--						16:(valore 1) Indica che il ruolo amministrativo destinatario si espleta anche nelle sotto-UO della/e UO rintracciate tramite i valori delle 3 colonne precedenti
+134        																	--						17: Codice del ruolo del destinatario (valori codificati in apposita disctionary entry)
+135        																	--						18: Ruolo del destinatario (valori in apposita disctionary entry)
+136        																	--						19: Flag che indica la modalità di accesso da dare al destinatario sull'oggetto inviato (ovvero indica le opzioni di accesso che avrà il destinatario nell'ACL dell'oggetto dopo l'invio, salvo ne avesse già di più ampie)
+137        																	--						    Valori possibili: FC = Full control; M = Modifica metadati e files/contenuti; MM = Modifica soli metadati; V = Sola visualizzazione; VM = Visualizzazione dei soli metadati (non dei files)
+138        																	--						20: (valori 1/NULL) Se 1 indica che è richiesta la notifica di presa in carico per il dato destinatario (anche se non è stata richiesta per tutti i destinatari questa notifica)
+139        																	--						21: N.ro di giorni, a partire dalla decorrenza dell'assegnazione, trascorsi i quali senza che sia avvenuta la presa in carico, ci deve essere la notifica di mancata presa in carico da parte del dato destinatario (anche se tale nontifica non è richiesta per tutti i destinatari)
+140        																	--						22: Cod. motivo assegnazione al dato assegnatario
+141        																	--						23: Cod. priorità assegnazione al dato assegnatario
+142        																	--						24: (flag 1/0) Se 1 significa che al dato assegnatario va assegnato anche tutto il fascicolo di appartenenza (se 1 solo) 
+143        																	--						25: (flag 1/0) Se 1 significa che al dato assegnatario vanno assegnati anche tutti i documenti collegati (quelli assegnati alla/e strutture dell'utente di lavoro)
+144        																	--						26: (flag 1/0) Se 1 significa che va mentenuta una copia presso chi assegna
+145        																	--						27: Messaggio a corredo dell'assegnazione al dato assegnatario
+146        			SenderTypeIn		IN		VARCHAR2 DEFAULT NULL,		-- (opzionale; valori UO/UT/SV) Indica il tipo di soggetto mittente, ovvero chi è assegnatario della copia da inviare
+147        																	-- (considerato e gestito solo per unità documentaria) Valori ammessi: UO = Unità organizzativa; UT = Utente; SV = Scrivania
+148        			SenderIdIn			IN		INTEGER DEFAULT NULL,					-- (considerato e gestito solo per unità documentaria) Identificativo (ID_UO o ID_USER o ID_SCRIVANIA) del soggetto mittente, ovvero chi è assegnatario della copia da inviare	
+149        																	-- Se nulla è specificato verrà ricercato se esistono copie in carico all'utente di lavoro o a una scrivania a lui collegata o a una UO a cui appartiene/per cui può lavorare/ha delega
+150        																	-- Se non si trova nessuna copia ne viene creata una e il mittente è l'utente di lavoro (che deve essere chi ha creato l'oggetto da inviare); 
+151        																	-- se ne viene trovata una sola il mittente è l'assegnatario della copia; 
+152        																	-- se ne viene trovata più di una viene dato errore e bisognera rifare l'invio esplicitando il mittente													
+153        			CodMotivoInvioIn		IN		VARCHAR2 DEFAULT NULL,					-- Codice del motivo dell'invio (valori codificati in apposita dictionary entry)
+154        			MotivoInvioIn		IN		VARCHAR2 DEFAULT NULL,					-- Modivo dell'invio (valori da apposita dictionary entry)
+155        			MessaggioInvioIn		IN		VARCHAR2 DEFAULT NULL,					-- Messaggio di invio
+156        			LivelloPrioritaIn		IN		INTEGER DEFAULT NULL,					-- Livello di priorità del messaggio
+157        			RichConfermaPresaVisIn  IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0) Se 1 significa che si richiede di avere una notifica alla prima visione dell'unità doc./folder da parte di un destinatario
+158        			RichConfermaAccettazIn	IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0) Se 1 significa che si richiede di avere una notifica alla prima accettazione dell'unità doc./folder da parte di un destinatario
+159        			TsDecorrenzaAssegnazIn	IN		VARCHAR2 DEFAULT NULL,					-- Data e ora future da cui deve decorrere l'assegnazione della/e copie ai destinatari (da specificare se diversa dalla data di invio; va espressa nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+160        			FlgNotificaEmailInvioIn	IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0) Se 1 significa che ci deve essere notifica email ai destinatari (o a degli indirizzi email indicati nell'argomento IndXNotifEmailInvioIn)
+161        			IndXNotifEmailInvioIO	IN OUT	VARCHAR2,							-- Indirizzi email (se più d'uno separati da ; o ,) a cui notificare l'invio 
+162        																	-- Se in input non è valorizzato ma FlgNotificaEmailInvioIn = 1 in output può essere valorizzato con gli inirizzi email dei destinatari
+163        			OggEmailOut			OUT		VARCHAR2,							-- (valorizzato se IndXNotifEmailInvioIO è valorizzato in output) Oggetto dell'email di notifica invio
+164        			BodyEmailOut		OUT		VARCHAR2,							-- (valorizzato se IndXNotifEmailInvioIO è valorizzato in output) Corpo del messaggio dell'email di notifica invio
+165        			FlgNotificaSMSInvioIn	IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0) Se 1 significa che ci deve essere notifica via SMS ai destinatari (o a n.ri di cellulare indicati nell'argomento NriCellXNotifSMSInvioIn)
+166        			NriCellXNotifSMSInvioIO	IN OUT	VARCHAR2,							-- N.ri di cellulare (se più d'uno separati da ; o ,) a cui notificare l'invio via SMS
+167        																	-- Se in input non è valorizzato ma FlgNotificaSMSInvioIn = 1 in output può essere valorizzato con i n.ri di cellulare dei destinatari
+168        			TestoSMSOut			OUT		VARCHAR2,							-- (valorizzato se NriCellXNotifSMSInvioIO è valorizzato in output) Testo dell'SMS di notifica dell'invio
+169        			AltreNotificheRichXMLIn	IN		CLOB DEFAULT NULL,		-- Lista con eventuali altre notifiche richieste a fronte di eventi che accadranno o non accadranno entro un certo termine (xml conforme a schema LISTA_STD.xsd)
+170        																	-- Ogni notifica richiesta è un tag "Riga" con le seguenti colonne:
+171        																	-- 1: (viene considerato solo se colonna 3 non è valorizzata) Lista con le descrizioni (presa visione, accettazione, rifiuto, risposta o la descrizione del tipo di un evento nell'iter del folder/UD) delle condizioni al cui verificarsi o non verificarsi entro tot si vuole la notifica (se più d'uno separati da ;)
+172        																	-- 2: N.ro di giorni trascorsi i quali dall'invio/decorrenza dell'assegnazione e non verificatasi alcuna delle condizioni deve essere data la notifica
+173        																	-- 3: Lista dei codici (#PRESA_VIS, #ACCETTAZIONE, #RIFIUTO, #RISPOSTA o ID_EVENT_TYPE di un evento nell'iter del folder/UD) delle condizioni al cui verificarsi o non verificarsi entro tot si vuole la notifica (se più d'uno separati da ;)
+174        																	-- 4: Tipo (UT = Utente, UO = Unità organizzativa, SV = Scrivania virtuale) + identificativo (ID_USER, ID_UO, ID_SCRIVANIA) del destinataro della notifica richiesta (es: UT102, UO1004 ecc)
+175        																	-- 5: (valori 1/0) Se 1 indica se la notifica deve esser data anche via email
+176        																	-- 6: Indirizzi email a cui inviare la notifica (se più d'uno separati da ; o ,). Se nulla è specificato e colonna 5 vale 1 la notifica viene data all'utente e al mittente (se i loro indirizzi email sono a sistema) 
+177        																	-- 7: (valori 1/0) Se 1 indica se la notifica deve esser data anche via SMS
+178        																	-- 8: N.ri di cellulare a cui inviare la notifica (se più d'uno separati da ; o ,). Se nulla è specificato e colonna 7 vale 1 la notifica SMS viene data all'utente (se il suo n.ro di cellulare è a sistema)
+179        			CopieUDInviateXMLOut	OUT		NOCOPY CLOB,						-- (valorizzato solo in caso di invio di unità doc.) Lista con gli id. delle copie dell'unità documentaria che sono state inviate (xml conforme a schema LISTA_STD.xsd)
+180        																	-- Ogni tag "Riga" contiene una sola colonna con l'id. della copia	
+181        			URIXmlOut			OUT		NOCOPY CLOB,						-- Lista con estremi e URI degli oggetti (versioni elettroniche e/o folder) il cui profilo va aggiornato sui container a seguito dell'operazione (xml conforme a schema LISTA_STD.xsd)
+182        																	-- Ogni oggetto è un tag Riga che contiene le seguenti colonne: 
+183        																	-- 1:	Flag F/V che indica se il record rappresenta un'unità documentaria o un folder
+184        																	-- 2: (ID_DOC o ID_FOLDER) Identificativo del documento cui è relativa la versione o identificativo del folder
+185        																	-- 3:	N.ro progressivo della versione
+186        																	-- 4: URI della versione/folder
+187        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+188        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+189        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+190        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+191        			WarningMsgOut			OUT		VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+192        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+193        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+194        			ErrMsgOut				OUT 		VARCHAR2,						-- Messaggio d'errore
+195        			FlgCallByGUIIn			IN		PLS_INTEGER DEFAULT 1,				-- (1/0/NULL) Se 1 l'API che chiama la stored è chiamata dalla GUI di una web application per cui gli id. dei soggetti non vengono considerati se non sono popolati anche altri campi visibili a video o se non sono congruenti con i valori dei campi stessi
+196        			FlgMantieniCopiaUDIn		IN		PLS_INTEGER DEFAULT NULL,	-- (valori 1/0/NULL; considerato solo per UD) Se 1 significa che una copia del documento deve essere mantenuta o creata (se non ancora esistente) presso il mittente dell'invio
+197        																			-- Se invece è NULL o 0 la copia in possesso del mittente viene inviata
+198        			FlgForceInvioIn			IN			PLS_INTEGER DEFAULT NULL,	-- Se 1 viene bypassato il controllo che chi invia possa inviare in base all'attuale assegnazione del folder/UD
+199        			FlgSkipCtrlCartaceoIn	IN			PLS_INTEGER DEFAULT NULL,	-- Se 1 viene bypassato il controllo delle restrizioni valide per cartaceo non digitalizzato sostitutivamente
+200        			FlgInvioFascicoloIn		IN			PLS_INTEGER DEFAULT NULL,	-- Se 1 vengono inviati anche tutti i documenti del fascicolo/sotto-fascicolo cui appartiene il documento da inviare + il fascicolo stesso (SOLO se in carico/assegnati a chi sta inviando)
+201        			FlgInvioUDCollegateIn	IN			PLS_INTEGER DEFAULT NULL	-- Se 1 vengono inviate anche le UD collegate a quella indicata (SOLO se in carico/assegnate a chi sta inviando)
+202        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+203        
+204        
+205        	/******* serve a effettuare la notifica / condivisione o apporre commenti/osservazioni su un unità documentaria o un folder ******/
+206        	function Notifica(
+207        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig). Codice identificativo del token di connessione
+208        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,		-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+209        			FlgTypeObjToNotifIn	IN		VARCHAR2,							-- (obblig., valori F/U) Tipo di oggetto da notificare/condividere: F = Folder, U = Unità documentaria 
+210        			IdObjToNotifIn		IN		INTEGER,							-- (obblig.) Identificativo (ID_FOLDER o ID_UD) del folder o unità documentaria da notificare/condividere
+211        			RecipientsXMLIn		IN		CLOB,								-- (obblig.) Lista dei destinatari (xml conforme a schema LISTA_STD.xsd)
+212        																	-- Ogni destinatario è un tag "Riga" con le seguenti colonne:
+213        																	--						1: (obblig.) Indicatore del tipo di destinastario
+214        																	--							Valori possibili:
+215        																	-- 							UT 	= Utente
+216        																	--							SV	= Scrivania virtuale
+217        																	--							UO	= Unità organizzativa (vale a dire tutte le scrivanie virtuali ad essa afferenti)
+218        																	--							G	= Gruppo
+219        																	--							R	= Ruolo amministrativo contestualizzato ovvero i soggetti che hanno un certo ruolo amministrativo (eventualmente rispetto ad una certa UO o un dato livello della struttura organizzativa/tipo di UO o entrambi)
+220        																	--							R@	= Soggetti interni che hanno un certo ruolo rispetto al documento / folder
+221        																	--						2: Identificativo del destinatario
+222        																	--							è un ID_UO di DMT_STRUTTURA_ORG se colonna 1=UO,
+223        																	--							è un ID_GRUPPO di DMT_GRUPPI se colonna 1 =G
+224        																	--							è un ID_USER di DMT_USERS se colonna 1 =UT
+225        																	--							è un ID_SCRIVANIA di DMT_SCRIVANIE_VIRTUALI se colonna 1 =SV
+226        																	--							è un ID_RUOLO_AMM di DMT_RUOLI_AMM se colonna 1 =R
+227        																	--							è un COD_NATURA_REL di DMT_REL_SOGG_INT_DOC/DMT_REL_SOGG_INT_FOLDER che indica il codice del ruolo rispetto al documento / folder se colonna 1 = R@. Può avere i valori particolari: #CON_ACCESSO (= tutti coloro che hanno accesso anche in sola visualizzazione) e #CON_ACCESSO_IN_MODIFICA (= tutti coloro che hanno accesso anche in modifica dei metadati e/o file)
+228        																	--						3: Denominazione/nome del destinatario (se trattasi di UO può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|"). Se colonna 1 = R@ è la descrizione del ruolo rispetto al documento / folder
+229        																	--						4: Identificativo della UO cui appartiene la scrivania destinataria
+230        																	--						5: Nri livello della UO destinataria o a cui appartiene la scrivania destinataria (tutti o alcuni; però se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno specificati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; sono separati dal separatore dei livelli valido per il soggetto produttore/AOO di appartenenza della UO)
+231        																	--						6: Denominazione della UO cui appartiene la scrivania destinataria (può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+232        																	--						7: Codice che identifica nell'applicazione esterna da cui ci si connette l'utente destinatario o quello che occupa la scrivania destinataria
+233        																	--						8: Denominazione dell'utente che occupa la scrivania destinataria
+234        																	--						9: (valore 1) Indica che il destinatario, se UO, sono anche tutte le sue sotto-UO
+235        																	--						10: (valori interi da 1 a n) Livello della struttura organizzativa in cui si espleta il ruolo amministrativo destinatario
+236        																	--						11: Se colonna 1 =R: Codice del tipo di unità organizzativa in cui si espleta il ruolo amministrativo destinatario (alternativo alla colonna 10)
+237        																	--						    Se colonna 1 =UT o SV: Username (delle credenziali locali) dell'utente destinatario o che occupa la scrivania destinataria 
+238        																	--						12: Se colonna 1 =R: Descrizione del tipo di unità organizzativa (es: settore, servizio, ecc) in cui si espleta il ruolo amministrativo destinatario (alternativo alla colonna 10)
+239        																	--						    Se colonna 1 =UT o SV: N.ro di matricola dell'utente destinatario o che occupa la scrivania destinataria 
+240        																	--						13: Identificativo della UO in cui si espleta il ruolo amministrativo destinatario o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario
+241        																	--						14: Denominazione/nome della UO in cui si espleta il ruolo amministrativo destinatario o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario (può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+242        																	--						15: Nri livello della UO in cui si espleta il ruolo amministrativo destinatario o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario (tutti o alcuni; però se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno specificati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; sono separati dal separatore dei livelli valido per il soggetto produttore/AOO di appartenenza della UO)
+243        																	--						16:(valore 1) Indica che il ruolo amministrativo destinatario si espleta anche nelle sotto-UO della/e UO rintracciate tramite i valori delle 3 colonne precedenti
+244        																	--						17: Codice del ruolo del destinatario (valori codificati in apposita disctionary entry)
+245        																	--						18: Ruolo del destinatario (valori in apposita disctionary entry)
+246        																	--						19: Flag che indica la modalità di accesso da dare al destinatario sull'oggetto inviato (ovvero indica le opzioni di accesso che avrà il destinatario nell'ACL dell'oggetto dopo l'invio, salvo ne avesse già di più ampie)
+247        																	--						    Valori possibili: FC = Full control; M = Modifica metadati e files/contenuti; MM = Modifica soli metadati; V = Sola visualizzazione; VM = Visualizzazione dei soli metadati (non dei files)
+248        																	--						20: (valori 1/NULL) Se 1 indica che è richiesta la notifica di presa visione per il dato destinatario (anche se non è stata richiesta per tutti i destinatari questa notifica)
+249        																	--						21: N.ro di giorni, a partire dalla decorrenza della notifica, trascorsi i quali senza che sia avvenuta la presa visione, ci deve essere la notifica di mancata presa visione da parte del dato destinatario (anche se tale notifica non è richiesta per tutti i destinatari)
+250        																	--						22: Cod. motivo invio al dato destinatario
+251        																	--						23: Cod. priorità invio al dato destinatario
+252        																	--						24: (flag 1/0) Se 1 significa che al dato destinatario va inviato anche tutto il fascicolo di appartenenza (se 1 solo) 
+253        																	--						25: (flag 1/0) Se 1 significa che al dato destinatario vanno inviati anche tutti i documenti collegati (quelli assegnati alla/e strutture dell'utente di lavoro)
+254        																	--						26: non utilizzata
+255        																	--						27: Messaggio a corredo dell'invio al dato destinatario
+256        			SenderTypeIn		IN		VARCHAR2 DEFAULT NULL,					-- (opzionale; valori UO/UT/SV) Indica il tipo di soggetto mittente della notifica
+257        																	-- (considerato e gestito solo per unità documentaria) Valori ammessi: UO = Unità organizzativa; UT = Utente; SV = Scrivania
+258        			SenderIdIn			IN		INTEGER DEFAULT NULL,					-- (considerato e gestito solo per unità documentaria) Identificativo (ID_UO o ID_USER o ID_SCRIVANIA) del soggetto mittente della notifica	
+259        			CodMotivoNotifIn		IN		VARCHAR2 DEFAULT NULL,					-- Codice del motivo della notifica (valori codificati in apposita dictionary entry)
+260        			MotivoNotifIn		IN		VARCHAR2 DEFAULT NULL,					-- Modivo della notifica (valori da apposita dictionary entry)
+261        			MessaggioNotifIn		IN		VARCHAR2 DEFAULT NULL,					-- Messaggio della notifica
+262        			LivelloPrioritaIn		IN		INTEGER DEFAULT NULL,					-- Livello di priorità della notifica 
+263        			RichConfermaPresaVisIn  IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0) Se 1 significa che si richiede di avere una notifica alla prima visione dell'unità doc./folder da parte di un destinatario
+264        			FlgEmailNotifPresaVisIn	IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0) Se 1 e se l'input RichConfermaPresaVisIn=1 indica che la notifica di avvenuta presa visione deve essere data anche via email
+265        			IndEmailNotifPresaVisIn	IN		VARCHAR2 DEFAULT NULL,					-- Indirizzi email (se più d'uno separati da ; o ,) a cui inviare la mail di notifica di presa visione 
+266        																	-- Se non è valorizzato e RichConfermaPresaVisIn=1 e FlgEmailNotifPresaVisIn=1 allora la notifica email di presa visione viene data all'indirizzo email del mittente della notifica originale
+267        			NotNoPresaVisEntroGGIn	IN		PLS_INTEGER DEFAULT NULL,				-- N.ro di giorni trascorsi i quali dalla decorrenza della notifica senza che il documento/folder notificato sia stato visionato dal destinatario deve esserene dato avvertimento al mittente/a qualcuno
+268        			FlgEmailNoPresaVisIn	IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0) Se 1 e se l'input NotNoPresaVisEntroGGIn è valorizzato indica che la notifica di mancata presa visione entro il termine stabilito deve essere data anche via email
+269        			IndEmailNoPresaVisIn	IN		VARCHAR2 DEFAULT NULL,					-- Indirizzi email (se più d'uno separati da ; o ,) a cui inviare la mail di notifica di mancata presa visione entro il termine NotNoPresaVisEntroGGIn.
+270        																	-- Se non è valorizzato e NotNoPresaVisEntroGGIn è valorizzato e FlgEmailNoPresaVisIn=1 allora la notifica email di mancata presa visione viene data all'indirizzo email del mittente della notifica originale
+271        			TsDecorrenzaNotifIn	IN		VARCHAR2 DEFAULT NULL,					-- Data e ora future da cui deve decorrere la notifica (da specificare se diversa dalla data di notifica; va espressa nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+272        			FlgNotificaEmailNotifIn	IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0) Se 1 significa che ci deve essere notifica email ai destinatari (o a degli indirizzi email indicati nell'argomento IndXNotifEmailNotifIn)
+273        			IndXNotifEmailNotifIO	IN OUT	VARCHAR2,							-- Indirizzi email (se più d'uno separati da ; o ,) a cui notificare la notifica 
+274        																	-- Se in input non è valorizzato ma FlgNotificaEmailNotifIn = 1 in output può essere valorizzato con gli inirizzi email dei destinatari
+275        			OggEmailOut			OUT		VARCHAR2,							-- (valorizzato se IndXNotifEmailNotifIO è valorizzato in output) Oggetto dell'email di notifica
+276        			BodyEmailOut		OUT		VARCHAR2,							-- (valorizzato se IndXNotifEmailNotifIO è valorizzato in output) Corpo del messaggio dell'email di notifica
+277        			FlgNotificaSMSNotifIn	IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0) Se 1 significa che ci deve essere notifica via SMS ai destinatari (o a n.ri di cellulare indicati nell'argomento NriCellXNotifSMSNotifIn)
+278        			NriCellXNotifSMSNotifIO	IN OUT	VARCHAR2,							-- N.ri di cellulare (se più d'uno separati da ; o ,) a cui notificare via SMS
+279        																	-- Se in input non è valorizzato ma FlgNotificaSMSNotifIn = 1 in output può essere valorizzato con i n.ri di cellulare dei destinatari
+280        			TestoSMSOut			OUT		VARCHAR2,							-- (valorizzato se NriCellXNotifSMSNotifIO è valorizzato in output) Testo dell'SMS di notifica
+281        			URIXmlOut			OUT		NOCOPY CLOB,						-- Lista con estremi e URI degli oggetti (versioni elettroniche e/o folder) il cui profilo va aggiornato sui container a seguito dell'operazione (xml conforme a schema LISTA_STD.xsd)
+282        																	-- Ogni oggetto è un tag Riga che contiene le seguenti colonne: 
+283        																	-- 1:	Flag F/V che indica se il record rappresenta un'unità documentaria o un folder
+284        																	-- 2: (ID_DOC o ID_FOLDER) Identificativo del documento cui è relativa la versione o identificativo del folder
+285        																	-- 3:	N.ro progressivo della versione
+286        																				-- 4: URI della versione/folder
+287        			FlgIgnoreWarningIn 		IN 			PLS_INTEGER DEFAULT NULL,		-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+288        			FlgRollBckFullIn		IN 			PLS_INTEGER DEFAULT NULL,		-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+289        																				-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+290        			FlgAutoCommitIn			IN 			PLS_INTEGER DEFAULT NULL,		-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+291        			WarningMsgOut			OUT			VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+292        			ErrContextOut			OUT			VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+293        			ErrCodeOut				OUT			PLS_INTEGER,					-- N.ro errore di uscita
+294        			ErrMsgOut				OUT 		VARCHAR2,						-- Messaggio d'errore
+295        			FlgCallByGUIIn			IN			PLS_INTEGER DEFAULT 1,				-- (1/0/NULL) Se 1 l'API che chiama la stored è chiamata dalla GUI di una web application per cui gli id. dei soggetti non vengono considerati se non sono popolati anche altri campi visibili a video o se non sono congruenti con i valori dei campi stessi
+296        			FlgInvioFascicoloIn		IN			PLS_INTEGER DEFAULT NULL,		-- Se 1 vengono inviati anche tutti i documenti del fascicolo/sotto-fascicolo cui appartiene il documento da inviare + il fascicolo stesso (SOLO se in carico/assegnati a chi sta inviando)
+297        			FlgInvioUDCollegateIn	IN			PLS_INTEGER DEFAULT NULL		-- Se 1 vengono inviate anche le UD collegate a quella indicata (SOLO se in carico/assegnate a chi sta inviando)
+298        			) return PLS_INTEGER;												-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+299        
+300        	/*******  serve a effettuare la presa in carico di un unità documentaria o folder assegnato																									******/
+301        	/*******  nel caso di unità documentaria se voi sono più copie che l'utente di lavoro può prendere in carico la presa in carico avviene per tutte, 											******/
+302        	/*******  a meno che non se ne sia specificata una in particolare da prendere in carico (attraverso gli argomenti AssCopiaToKeepTypeIn e AssCopiaToKeepIdIn)									******/
+303        	/*******  se l'unità documentaria o folder era già preso in carico non viene restituito errore bloccante (solo un avvertimento che non risulta bloccante neppure se FlgIgnoreWarningIn !=1)	******/
+304        	function PresaInCarico(
+305        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig). Codice identificativo del token di connessione
+306        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,			-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+307        			FlgTypeObjToKeepIn		IN		VARCHAR2,										-- (obblig., valori F/U) Tipo di oggetto da prendere in carico: F = Folder, U = Unità documentaria 
+308        			IdObjToKeepIn			IN		INTEGER,										-- (obblig.) Identificativo (ID_FOLDER o ID_UD) del folder o unità documentaria da prendere in carico
+309        			FlgInclContenutiIn		IN		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0; viene considerato solo se si prende in carico un folder) Se 1 significa che oltre al folder verranno presi in carico i suoi sub-folder e documenti che sono assegnati allo stesso soggetto a cui è assegnato il folder (e che naturalmente sono gestibili dall'utente di lavoro)
+310        			AssCopiaToKeepTypeIn	IN		VARCHAR2 DEFAULT NULL,							-- (opzionale; valori UO/UT/SV) Indica il tipo di soggetto assegnatario della specifica copia da prendere in carico
+311        																							-- (considerato e gestito solo per unità documentaria) Valori ammessi: UO = Unità organizzativa; UT = Utente; SV = Scrivania
+312        			AssCopiaToKeepIdIn		IN		INTEGER DEFAULT NULL,							-- (considerato e gestito solo per unità documentaria) Identificativo (ID_UO o ID_USER o ID_SCRIVANIA) del soggetto assegnatario della specifica copia da prendere in carico
+313        																							-- Se nulla è specificato verrà ricercato se esistono copie assegnate all'utente di lavoro o a una scrivania a lui collegata o a una UO a cui appartiene/per cui può lavorare/ha delega
+314        																							-- se non viene trovata nessuna copia viene dato errore
+315        																							-- se ne viene trovata più di una NON viene dato errore e vengono prese in carico tutte (quelle ancora da prendere in carico)													
+316        			CopieUDPreseXMLOut		OUT		NOCOPY CLOB,									-- (valorizzato solo in caso di presa in carico di unità doc.) Lista con gli id. delle copie dell'unità documentaria che sono state prese in carico (xml conforme a schema LISTA_STD.xsd)
+317        																							-- Ogni tag "Riga" contiene una sola colonna con l'id. della copia	
+318        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+319        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+320        																							-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+321        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+322        			WarningMsgOut			OUT		VARCHAR2,										-- Messaggio di warning (valorizzato solo se non c'è errore)
+323        			ErrContextOut			OUT		VARCHAR2,										-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+324        			ErrCodeOut				OUT		PLS_INTEGER,									-- N.ro errore di uscita
+325        			ErrMsgOut				OUT 	VARCHAR2										-- Messaggio d'errore
+326        			) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine (senza warning ad eccezione di quello non bloccante di oggetto già preso in carico), altrimenti 0 (in caso di errore o warning bloccanti)
+327        
+328        	/*******  serve ad effettuare la restituzione al mittente di un unità documentaria o folder ricevuto come assegnatario e non ulteriormente movimentato										******/
+329        	/*******  nel caso di unità documentaria se voi sono più copie che l'utente di lavoro può restituire la restituzione avviene per tutte, 													******/
+330        	/*******  a meno che non se ne sia specificata una in particolare da restituire (attraverso gli argomenti AssCopiaToReturnTypeIn e AssCopiaToReturnIdIn)									******/
+331        	/*******  se l'unità documentaria o folder era già preso in carico non viene restituito errore 																								******/
+332        	function Restituzione(
+333        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig). Codice identificativo del token di connessione
+334        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,			-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+335        			FlgTypeObjToReturnIn	IN		VARCHAR2,										-- (obblig., valori F/U) Tipo di oggetto da restituire: F = Folder, U = Unità documentaria 
+336        			IdObjToReturnIn			IN		INTEGER,										-- (obblig.) Identificativo (ID_FOLDER o ID_UD) del folder o unità documentaria da restituire
+337        			MessaggioRestituzioneIn	IN		VARCHAR2 DEFAULT NULL,							-- Messaggio a corredo della restituzione
+338        			AssCopiaToReturnTypeIn	IN		VARCHAR2 DEFAULT NULL,							-- (opzionale; valori UO/UT/SV) Indica il tipo di soggetto assegnatario della specifica copia da restituire
+339        																							-- (considerato e gestito solo per unità documentaria) Valori ammessi: UO = Unità organizzativa; UT = Utente; SV = Scrivania
+340        			AssCopiaToReturnIdIn	IN		INTEGER DEFAULT NULL,							-- (considerato e gestito solo per unità documentaria) Identificativo (ID_UO o ID_USER o ID_SCRIVANIA) del soggetto assegnatario della specifica copia da restituire
+341        																							-- Se nulla è specificato verrà ricercato se esistono copie assegnate all'utente di lavoro o a una scrivania a lui collegata o a una UO a cui appartiene/per cui può lavorare/ha delega
+342        																							-- se non viene trovata nessuna copia viene dato errore
+343        																							-- se ne viene trovata più di una NON viene dato errore e vengono restituite tutte (quelle ancora da prendere in carico)													
+344        			CopieUDRestituiteXMLOut	OUT		NOCOPY CLOB,									-- (valorizzato solo in caso di restituzione di unità doc.) Lista con gli id. delle copie dell'unità documentaria che sono state restituite (xml conforme a schema LISTA_STD.xsd)
+345        																							-- Ogni tag "Riga" contiene una sola colonna con l'id. della copia	
+346        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+347        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+348        																							-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+349        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+350        			WarningMsgOut			OUT		VARCHAR2,										-- Messaggio di warning (valorizzato solo se non c'è errore)
+351        			ErrContextOut			OUT		VARCHAR2,										-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+352        			ErrCodeOut				OUT		PLS_INTEGER,									-- N.ro errore di uscita
+353        			ErrMsgOut				OUT 	VARCHAR2										-- Messaggio d'errore
+354        			) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine (senza warning ad eccezione di quello non bloccante di oggetto già preso in carico), altrimenti 0 (in caso di errore o warning bloccanti)
+355        
+356        	/****** funzione per ottenere gli estremi degli invii/notifiche di una data unità documentaria o folder che sono annullabili da parte di un dato utente *******/
+357        	/****** fornisce anche gli invii non più annullabili in quanto effettuata la presa in carico/restituzione o una ulteriore movimentazione				*******/		
+358        	function GetInviiNotificheAnnullabili(
+359        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig). Codice identificativo del token di connessione
+360        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,			-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+361        			FlgTypeObjSentIn		IN		VARCHAR2,										-- (obblig., valori F/U) Tipo di oggetto inviato/notificato: F = Folder, U = Unità documentaria 
+362        			IdObjSentIn				IN		INTEGER,										-- (obblig.) Identificativo (ID_FOLDER o ID_UD) del folder o unità documentaria inviato/notificato
+363        			FlgInvioNotificaIn		IN		VARCHAR2 DEFAULT NULL,							-- (valori I/N/NULL) Se I significa che si vogliono ottenere solo gli invii dell'unità documentaria o folder annullabili da parte dell'utente, 
+364        																							--					 se N solo le notifiche (invii per conoscenza/condivisione), 
+365        																							--					 se NULL sia invii che notifiche 
+366        			InviiNotificheXMLOut	OUT		NOCOPY CLOB,									-- XML con la lista di invii e/o notifiche potenzialmente annullabili (xml conforme a schema LISTA_STD.xsd)
+367        																							-- Ogni invio/notifica è un tag Riga di cui sono riportati nei tag Colonna i seguenti dati:
+368        																							-- 1: Flag che indica se il record rappresenta un'invio (=I) o una notifica (=N)
+369        																							-- 2: Id. univoco dell'invio/movimento o notifica
+370        																							-- 3: Codice che indica il tipo del mittente (UO, SV, UT)
+371        																							-- 4: Id. del mittente
+372        																							-- 5: Descrizione del mittente
+373        																							-- 6: Descrizione di chi - utente - ha effettuato l'invio/notifica
+374        																							-- 7: Data e ora dell'invio/notifica (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+375        																							-- 8: Tipo del destinatario dell'invio/notifica
+376        																							-- 9: Id. del destinatario
+377        																							-- 10: FLG_INCL_SOTTOUO del destinatario (se UO)     
+378        																							-- 11: VS_LIVELLO_SO del destinatario (se ruolo)         
+379        																							-- 12: VS_ID_UO del destinatario (se ruolo)                 
+380        																							-- 13: VS_COD_TIPO_UO del destinatario (se ruolo)         
+381        																							-- 14: Descrizione del destinatario dell'invio/notifica
+382        																							-- 15: Codice del motivo dell'invio/notifica
+383        																							-- 16: Descrizione del motivo dell'invio/notifica
+384        																							-- 17: Livello di priorità dell'invio/notifica
+385        																							-- 18: Messaggio associato all'invio/notifica
+386        																							-- 19: Data e ora di decorrenza dell'invio (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+387        																							-- 20: Indica i permessi da dare al destinatario sul documento/folder. Valori possibili: 
+388        																							--		VM = Visualizzazione metadati; V = Visualizzazione metadati e files/contenuti; MM = Modifica metadati; M = Modifica metadati e files/contenuti; FC = Full control
+389        																							-- 21: Codice del ruolo del destinatario
+390        																							-- 22: Descrizione del ruolo del destinatario
+391        																							-- 23: Id. del folder di appartenenza con cui è stato inviato il documento/folder
+392        																							-- 24: (1/0) Indica se il folder è stato inviato con contenuti
+393        																							-- 25: (flag 1/0) Se 1 indica che l'invio/notifica è ancora annullabile, se 0 no
+394        																							-- 26: Motivo per cui l'invio/notifica non è più annullabile
+395        																							-- 27: Cod. rapido del destinatario
+396        			NroTotRecOut			OUT		PLS_INTEGER,									-- E' il n.ro di record restituiti nella lista InviiNotificheXMLOut
+397        			ErrContextOut			OUT		VARCHAR2,										-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+398        			ErrCodeOut				OUT		PLS_INTEGER,									-- N.ro errore di uscita
+399        			ErrMsgOut				OUT 	VARCHAR2										-- Messaggio d'errore
+400        			) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0 (in caso di errore)
+401        
+402        	/******* serve ad annullare un invio (= movimentazione con assegnazione) di un unità documentaria o folder precedentemente inviato e non ancora preso in carico o ulteriormente movimentato	dal destinatario dell'invio 	******/
+403        	/******* l'annullamento può essere effettuato sia da chi ha effettuato l'invio che da altri utenti abilitati a gestire documentazione per la UO/scrivania mittente dell'invio												******/
+404        	function AnnullamentoInvio(
+405        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig). Codice identificativo del token di connessione
+406        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,			-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+407        			FlgTypeObjSentIn		IN		VARCHAR2,										-- (obblig., valori F/U) Tipo di oggetto inviato: F = Folder, U = Unità documentaria 
+408        			IdObjSentIn				IN		INTEGER,										-- (obblig.) Identificativo (ID_FOLDER o ID_UD) del folder o unità documentaria inviato
+409        			IdInvioMovimentoIn		IN		INTEGER,										-- (obblig. solo nel caso di UD) Id. univoco dell'invio dell'unità documentaria o id. del movimento di folder da annullare. 
+410        			MotivoAnnIn				IN		VARCHAR2 DEFAULT NULL,							-- Motivo dell'annullamento
+411        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+412        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+413        																							-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+414        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+415        			WarningMsgOut			OUT		VARCHAR2,										-- Messaggio di warning (valorizzato solo se non c'è errore)
+416        			ErrContextOut			OUT		VARCHAR2,										-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+417        			ErrCodeOut				OUT		PLS_INTEGER,									-- N.ro errore di uscita
+418        			ErrMsgOut				OUT 	VARCHAR2										-- Messaggio d'errore
+419        			) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning bloccanti)
+420        
+421        	/******* serve ad annullare una notifica (=invio per conoscenza/condivisione) di un'unità documentaria o folder precedentemente notificato 														******/
+422        	/******* l'annullamento può essere effettuato sia da chi ha effettuato la notifica che da altri utenti abilitati a gestire documentazione per la UO/scrivania mittente della notifica			******/
+423        	function AnnullamentoNotifica(
+424        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig). Codice identificativo del token di connessione
+425        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,			-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+426        			FlgTypeObjNotifiedIn	IN		VARCHAR2,										-- (obblig., valori F/U) Tipo di oggetto inviato: F = Folder, U = Unità documentaria 
+427        			IdObjNotifiedIn			IN		INTEGER,										-- (obblig.) Identificativo (ID_FOLDER o ID_UD) del folder o unità documentaria inviato
+428        			IdNotificaIn			IN		INTEGER,										-- (obblig.) Id. univoco della notifica (i.e. invio per conoscenza/condivisione) da annullare
+429        			MotivoAnnIn				IN		VARCHAR2 DEFAULT NULL,							-- Motivo dell'annullamento
+430        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+431        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+432        																							-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+433        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+434        			WarningMsgOut			OUT		VARCHAR2,										-- Messaggio di warning (valorizzato solo se non c'è errore)
+435        			ErrContextOut			OUT		VARCHAR2,										-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+436        			ErrCodeOut				OUT		PLS_INTEGER,									-- N.ro errore di uscita
+437        			ErrMsgOut				OUT 	VARCHAR2										-- Messaggio d'errore
+438        			) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning bloccanti)
+439        
+440        	/********* funzione per settare lo stato (macro e di dettaglio) di una o più unità documentarie (o di una specifica copia delle stesse) di cui si è assegnatari			*************/
+441        	/********* se la copia non è specificata viene settato lo stato della/delle copie di cui l'utente di lavoro è assegnatario (lui personalemente o postazioni/UO collegate)	*************/
+442        	function SetStatoUD(
+443        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig). Codice identificativo del token di connessione
+444        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,		-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+445        			ListaUDXMLIn		IN		CLOB,								-- XML con la lista delle unità documentarie di cui settare lo stato (conforme a schema LISTA_STD.xsd)
+446        																	-- Ogni unità documentaria è un tag "Riga" con le seguenti colonne:
+447        																	-- 1: ID_UD dell'unità documentaria
+448        																	-- 2: ID_DOC del doc. primario dell'unità documentarie
+449        																	-- 3: ID_COPIA della specifica copia dell'unità documentaria di cui settare lo stato
+450        																	-- 4: COD_CATEGORIA di una registrazione/numerazione dell'unità documentaria
+451        																	-- 5: SIGLA di una registrazione/numerazione dell'unità documentaria
+452        																	-- 6: Anno di una registrazione/numerazione dell'unità documentaria
+453        																	-- 7: N.ro di una registrazione/numerazione dell'unità documentaria
+454        																	-- 9: Percorso e nome dell'unità documentaria (con o senza il nome della libreria di appartenenza)
+455        			CodStatoIn			IN		VARCHAR2 DEFAULT NULL,					-- Codice dello stato da settare. Se NULL su tutti le unità documentarie specificate lo stato viene settato a NULL.
+456        																	-- Può essere solo il codice di un macro-stato (valori da dictionary entry STATO_COPIA_UD) 
+457        																	-- oppure <codice di un macro-stato>|*|<codice di uno stato di dettaglio (valori da dictionary entry STATO_DETT_COPIA_UD)>
+458        																	-- (controllo case-senstive esatto)
+459        			DesStatoIn			IN		VARCHAR2 DEFAULT NULL,					-- Descrizione dello stato da settare (macro o di dettaglio). Se NULL su tutti le unità documentarie specificate lo stato viene settato a NULL. (controllo case-insenstive esatto)
+460        			URIXmlOut			OUT		NOCOPY CLOB,						-- Lista con estremi e URI degli oggetti (versioni elettroniche) il cui profilo va aggiornato sui container a seguito dell'operazione (xml conforme a schema LISTA_STD.xsd)
+461        																	-- Ogni oggetto è un tag Riga che contiene le seguenti colonne: 
+462        																	-- 1:	Valore fisso V
+463        																	-- 2: Identificativo del documento cui è relativa la versione
+464        																	-- 3:	N.ro progressivo della versione
+465        																	-- 4: URI della versione
+466        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+467        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+468        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+469        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+470        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+471        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+472        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0 (in caso di errore o warning)
+473        
+474        	/********* funzione per settare lo stato (macro e di dettaglio) di una o più folder di cui l'utente di lavoro è assegnatario (lui personalemente o postazioni/UO collegate)	*************/
+475        	function SetStatoFolder(
+476        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig). Codice identificativo del token di connessione
+477        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,		-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+478        			ListaFolderXMLIn		IN		CLOB,								-- XML con la lista dei folder di cui settare lo stato (conforme a schema LISTA_STD.xsd)
+479        																	-- Ogni folder è un tag "Riga" con le seguenti colonne:
+480        																	-- 1: ID_FOLDER del folder
+481        																	-- 2: Percorso e nome del folder (con o senza il nome della libreria di appartenenza)
+482        			CodStatoIn			IN		VARCHAR2 DEFAULT NULL,					-- Codice dello stato da settare. Se NULL su tutti i folder specificati lo stato viene settato a NULL.
+483        																	-- Può essere solo il codice di un macro-stato (valori da dictionary entry STATO_FOLDER) 
+484        																	-- oppure <codice di un macro-stato>|*|<codice di uno stato di dettaglio (valori da dictionary entry STATO_DETT_FOLDER)>
+485        																	-- (controllo case-senstive esatto)
+486        			DesStatoIn			IN		VARCHAR2 DEFAULT NULL,					-- Descrizione dello stato da settare (macro o di dettaglio). Se NULL su tutti le unità documentarie specificate lo stato viene settato a NULL. (controllo case-insenstive esatto)
+487        			URIXmlOut			OUT		NOCOPY CLOB,						-- Lista con estremi e URI dei folder il cui profilo va aggiornato sui container a seguito dell'operazione (xml conforme a schema LISTA_STD.xsd)
+488        																	-- Ogni oggetto è un tag Riga che contiene le seguenti colonne: 
+489        																	-- 1:	Valore fisso F
+490        																	-- 2: Identificativo delfolder
+491        																	-- 3:	<non utilizzata>
+492        																	-- 4: URI del folder
+493        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+494        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+495        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+496        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+497        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+498        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+499        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0 (in caso di errore o warning)
+500        
+501        	----------procedure richiamata da job per inviare le notifiche automatiche di mancata presa in carico e mancata lettura
+502        	procedure GeneraNotAsincrone; 
+503        
+504        	function TrovaNotificheOsservazioni(
+505        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig). Codice identificativo del token di connessione
+506        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,			-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+507        			FlgTypeObjRifIn			IN		VARCHAR2,										-- (obblig., valori F/U) Tipo di oggetto inviato/notificato: F = Folder, U = Unità documentaria 
+508        			IdObjRifIn				IN		INTEGER,										-- (obblig.) Identificativo (ID_FOLDER o ID_UD) del folder o unità documentaria inviato/notificato
+509        			FiltriIn				IN		CLOB DEFAULT NULL,								-- XML SezioneCache con eventuali filtri (per ora non usato)
+510        			------------- inizio argomenti standard di tutte le funzioni che devono restituire una lista --------------
+511        			FlgSenzaPaginazioneIn 	IN 		PLS_INTEGER DEFAULT NULL,            			-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+512        			NroPaginaIO      		IN OUT	PLS_INTEGER,                  					-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+513           			BachSizeIO				IN OUT	PLS_INTEGER,									-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+514        																							-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+515        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,						-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow o avvertimento
+516        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+517        			NroTotRecOut			OUT		PLS_INTEGER,									-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina), salvo che nel caso sia stato superato il limite di overflow (warning) e allora coincide con il n.ro di record estratti che sono pari al limite di overflow
+518             		NroRecInPaginaOut 		OUT   	PLS_INTEGER,                     				-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+519        			FlgBatchSearchIn		IN		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+520        																							-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione
+521        			------------- fine argomenti standard di tutte le funzioni che devono restituire una lista --------------
+522        			ListaXMLOut				OUT		NOCOPY CLOB,									-- Lista delle notifiche e osservazioni trovate (XML conforme a schema LISTA_STD.xsd)
+523        																							-- Ogni osservazione/notifica è un tag Riga che contiene le seguenti colonne: 
+524        																							-- 1: Id. osservazione/notifica
+525        																							-- 2: Timestamp notifica (formato data e ora dato dal parametro FMT_STD_TIMESTAMP)
+526        																							-- 3: Nominativo del mittente
+527        																							-- 4: Nominativo del delegato che ha inviato per il mittente (A nome di)
+528        																							-- 5: Livello di priorità (per colonna iconica a GUI con le icone con i punti esclamativi)
+529        																							-- 6: Messaggio
+530        																							-- 7: Estremi dei destinatari
+531        																							-- 8: (flag 1/0) evidenza se il messaggio è destinato personalmente a me
+532        																							-- 9: (flag 1/0) evidenza se il messaggio è destinato SOLO a me
+533        																							-- 10: flag O/S: indica se trattasi di Osservazione (O) o di Notifica (N)
+534        			ErrContextOut			OUT		VARCHAR2,										-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+535        			ErrCodeOut				OUT		PLS_INTEGER,									-- N.ro errore di uscita
+536        			ErrMsgOut				OUT 	VARCHAR2										-- Messaggio d'errore
+537        			)return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+538        
+539        end DMPK_COLLABORATION;

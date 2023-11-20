@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+
+	<bean id="jobmanager" class="it.csi.ade.jobmanager.utility.quartz.config.JobManager">
+		<property name="urlServer" value="localhost:9510"></property>
+		<property name="nodename" value="SERVER 1"></property>
+		<property name="master" value="true"></property>
+		<property name="cluster" value="false"></property>		
+		<property name="dataSource" ref="datasource"/>	 
+		<property name="jobs">
+			<util:map>
+				<entry key="Test1">
+					<bean class="it.csi.ade.jobmanager.utility.quartz.config.JobConfigBean">
+						<property name="type" value="Test"></property>
+						<property name="threadpool" value="5"></property>
+						<property name="cronexpression" value="0/10 * * * * ?"></property>
+						<property name="attributes">
+							<util:map>
+								<entry key="pippo" value="pippo" />
+								<entry key="oneShot" value="true" />
+							</util:map>
+						</property>
+					</bean>
+				</entry>
+				<!--entry key="Test2">
+					<bean class="it.csi.ade.jobmanager.utility.quartz.config.JobConfigBean">
+						<property name="type" value="Test"></property>
+						<property name="threadpool" value="5"></property>
+						<property name="cronexpression" value="0/30 * * * * ?"></property>
+						<property name="attributes">
+							<util:map>
+							</util:map>
+						</property>
+					</bean>
+				</entry-->
+			</util:map>
+		</property>
+	</bean>
+	
+	<bean id="datasource" class="it.csi.ade.jobmanager.utility.quartz.DataSource" lazy-init="true">
+		<property name="driver" value="oracle.jdbc.driver.OracleDriver"></property>
+		<property name="URL" value="jdbc:oracle:thin:dm_owner_1/dm_owner_1@172.27.1.139:1521:SVILUPPO"></property>
+		<property name="user" value="dm_owner_1"></property>
+		<property name="password" value="dm_owner_1"></property>
+		<property name="maxConnections" value="50"></property>
+		<property name="validationQuery" value="select 1 from dual"></property>
+	</bean>		
+	
+</beans>

@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+docType:"Zaglavlje tipa dokumenta",docTypeOther:"Ostala zaglavlja tipa dokumenta",label:"Osobine dokumenta",margin:"Margine stranice",marginBottom:"Donja",marginLeft:"Leva",marginRight:"Desna",marginTop:"Gornja",meta:"Metapodaci",metaAuthor:"Autor",metaCopyright:"Autorska prava",metaDescription:"Opis dokumenta",metaKeywords:"Ključne reci za indeksiranje dokumenta (razdvojene zarezima)",other:"Drugo...",previewHtml:'\x3cp\x3eOvo je jedan \x3cstrong\x3eprimer\x3c/strong\x3e. Koristite \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e.\x3c/p\x3e',
+title:"Osobine dokumenta",txtColor:"Boja teksta",xhtmlDec:"Nalepi XHTML deklaracije"});

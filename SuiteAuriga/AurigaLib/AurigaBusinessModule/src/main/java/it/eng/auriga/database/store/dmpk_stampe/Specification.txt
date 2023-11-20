@@ -1,0 +1,84 @@
+1        PACKAGE DMPK_STAMPE AUTHID CURRENT_USER IS
+2        
+3        	--Funzione che genera l'XML da passare ai WS di generazione di un modello
+4        	FUNCTION GeneraModello(
+5        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+6        																-- (obblig). Codice identificativo del token di connessione
+7        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+8        			StrIn               	IN          VARCHAR2,  									-- Obbl. Id. dell'atto o Id. della seduta
+9        			IdModelloIn             IN          INTEGER,									-- Obbl.Id. Modello da cui estrarre i bookmark associati
+10              		NomeModelloOut OUT VARCHAR2,  --nome del modello da estrarre
+11        			FileOut			OUT		CLOB,										-- Report XML generato
+12        			ErrContextOut	      OUT         VARCHAR2,									--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+13        			ErrCodeOut		     	OUT		PLS_INTEGER,							    	-- Codice errore di uscita
+14        			ErrMsgOut		      OUT 		VARCHAR2)								      -- Messaggio d'errore
+15        			RETURN INTEGER;
+16        
+17        	FUNCTION LoadColStampe (
+18        			CodIdConnectionTokenIn	IN	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+19        													-- (obblig). Codice identificativo del token di connessione
+20        			IdUserLavoroIn			IN	DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+21        			NomeListaIn				IN	VARCHAR2,	-- (obblig.) Lista x cui estrarre le colonne da inserire nella stampa (case-insensitive)
+22        			ListaXMLOut				OUT	NOCOPY CLOB,-- Lista dei valori (XML conforme a schema LISTA_STD.xsd)
+23        													-- Ogni valore è un tag Riga che contiene 2 colonne:
+24        													--	1) Numero colonna
+25        													--	2) Intestazione con cui la colonna deve essere mostrata nelle stampe
+26                    ErrContextOut			OUT	VARCHAR2,	-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+27        			ErrCodeOut				OUT	PLS_INTEGER,-- N.ro errore di uscita
+28        			ErrMsgOut				OUT VARCHAR2)	-- Messaggio d'errore
+29        			return PLS_INTEGER;
+30        
+31        FUNCTION TO_JOB
+32        (	   CodIdConnectionTokenIn	    IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+33        	   IdUserLavoroIn		IN		DMT_USERS.ID_USER%type,					-- (obblig.) Identificativo dell''utente di lavoro
+34        	   NumeroIn				IN  PLS_INTEGER DEFAULT NULL,
+35        	   ParametriIn 			IN	VARCHAR2,
+36        	   FormatoIn		    IN  VARCHAR2 DEFAULT 'pdf',
+37        	   TsScheduleIn			IN  VARCHAR2 DEFAULT TO_CHAR(sysdate,'DD/MM/YYYY HH24:MI:SS'),
+38        	   FileNameIn			IN	VARCHAR2,
+39        	   AliasFileNameIn		IN	VARCHAR2,
+40        	   JasperFileNameIn		IN	VARCHAR2,
+41        	   CtrlFlgIn			IN  VARCHAR2 DEFAULT NULL,
+42        	   MessageIn			IN   VARCHAR2 DEFAULT NULL,
+43        	   StatisticheIn		IN	 VARCHAR2 DEFAULT NULL,
+44        	   CntIn				IN   VARCHAR2,
+45        	   ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+46        	   ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+47        	   ErrMsgOut			OUT 		VARCHAR2							-- Messaggio d'errore
+48        )
+49        			return PLS_INTEGER;-- 1 = Tutto OK; 0 = Error
+50        
+51        	/**** Funzione per ottenere la lista dei job per un dato utente ****/
+52        	FUNCTION ListaJobs(
+53        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+54        																-- (obblig). Codice identificativo del token di connessione
+55        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+56        			StatoIn   		    IN 	    VARCHAR2,      -- 1° filtro di ricerca: stato del job
+57        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+58        			ColOrderByIO		IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso. Se l'ordinamento è per più colonne queste vanno separate con "," (es: 1; 1,2)
+59        																-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+60        																-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+61        			FlgDescOrderByIO  	IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+62        																-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+63        			FlgSenzaPaginazioneIn 	IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+64        			NroPaginaIO      		IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+65           			BachSizeIO			IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+66        																-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+67        			OverFlowLimitIn		IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+68        			FlgSenzaTotIn		IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+69        			NroTotRecOut		OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+70             		NroRecInPaginaOut 	OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+71        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+72        			ListaXMLOut			OUT		CLOB,							-- Lista dei possibili valori (XML conforme a schema LISTA_STD.xsd)
+73        																-- Ogni valore è un tag Riga che contiene 4 colonne:
+74        																--	1) OUT_FILENAME nome del file che si otterrà in output
+75        																--	2) FORMATO formato del file
+76        																--  3) STATUS stato del job
+77        																--	4) MESSAGE messaggio associato al job
+78        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+79        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+80        			ErrMsgOut			OUT 		VARCHAR2)						-- Messaggio d'errore
+81        			RETURN PLS_INTEGER;	-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+82        
+83        
+84        END;

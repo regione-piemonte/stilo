@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <RequestElencaPubblicazioni>
+		<TipoAtto>
+		     <CodId></CodId>
+		     <!--  <Decodifica_Nome></Decodifica_Nome>-->
+	    </TipoAtto>
+		<PubblVariateDal>2023-12-13T12:12:12</PubblVariateDal>
+		<PubblTerminate>true</PubblTerminate>
+	</RequestElencaPubblicazioni>

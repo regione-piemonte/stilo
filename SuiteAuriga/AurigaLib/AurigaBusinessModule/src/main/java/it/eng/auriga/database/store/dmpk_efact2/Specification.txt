@@ -1,0 +1,43 @@
+1        PACKAGE DMPK_EFACT2 AUTHID CURRENT_USER IS
+2        
+3          /****************************************************    INFORMAZIONI GENERALI    ***************************************************************/
+4          /************** Argomenti delle stored per il controllo della transazione:                                                                *******/
+5          /************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint),                            *******/
+6          /**************         altrimenti la rollback delle sole modifiche effettuate nella stored                                               *******/
+7          /**************         ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log                            *******/
+8          /************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9          /************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn                       *******/
+10          /************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK                                                                    *******/
+11          /************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0           *******/
+12          /************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:                          *******/
+13          /************** il n.ro è: <0 se errore ORACLE non specificamente gestito                                                                 *******/
+14          /**************       da 1->1000 errore "grave" (SEVERE_ERROR) gestito                                                                    *******/
+15          /**************       >1000 errore non grave gestito                                                                                      *******/
+16          /************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore                                      *******/
+17        
+18           /*** Funzione di creazione/aggiornamento massivo di utente del sistema  ***/
+19           function IUUserMassivo( CodIdConnectionTokenIn    IN  DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE, -- (obblig). Codice identificativo del token di connessione
+20                                   IdUserLavoroIn            IN  DMT_USERS.ID_USER%type DEFAULT NULL,           -- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+21                                   XMLUtentiIn               IN  CLOB DEFAULT NULL,                             -- Lista degli utenti (XML conforme a schema LISTA_STD.xsd)
+22                                                                                                                -- Ogni utente è un tag Riga che può contenere le seguenti colonne:
+23                                                                                                                -- 1: Nome
+24                                                                                                                -- 2: Cognome
+25                                                                                                                -- 3: Username
+26                                                                                                                -- 4: Password
+27                                                                                                                -- 5: Email
+28                                                                                                                -- 6: Data inizio validità (nel formato dato dal parametro di conf. FMT_STD_DATA)
+29                                                                                                                -- 7: Data fine validità (nel formato dato dal parametro di conf. FMT_STD_DATA)
+30                                                                                                                -- 8: Nome profilo
+31                                                                                                                -- 9: Lista società (separate da virgola)
+32                                                                                                                --10: Lista gruppi (separati da virgola)
+33                                   FlgIgnoreWarningIn        IN  PLS_INTEGER DEFAULT NULL,                      -- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+34                                   FlgRollBckFullIn          IN  PLS_INTEGER DEFAULT NULL,                      -- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+35                                                                                                                -- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+36                                   FlgAutoCommitIn           IN  PLS_INTEGER DEFAULT NULL,                      -- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+37                                   WarningMsgOut             OUT VARCHAR2,                                      -- Messaggio di warning (valorizzato solo se non c'è errore)
+38                                   ErrContextOut             OUT VARCHAR2,                                      -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+39                                   ErrCodeOut                OUT PLS_INTEGER,                                   -- N.ro errore di uscita
+40                                   ErrMsgOut                 OUT VARCHAR2                                       -- Messaggio d'errore
+41                                 ) return PLS_INTEGER;                                                          -- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+42        
+43          END;

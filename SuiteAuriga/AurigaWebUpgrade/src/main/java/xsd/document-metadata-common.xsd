@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xs:schema version="1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://pi.integration.model/meta/common"
+           xmlns="http://pi.integration.model/meta/common" elementFormDefault="unqualified"
+           attributeFormDefault="unqualified">
+    <xs:simpleType name="typologyType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ROL">
+                <xs:annotation>
+                    <xs:documentation>Registered Online Letter</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="LOL">
+                <xs:annotation>
+                    <xs:documentation>Online Letter</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+</xs:schema>

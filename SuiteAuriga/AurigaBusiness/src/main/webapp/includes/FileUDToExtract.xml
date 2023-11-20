@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?> 
+				<FileUDToExtract> 
+					<EstremiXIdentificazioneUD> 
+						<IdUD>6533219</IdUD> 
+					</EstremiXIdentificazioneUD> 
+					<EstremixIdentificazioneFileUD>
+						<FlagPrimario />
+						<NroVersione>1</NroVersione>
+					</EstremixIdentificazioneFileUD>
+					<!--  <GetSbustato>1</GetSbustato> -->
+					<!--
+					<Timbro>
+						<OpzioniTimbro>
+							<PosizioneTimbro>BASSO_SN</PosizioneTimbro>
+							 <RotazioneTimbro>VERTICALE</RotazioneTimbro> 
+							<PaginaTimbro>INTERVALLO</PaginaTimbro> 
+							<IntervalloPagine>
+								<da>1</da>
+								<a>2</a>
+							</IntervalloPagine>
+						</OpzioniTimbro>
+					</Timbro>						
+					-->
+				</FileUDToExtract> 

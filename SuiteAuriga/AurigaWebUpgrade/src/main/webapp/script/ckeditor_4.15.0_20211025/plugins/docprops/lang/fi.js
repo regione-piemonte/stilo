@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+docType:"Dokumentin tyyppi",docTypeOther:"Muu dokumentin tyyppi",label:"Dokumentin ominaisuudet",margin:"Sivun marginaalit",marginBottom:"Ala",marginLeft:"Vasen",marginRight:"Oikea",marginTop:"Ylä",meta:"Metatieto",metaAuthor:"Tekijä",metaCopyright:"Tekijänoikeudet",metaDescription:"Kuvaus",metaKeywords:"Hakusanat (pilkulla erotettuna)",other:"\x3cmuu\x3e",previewHtml:'\x3cp\x3eTämä on \x3cstrong\x3eesimerkkitekstiä\x3c/strong\x3e. Käytät juuri \x3ca href\x3d"javascript:void(0)"\x3eCKEditoria\x3c/a\x3e.\x3c/p\x3e',
+title:"Dokumentin ominaisuudet",txtColor:"Tekstiväri",xhtmlDec:"Lisää XHTML julistukset"});

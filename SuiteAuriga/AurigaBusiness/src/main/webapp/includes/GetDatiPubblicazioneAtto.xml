@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+			<RequestGetDatiPubblicazioneAtto>
+				<!--  <IdUDAtto>1234</IdUDAtto> -->				
+				<EstremiNumerazioneAtto>
+					<SiglaRegistro>PG</SiglaRegistro>
+					<Anno>1999</Anno>
+					<Nro>1</Nro>
+				</EstremiNumerazioneAtto>				
+				<RecuperaRelataPubblicazione>true</RecuperaRelataPubblicazione>
+			</RequestGetDatiPubblicazioneAtto>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-reverse-engineering PUBLIC "-//Hibernate/Hibernate Reverse Engineering DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-reverse-engineering-3.0.dtd" >
+
+<hibernate-reverse-engineering>
+
+	<type-mapping>
+		<sql-type jdbc-type="BIGINT" hibernate-type="Long"></sql-type>
+		<sql-type jdbc-type="NUMERIC" precision="1" hibernate-type="java.lang.Boolean"></sql-type>
+		<sql-type jdbc-type="NUMERIC" hibernate-type="java.math.BigDecimal"></sql-type>
+		<sql-type jdbc-type="BIT" hibernate-type="java.lang.Boolean"></sql-type>
+		<sql-type jdbc-type="DECIMAL" hibernate-type="java.math.BigDecimal"></sql-type>
+		<sql-type jdbc-type="INTEGER" hibernate-type="java.math.BigDecimal"></sql-type>
+		<sql-type jdbc-type="BLOB" hibernate-type="byte[]"></sql-type>
+		<sql-type jdbc-type="CLOB" hibernate-type="java.lang.String"></sql-type>
+		<sql-type jdbc-type="OTHER" hibernate-type="java.util.Date" />
+		<sql-type jdbc-type="DATE" hibernate-type="java.util.Date" />
+		
+	</type-mapping>
+
+<table-filter match-name="T_MIMETYPE_FMT_DIG"></table-filter>
+<table-filter match-name="T_ANAG_FORMATI_DIG"></table-filter>
+	
+	
+</hibernate-reverse-engineering>

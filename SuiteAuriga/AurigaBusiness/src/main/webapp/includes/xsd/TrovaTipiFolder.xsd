@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Andrea Campello (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:simpleType name="NroLivelloGerarchiaType">
+		<xs:annotation>
+			<xs:documentation>Nro di un livello di una struttura gerarchica come la struttura organizzativa o il titolario di classificazione: 1 è il livello più alto (ad esempio il settore o il titolo), 2 il successivo (ad esempio il servizio o la classe) e così via</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="10"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="CodLivelloGerarchiaType">
+		<xs:restriction base="xs:string"/>
+	</xs:simpleType>
+	<xs:complexType name="LivelloGerarchiaType">
+		<xs:attribute name="Nro" type="NroLivelloGerarchiaType" use="required">
+			<xs:annotation>
+				<xs:documentation>N.ro d'ordine del livello</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="Codice" type="CodLivelloGerarchiaType" use="required">
+			<xs:annotation>
+				<xs:documentation>Codice identificativo del livello</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ClassificazioneType">
+		<xs:annotation>
+			<xs:documentation>Indica una classificazione di titolario attraverso il suo identificativo o attarverso i suoi livelli o attraverso la sua descrizione. <!-- Ad esempio la classe 10 del titolo XIX si può indicare come <my_element>  
+<Livello Nro=1 Cod=XIX></Livello>
+<Livello Nro=2 Cod=10> </Livello>
+<my_element> -->
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="IdClassificazione" type="xs:integer" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Identificativo della classificazione (interno al sistema)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="LivelloClassificazione" type="LivelloGerarchiaType" minOccurs="0" maxOccurs="unbounded">
+				<xs:annotation>
+					<xs:documentation>Livelli della classificazione (indicati secondo la metrica stabilita per ognuno; se si indica un livello con un dato n.ro d'ordine vanno indicati tutti quelli con n.ro d'ordine inferiore)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DescrizioneClassificazione" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Può essere la descrizione semplice della classificazione o quest'ultima preceduta dalle descrizioni delle classificazioni di livello superiore (separate da " | "). </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="CriterioRicercaSuAttributoAddType">
+		<xs:sequence>
+			<xs:element name="Nome" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Nome identificativo dell'attributo cui è relativo il criterio di ricerca</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="OperatoreLogico">
+				<xs:annotation>
+					<xs:documentation>Operatore logico da utilizzare sul/i valori dell'attributo per imporre il filtro di ricerca</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="uguale"/>
+						<xs:enumeration value="simile a (case-sensitive)"/>
+						<xs:enumeration value="simile a (case-insensitive)"/>
+						<xs:enumeration value="minore"/>
+						<xs:enumeration value="maggiore o uguale"/>
+						<xs:enumeration value="minore"/>
+						<xs:enumeration value="minore o uguale"/>
+						<xs:enumeration value="compreso tra"/>
+						<xs:enumeration value="non valorizzato"/>
+						<xs:enumeration value="valorizzato"/>
+						<xs:enumeration value="spuntato"/>
+						<xs:enumeration value="non spuntato"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="ValoreConfronto_1" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Va specificato se l'operatore logico prevede uno o 2 valori di confronto (dunque salvo se: valorizzato/non valorizzato, spuntato/non spuntato). Se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data o date e ora deve essere nei formati configurati a sistema per date e timestamp. </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="ValoreConfronto_2" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Va specificato se l'operatore logico prevede 2 valori di confronto (dunque solo nl caso di "compreso tra"). Se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data o date e ora deve essere nei formati configurati a sistema per  date e timestamp. </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="OggDiTabDiSistemaType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un oggetto censito in una tabella di sistema del sistema di protocollo</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="CodId">
+				<xs:annotation>
+					<xs:documentation>Identificativo del dato di sistema nella banca dati</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Decodifica_Nome">
+				<xs:annotation>
+					<xs:documentation>Decodifica del dato di sistema nella banca dati</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:choice>
+	</xs:complexType>
+	<xs:simpleType name="FlagSiNoType">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="0|1"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="PaginazioneType">
+		<xs:sequence>
+			<xs:element name="NroPagina" type="xs:positiveInteger" default="1" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>E' il numero della pagina da estrarre. Se non valorizzato si intende pari a 1</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroRecordInPagina" type="xs:positiveInteger" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Indica la dimensione (n.ro di record) della pagina da estrarre. Se non indicata viene settata pari ad una dimensione di default</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="TrovaTipiFolder">
+		<xs:annotation>
+			<xs:documentation>ROOT element dello schema. Contiene i filtri di ricerca e le modalità di estrazione del risultato</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="IdTipoFolder" type="xs:integer" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Identificativo del tipo di folder da ricercare</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Nome" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Stringa contenuta nel nome del tipo di folder (ricerca case-insensitive in like)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="100"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="RicadeInTipo" type="OggDiTabDiSistemaType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Tipo di folder  in cui ricade, anche non direttamente (sul nome del tipo in cui ricade la ricerca è case-insensitive in like)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FlagDaScansionare" type="FlagSiNoType" fixed="1" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Serve a restringere la ricerca ai tipi folder per cui è prevista la scansione (1) o per i quali non è prevista (0)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="SupportoConservazione" type="OggDiTabDiSistemaType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Supporto fisico di conservazione (carta, disco ottico, microfilm ecc) previsto per i folder del dato tipo. I valori possibili sono codificati in apposita voce del dizionario di sistema. </xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="ConservazioneXAlmenoAnni" type="xs:positiveInteger" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Restringe la ricerca ai soli tipi per cui è previsto un tempo di conservazione >= del n.ro di anni specificato in questo tag</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Classificazione" type="ClassificazioneType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Dati relativi alla classificazione che hanno in genere i folder del dato tipo</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FlagFolderizzazioneAutomatica" type="FlagSiNoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>se 1 indica che si devono estrarre solo i tipi che prevedono una folderizzazione automatica, se 0 solo quelli che non la prevedono</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="CidInSistemaEsterno" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Codice identificativo del tipo di folder in un eventuale sistema informatico di provenienza (ricerca esatta case-sensitive)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="InclusioneAnnullati" fixed="1" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se valorizzato la ricerca include anche i tipi logicamente annullati, altrimenti no</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="AttributoAdd" type="CriterioRicercaSuAttributoAddType" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Criteri di ricerca sugli attributi addizionali dei tipi di folder (cioè quelli non predefiniti in banca dati). Se sono più di uno vengono applicati in AND. I criteri possono essere relativi solo agli attributi non strutturati.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="EstrazionePaginata" type="PaginazioneType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se presente il tag, allora l'estrazione è paginata, ovvero ogni chiamata al Web Service permette di estrarre un set-pagina di record che soddisfano i filtri.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

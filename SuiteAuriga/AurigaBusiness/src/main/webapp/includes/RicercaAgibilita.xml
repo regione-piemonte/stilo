@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RicercaAgibilita>
+	<CodiceFiscaleRic> </CodiceFiscaleRic>
+	<CognomeRic> </CognomeRic>
+	<NomeRic> </NomeRic>
+	<EmailRic> </EmailRic>
+	<TelefonoRic> </TelefonoRic>
+	<CodiceFiscaleDel> </CodiceFiscaleDel>
+	<CognomeDel> </CognomeDel>
+	<NomeDel> </NomeDel>
+	<EmailDel> </EmailDel>
+	<CodiceToponomastico> </CodiceToponomastico>
+	<DenominazioneVia> </DenominazioneVia>
+	<NumCivico> </NumCivico>
+	<AppCivico> </AppCivico>
+	<ClassificazioneRic> </ClassificazioneRic>
+	<Motivazione> </Motivazione>
+	<Allegato> </Allegato>
+	<Note> </Note>
+</RicercaAgibilita>

@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+docType:"Header for dokumenttype",docTypeOther:"Annen header for dokumenttype",label:"Dokumentegenskaper",margin:"Sidemargin",marginBottom:"Bunn",marginLeft:"Venstre",marginRight:"Høyre",marginTop:"Topp",meta:"Metadata",metaAuthor:"Forfatter",metaCopyright:"Opphavsrett",metaDescription:"Dokumentbeskrivelse",metaKeywords:"Dokumentnøkkelord (kommaseparert)",other:"\x3cannen\x3e",previewHtml:'\x3cp\x3eDette er en \x3cstrong\x3eeksempeltekst\x3c/strong\x3e. Du bruker \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e.\x3c/p\x3e',
+title:"Dokumentegenskaper",txtColor:"Tekstfarge",xhtmlDec:"Inkluder XHTML-deklarasjon"});

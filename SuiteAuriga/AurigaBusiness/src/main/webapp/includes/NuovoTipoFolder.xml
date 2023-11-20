@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<NuovoTipoFolder>
+         <Nome>PROVA CREAZIONE NUOVO TIPO FOLDER DA WS</Nome>
+         <FlgRichAbilXVisualizz>0</FlgRichAbilXVisualizz>
+         <FlgRichAbilXGest>0</FlgRichAbilXGest>
+         <FlgRichAbilXAssegn>0</FlgRichAbilXAssegn>
+         <AttributoAddXFolderDelTipo>
+                  <NomeAttributo>2</NomeAttributo>
+                  <DatiPerCreareAttributo>
+                           <Label>Pratica N.1</Label>
+                           <Tipo>Testo mono-riga</Tipo>
+                           <Descrizione>N.ro che identifica la pratica</Descrizione>
+                           <NroCifreCaratteri>30</NroCifreCaratteri>
+                           <RestrizioniSulCase>UPPER</RestrizioniSulCase>
+                  </DatiPerCreareAttributo>
+                  <DatiAssociazione>
+                           <NroPosizione>1</NroPosizione>
+                           <NroMaxValori>1</NroMaxValori>
+                  </DatiAssociazione>
+         </AttributoAddXFolderDelTipo>
+</NuovoTipoFolder>

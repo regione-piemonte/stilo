@@ -1,0 +1,697 @@
+1        PACKAGE DMPK_AMM_TRASP AUTHID CURRENT_USER IS
+2        
+3        	---- funzione per ottenere i contenuti di una data sezione del sito di Amministrazione Trasparente (per l'Ente corrispondente al token di autenticazione)
+4        	function GetContenutiSez(
+5        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+6        																					-- (obblig.) Token di connessione
+7        		IdSezioneIn		  			IN		INTEGER,			 					-- (obblig.) Identificativo della sezione di cui recuperare i contenuti
+8        		FlgPresentiRifNormOut		OUT		PLS_INTEGER,							-- (valori 1/0) Se 1 indica che sono presenti riferimenti normativi (ovvero il campo succesivo non è vuoto)
+9        		RifNormativiOut				OUT		NOCOPY CLOB,							-- Html con i riferimenti normativi
+10        		FlgPresenteHeaderOut		OUT		PLS_INTEGER,							-- (valori 1/0) Se 1 indica che è presente un testo header (ovvero il campo succesivo non è vuoto)
+11        		HeaderOut					OUT		NOCOPY CLOB,							-- Html con l'header della sezione
+12        		DatiAggOut					OUT		NOCOPY CLOB,							-- Html con i dati di ultimo aggiornamento dei contenuti della sezione
+13        		NroContenutiOut				OUT		INTEGER,								-- N.ro di contenuti della sezione (esclusi dal conteggio rif. normativi e header)
+14        		ListaContenutiOut			OUT		NOCOPY CLOB,							-- Lista con i contenuti della sezione (esclusi rif. normativi e header restituiti nei campi appositi)
+15        																					-- Ogni tag Riga contiene le seguenti colonne:
+16        																					-- 1: (n° intero) Id. univoco del contenuto
+17        																					-- 2: Tipo di contenuto; valori possibili:
+18        																					--		titolo_sezione
+19        																					--		fine_sezione
+20        																					--		paragrafo
+21        																					--		export_opendata
+22        																					--		file_semplice
+23        																					--		documento_complesso
+24        																					--		tabella
+25        																					-- 3: Titolo. Sempre valorizzato per titolo_sezione, file_semplice, documento_complesso, tabella
+26        																					--	  Nel caso di file_semplice, documento_complesso, tabella il titolo è linkabile:
+27        																					--			per file_semplice apre la preview del file (o lo scarico se file non visualizzabile da viewer); per documento_complesso e tabella apre la pagina di dettaglio con i dati del documento/tabella
+28        																					-- 4: Contenuto html da mostrare nella pagina della sezione; 
+29        																					--		sempre valorizzato per i contenuti di tipo "paragrafo"
+30        																					--		può essere valorizzato anche per i contenuti di tipo file_semplice, documento_complesso, tabella 
+31        																					--			per i quali costituisce un dettaglio del titolo che appare nella sezione, sotto al titolo
+32        																					-- 5: (flag 1/0) Se 1 indica che dopo il contenuto vanno mostrati i dati di con dati di creazione / ultimo aggiornamento
+33        																					-- 6: Html con dati di creazione e ultimo aggiornamento. Valorizzato solo se colonna precedente = 1
+34        																					-- 7: (valorizzato solo per contenuti di tipo tabella) N° di record della tabella
+35        																					-- 8:(valorizzato solo per contenuti di tipo file_semplice) URI del file (nella notazione StorageUtil)
+36        																					-- 9:(valorizzato solo per contenuti di tipo file_semplice) Nome da dare al file quando se ne fa il download
+37        																					-- 10:(valorizzato solo per contenuti di tipo file_semplice, valori 1/0) Se 1 indica che è un file firmato
+38        																					-- 11:(valorizzato solo per contenuti di tipo file_semplice, valori 1/0) Se 1 indica che è un file firmato CAdES (richiede sbustamento per essere visualizzato)
+39        																					-- 12:(valorizzato solo per contenuti di tipo file_semplice, valori 1/0) Se 1 indica che è file in formato pdf o pdfizzabile
+40        																					-- 13:(valorizzato solo per contenuti di tipo file_semplice) Mimetype del file
+41        																					-- 14:(valorizzato solo per contenuti di tipo file_semplice) Impronta del file
+42        																					-- 15:(valorizzato solo per contenuti di tipo file_semplice) Algoritmo di calcolo dell'impronta
+43        																					-- 16:(valorizzato solo per contenuti di tipo file_semplice) Encoding di calcolo dell'impronta
+44        																					-- 17:(valorizzato solo per contenuti di tipo file_semplice) ID_DOC corrispondente al file
+45        																					-- 18:(valorizzato solo per contenuti di tipo file_semplice) N.ro di versione (del dato documento con qell'ID_DOC) corrispondente al file														
+46        																					-- 19:(valorizzato solo per contenuti di tipo file_semplice) ID_UD dell'unità documentaria cui appartiene il file
+47        																					-- 20: Data di inizio pubblicazione (nel formato dato dal parametro FMT_STD_DATA)
+48        																					-- 21: Data di fine pubblicazione (nel formato dato dal parametro FMT_STD_DATA)
+49        																					-- 22: (valori 1/0) Se 1 indica che è un contenuto attualmente in pubblicazione, se 0 no
+50        																					-- 23: (valorizzato solo per contenuti di tipo titolo_sezione e fine_sezione, valori 1/0) Indica se la sezione prevede export come open-data
+51        																					-- 24: (valori 1/0, valorizzato 1 solo per contenuti di tipo titolo_sezione) Indica se la sezione/lista di contenuti che inizia con il dato tipo contenuto si deve aprire in una finestra separata (1) o meno
+52        																					-- 25: Stato richiesta pubblicazione: da_autorizzare, autorizzata, respinta
+53        																					-- 26: (flag 1/0) Abilitazione ad autorizzare la pubblicazione
+54        																					-- 27: (flag 1/0) Abilitazione ad respingere la pubblicazione
+55        																					-- 28: (flag 1/0) Abilitazione a eliminare il contenuto
+56        																					-- 29: (flag 1/0) Abilitazione a modificare il contenuto
+57        																					-- 30: (flag 1/0) Se 1 indica che è un contenuto eliminato
+58        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+59        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+60        		ErrMsgOut					OUT 	VARCHAR2,								-- Messaggio d'errore
+61        		FlgContenutiFuoriPubblIn	IN		PLS_INTEGER DEFAULT NULL,				-- Se 1 vengono mostrati anche i contenuti con pubblicazione terminata, se 0 no
+62        																					-- I contenuti ancora da pubblicare vengono mostrati anche se 0/NULL, ma solo se la chiamata non è dal front-office
+63        		DataPubblStoricheDaIn		IN		VARCHAR2 DEFAULT NULL,					-- Inizio intervallo di ricerca - nel formato FMT_STD_DATA - delle pubblicazioni storiche da mostrare
+64        		DataPubblStoricheAIn		IN		VARCHAR2 DEFAULT NULL,					-- Fine intervallo di ricerca - nel formato FMT_STD_DATA - delle pubblicazioni storiche da mostrare
+65        		IdUserLavoroIn				IN		INTEGER	DEFAULT NULL,					-- Id. dell'utente delegante per cui si sta lavorando (se attiva sessione in delega)
+66        		FlgIncludiPubblEliminateIn	IN		PLS_INTEGER DEFAULT NULL,				-- Se 1 vengono mostrati anche i contenuti eliminati
+67        		MatchWordListIn				IN		VARCHAR2 DEFAULT NULL					-- Contiene la/le parole da ricercare nei titoli e descrizioni dei contenuti
+68        																					-- Usato solo dal back-office
+69        		) return PLS_INTEGER;														-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+70        
+71        	----------- funzione per ottenere i dati e file del dettaglio di un contenuto di tipo documento_complesso
+72        	function GetDettContDocComplesso(
+73        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+74        																					-- (obblig.) Token di connessione
+75        		IdContenutoSezIn			IN		INTEGER,								-- (obblig.) Id. del contenuto di tipo documento_complesso di cui recuperare i dati e file di dettaglio
+76        		TitoloOut					OUT		VARCHAR2,								-- Titolo. Sempre valorizzato. Se FlgFilePrimarioOut = 1 è linkabile e cliccando si apre la preview del file principale (o lo scarico se file non visualizzabile da viewer)
+77        		FlgFilePrimarioOut			OUT		PLS_INTEGER,							-- (valori 1/0) Se 1 indca che c'è un file principale, se 0 no
+78        		NroFileAllegatiOut			OUT		PLS_INTEGER,							-- Nro di file allegati (senza considerare il primario)
+79        		FlgPresentiInfoDettOut		OUT		PLS_INTEGER,							-- (valori 1/0) Se 1 indica che è presente un testo di informazioni di dettaglio da mostrare dopo il titolo nella maschera di dettaglio (ovvero il campo succesivo non è vuoto)
+80        		InfoDettInDettaglioOut		OUT		NOCOPY CLOB,							-- Html con i dati di dettaglio da mostrare dopo il titolo nella maschera di dettaglio
+81        		InfoDettInSezOut			OUT		NOCOPY CLOB,							-- Html con i dati di dettaglio da mostrare dopo il titolo nella lista contenuti della sezione (serve solo per back-office)
+82        		FlgInfoDettUgualiOut		OUT		PLS_INTEGER,							-- (valori 1/0) Se 1 indica che i due html precedenti sono uguali (serve solo per back-office)
+83        		DatiAggOut					OUT		NOCOPY CLOB,							-- Html con i dati di ultimo aggiornamento 
+84        		DatiFilePrimarioOut			OUT		NOCOPY CLOB,							-- (valorizzato solo se FlgFilePrimarioOut = 1) Lista xml con una sola riga con i dati del file primario.
+85        																					-- L'unica Riga contiene le seguenti colonne:
+86        																					-- 		8:URI del file (nella notazione StorageUtil)
+87        																					-- 		9:Nome da dare al file quando se ne fa il download
+88        																					-- 		10:(valori 1/0) Se 1 indica che è un file firmato
+89        																					-- 		11:(valori 1/0) Se 1 indica che è un file firmato CAdES (richiede sbustamento per essere visualizzato)
+90        																					-- 		12:(valori 1/0) Se 1 indica che è file in formato pdf o pdfizzabile
+91        																					-- 		13:Mimetype del file
+92        																					-- 		14:Impronta del file
+93        																					-- 		15:Algoritmo di calcolo dell'impronta
+94        																					-- 		16:Encoding di calcolo dell'impronta
+95        																					-- 		17:ID_DOC corrispondente al file
+96        																					-- 		18:N.ro di versione (del dato documento con qell'ID_DOC) corrispondente al file
+97        																					-- 		19:ID_UD dell'unità documentaria cui appartiene il file
+98        																					--		21: Nro allegato cui corrisponde il file (se è un allegato e non un file primario)
+99        		DatiFileAllegatiOut			OUT		NOCOPY CLOB,							-- Lista xml con i dati dei file allegati
+100        																					-- Ogni riga corrisponda ad un file allegato e contiene le seguenti colonne:
+101        																					-- 		8:URI del file (nella notazione StorageUtil)
+102        																					-- 		9:Nome da dare al file quando se ne fa il download
+103        																					-- 		10:(valori 1/0) Se 1 indica che è un file firmato
+104        																					-- 		11:(valori 1/0) Se 1 indica che è un file firmato CAdES (richiede sbustamento per essere visualizzato)
+105        																					-- 		12:(valori 1/0) Se 1 indica che è file in formato pdf o pdfizzabile
+106        																					-- 		13:Mimetype del file
+107        																					-- 		14:Impronta del file
+108        																					-- 		15:Algoritmo di calcolo dell'impronta
+109        																					-- 		16:Encoding di calcolo dell'impronta
+110        																					-- 		17:ID_DOC corrispondente al file
+111        																					-- 		18:N.ro di versione (del dato documento con qell'ID_DOC) corrispondente al file
+112        																					-- 		19:ID_UD dell'unità documentaria cui appartiene il file
+113        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+114        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+115        		ErrMsgOut					OUT 	VARCHAR2								-- Messaggio d'errore
+116        		) return PLS_INTEGER;														-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+117        
+118        	----------- funzione per ottenere le informazioni e i dati di un contenuto di tipo tabella (solo una pagina o tutti)
+119        	----------- si possono ottenere solo la struttura e le informazioni della tabella senza i dati (passando NroPaginaIO vuoto)
+120        	function GetDatiContTabella(
+121        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+122        																					-- (obblig.) Token di connessione
+123        		IdContenutoSezIn			IN		INTEGER,								-- (obblig.) Id. del contenuto di tipo documento_complesso di cui recuperare i dati e file di dettaglio
+124        		TitoloOut					OUT		VARCHAR2,								-- Titolo. Sempre valorizzato. 
+125        		FlgPresentiInfoDettOut		OUT		PLS_INTEGER,							-- (valori 1/0) Se 1 indica che è presente un testo di informazioni di dettaglio da mostrare dopo il titolo nella maschera con la tabella (ovvero il campo succesivo non è vuoto)
+126        		InfoDettInDettaglioOut		OUT		NOCOPY CLOB,							-- Html con i dati di dettaglio da mostrare dopo il titolo nella maschera con la tabella
+127        		InfoDettInSezOut			OUT		NOCOPY CLOB,							-- Html con i dati di dettaglio da mostrare dopo il titolo nella lista contenuti della sezione (serve solo per back-office)
+128        		FlgInfoDettUgualiOut		OUT		PLS_INTEGER,							-- (valori 1/0) Se 1 indica che i due html precedenti sono uguali (serve solo per back-office)
+129        		DatiAggOut					OUT		NOCOPY CLOB,							-- Html con i dati di ultimo aggiornamento della tabella
+130        		NroRecXPaginaIn				IN		PLS_INTEGER,							-- Nro di record per pagina. Se non valorizzato la lista dei record NON viene paginata
+131        		NroPaginaIO					IN OUT	PLS_INTEGER,							-- Pagina di cui estrarre i dati. 
+132        																					-- Se NULL nessun dato viene estratto (ovvero ValoriRecTabOut sarà vuoto)
+133        		InfoStrutturaTabOut			OUT		NOCOPY CLOB,							-- Lista xml con le informazioni sulla struttura della tabella
+134        																					-- Ogni riga corrisponde ad una colonna della tabella e contiene le seguenti colonne:
+135        																					-- 		1: Intestazione colonna
+136        																					-- 		2: Tipo di colonna: valori possibili:
+137        																					--		 	S = Stringa
+138        																					--			C = Editor HTML (clob)
+139        																					--			N = Numero (in notazione italiana con , come separatore dei decimali e . per le migliaia)
+140        																					--			E = Euro (viene restituito SOLO al back-office)
+141        																					--			D = Data senza ora (formato del parametro FMT_STD_DATA)
+142        																					--			T = Data e ora (timestamp) (formato del parametro FMT_STD_TIMESTAMP)
+143        																					--			L = Lista di link a file
+144        																					--		3: larghezza percentuale della colonna (da 1 a 100)
+145        																					-- 		4: Indica se la colonna è quella o una di quelle per cui ordinare i dati: indica il n.ro tra le colonne di ordinamento (da 1 in su)
+146        																					--		5: Indica il verso di ordinamento sulla colonna: crescente (= asc) o decrescente (=desc)
+147        																					--		6: (flag 1/0) Indica se campo obbligatorio (1) o meno (0)
+148        																					--		8: (valorizzato solo per campi di tipo S = Stringa) valori ammessi per il campo, separati da |*|. Se non valorizzato qualsiasi valore è ammesso
+149        		NroRecTotaliOut				OUT		PLS_INTEGER,							-- N.ro di record totali della tabella
+150        		NroPagineTotOut				OUT		PLS_INTEGER,							-- N.ro di pagine totali
+151        		NroRecInPaginaOut			OUT		PLS_INTEGER,							-- N.ro di record nella pagina
+152        		ValoriRecTabOut				OUT		NOCOPY CLOB,							-- Lista xml con i dati della tabella
+153        																					-- Ogni riga di dati della tabella corrisponda ad riga xml e contiene tante colonne quante quelle definite in InfoStrutturaTabOut
+154        																					-- In aggiunta si sono 4 colonne finali con data inizio e fine pubbl. della riga nel formato dato dal parametro FMT_STD_DATA + colonna con il n.ro di riga + colonna con l'ID della riga
+155        																					-- Se la colonna è una Lista di link a file il valore è a sua volta una lista xml 
+156        																					--	in cui per ogni file c'è una riga con le seguenti colonne:
+157        																					-- 		8:URI del file (nella notazione StorageUtil)
+158        																					-- 		9:Nome da dare al file quando se ne fa il download
+159        																					-- 		10:(valori 1/0) Se 1 indica che è un file firmato
+160        																					-- 		11:(valori 1/0) Se 1 indica che è un file firmato CAdES (richiede sbustamento per essere visualizzato)
+161        																					-- 		12:(valori 1/0) Se 1 indica che è file in formato pdf o pdfizzabile
+162        																					-- 		13:Mimetype del file
+163        																					-- 		14:Impronta del file
+164        																					-- 		15:Algoritmo di calcolo dell'impronta
+165        																					-- 		16:Encoding di calcolo dell'impronta
+166        																					-- 		17:ID_DOC corrispondente al file
+167        																					-- 		18:N.ro di versione (del dato documento con qell'ID_DOC) corrispondente al file
+168        																					-- 		19:ID_UD dell'unità documentaria cui appartiene il file
+169        																					--		20: (valori 1/0) Se 1 indica che è un file firmato con firma valida
+170        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+171        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+172        		ErrMsgOut					OUT 	VARCHAR2,								-- Messaggio d'errore
+173        		FlgRecordFuoriPubblIn		IN		PLS_INTEGER DEFAULT NULL,				-- Se 1 vengono mostrati anche i record con pubblicazione terminata, se 0 no
+174        																					-- I record ancora da pubblicare vengono mostrati anche se 0/NULL, ma solo se la chiamata non è dal front-office
+175        		FiltriIn					IN		CLOB DEFAULT NULL						-- Filtro da applicare ai contenuti della tabella. E' una lista xml conforme a schema ListaStd.xsd
+176        																					-- Ogni riga è un filtro ed è formata dalle seguenti colonne:
+177        																					-- 1) Intestazione colonna su cui filtrare
+178        																					-- 2) stringa da ricercare nella colonna indicata (ricerca case-insensitive in like)
+179        		) return PLS_INTEGER;														-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+180        
+181        	--------- funzione per aggiungere o aggiornare un contenuto in una sezione del sito di Amministrazione Trasparente
+182        	function IUContenutoSez(
+183        		CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+184        																						-- (obblig) Codice identificativo del token di connessione
+185        		IdUserLavoroIn				IN			DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+186        		IdContenutoSezIO			IN OUT		INTEGER,								-- Id. del contenuto da modificare. Se NULL si intende che il conntenuto è da creare ex-novo
+187        																						-- in output, salvo in caso di errore, è sempre valorizzato
+188        		IdSezioneIn					IN			INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+189        																						-- Id. della sezione del sito di Amministrazione Trasparente in cui mettere o spostare il contenuto
+190        		TipoContenutoIn				IN			VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'), 
+191        																						-- Tipo di contenuto; valori possobili:
+192        																						--		header
+193        																						--		rif_norm
+194        																						--		titolo_sezione
+195        																						--		fine_sezione
+196        																						--		export_opendata
+197        																						--		paragrafo
+198        																						--		file_semplice
+199        																						--		documento_complesso
+200        																						--		tabella
+201        		NroOrdineInSezIn			IN			PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+202        																						-- Nro d'ordine nella sezione. Se non valorizzato viene messo per ultimo
+203        																						-- Se viene indicato un nro di altro contenuto della sezione i contenuti con nro ordine >= di quello indicato vengono shiftati in avanti
+204        		TitoloIn					IN			VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'), 
+205        																						-- Titolo. Va sempre valorizzato se il tipo del contenuto è:  titolo_sezione, file_semplice, documento_complesso, tabella
+206        		TestoHtmlSezIn				IN			CLOB DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'), 
+207        																						-- Html con i dati di dettaglio da mostrare nella lista contenuti della sezione. Va sempre valorizzato se il tipo del contenuto è: paragrafo
+208        		TestoHtmlInDettaglioIn		IN			CLOB DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'), 
+209        																						-- Html con i dati di dettaglio da mostrare dopo il titolo nella maschera di dettaglio del contenuto. Può essere valorizzato per contenuti di tipo documento_complesso e tabella
+210        		FlgTestiHtmlUgualiIn		IN			PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+211        																						--(valori 1/0) Se 1 indica che i due html precedenti sono uguali (può essere settato solo 1 dei 2 e l'altro in automatico viene messo uguale)
+212        		FlgMostraDatiAggIn			PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+213        																						--(valori 1/0) Se 1 significa che per il contenuto vanno mostrati dati di ultimo aggiornamento 
+214        		FlgExportOpenDataIn			IN			INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+215        																						-- (considerato solo per tipi titolo_sezione e fine_sezione, valori 1/0) Se 1 significa che per la sezione è previsto export in open data, altrimenti no
+216        		FlgPaginaDedicataIn			IN			INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+217        																						-- (considerato solo per tipi titolo_sezione, valori 1/0) Se 1 significa che per la sezione è prevista finestra separata
+218        		DatiFileSempliceDaSalvareIn	IN			CLOB DEFAULT NULL,						-- (considerato solo per contenuto file_semplice) XML di tipo SezioneCache con i dati del documento semplice da archiviare ancora a sistema. 
+219        																						-- Le variabili possibili sotto tutte quelle della AddDoc 
+220        																						-- In particolare deve contenere tutte le info del file (URI, mimetype, dati firma, nome file ecc)
+221        		IdDocPrimarioIn				IN			INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+222        																						-- (considerato solo per tipi file_semplice e documento_complesso)ID_DOC del documento primario.  
+223        																						--	Va sempre valorizzato se il tipo del contenuto è file_semplice e se non è valorizzato DatiFileSempliceDaSalvareIn
+224        																						--  Per documento_complesso va sempre valorizzato
+225        		NroVerFilePrimarioIn		IN			INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+226        																						-- (considerato solo se IdDocPrimarioIn è valorizzato) N.ro di versione del file del documento primario. Se IdDocPrimarioIn è valorizzato e NroVerFilePrimarioIn no si intende l'ultima versione valida visibile all'utente di lavoro
+227        		InfoStrutturaTabIn			IN			CLOB DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'), 
+228        																						-- Valorizzato solo per contenuto di tipo tabella. Lista xml con i dati sulla struttura della tabella
+229        																						-- Ogni riga corrisponde ad una colonna della tabella e contiene le seguenti colonne:
+230        																						-- 		1: Intestazione colonna
+231        																						-- 		2: Tipo di colonna: valori possibili:
+232        																						--		 	S = Stringa
+233        																						--			C = Editor HTML (clob)
+234        																						--			N = Numero (in notazione italiana con , come separatore dei decimali e . per le migliaia)
+235        																						--			E = Euro (in notazione italiana con , come separatore dei decimali e . per le migliaia)
+236        																						--			D = Data senza ora (formato del parametro FMT_STD_DATA)
+237        																						--			T = Data e ora (timestamp) (formato del parametro FMT_STD_TIMESTAMP)
+238        																						--			L = Lista di link a file
+239        																						--		3: larghezza percentuale della colonna (da 1 a 100)	
+240        																						-- 		4: Indica se la colonna è quella o una di quelle per cui ordinare i dati: indica il n.ro tra le colonne di ordinamento (da 1 in su)
+241        																						--		5: Indica il verso di ordinamento sulla colonna: crescente (= asc) o decrescente (=desc)
+242        																						--		6: (flag 1/0) Indica se campo obbligatorio (1) o meno (0 o NULL)
+243        																						--		7: (flag 1/0) Se 1 indica che il valore della colonna non è visibile in tabella ma solo dal dettaglio riga
+244        																						--		8: (valorizzato solo per campi di tipo S = Stringa) valori ammessi per il campo, separati da |*|. Se non valorizzato qualsiasi valore è ammesso
+245        		DtPubblDalIn				IN			VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+246        																						-- Data di inizio pubblicazione (nel formato del parametro FMT_STD_DATA)
+247        																						-- Se non valorizzato si intende da domani
+248        		DtPubblAlIn					IN			VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+249        																						-- Data di fine pubblicazione (nel formato del parametro FMT_STD_DATA)
+250        		StatoRichPubblIn			IN			VARCHAR2 DEFAULT NULL,					-- Stato della richiesta di pubblicazione: autorizzo, respingo
+251        		MotivoRigettoIn				IN			VARCHAR2 DEFAULT NULL,					-- Motivo del respingimento della richiesta di pubblicazione
+252        		FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+253        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+254        		FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+255        		ErrContextOut				OUT			VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+256        		ErrCodeOut					OUT			PLS_INTEGER,							-- N.ro errore di uscita
+257        		ErrMsgOut					OUT 		VARCHAR2								-- Messaggio d'errore
+258        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+259        
+260        	--------- funzione per caricare i dati di un contenuto di una sezione del sito di Amministrazione Trasparente
+261        	function LoadDettContenutoSez(
+262        		CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+263        																						-- (obblig) Codice identificativo del token di connessione
+264        		IdUserLavoroIn				IN			DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+265        		IdContenutoSezIn			IN			INTEGER,								-- (obblig. tranne per tipi contenuti haeder e rif_norm)Id. del contenuto da modificare. Se NULL si intende che il conntenuto è da creare ex-novo
+266        		IdSezioneIO					IN OUT		INTEGER,								-- Id. della sezione del sito di Amministrazione Trasparente in cui si trova il contenuto
+267        																						-- in input va valorizzata per tipi contenuti haeder e rif_norm se IdContenutoSezIn è vuoto
+268        		TipoContenutoIO				IN OUT		VARCHAR2,								-- Tipo di contenuto; valori possobili:
+269        																						--		header
+270        																						--		rif_norm
+271        																						--		titolo_sezione
+272        																						--		fine_sezione
+273        																						--		export_opendata
+274        																						--		paragrafo
+275        																						--		file_semplice
+276        																						--		documento_complesso
+277        																						--		tabella
+278        																						-- in input va valorizzata per tipi contenuti header e rif_norm se IdContenutoSezIn è vuoto
+279        		NroOrdineInSezOut			OUT			PLS_INTEGER,							-- Nro d'ordine nella sezione
+280        		TitoloOut					OUT			VARCHAR2,								-- Titolo. Valorizzato se il tipo del contenuto è:  titolo_sezione, file_semplice, documento_complesso, tabella
+281        		TestoHtmlSezOut				OUT			NOCOPY CLOB, 							-- Html con i dati di dettaglio da mostrare nella lista contenuti della sezione. Va sempre valorizzato se il tipo del contenuto è: paragrafo
+282        		TestoHtmlInDettaglioOut		OUT			NOCOPY CLOB, 							-- Html con i dati di dettaglio da mostrare dopo il titolo nella maschera di dettaglio del contenuto. Può essere valorizzato per contenuti di tipo documento_complesso e tabella
+283        		FlgTestiHtmlUgualiOut		OUT			PLS_INTEGER,							--(valori 1/0) Se 1 indica che i due html precedenti sono uguali 
+284        		FlgMostraDatiAggOut			OUT			PLS_INTEGER,							--(valori 1/0) Se 1 significa che per il contenuto vanno mostrati dati di ultimo aggiornamento 
+285        		DatiAggOut					OUT			NOCOPY CLOB,							-- Html con i dati di ultimo aggiornamento 
+286        		FlgExportOpenDataOut		OUT			PLS_INTEGER,							-- (valorizzato solo per tipi titolo_sezione e fine_sezione, valori 1/0) Se 1 significa che per la sezione è previsto export in open data, altrimenti no
+287        		FlgPaginaDedicataOut		OUT			PLS_INTEGER,							-- (valorizzato solo per tipi titolo_sezione, valori 1/0) Se 1 significa che per la sezione è prevista finestra separata
+288        		IdUDOut						OUT			PLS_INTEGER,							-- (valorizzato solo per tipi file_semplice e documento_complesso)ID_UD dell'unità documentaria cui appartiene il contenuto documento
+289        		CodCategoriaRegOut			OUT			VARCHAR2,								-- (valorizzato solo per tipi file_semplice e documento_complesso) Codice della categoria di registrazione del documento: PG = Prot. geneerale, R = Repertorio, PP = Protocollo particolare, A = Altro
+290        		SiglaRegistroRegOut			OUT			VARCHAR2,								-- (valorizzato solo per tipi file_semplice e documento_complesso) Sigla del registro di registrazione del documento (valorizzato se categoria diversa da PG)
+291        		AnnoRegOut					OUT			INTEGER,								-- (valorizzato solo per tipi file_semplice e documento_complesso) Anno di registrazione del documento 
+292        		DataRegOut					OUT			VARCHAR2,								-- (valorizzato solo per tipi file_semplice e documento_complesso) Data di registrazione del documento (nel formato FMT_STD_DATA)
+293        		NroRegOut					OUT			INTEGER,								-- (valorizzato solo per tipi file_semplice e documento_complesso) N° di registrazione del documento
+294        		IdDocPrimarioOut			OUT			INTEGER,								-- (valorizzato solo per tipi file_semplice e documento_complesso)ID_DOC del documento primario.  
+295        		NroVerFilePrimarioOut		OUT			INTEGER,								-- (valorizzato solo se IdDocPrimarioOut è valorizzato) N.ro di versione del file del documento primario. 
+296        		DatiFilePrimarioOut			OUT			NOCOPY CLOB,							-- (valorizzato solo se FlgFilePrimarioOut = 1) Lista xml con una sola riga con i dati del file primario.
+297        																						-- L'unica Riga contiene le seguenti colonne:
+298        																						-- 		8:URI del file (nella notazione StorageUtil)
+299        																						-- 		9:Nome da dare al file quando se ne fa il download
+300        																						-- 		10:(valori 1/0) Se 1 indica che è un file firmato
+301        																						-- 		11:(valori 1/0) Se 1 indica che è un file firmato CAdES (richiede sbustamento per essere visualizzato)
+302        																						-- 		12:(valori 1/0) Se 1 indica che è file in formato pdf o pdfizzabile
+303        																						-- 		13:Mimetype del file
+304        																						-- 		14:Impronta del file
+305        																						-- 		15:Algoritmo di calcolo dell'impronta
+306        																						-- 		16:Encoding di calcolo dell'impronta
+307        																						-- 		17:ID_DOC corrispondente al file
+308        																						-- 		18:N.ro di versione (del dato documento con qell'ID_DOC) corrispondente al file
+309        																						-- 		19:ID_UD dell'unità documentaria cui appartiene il file
+310        																						--		21: Nro allegato cui corrisponde il file (se è un allegato e non un file primario)
+311        		DatiFileAllegatiOut			OUT		NOCOPY CLOB,								-- Lista xml con i dati dei file allegati
+312        																						-- Ogni riga corrisponda ad un file allegato e contiene le seguenti colonne:
+313        																						-- 		8:URI del file (nella notazione StorageUtil)
+314        																						-- 		9:Nome da dare al file quando se ne fa il download
+315        																						-- 		10:(valori 1/0) Se 1 indica che è un file firmato
+316        																						-- 		11:(valori 1/0) Se 1 indica che è un file firmato CAdES (richiede sbustamento per essere visualizzato)
+317        																						-- 		12:(valori 1/0) Se 1 indica che è file in formato pdf o pdfizzabile
+318        																						-- 		13:Mimetype del file
+319        																						-- 		14:Impronta del file
+320        																						-- 		15:Algoritmo di calcolo dell'impronta
+321        																						-- 		16:Encoding di calcolo dell'impronta
+322        																						-- 		17:ID_DOC corrispondente al file
+323        																						-- 		18:N.ro di versione (del dato documento con qell'ID_DOC) corrispondente al file
+324        																						-- 		19:ID_UD dell'unità documentaria cui appartiene il file
+325        		InfoStrutturaTabOut			OUT			NOCOPY CLOB,							-- Valorizzato solo per contenuto di tipo tabella. Lista xml con i dati sulla struttura della tabella
+326        																						-- Ogni riga corrisponde ad una colonna della tabella e contiene le seguenti colonne:
+327        																						-- 		1: Intestazione colonna
+328        																						-- 		2: Tipo di colonna: valori possibili:
+329        																						--		 	S = Stringa
+330        																						--			N = Numero (in notazione italiana con , come separatore dei decimali e . per le migliaia)
+331        																						--			D = Data senza ora (formato del parametro FMT_STD_DATA)
+332        																						--			T = Data e ora (timestamp) (formato del parametro FMT_STD_TIMESTAMP)
+333        																						--			L = Lista di link a file
+334        																						--		3: larghezza percentuale della colonna (da 1 a 100)	
+335        																						-- 		4: Indica se la colonna è quella o una di quelle per cui ordinare i dati: indica il n.ro tra le colonne di ordinamento (da 1 in su)
+336        																						--		5: Indica il verso di ordinamento sulla colonna: crescente (= asc) o decrescente (=desc)
+337        																						--		6: (flag 1/0) Indica se campo obbligatorio (1) o meno (0)
+338        																						--		7: (flag 1/0) Se 1 indica che il valore della colonna non è visibile in tabella ma solo dal dettaglio riga
+339        																						--		8: (valorizzato solo per campi di tipo S = Stringa) valori ammessi per il campo, separati da |*|. Se non valorizzato qualsiasi valore è ammesso
+340        		NroRecPubblInTabellaOut		OUT			INTEGER,								-- (valorizzato solo per contenuti di tipo tabella) Nro di record attualmente pubblicati che ci sono nella tabella
+341        		NroRecDaPubblicareOut		OUT			INTEGER,								-- (valorizzato solo per contenuti di tipo tabella) Nro di record ancora da pubblicare che ci sono nella tabella
+342        		DtPubblDalOut				OUT			VARCHAR2,								-- Data di inizio pubblicazione (nel formato del parametro FMT_STD_DATA)
+343        		DtPubblAlOut				OUT			VARCHAR2,								-- Data di fine pubblicazione (nel formato del parametro FMT_STD_DATA)
+344        		StatoRichPubblOut			OUT			VARCHAR2,								-- Stato richiesta pubblicazione: da_autorizzare, autorizzata, respinta
+345        		MotivoRigettoOut			OUT			VARCHAR2,								-- Motivo del respingimento della richiesta di pubblicazione
+346        		FlgAbilAuotorizzRichOut		OUT			PLS_INTEGER,							-- (valori 1/0/NULL) Se 1 l'utente di lavoro è abilitato a autorizzare o rifiutare la richiesta di pubblicazione
+347        		ErrContextOut				OUT			VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+348        		ErrCodeOut					OUT			PLS_INTEGER,							-- N.ro errore di uscita
+349        		ErrMsgOut					OUT 		VARCHAR2								-- Messaggio d'errore
+350        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+351        
+352        	-------- funzione per spostare un contenuto in altra sezione del sito di Amministrazione Trasparente
+353        	function SpostaContenutoSez(
+354        		CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+355        																						-- (obblig) Codice identificativo del token di connessione
+356        		IdUserLavoroIn				IN			DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+357        		IdContenutoSezIn			IN 			INTEGER,								-- Id. del contenuto da spostare
+358        		IdSezioneNewIn				IN			INTEGER,								-- Id. della sezione in cui spostare
+359        		NroOrdineInSezIn			IN			PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+360        																						-- Nro d'ordine nella nuova sezione. Se non valorizzato viene messo per ultimo
+361        																						-- Se viene indicato un nro di altro contenuto della sezione i contenuti con nro ordine >= di quello indicato vengono shiftati in avanti
+362        		FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+363        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+364        		FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+365        		ErrContextOut				OUT			VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+366        		ErrCodeOut					OUT			PLS_INTEGER,							-- N.ro errore di uscita
+367        		ErrMsgOut					OUT 		VARCHAR2								-- Messaggio d'errore
+368        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0	
+369        
+370        	-------- funzione per eliminare fisicamente un contenuto di una sezione del sito di Amministrazione Trasparente
+371        	function DContenutoSez(
+372        		CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+373        																						-- (obblig) Codice identificativo del token di connessione
+374        		IdUserLavoroIn				IN			DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+375        		IdContenutoSezIn			IN 			INTEGER,								-- Id. del contenuto da eliminare
+376        		MotivoIn					IN			VARCHAR2,								-- (facolMotivo) Motivo dell'eliminazione
+377        		FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+378        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+379        		FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+380        		ErrContextOut				OUT			VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+381        		ErrCodeOut					OUT			PLS_INTEGER,							-- N.ro errore di uscita
+382        		ErrMsgOut					OUT 		VARCHAR2								-- Messaggio d'errore
+383        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0	
+384        
+385        	------- funzione per riordinare contenuti già presenti in una sezione
+386        	------- eventuali contenuti non specificati nella lista di quelli da riordinare vengono lasciati nelle posizioni originali, salvo se occupate da contenuti riordinati (nel caso shiftano in avanti)
+387        	function RiordinaContenutiSez(
+388        		CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+389        																						-- (obblig) Codice identificativo del token di connessione
+390        		IdUserLavoroIn				IN			DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+391        		IdSezioneIn					IN			INTEGER,								-- (obblig) Id. della sezione del sito di Amministrazione Trasparente in cui riordinare contenuti
+392        		ContenutiDaRiordinareIn		IN			CLOB,									-- Lista xml con i contenuti da riordinare
+393        																						-- Ogni riga corrisponde ad un contenuto e contiene:
+394        																						-- 1: Id. del contenuto
+395        																						-- 2: N.ro ordine (da 1 in su)
+396        		FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+397        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+398        		FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+399        		ErrContextOut				OUT			VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+400        		ErrCodeOut					OUT			PLS_INTEGER,							-- N.ro errore di uscita
+401        		ErrMsgOut					OUT 		VARCHAR2								-- Messaggio d'errore
+402        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0	
+403        
+404        	-------- funzione per aggiungere record ad un contenuto di tipo tabella di una sezione di Amministrazione Trasparente
+405        	function AddRecContTabella(
+406        		CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+407        																						-- (obblig) Codice identificativo del token di connessione
+408        		IdUserLavoroIn				IN			DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+409        		IdContenutoSezIn			IN			INTEGER,								-- (obblig) Id. del contenuto di tipo tabella nel quale aggiungere dei record
+410        		ValoriRecToAddIn				IN			CLOB,								-- Lista xml con i dati delle righe da aggiungere alla tabella
+411        																						-- Ogni riga di dati da aggiungere corrisponda ad riga xml e contiene tante colonne quante quelle definite
+412        																						-- Se la colonna è una Lista di link a file il valore è a sua volta una lista xml 
+413        																						--	in cui per ogni file c'è una riga con le seguenti colonne:
+414        																						-- 		1:ID_DOC del file
+415        																						-- 		2:N.ro versione del file (se non specificata si prende l'ultima valida visibile all'utente di lavoro)
+416        		TsPubblDalIn				IN			VARCHAR2,								-- Data e ora di inizio pubblicazione dei record da aggiungere (nel formato del parametro FMT_STD_DATA o FMT_STD_TIMESTAMP)
+417        																						-- Se non valorizzato si intende data e ora correnti
+418        		TsPubblAlIn					IN			VARCHAR2,								-- Data e ora di fine pubblicazione dei record da aggiungere (nel formato del parametro FMT_STD_DATA o FMT_STD_TIMESTAMP)
+419        		FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+420        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+421        		FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+422        		ErrContextOut				OUT			VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+423        		ErrCodeOut					OUT			PLS_INTEGER,							-- N.ro errore di uscita
+424        		ErrMsgOut					OUT 		VARCHAR2,								-- Messaggio d'errore
+425        		FlgUpdIn					IN			INTEGER DEFAULT NULL,					-- Se 1 indica che la Add viene chiamata per modificare una singola riga (fa cancella e add)
+426        		IdRigaIn					IN			VARCHAR2 DEFAULT NULL					-- Id. della riga che si sta modificando (se FlgUpdIn = 1)
+427        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0	
+428        
+429        	-------- funzione per aggiornare un record di un contenuto di tipo tabella di una sezione di Amministrazione Trasparente
+430        	function UpdRecContTabella(
+431        		CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+432        																						-- (obblig) Codice identificativo del token di connessione
+433        		IdUserLavoroIn				IN			DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+434        		IdContenutoSezIn			IN			INTEGER,								-- (obblig) Id. del contenuto di tipo tabella nel quale modificare il record
+435        		IdRigaIn					IN			VARCHAR2,								-- (obblig) Id della riga da modificare
+436        		ValoriRecToUpdIn			IN			CLOB,									-- Lista xml con i dati del record da aggiornare
+437        																						-- Contiene una sola riga con tante colonne quante quelle definite per la tabella
+438        																						-- Se la colonna è una Lista di link a file il valore è a sua volta una lista xml 
+439        																						--	in cui per ogni file c'è una riga con le seguenti colonne:
+440        																						-- 		1:ID_DOC del file
+441        																						-- 		2:N.ro versione del file (se non specificata si prende l'ultima valida visibile all'utente di lavoro)
+442        		TsPubblDalIn				IN			VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+443        																						-- Data e ora di inizio pubblicazione del record da aggiornare (nel formato del parametro FMT_STD_DATA o FMT_STD_TIMESTAMP)
+444        																						-- Se non valorizzato si intende data e ora correnti
+445        		TsPubblAlIn					IN			VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+446        																						-- Data e ora di fine pubblicazione del record da aggiornare (nel formato del parametro FMT_STD_DATA o FMT_STD_TIMESTAMP)
+447        		FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+448        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+449        		FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+450        		ErrContextOut				OUT			VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+451        		ErrCodeOut					OUT			PLS_INTEGER,							-- N.ro errore di uscita
+452        		ErrMsgOut					OUT 		VARCHAR2								-- Messaggio d'errore
+453        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0	
+454        
+455        	-------- funzione per eliminare dei record da un contenuto di tipo tabella di una sezione di Amministrazione Trasparente
+456        	function DRecContTabella(
+457        		CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+458        																						-- (obblig) Codice identificativo del token di connessione
+459        		IdUserLavoroIn				IN			DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+460        		IdContenutoSezIn			IN			INTEGER,								-- (obblig) Id. del contenuto di tipo tabella dal quale eliminare record
+461        		RecToDeleteIn				IN			CLOB,									-- (obblig) Lista xml con gli id delle righe da eliminare
+462        																						-- Contiene righe con una sola colonna
+463        		MotivoIn					IN			VARCHAR2,								-- (facolMotivo) Motivo dell'eliminazione
+464        		FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+465        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+466        		FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+467        		ErrContextOut				OUT			VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+468        		ErrCodeOut					OUT			PLS_INTEGER,							-- N.ro errore di uscita
+469        		ErrMsgOut					OUT 		VARCHAR2								-- Messaggio d'errore
+470        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0	
+471        
+472        	------- funzione per riordinare record di un contenuto di tipo tabella
+473        	------- Riordina in base al criterio di ordinamento definito per la tabella (in DMT_TA_DEF_CONT_TAB)
+474        	function RiordinaRecContTabella(
+475        		CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+476        																						-- (obblig) Codice identificativo del token di connessione
+477        		IdUserLavoroIn				IN			DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+478        		IdContenutoSezIn			IN 			INTEGER,								-- (obblig.) Id. del contenuto tabella in cui riordinare dei record
+479        		FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+480        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+481        		FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+482        		ErrContextOut				OUT			VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+483        		ErrCodeOut					OUT			PLS_INTEGER,							-- N.ro errore di uscita
+484        		ErrMsgOut					OUT 		VARCHAR2								-- Messaggio d'errore
+485        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0	
+486        
+487        
+488        	---- funzione per ottenere i flag RifNormativi e FlgPresenteHeader di una data sezione del sito di Amministrazione Trasparente (per l'Ente corrispondente al token di autenticazione)
+489        	function GetFlgHeaderRifNormativiSez(
+490        			   CodIdConnectionTokenIn		IN	  DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,    -- (obblig.) Token di connessione
+491        			   IdSezioneIn		  		    IN		INTEGER,			 					                          -- (obblig.) Identificativo della sezione di cui recuperare i contenuti
+492        			   FlgPresentiRifNormOut		OUT		PLS_INTEGER,							                        -- (valori 1/0) Se 1 indica che sono presenti riferimenti normativi (ovvero il campo succesivo non è vuoto)
+493        			   FlgPresenteHeaderOut		  OUT		PLS_INTEGER,							                        -- (valori 1/0) Se 1 indica che è presente un testo header (ovvero il campo succesivo non è vuoto)
+494        			   ErrContextOut				    OUT		VARCHAR2,								                          -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+495        			   ErrCodeOut					      OUT		PLS_INTEGER,							                        -- N.ro errore di uscita
+496        			   ErrMsgOut					      OUT 	VARCHAR2								                          -- Messaggio d'errore		
+497        		) return PLS_INTEGER;		-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+498        
+499        	--- funzione per aggiungere o variare una sezione della trasparenza
+500        	function IUSezione(
+501        		CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+502        																						-- (obblig) Codice identificativo del token di connessione
+503        		IdUserLavoroIn				IN			DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+504        		IdSezioneIO					IN 	OUT		DMT_TA_SEZIONI.ID_SEZIONE%type,			-- Id. della sezione. Se null in input è una sezione da creare ex-novo
+505        		IdSezionePadreIn			IN			DMT_TA_SEZIONI.ID_SEZIONE%type DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+506        																						-- Id. della sezione di appartenenza (se sezione non di 1° livello)
+507        		NomeSezioneIn				IN			DMT_TA_SEZIONI.NOME_SEZIONE%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'NUM_VAL_NO_UPD'),
+508        																						-- Nome della sezione
+509        		IdSezionePrecIn				IN			DMT_TA_SEZIONI.ID_SEZIONE%type DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+510        																						-- Id. della sezione "sorella" immediatamente precedente come ordine. Se non valorizzato viene messa per ultima
+511        		FlgDismessaIn				IN			INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+512        																						-- Se 1 indica che la sezione va dismessa					
+513        		FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+514        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+515        		FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+516        		ErrContextOut				OUT			VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+517        		ErrCodeOut					OUT			PLS_INTEGER,							-- N.ro errore di uscita
+518        		ErrMsgOut					OUT 		VARCHAR2,								-- Messaggio d'errore
+519        		FlgPubblApertaIn			IN			PLS_INTEGER DEFAULT NULL				-- (valori 1/0/NULL) Se vale 1 significa che la pubblicazione nella sezione è aperta a tutte le strutture dell'ente
+520        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0	
+521        
+522        	--- funzione per eliminare una sezione della trasparenza (possibile solo se prova di contenuti)
+523        	function DSezione(
+524        		CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+525        																						-- (obblig) Codice identificativo del token di connessione
+526        		IdUserLavoroIn				IN			DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+527        		IdSezioneIn					IN 			DMT_TA_SEZIONI.ID_SEZIONE%type,			-- Id. della sezione da eliminare
+528        		MotivoIn					IN			VARCHAR2 DEFAULT NULL,					-- Motivo della cancellazione
+529        		FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+530        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+531        		FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+532        		ErrContextOut				OUT			VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+533        		ErrCodeOut					OUT			PLS_INTEGER,							-- N.ro errore di uscita
+534        		ErrMsgOut					OUT 		VARCHAR2								-- Messaggio d'errore
+535        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0	
+536        
+537        	--- funzione per registrare l'accesso ad una sezione o contenuto del portale trasparenza (front-end) da parte di un client
+538        	function RegAccessoSezContFO(
+539        		IdClientIn					IN			VARCHAR2,								-- Identificativo del client che accede (session-id o IP o altro)
+540        		IdSezioneIn					IN 			DMT_TA_SEZIONI.ID_SEZIONE%type,			-- (obblig. se IdContenutoSezIn è vuoto) Id. della sezione acceduta
+541        		IdContenutoSezIn			IN			DMT_TA_CONTENUTI_SEZ.ID_CONTENUTO_SEZ%type,	
+542        																						-- (obblig. se IdSezioneIn è vuoto) Id. del contenuto acceduto
+543        		FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+544        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+545        		FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+546        		ErrContextOut				OUT			VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+547        		ErrCodeOut					OUT			PLS_INTEGER,							-- N.ro errore di uscita
+548        		ErrMsgOut					OUT 		VARCHAR2								-- Messaggio d'errore
+549        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0	
+550        
+551        	--- funzione di ricerca usata dal front-office
+552        	function TrovaContenutiFO(
+553        		CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+554        																						-- (obblig) Codice identificativo del token di connessione usato dal front-office
+555        		MatchWordListIn				IN			VARCHAR2,								-- (obblig.) Contiene la/le parole da ricercare nei titoli e descrizioni dei contenuti
+556        		IdSezioneIn					IN 			DMT_TA_SEZIONI.ID_SEZIONE%type,			-- (opzionale) Id. della sezione in cui ricercare
+557        		LivSezioniConteggioIn		IN			INTEGER DEFAULT 1,						-- Livello delle sezioni - 1 o 2 - a cui effettuare i raggruppamenti per il conteggio dei risultati
+558        		FlgSenzaPaginazioneIn 		IN 			PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+559        		NroPaginaIO      			IN OUT		PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+560        		PageSizeIO					IN OUT		PLS_INTEGER,							-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+561        		NroTotRecOut				OUT			PLS_INTEGER,							-- E' il n.ro di record complessivi trovati
+562        		NroRecInPaginaOut 			OUT   		PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+563        		ConteggiXSezioneOut			OUT			NOCOPY CLOB,							-- Lista xml con i conteggi dei risultati per sezione. Ogni riga contiene:
+564        																						-- colonna 1) Id. sezione
+565        																						-- colonna 2) Id. sezione padre
+566        																						-- Colonna 3) Nome sezione
+567        																						-- Colonna 4) Nome sezione padre
+568        																						-- Colonna 5) Conteggio dei risultati nella sezione
+569        		ResultOut					OUT			NOCOPY CLOB								-- Lista xml con tutti i risultati. Ogni riga contiene:
+570        																						-- Ogni tag Riga contiene le seguenti colonne:
+571        																						-- 1: (n° intero) Id. univoco del contenuto
+572        																						-- 2: Tipo di contenuto; valori possibili:
+573        																						--		paragrafo
+574        																						--		file_semplice
+575        																						--		documento_complesso
+576        																						--		tabella
+577        																						-- 3: Titolo. Sempre valorizzato file_semplice, documento_complesso, tabella
+578        																						-- 4: Contenuto html da mostrare nella pagina dei risultati
+579        																						-- 5: (flag 1/0) Se 1 indica che dopo il contenuto vanno mostrati i dati di creazione / ultimo aggiornamento
+580        																						-- 6: Html con dati di creazione e ultimo aggiornamento. Valorizzato solo se colonna precedente = 1
+581        																						-- 7: (valorizzato solo per contenuti di tipo tabella) N° di record della tabella
+582        																						-- 8:(valorizzato solo per contenuti di tipo file_semplice) URI del file (nella notazione StorageUtil)
+583        																						-- 9:(valorizzato solo per contenuti di tipo file_semplice) Nome da dare al file quando se ne fa il download
+584        																						-- 10:(valorizzato solo per contenuti di tipo file_semplice, valori 1/0) Se 1 indica che è un file firmato
+585        																						-- 11:(valorizzato solo per contenuti di tipo file_semplice, valori 1/0) Se 1 indica che è un file firmato CAdES (richiede sbustamento per essere visualizzato)
+586        																						-- 12:(valorizzato solo per contenuti di tipo file_semplice, valori 1/0) Se 1 indica che è file in formato pdf o pdfizzabile
+587        																						-- 13:(valorizzato solo per contenuti di tipo file_semplice) Mimetype del file
+588        																						-- 14:(valorizzato solo per contenuti di tipo file_semplice) Impronta del file
+589        																						-- 15:(valorizzato solo per contenuti di tipo file_semplice) Algoritmo di calcolo dell'impronta
+590        																						-- 16:(valorizzato solo per contenuti di tipo file_semplice) Encoding di calcolo dell'impronta
+591        																						-- 17:(valorizzato solo per contenuti di tipo file_semplice) ID_DOC corrispondente al file
+592        																						-- 18:(valorizzato solo per contenuti di tipo file_semplice) N.ro di versione (del dato documento con qell'ID_DOC) corrispondente al file														
+593        																						-- 19:(valorizzato solo per contenuti di tipo file_semplice) ID_UD dell'unità documentaria cui appartiene il file
+594        																						-- 20: Data di inizio pubblicazione (nel formato dato dal parametro FMT_STD_DATA)
+595        																						-- 21: Data di fine pubblicazione (nel formato dato dal parametro FMT_STD_DATA)
+596        																						-- 25: Id. sezione di appartenenza
+597        																						-- 26: Nome sezione di appartenenza
+598        																						-- 27: Id. sezione padre di quella di appartenenza
+599        																						-- 28: Nome sezione padre di quella di appartenenza
+600        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0	
+601        
+602        	---- funzione per ottenere i dati dei report xls relativi all'amministrazione trasparente
+603        	function GetDatiReport(
+604        		CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+605        																						-- (obblig) Codice identificativo del token di connessione
+606        		IdUserLavoroIn				IN			DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+607        		TipoReportIn				IN			VARCHAR2,								-- (obblig.) Tipo di report. Valori possibili: 
+608        																						-- 		log_accesso_sezioni
+609        																						--		log_accesso_sezioni_e_contenuti
+610        																						--		sezioni
+611        																						--		sezioni_senza_contenuti
+612        																						--		abilitazioni_sezioni
+613        																						--		abilitazioni_sezioni_vs_utenti
+614        																						--		contenuti_documentali_pubblicati
+615        		ParametriReportIn			IN			CLOB,									-- XML SezioneCache con i parametri del report
+616        																						-- Per tipi report log_accesso_sezioni e log_accesso_sezioni_e_contenuti:
+617        																						--		DataDa		(obblig.) Data inizio intervallo di estrazione log (nel formato dato dal parametro FMT_STD_DATA)
+618        																						--		DataA		Data fine intervallo di estrazione log (nel formato dato dal parametro FMT_STD_DATA)
+619        																						-- Per tipi report sezioni, sezioni_senza_contenuti, abilitazioni_sezioni, abilitazioni_sezioni_vs_utenti
+620        																						--		NESSUN parametro previsto
+621        																						-- Per tipo report contenuti_documentali_pubblicati:
+622        																						--		DataRif		(obblig.)Data a cui devono essere pubblcati i contenuti documentali da estrarre (nel formato dato dal parametro FMT_STD_DATA)
+623        																						--		IdSezione	(opzionale) Id. della sezione limitatamente alla quale estrarre i contenuti pubblcati alla data DataRif
+624        		NroColonneOut				OUT			INTEGER,								-- N.ro colonne del report
+625        		NroRecordOut				OUT			INTEGER,								-- N.ro di righe del report
+626        		IntestazioniReportOut		OUT			NOCOPY CLOB,							-- Lista xml con gli header delle colonne. E' una sola riga con tante colonne quante quelle del report
+627        		ValoriReportOut				OUT			NOCOPY CLOB,							-- Lista xml con i valori del report. Ogni riga contiene un numero di colonne variabile in base al tipo di report (pari a NroColonneOut)	
+628        		ErrContextOut				OUT			VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+629        		ErrCodeOut					OUT			PLS_INTEGER,							-- N.ro errore di uscita
+630        		ErrMsgOut					OUT 		VARCHAR2								-- Messaggio d'errore
+631        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0	
+632        
+633        	---- funzione per ottenere le entità abilitate ad una data sezione del sito di Amministrazione Trasparente (per l'Ente corrispondente al token di autenticazione)
+634        	function GetAbilitatiSez(
+635        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+636        																					-- (obblig.) Token di connessione
+637        		IdSezioneIn		  			IN		INTEGER,			 					-- (obblig.) Identificativo della sezione di cui recuperare i contenuti
+638        		TipoEntitaIn        		IN      VARCHAR2,							    -- (valori UO/UT) Se UO indica uffici, UT utenti
+639        		ListaAbilitatiOut			OUT		NOCOPY CLOB,							-- Lista con gli abiliati alla sezione
+640        																					-- Ogni tag Riga contiene le seguenti colonne:
+641        																					-- 1: (n° intero) Id. univoco del entita
+642        																					-- 2: tipo entità
+643                                                                                            -- 3: codice entita
+644                                                                                            -- 4 descrizione entità
+645                                                                                            -- 5 tipo di abilitazione, solo per gli utenti
+646        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+647        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+648        		ErrMsgOut					OUT 	VARCHAR2								-- Messaggio d'errore
+649        
+650        		) return PLS_INTEGER;	
+651        
+652        	-------- funzione per aggiungere le entità abilitate ad una data sezione del sito di Amministrazione Trasparente (per l'Ente corrispondente al token di autenticazione)
+653        	function SetAbilitatiSez(
+654        		CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+655        																						-- (obblig) Codice identificativo del token di connessione
+656        		IdUserLavoroIn				IN			DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+657        		IdSezioneIn				    IN			INTEGER,								-- (obblig) Id. della sezione nella quale aggiungere dei record
+658        		ValoriAbilToAddIn				IN			CLOB,								-- Lista xml con le abilitazioni da aggiungere alla tabella
+659        																						-- Ogni riga di dati da aggiungere corrisponda ad riga xml e contiene tante colonne quante quelle definite
+660                                                                                                -- 1: (n° intero) Id. univoco del entita
+661                                                                                                -- 2: tipo entità
+662                                                                                                -- 3: tipo di abiltazione
+663                FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+664        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+665        		FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+666        		ErrContextOut				OUT			VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+667        		ErrCodeOut					OUT			PLS_INTEGER,							-- N.ro errore di uscita
+668        		ErrMsgOut					OUT 		VARCHAR2,								-- Messaggio d'errore
+669        		TipoEntitaIn        		IN      	VARCHAR2 DEFAULT NULL					-- (valori UO/UT) Se UO indica uffici, UT utenti
+670        		) return PLS_INTEGER;	
+671        
+672        	---- funzione per recuperare le operazioni su un contenuto da pubblicare/pubblicato in trasparenza
+673        	function GetLogContenutoSez(
+674        		CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+675        																				-- (obblig). Codice identificativo del token di connessione
+676        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+677        		IdContenutoSezIn			IN		INTEGER,							-- (obblig.) Identificativo del contenuto di cui estarre i log
+678        		ListaLogOut					OUT		NOCOPY CLOB,						-- Lista con i log delle operazioni avvenute sul contenuto (XML conforme a schema LISTA_STD.xsd)
+679        																				-- Ogni operazione è un tag "Riga" che contiene le seguenti colonne:
+680        																				-- 1: Timestamp dell'operazione (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+681        																				-- 2: Progressivo operazione per ordinamento cronologico
+682        																				-- 3: Id. dell'utente che ha effettuato l'operazione
+683        																				-- 4: Decodifica dell'utente che ha effettuato l'operazione
+684        																				-- 5: Id. dell'utente a nome di cui stava lavorando chi ha effettuato l'operazione
+685        																				-- 6: Decodifica dell'utente a nome di cui stava lavorando chi ha effettuato l'operazione
+686        																				-- 7: Codice del tipo di operazione
+687        																				-- 8: Decodifica del tipo di operazione
+688        																				-- 9: Descrizione/dettagli dell'operazione
+689        																				-- 10:Esito dell'operazione (valori: successo; fallita)
+690        																				-- 11:Messaggio di errore (nel caso di operazione fallita)
+691        		FlgIncludiOpFalliteIn		IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 nel log vengono inserite anche le operazioni tentate ma NON andate a buon fine, altrimenti sono estratte solo le operazioni andate a buon fine
+692        		ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+693        		ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+694        		ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+695        		return PLS_INTEGER;														-- 1 in caso di successo, 0 in caso di errore
+696        
+697        END DMPK_AMM_TRASP;

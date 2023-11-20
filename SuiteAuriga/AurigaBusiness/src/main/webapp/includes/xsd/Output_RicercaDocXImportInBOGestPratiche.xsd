@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="Lista">
+		<xs:annotation>
+			<xs:documentation>ROOT element dello schema. Lista con i documenti trovati dalla ricerca, ordinati per data e ora di registrazione crescente</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Documento" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Dati di un unità documentaria trovata dalla ricerca</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="VersoRegistrazione">
+								<xs:annotation>
+									<xs:documentation>Verso di registrazione: E = Entrata, U = Uscita, I = Interno </xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="E"/>
+										<xs:enumeration value="U"/>
+										<xs:enumeration value="I"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="EstremiRegistrazione" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>Estremi di registrazione: stringa formattata che esprime tipo, registro, anno e numero di registrazione</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="TsRegistrazione" type="xs:dateTime">
+								<xs:annotation>
+									<xs:documentation>Data e ora di protocollazione/registrazione</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="TsRifTempi" type="xs:dateTime" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Data e ora di riferimento per il computo dei tempi dei documenti in entrata: è la data di arrivo/presentazione ovvero la data di invio certificata per i documenti pervenuti da PEC</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="TipoRegistrazione">
+								<xs:annotation>
+									<xs:documentation>Tipo di registrazione. Valori : PG = Protocollo Generale, R = Repertorio, A = Altro tipo di numerazione</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="PG"/>
+										<xs:enumeration value="R"/>
+										<xs:enumeration value="A"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="SiglaRegistrazione">
+								<xs:annotation>
+									<xs:documentation>Sigla del repertorio/registro di numerazione</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:maxLength value="30"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="NroRegistrazione">
+								<xs:annotation>
+									<xs:documentation>Numero di protocollo/repertorio</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:positiveInteger">
+										<xs:minInclusive value="1"/>
+										<xs:maxInclusive value="9999999"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="Oggetto">
+								<xs:annotation>
+									<xs:documentation>Oggetto del documento</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:maxLength value="1000"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="TipoDoc">
+								<xs:annotation>
+									<xs:documentation>Tipologia documentale (la decrizione)</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:simpleContent>
+										<xs:extension base="xs:string">
+											<xs:attribute name="ID" type="xs:string" use="required">
+												<xs:annotation>
+													<xs:documentation>Id. della tipologia documentale (la chiave interna al sistema documentale)</xs:documentation>
+												</xs:annotation>
+											</xs:attribute>
+										</xs:extension>
+									</xs:simpleContent>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="CanaleIngresso">
+								<xs:annotation>
+									<xs:documentation>Canale/mezzo di ingresso (on-line, PEC ecc)</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:simpleContent>
+										<xs:extension base="xs:string">
+											<xs:attribute name="Codice" type="xs:string" use="required">
+												<xs:annotation>
+													<xs:documentation>Codice che identifica il canale/mezzo di ingresso del documento</xs:documentation>
+												</xs:annotation>
+											</xs:attribute>
+										</xs:extension>
+									</xs:simpleContent>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="Mittente" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Cognome e nome /ragione sociale/denominazione del mittente</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:maxLength value="500"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="Destinatario" type="xs:string" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>Destinatario del documento</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="Assegnatario" type="xs:string" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>Assegnario interno del documento: Nome della struttura o Cogome e Nome della persona + struttura </xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="File" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>File del documento</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="DisplayFilename" type="xs:string">
+											<xs:annotation>
+												<xs:documentation>Nome del file</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="Mimetype" type="xs:string">
+											<xs:annotation>
+												<xs:documentation>Mimetype del file</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="Firmato" type="xs:boolean">
+											<xs:annotation>
+												<xs:documentation>Indica se il documento è firmato digitalmente</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="Dimensione" type="xs:positiveInteger">
+											<xs:annotation>
+												<xs:documentation>Dimesnione del file (in bytes)</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="TipoDoc">
+											<xs:annotation>
+												<xs:documentation>Tipologia documentale del file (la decrizione)</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:simpleContent>
+													<xs:extension base="xs:string">
+														<xs:attribute name="ID" type="xs:string" use="required">
+															<xs:annotation>
+																<xs:documentation>Id. della tipologia documentale del file (la chiave interna al sistema documentale)</xs:documentation>
+															</xs:annotation>
+														</xs:attribute>
+													</xs:extension>
+												</xs:simpleContent>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="DescrizioneAllegato" type="xs:string" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Descrizione del file se allegato</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="FormatoTimbrabile" type="xs:boolean">
+											<xs:annotation>
+												<xs:documentation>Indica se il file è in un formato timbrabile con timbro sovraimpresso</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+									<xs:attribute name="IdDoc" type="xs:positiveInteger" use="required">
+										<xs:annotation>
+											<xs:documentation>Id. del documento a cui corrisponde il file - primario o allegato</xs:documentation>
+										</xs:annotation>
+									</xs:attribute>
+									<xs:attribute name="Allegato" type="xs:boolean" use="required">
+										<xs:annotation>
+											<xs:documentation>Indica se si tratta di allegato o file principale</xs:documentation>
+										</xs:annotation>
+									</xs:attribute>
+									<xs:attribute name="NroAllegato" type="xs:positiveInteger">
+										<xs:annotation>
+											<xs:documentation>N.ro ordine allegato (valorizzato solo se trattasi di allegato)</xs:documentation>
+										</xs:annotation>
+									</xs:attribute>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+						<xs:attribute name="IdDocPrimario" type="xs:positiveInteger" use="required">
+							<xs:annotation>
+								<xs:documentation>Id. del documento primario dell'unità documentaria </xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+						<xs:attribute name="IdUD" type="xs:positiveInteger" use="required">
+							<xs:annotation>
+								<xs:documentation>Id. dell'unità documentaria</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="NroTotaleRecord" use="required">
+				<xs:annotation>
+					<xs:documentation>N.ro totale di record che soddisfano i filtri di ricerca</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:integer">
+						<xs:minInclusive value="0"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<xs:attribute name="NroPagine" type="xs:integer">
+				<xs:annotation>
+					<xs:documentation>N.ro di pagine in cui sono distribuiti i record che sodisfano i filtri di ricerca (presente nel caso di estrazione pginata)</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

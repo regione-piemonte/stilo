@@ -1,0 +1,101 @@
+1        PACKAGE               DMPK_COGITO AUTHID CURRENT_USER IS
+2        
+3          /**************************************   INFORMAZIONI GENERALI   ****************************************************/
+4          --
+5          -- Argomenti delle stored per il controllo della transazione:
+6          -- FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint),
+7          --         altrimenti la rollback delle sole modifiche effettuate nella stored
+8          --         ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+9          -- FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale
+10          -- Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn
+11          -- NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK
+12          --
+13          -- Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0
+14          -- Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:
+15          -- il n.ro è: <0 se errore ORACLE non specificamente gestito
+16          --      da 1->1000 errore "grave" (SEVERE_ERROR) gestito
+17          --      >1000 errore non grave gestito
+18          -- il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore
+19              
+20        	-- Funzione per inserire o aggiornare un record in tabella T_COGITO_LOG
+21          function IUCogitoLog(CodIdConnectionTokenIn      IN         DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE, -- (obblig). Codice identificativo del token di connessione
+22                               IdUserLavoroIn              IN         DMT_USERS.ID_USER%type DEFAULT NULL,           -- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+23                               IdCogitoLogIO               IN OUT     T_COGITO_LOG.ID_COGITO%type,                   -- Identificativo del record da modificare. Se non valorizzato il record è da inserire ex-novo
+24                                                                                                                     -- In output, salvo in caso di errore, è sempre valorizzato                                              
+25                               IdCogitoOperationIn         IN         T_COGITO_LOG.ID_COGITO_OPERATION%type,
+26                               IdUoIn                      IN         T_COGITO_LOG.ID_UO%type,
+27                               TsInizioChiamataIn          IN         VARCHAR2, 
+28                               TsFineChiamataIn            IN         VARCHAR2, 
+29                               NriLivelliRestituiteIn      IN         VARCHAR2,                       
+30                               NriLivelliSceltaIn          IN         VARCHAR2,    
+31        					             ErrMsgCogitoIn			         IN 		    CLOB,							                             -- Errore restituito dal servizio COGITO
+32        					   IdUdIn                      IN         T_COGITO_LOG.ID_UD%type,                       -- Id. unità documentaria
+33                               FlgRollBckFullIn            IN         PLS_INTEGER DEFAULT NULL,                      -- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+34                                                                                                                     -- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+35                               FlgAutoCommitIn             IN         PLS_INTEGER DEFAULT NULL,                      -- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+36                               ErrContextOut               OUT        VARCHAR2,                                      -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+37                               ErrCodeOut                  OUT        PLS_INTEGER,                                   -- N.ro errore di uscita
+38                               ErrMsgOut                   OUT        VARCHAR2                                       -- Messaggio d'errore
+39                              ) return PLS_INTEGER;                                                                  -- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+40        
+41        	-----serve a calcolare statistiche sui log
+42        	function ReportCogitoLog(
+43        			                     CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,   -- (obblig) Codice identificativo del token di connessione
+44                             			 IdUserLavoroIn				    IN		DMT_USERS.ID_USER%type DEFAULT NULL,             -- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+45        			                     FlgBatchIn					      IN		PLS_INTEGER DEFAULT NULL,			                   -- (valori 1/0/NULL) Se 1 significa che la chiamata alla stored è dal batch che deve effettuare la statistica off-line
+46        			                     IdJobIO						      OUT		PLS_INTEGER,						                         -- Id. del job che deve effettuare off-line il calcolo delle statistiche richieste
+47        																					                                                                 -- Viene valorizzato in output se FlgBatchIn è NULL o 0 e  se la statistica non può essere calcolata on-line
+48        																					                                                                 -- obblig. in input se FlgBatchIn = 1
+49                             			 TipoReportIn				      IN		VARCHAR2 DEFAULT NULL,				                   -- (obblig. salvo se IdJobIO valorizzato in input) Tipo di report
+50        													 								                                                                 -- esito : xxxxxxxxxxxxxxxx
+51        													 								                                                                 -- monitoraggio_tempi_risposta :  xxxxxxxxxxxxxxxxxxxx
+52                                                                                                                    
+53        			                     FiltriIn					        IN		CLOB DEFAULT NULL,					                     -- XML SezioneCache che indica su quali dati calcolare la statistica.
+54        													 								                                                                 -- Se IdJobIO valorizzato in input i filtri sono ricavati dai parametri del job
+55        													 								                                                                 -- I possibili filtri con cui selezionare i dati sono:
+56                                                                          																				 -- DataDa (obblig.) : estremo inferiore dell'intervallo di ricerca dei log su cui calcolare la statistica (data senza ora espressa nel formato dato dal parametro di conf. FMT_STD_DATA)
+57                                                                         																					 -- DataA	(obblig.) : estremo superiore dell'intervallo di ricerca dei log su cui calcolare la statistica (data senza ora espressa nel formato dato dal parametro di conf. FMT_STD_DATA)
+58        																					                       																					 -- IdUO (facolt.) : Id. della UO che ha richiamato cogito                                          
+59        																					                       																					 -- FlgIncluseSottoUO (facolt.)	Se 1 vengono considerate anche le UO gerarchicamente subordinate a IdUO
+60        																					                                                                 -- IdUser (facolt.) : Id. dell'utente che ha registrato/assegnato/inviato/preso in carico
+61                                                                                                                   -- IdClassificazioneSuggerita (facolt.) : Id della classificazione suggerita da cogito
+62                                                                                                                   -- IdClassificazioneScelta (facolt.)	: Id della classificazione scelta
+63                                                                                                                   -- Esito (facolt.) : Nessun suggerimento, Suggerimento fornito ma non accettato, suggerimento fornito e accettato
+64                                                                                                                   -- Errore : xxxxxxxxxxxxxxxxxxx
+65                                                                                                                   
+66        																					
+67        			                     RaggruppamentiIn			    IN		CLOB,								                             -- XML SezioneCache che indica per quale/i elementi raggruppare i dati nelle statistiche restituite
+68        																					                                                                 -- Se IdJobIO valorizzato in input i criteri di raggruppamento sono ricavati dai parametri del job
+69        																					                                                                 -- I raggruppamenti possibili sono:
+70                                                                         																					 -- Periodo : Indica se le statistiche devono essere raggruppate per: giorno_anno, giorno_mese, giorno_settimana, settimana, mese, trimestre, quadrimestre, semestre, anno
+71        																					                                                                 -- UO	valori: #UO o il codice di un tipo di UO. 
+72        																					                                                                 --			Se #UO significa che si deve raggruppare per specifica UO, di qualsiasi tipo/livello, che ha registrato o a cui è stato assegnato/inviato o che ha preso in carico, 
+73        																					                                                                 --			Se pari ad un codice di tipo di UO si raggruppa mettendo insieme tutte le UO ricadenti in una UO del dato tipo. Le UO che non ricadono in una del tipo indicato nè sono del dato tipo NON vengono considerate
+74        																					                                                                 -- User	: valori 1/0. Se 1 significa che si deve raggruppare per utente che ha inserito il log
+75                                                                                                                   -- Esito : valori 1/0. Se 1 significa che si deve raggruppare per esito
+76                                                                                                                   -- Classificazione : valori 1/0. Se 1 significa che si deve raggruppare per classificazione
+77                                                                                                                   
+78        			                     ReportTitleOut				  OUT		VARCHAR2,							                             -- Titolo del report (valorizzato solo se IdJobIO non è valorizzato in output)
+79        			                     ReportContentsXMLOut		OUT		NOCOPY CLOB,									                     -- Lista XML (conforme a schema LISTA_STD.xsd) con i dati del report
+80        																								                     			                                 -- Valorizzata solo se IdJobIO non è valorizzato in output
+81        																								                     			                                 -- Ogni record riporta dati e percentuali di un gruppo e corrisponde ad un tag Riga con le seguenti colonne:
+82        			                     			                                 																					 -- La prima riga riporta i nomi delle colonne
+83                                                                                                                   
+84        			                     			                                 																					 -- 1:  Codice della UO del raggruppamento (valorizzato se si raggruppa per UO)
+85        			                     			                                 																					 -- 2:  Nome della UO del raggruppamento (valorizzato se si raggruppa per UO)
+86        			                     			                                 																					 -- 3:  Username dell'utente del raggruppamento (valorizzato se si raggruppa per User)
+87        			                     			                                 																					 -- 4:  Cognome e Nome dell'utente del raggruppamento (valorizzato se si raggruppa per User)
+88                                                                                                                   -- 5:  Numeri livelli classificazione
+89                                                                                                                   -- 6:  Descrizione classificazione
+90        			                     			                                 																					 -- 7:  Periodo (valorizzato se si raggruppa per Periodo): è sempre un numero 
+91        			                     			                                 																					 -- 8:  N.ro di documenti del gruppo
+92        			                     			                                 																					 -- 9:  Percentuale che corrisponde al conteggio. In notazione italiana con la , come separatore dei decimali                                                                                                          
+93        			                     			                                 																					 --10:  Percentuale arrotondata in modo tale che la somma delle varie percentuali sia 100. In notazione italiana con la , come separatore dei decimali
+94        			                     NroRecordOut				    OUT		PLS_INTEGER,						                           -- N.ro di record, ovvero di raggruppamenti, presenti nel report. Valorizzato solo in caso di esito positivo e se IdJobIO non è valorizzato in output
+95                                   
+96        			                     ErrContextOut				  OUT		VARCHAR2,							                             -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+97        			                     ErrCodeOut					    OUT		PLS_INTEGER,						                           -- N.ro errore di uscita
+98        			                     ErrMsgOut					    OUT 	VARCHAR2)							                             -- Messaggio d'errore
+99        			         return PLS_INTEGER;														-- 1 in caso di report prodotto o schedulato correttamente, 0 in caso di errore	
+100                             
+101        end DMPK_COGITO;

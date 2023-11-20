@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jnlp spec="1.0+" codebase="" href="">
+    <information>
+        <title>JPedal</title>
+        <vendor>Engineering</vendor>
+    </information>
+    <security>
+      <all-permissions/>
+  </security>
+  
+  <update check="always" policy="always"/>
+  <resources>
+
+  <property name="jnlp.versionEnabled" value="true"/>
+  
+    <java version="1.5.0_20+" java-vm-args="-verbose -Xincgc -client" initial-heap-size="128m" max-heap-size="256m"/>
+<!-- senza il prefisso jnlp si rende necessario firmare anche il file jnlp -->
+    <jar href="applets/jPedalApplet.jar" download="eager"/>
+                                                                                                                                                                           
+  </resources>
+
+  <applet-desc name="JPedal" main-class="org.jpedal.examples.viewer.AppletViewer" width="600" height="300">
+     </applet-desc>
+</jnlp> 

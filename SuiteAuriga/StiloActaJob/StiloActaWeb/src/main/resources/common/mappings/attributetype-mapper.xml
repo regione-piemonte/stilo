@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mappings xmlns="http://dozer.sourceforge.net"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://dozer.sourceforge.net
+      http://dozer.sourceforge.net/schema/beanmapping.xsd">
+
+    <mapping map-id = "def">
+        <class-a>it.eng.stilo.model.core.AttributeType</class-a>
+        <class-b>it.eng.stilo.web.dto.AttributeTypeDTO</class-b>
+        <field>
+            <a>id</a>
+            <b>typeCode</b>
+        </field>
+        <field>
+            <a>name</a>
+            <b>typeName</b>
+        </field>
+        <field>
+            <a>description</a>
+            <b>typeDesc</b>
+        </field>
+        <field-exclude>
+            <a>documentsAttribute</a>
+            <b>documentAttributesDTO</b>
+        </field-exclude>
+    </mapping>
+
+    <mapping map-id = "B">
+        <class-a>it.eng.stilo.model.core.AttributeType</class-a>
+        <class-b>it.eng.stilo.web.dto.AttributeTypeDTO</class-b>
+        <field>
+            <a>id</a>
+            <b>typeCode</b>
+        </field>
+        <field>
+            <a>name</a>
+            <b>typeName</b>
+        </field>
+        <field>
+            <a>description</a>
+            <b>typeDesc</b>
+        </field>
+        <field>
+            <a>documentsAttribute</a>
+            <b>documentAttributesDTO</b>
+        </field>
+    </mapping>
+    <mapping>
+        <class-a>it.eng.stilo.model.core.DocumentAttribute</class-a>
+        <class-b>it.eng.stilo.web.dto.DocumentAttributeDTO</class-b>
+        <field>
+            <a>attributeValue</a>
+            <b>value</b>
+        </field>
+        <field>
+            <a>documentType.id</a>
+            <b>documentTypeDTO.typeCode</b>
+        </field>
+        <field-exclude>
+            <a>attributeType</a>
+            <b>attributeTypeDTO</b>
+        </field-exclude>
+    </mapping>
+</mappings>

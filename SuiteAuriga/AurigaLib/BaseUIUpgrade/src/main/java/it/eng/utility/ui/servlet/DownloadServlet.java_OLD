@@ -1,0 +1,142 @@
+package it.eng.utility.ui.servlet;
+
+import it.eng.core.business.FileUtil;
+import it.eng.utility.ui.servlet.fileExtractor.FileExtractor;
+import it.eng.utility.ui.servlet.fileExtractor.FileExtractorInstance;
+import it.eng.utility.ui.servlet.fileExtractor.impl.LocalFileExtractor;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.log4j.Logger;
+
+/**
+ * Servlet di init per istanziare il server ADempiere
+ * @author michele
+ *
+ */
+public class DownloadServlet extends HttpServlet {
+
+	private static final long serialVersionUID = 1L;
+	
+	Logger logger = Logger.getLogger(DownloadServlet.class);
+	
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+			throws ServletException, IOException {
+		//Distinguo che tiupo di download sto facendo
+		Boolean fromRecord = Boolean.valueOf(req.getParameter("fromRecord"));
+		FileExtractor lFileExtractor;
+		if (!fromRecord){
+			lFileExtractor = new LocalFileExtractor(req);
+		} else {
+			String recordType = req.getParameter("recordType");
+			try {
+				lFileExtractor = FileExtractorInstance.getInstance().getRelatedFileExtractor(recordType, req);
+			} catch (Exception e) {
+				throw new ServletException(e);
+			}
+		}
+		try {
+			writeFileToStream(lFileExtractor.getFileName(), lFileExtractor.getFile(), resp);
+		} catch (Exception e2) {
+			throw new ServletException(e2);
+		}
+	}
+	
+	/**
+	 * Scrive il file sullo stream di output
+	 * @param fileName
+	 * @param file
+	 * @param pHttpServletResponse 
+	 * @throws IOException 
+	 * @throws Exception 
+	 */
+	private void writeFileToStream(String fileName, File file, HttpServletResponse pHttpServletResponse) throws IOException  {
+		BufferedInputStream lBufferedInputStream = null;
+		BufferedOutputStream lBufferedOutputStream = null;
+		try {	
+			pHttpServletResponse.setHeader("Content-Type", "octet/stream");
+	        pHttpServletResponse.setHeader("Content-Length", String.valueOf(file.length()));
+	        pHttpServletResponse.setHeader("Content-disposition", "attachment;filename=\"" + fileName + "\"");
+	        lBufferedInputStream = new BufferedInputStream(new FileInputStream(file));
+	        lBufferedOutputStream = new BufferedOutputStream(pHttpServletResponse.getOutputStream());
+	        byte[] buf = new byte[1024];
+	        while (true) {
+	            int length = lBufferedInputStream.read(buf);
+	            if (length == -1)
+	                break;
+	            lBufferedOutputStream.write(buf, 0, length);
+	        }
+	        lBufferedOutputStream.flush();	        
+		} catch (IOException e) {
+			throw e;
+		} finally {
+			try {lBufferedOutputStream.close();} catch (Exception e) {}
+			try {lBufferedInputStream.close();} catch (Exception e) {}
+		}		
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+			throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		
+		String filename = (String) req.getAttribute("filename");
+		String content = req.getParameter("content");
+		String uri = (String) req.getAttribute("uri");
+		
+		File file = null;
+		BufferedInputStream bis = null;
+		BufferedOutputStream bos = null;	
+		try {
+			
+			if(uri != null && !"".equals(uri)) {
+				file = new File(uri);				
+			} else {
+				file = File.createTempFile("download", "");
+				FileUtil.writeStreamToFile(IOUtils.toInputStream(content), file);
+			}
+			
+			resp.setHeader("Content-Type", "octet/stream");
+	        resp.setHeader("Content-Length", String.valueOf(file.length()));
+	        resp.setHeader("Content-disposition", "attachment;filename=\"" + filename + "\"");
+	        
+	        bis = new BufferedInputStream(new FileInputStream(file));
+	        bos = new BufferedOutputStream(resp.getOutputStream());
+	        byte[] buf = new byte[1024];
+	        while (true) {
+	            int length = bis.read(buf);
+	            if (length == -1)
+	                break;
+
+	            bos.write(buf, 0, length);
+	        }
+	        bos.flush();	        
+	        
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			try {bos.close();} catch (Exception e) {}
+			try {bis.close();} catch (Exception e) {}
+			//se sono file uploadati si tengono finchè non vengono salvati nello storage altrimenti si cancellano
+//			try {file.delete();} catch (Exception e) {}
+		}
+	}
+
+}
+
+
+
+

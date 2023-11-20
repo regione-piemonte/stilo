@@ -1,0 +1,478 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Administrator (EMBRACE) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:simpleType name="FlagSiNoType">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="0|1"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="AttributoAddizionaleType">
+		<xs:sequence>
+			<xs:element name="Nome" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Nome identificativo dell'attributo</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:choice>
+				<xs:element name="ValoreSemplice" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Valore dell'attributo  se di tipo semplice e monovalore</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Lista">
+					<xs:annotation>
+						<xs:documentation>Valore/i dell'attributo (come  lista di record) se multivalore e/o strutturato</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Riga" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>Rappresenta un record-valore</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Colonna" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>Colonna / elemento del record-valore (sono tante colonne quante i sotto-attributi che compongono l'attributo nel caso sia strutturato)</xs:documentation>
+											</xs:annotation>
+											<xs:complexType mixed="true">
+												<xs:attribute name="Nro" type="xs:positiveInteger" use="required">
+													<xs:annotation>
+														<xs:documentation>Identifica la colonna</xs:documentation>
+													</xs:annotation>
+												</xs:attribute>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:simpleType name="NroLivelloGerarchiaType">
+		<xs:annotation>
+			<xs:documentation>Nro di un livello di una struttura gerarchica come la struttura organizzativa o il titolario di classificazione: 1 è il livello più alto (ad esempio il settore o il titolo), 2 il successivo (ad esempio il servizio o la classe) e così via</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="10"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="CodLivelloGerarchiaType">
+		<xs:restriction base="xs:string"/>
+	</xs:simpleType>
+	<xs:complexType name="LivelloGerarchiaType">
+		<xs:attribute name="Nro" type="NroLivelloGerarchiaType" use="required">
+			<xs:annotation>
+				<xs:documentation>N.ro d'ordine del livello</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="Codice" type="CodLivelloGerarchiaType" use="required">
+			<xs:annotation>
+				<xs:documentation>Codice identificativo del livello</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="ClassificazioneType">
+		<xs:annotation>
+			<xs:documentation>Indica una classificazione di titolario attraverso il suo identificativo o attarverso i suoi livelli o attraverso la sua descrizione. <!-- Ad esempio la classe 10 del titolo XIX si può indicare come <my_element>  
+<Livello Nro=1 Cod=XIX></Livello>
+<Livello Nro=2 Cod=10> </Livello>
+<my_element> -->
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="IdClassificazione" type="xs:integer" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Identificativo della classificazione (interno al sistema)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="LivelloClassificazione" type="LivelloGerarchiaType" minOccurs="0" maxOccurs="unbounded">
+				<xs:annotation>
+					<xs:documentation>Livelli della classificazione (indicati secondo la metrica stabilita per ognuno; se si indica un livello con un dato n.ro d'ordine vanno indicati tutti quelli con n.ro d'ordine inferiore)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DescrizioneClassificazione" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Può essere la descrizione semplice della classificazione o quest'ultima preceduta dalle descrizioni delle classificazioni di livello superiore (separate da " | "). </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:simpleType name="FlagAggiungiSostituisciType">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="A|S"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="OggDiTabDiSistemaType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un oggetto censito in una tabella di sistema del sistema di protocollo</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="CodId">
+				<xs:annotation>
+					<xs:documentation>Identificativo del dato di sistema nella banca dati del sistema di Protocollo</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Decodifica_Nome">
+				<xs:annotation>
+					<xs:documentation>Decodifica del dato di sistema nella banca dati del sistema di Protocollo</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="DefAttrAddAssociatoEntitaType">
+		<xs:sequence>
+			<xs:element name="NomeAttributo" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Nome identificativo dell'attributo</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DatiPerCreareAttributo" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Sono i dati per creare l'attributo e caratterizzarlo se non esiste già. Se un attributo con il nome specificato già esiste e questo tag è presente viene dato errore.</xs:documentation>
+				</xs:annotation>
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="Label">
+							<xs:annotation>
+								<xs:documentation>Label con cui l'attributo appare nella GUI</xs:documentation>
+							</xs:annotation>
+							<xs:simpleType>
+								<xs:restriction base="xs:string">
+									<xs:maxLength value="100"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:element>
+						<xs:element name="Tipo">
+							<xs:annotation>
+								<xs:documentation>Tipo dell'attributo</xs:documentation>
+							</xs:annotation>
+							<xs:simpleType>
+								<xs:restriction base="xs:string">
+									<xs:enumeration value="Casella di spunta"/>
+									<xs:enumeration value="Data (senza ora)"/>
+									<xs:enumeration value="Data e ora"/>
+									<xs:enumeration value="Numerico"/>
+									<xs:enumeration value="Euro"/>
+									<xs:enumeration value="Testo mono-riga"/>
+									<xs:enumeration value="Area di testo"/>
+									<xs:enumeration value="Lista di scelta"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:element>
+						<xs:element name="Descrizione" type="xs:string" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>Descrizione dettagliata dell'attributo</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="NroCifreCaratteri" type="xs:positiveInteger" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>N.ro max di caratteri se attributo alfanumerico (testo mono-riga o area di testo)  o di cifre se numerico/Euro</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="PrecisioneDecimale" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>N.ro di cifre decimali se attributo di tipo numerico</xs:documentation>
+							</xs:annotation>
+							<xs:simpleType>
+								<xs:restriction base="xs:integer">
+									<xs:minInclusive value="0"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:element>
+						<xs:element name="ValoreMin" type="xs:anySimpleType" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>Valore minimo consentito (solo per attributi di tipo: numnerico, euro, data e data e ora). In caso il tipo dell'attributo sia "Data" o "Data e ora" il valore va formattato secondo i formati standard configurati per date e timestamp; nel caso il tipo sia numerico/Euro va usata la virgola come separatore dei decimali</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="ValoreMax" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>Valore massimo consentito (solo per attributi di tipo: numnerico, euro, data e data e ora). In caso il tipo dell'attributo sia "Data" o "Data e ora" il valore va formattato secondo i formati standard configurati per date e timestamp; nel caso il tipo sia numerico/Euro va usata la virgola come separatore dei decimali</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="ValoreDefault" type="xs:string" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>Valore di default. In caso il tipo dell'attributo sia "Data" o "Data e ora" il valore di default va formattato secondo i formati standard configurati per date e timestamp; nel caso il tipo sia numerico/Euro va usata la virgola come separatore dei decimali</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="ValorePossibile" type="xs:string" minOccurs="0" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>Lista dei valori possibili nel caso il tipo sia "Lista di scelta"</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="RestrizioniSulCase" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>Restrizioni sul case (da valorizzare solo se il tipo dell'attributo è: testo mono-riga; area di testo)</xs:documentation>
+							</xs:annotation>
+							<xs:simpleType>
+								<xs:restriction base="xs:string">
+									<xs:pattern value="LOWER|UPPER"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:element>
+						<xs:element name="LarghGUI" type="xs:positiveInteger" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>Larghezza (size) con cui mostrare nelle GUI il campo corrispondente all''attributo</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="AltezzaGUI" type="xs:positiveInteger" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>Altezza (n.ro righe) con cui mostrare nelle GUI il campo corrispondente all''attributo (da valorizzare solo se il tipo è "Area di testo")</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="DatiAssociazione" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Dati relativi all'associazione entità-attributo</xs:documentation>
+				</xs:annotation>
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="NroPosizione" type="xs:positiveInteger" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>N.ro che indica la posizione in cui mostrare l'attributo tra tutti quelli associati all'entità (se non specificato l'attributo viene "messo in coda" rispetto a quelli già specificati)</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="Obbligatorieta" fixed="1" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>Se presente l'attributo è obbligatorio per le entità a cui è associato</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="NroMaxValori" type="xs:positiveInteger" default="1" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>Massimo numero di valori specificabili per l'attributo sulle entità a cui è associato (se non specificato si intende 1)</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="Validita" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>Intervallo di validità dell'associazione con l'attributo (se gli estremi non sono specificati si intende che la validità decorra da e per tempo illimitato)</xs:documentation>
+							</xs:annotation>
+							<xs:complexType>
+								<xs:attribute name="Dal" type="xs:date"/>
+								<xs:attribute name="Al" type="xs:date"/>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="ModificaTipoDocumento">
+		<xs:annotation>
+			<xs:documentation>ROOT element dello schema. Contiene l'id. del tipo documento da aggiornare + tutti i dati da aggiornare per il tipo documento stesso.</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="IdTipoDocumento">
+					<xs:annotation>
+						<xs:documentation>Identificativo univoco del tipo di documento da aggiornare</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Nome" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Nome del tipo di documento</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Descrizione" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Descrizione dettagliata del tipo di documento</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="RicadeInTipo" type="OggDiTabDiSistemaType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Tipo di documento in cui ricade direttamente</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FlagAllegato" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Indica se i documenti del dato tipo possono (1) o devono (2) essere degli allegati o possono essere solo primari (0)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:integer">
+							<xs:pattern value="0|1|2"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="NaturaDocumento" type="OggDiTabDiSistemaType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Natura del tipo di documento (atto pubblico, scrittura privata ecc). I valori possibili sono codificati in apposita voce del dizionario di sistema. </xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="TipoProvenienza" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Indica che i documenti di questo tipo sono in genere E = In Entrata; I = Interni; U = In Uscita</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:pattern value="E|I|U"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="SupportoOriginale" type="OggDiTabDiSistemaType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Supporto su cui normalmente nascono i documenti del dato tipo (cartaceo, informatico, ottico ecc). I valori possibili sono codificati in apposita voce del dizionario di sistema. </xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="TipoCartaceo" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Indica se in genere un documento del dato tipo in possesso del soggetto produttore è: OU = Originale Unico, ONU= Originale Non Unico, C =Copia</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="3"/>
+							<xs:pattern value="OU|ONU|C"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="FlagDaScansionare" type="FlagSiNoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se 1 indica che per i documenti del dato tipo è prevista la scansione, altrimenti no</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FlagConservazionePermanente" type="FlagSiNoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se 1 indica che le unità documentarie del dato tipo vanno conservate per tempo illimitato, altrimenti no</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="PeriodoDiConservazione" type="xs:positiveInteger" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Periodo minimo di conservazione (espresso in anni) delle unità documentarie del dato tipo</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="SupportoConservazione" type="OggDiTabDiSistemaType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Supporto di conservazione delle unità documentarie del dato tipo. I valori possibili sono codificati in apposita voce del dizionario di sistema. </xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Classificazione" type="ClassificazioneType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Dati relativi alla classificazione che hanno in genere i documenti del dato tipo</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FormatoElettronico" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Formato elettronico che hanno in genere i documenti del dato tipo</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:complexContent>
+							<xs:extension base="OggDiTabDiSistemaType">
+								<xs:sequence>
+									<xs:element name="Estensione">
+										<xs:annotation>
+											<xs:documentation>Estensione del formato</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="xs:string">
+												<xs:maxLength value="5"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:element>
+								</xs:sequence>
+							</xs:extension>
+						</xs:complexContent>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="SpecificheAccessibilita" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Specifiche di accessibilità dei documenti del dato tipo</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="SpecificheRiproducibilita" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Specifiche di riproducibilità  dei documenti del dato tipo </xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Annotazioni" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Annotazioni sul tipo</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="CidInSistemaEsterno" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Codice identificativo del tipo di documento in un eventuale sistema informatico di provenienza</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FlgRichAbilXVisualizz" type="FlagSiNoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se 1 indica che serve abilitazione esplicita alla tipologia per visualizzare documenti del dato tipo</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FlgRichAbilXGest" type="FlagSiNoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se 1 indica che serve abilitazione esplicita alla tipologia per gestire (modificare, movimentare ecc) documenti del dato tipo</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FlgRichAbilXAssegn" type="FlagSiNoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se 1 indica che serve abilitazione esplicita alla tipologia per poterla assegnare ad un documento</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FlgRichAbilXFirma" type="FlagSiNoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se 1 indica che serve abilitazione esplicita alla tipologia per poter firmare documenti del dato tipo</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="AggModelliAssociati" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Contiene le informazioni su come aggiornare i modelli associati; se non è presente i modelli associati restano invariati. Se si vogliono eliminare tutti i modelli già associati basta valorizzare l'elemento EliminaTutti; se si vogliono cambiare basta specificare nell'elemento ModelloAssociato i nuovi modelli associati (che sostituiranno o si aggiungeranno a quelli già registrati in banca dati a seconda del valore dell'elemento FlagAggiungiSostituisci).</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:choice>
+							<xs:element name="EliminaTutti" fixed="1"/>
+							<xs:sequence>
+								<xs:element name="FlagAggiungiSostituisci" type="FlagAggiungiSostituisciType"/>
+								<xs:element name="ModelloAssociato" maxOccurs="unbounded">
+									<xs:annotation>
+										<xs:documentation>Modelli/template da associare al dato tipo di documento</xs:documentation>
+									</xs:annotation>
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element name="Modello" type="OggDiTabDiSistemaType"/>
+											<xs:element name="ValiditaAssociazione" minOccurs="0">
+												<xs:annotation>
+													<xs:documentation>Intervallo di validità dell'associazione tipo doc. - modello (se gli estremi non sono specificati si intende che la validità decorra da e per tempo illimitato)</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+													<xs:attribute name="Dal" type="xs:date"/>
+													<xs:attribute name="Al" type="xs:date"/>
+												</xs:complexType>
+											</xs:element>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+							</xs:sequence>
+						</xs:choice>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="AggAttributiAddXDocDelTipo" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Contiene le informazioni su come aggiornare gli attributi "aggiuntivi" previsti per i documenti del dato tipo (e suoi sotto-tipi); se non è presente gli attributi "aggiuntivi" previsti per i documenti del dato tipo restano invariati. Se si vogliono eliminare tutti gli attributi "aggiuntivi" previsti per i documenti del dato tipo basta valorizzare l'elemento EliminaTutti; se si vogliono cambiare basta specificare nell'elemento AttributoAddXDocDelTipo i nuovi attributi "aggiuntivi" previsti per i documenti del dato tipo (che sostituiranno o si aggiungeranno a quelli già registrati in banca dati a seconda del valore dell'elemento FlagAggiungiSostituisci).</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:choice>
+							<xs:element name="EliminaTutti" fixed="1"/>
+							<xs:sequence>
+								<xs:element name="FlagAggiungiSostituisci" type="FlagAggiungiSostituisciType"/>
+								<xs:element name="AttributoAddXDocDelTipo" type="DefAttrAddAssociatoEntitaType" maxOccurs="unbounded">
+									<xs:annotation>
+										<xs:documentation>Attributo "aggiuntivo" previsto per i documenti del dato tipo (e suoi sotto-tipi)</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+							</xs:sequence>
+						</xs:choice>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="AttributoAdd" type="AttributoAddizionaleType" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Attributo addizionale (oltre quelli già previsti dal tracciato) con cui caratterizzare il tipo. ATTENZIONE: se un attributo già valorizzato in banca dati per il tipo doc. non appare in questo elemento significa che resta invariato (se si vuole cancelllarlo bisogna passarlo con un valore vuoto).  ATTENZIONE: gli attributi addizionali che si possono specificare sono solo quelli definiti per l'entità "tipo documento"</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

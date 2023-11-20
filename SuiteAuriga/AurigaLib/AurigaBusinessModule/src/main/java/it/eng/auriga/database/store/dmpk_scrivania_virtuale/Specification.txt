@@ -1,0 +1,53 @@
+1        package DMPK_SCRIVANIA_VIRTUALE AUTHID CURRENT_USER as
+2        
+3        	function GetContenutiNodoFunc(
+4        		CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+5        																-- (obbig.) Token di connessione
+6        		IdDominioIn				IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,
+7        																-- (obblig.) Id. del dominio - soggetto produttore o AOO - in cui considerare la scrivania utente
+8        		IdUserIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,
+9        																-- (obblig.) Id. dell'utente a nome di cui si lavora. Se non si sta lavorando in delega è l'utente connesso
+10        		IdUtenteMGOIn			IN		VARCHAR2,				-- Id. dell'utente di lavoro nel modulo gestione ordinaria e-mail
+11        																-- se è vuoto è significa che l'utente di lavoro non ha accesso alla gestione e-mail
+12        		CINodoIn				IN		VARCHAR2, 				-- (obblig.) Identificativo del nodo-sezione delle scrivania
+13        		FlgPresentiContenutiOut	OUT		PLS_INTEGER,			-- (valori 1/0) Se 1 indica che il nodo ha contenuti
+14        		NroContenutiOut			OUT		VARCHAR2,				-- N.ro di contenuti (può essere anche > un numero)
+15        		ErrContextOut			OUT		VARCHAR2,				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+16        		ErrCodeOut				OUT		PLS_INTEGER,			-- N.ro errore di uscita
+17        		ErrMsgOut				OUT 	VARCHAR2				-- Messaggio d'errore
+18        		) return PLS_INTEGER;									-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+19        
+20        	----- funzione per ottenere il "navigatore" della scrivania virtuale dell'utente
+21        	----- ovvero la struttura al albero che contiene le "viste" di documenti e folder dell'archivio e di e-mail archiviate sul Modulo Gestione Ordinaria Email
+22        	----- restituisce tutti i nodi già aperti
+23        	function GetNavigatoreScrivania(
+24        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+25        																	-- (obblig). Codice identificativo del token di connessione
+26        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,
+27        																	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+28        			IdUtenteMGOOut			OUT		VARCHAR2,				-- Id. dell'utente di lavoro nel modulo gestione ordinaria e-mail
+29        																	-- se è vuoto è un utente che non ha accesso alla gestione e-mail
+30        			TreeXMLOut				OUT		NOCOPY CLOB,			-- Lista con i nodi del navigatore (XML conforme a schema LISTA_STD.xsd)
+31        																	-- Ogni nodo è un tag Riga che contiene le seguenti colonne:
+32        																	-- 1:	Indica il livello del nodo (valori da 1 a n)
+33        																	-- 2:	Identificativo univoco del nodo
+34        																	-- 3:	Nome/descrizione del nodo
+35        																	-- 4: Codice che indica il tipo di contenuti del nodo (da utilizzare per l'imagine del nodo)
+36        																	-- Valori possibili: F = Fascicoli/Cartelle; D = Documenti; FD = Fascicoli + Documenti; E = Email
+37        																	-- 5: Dettagli sul nodo da mostrare come alt
+38        																	-- 6:(valori 2/1/-1/0) Indica se il nodo va mostrato esploso (=2), se è esplodibile (ha "figli" in n.ro inferiore ad un limite stabilito) ma non va esploso (=1), se ha "filgli" ma non è esplodibile in quanto questi superano il limite stabilito (=-1), se non è esplodibile (=0)
+39        																	-- 7: Azione che corrisponde al nodo (deve indicare la funzione da richiamare quando si esplora il nodo).
+40        																	--	  Se non valorizzato significa che il nodo non corrisponde ad alcuna azione (i.e. NON è esplorabile), ed è solo un contenitore di nodi che corrispondono a qualche azione
+41        																	-- 8: Eventuali parametri da passare alla funzione indicata come "azione" nella colonna precedente (se è la Find in archivio c'è nome e valore separati da |*|)
+42        																	-- 9:Id. del nodo padre (se non valorizzato è un nodo apicale)
+43        																	-- 10: XML CrtiteriAvanzatiIO (secondo sechema SezioneCache.xsd) da passare alla funzione indicata come "azione"
+44        																	-- 11: (flag 1/0) Se 1 indica che la selezione mutipla deve essere attiva di default
+45        																	-- 12: Codice sezione da usare per l'eliminazione di unità documentarie e folder dal nodo
+46        																	-- 13: (flag 1/0) Se 1 indica che la cartella ha contenuti
+47        																	-- 14: N.ro di contenuti del nodo (non sempre valorizzato)
+48        			ErrContextOut			OUT		VARCHAR2,				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+49        			ErrCodeOut				OUT		PLS_INTEGER,			-- N.ro errore di uscita
+50        			ErrMsgOut				OUT 	VARCHAR2				-- Messaggio d'errore
+51        			) return PLS_INTEGER;									-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+52        
+53        END DMPK_SCRIVANIA_VIRTUALE;

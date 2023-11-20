@@ -1,0 +1,198 @@
+1        PACKAGE DMPK_FORMATI_EL_AMMESSI AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        
+12        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+13        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        
+20        	/**** Funzione per ricercare i formati elettronici ammessi****/
+21        	FUNCTION TrovaFormatiEl(
+22        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+23        																	-- (obblig). Codice identificativo del token di connessione
+24        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+25        			FlgPreimpostaFiltroIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1 i filtri e l'ordinamento vengono settati secondo le impostazioni dell'utente di lavoro, altrimenti restano come passati in input
+26        			--------------- inizio filtri di ricerca-------------------
+27        			IdFormatoElIO			IN OUT	DMT_FORMATI_EL_AMMESSI.ID_FORMATO_EL%type,-- 1° filtro di ricerca: id. del formato da ricercare
+28        			NomeFormatoElIO			IN OUT	DMT_FORMATI_EL_AMMESSI.NOME_FORMATO%type, -- 2° filtro di ricerca: stringa contenuta nel nome del formato (ricerca case-insensitive in like)
+29        			EstensioneFormatoElIO		IN OUT	VARCHAR2,						-- 3° filtro di ricerca: estensione del formato elettronico da ricercare (ricerca case-insensitive esatta)
+30        			CIProvFormatoElIO			IN OUT	DMT_FORMATI_EL_AMMESSI.PROV_CI_FORMATO_EL%TYPE,
+31        																	-- 4° filtro di ricerca: Codice identificativo del formato nel sistema di provenienza: ricerca esatta case-sensitive
+32        			FlgBinarioIO			IN OUT	DMT_FORMATI_EL_AMMESSI.FLG_BINARIO%type,	-- (valori 1/0/NULL) 5° filtro di ricerca: 1 = Solo formati binari; 0 = Solo formati non binari
+33        			FlgDaIndicizzareIO			IN OUT	DMT_FORMATI_EL_AMMESSI.FLG_DA_INDICIZZARE%type,
+34        																	-- (valori 1/0/NULL) 6° filtro di ricerca: 1 = Solo formati da indicizzare; 0 = Solo formati da non indicizzare
+35        			FlgSoloAmmIO 			IN OUT 	INTEGER, 						-- (valori 1/0/NULL) 7° filtro di ricerca: Se 1 indica se si devono estrarre solo i formati ammessi alla data odierna
+36        			TsAmmIO				IN OUT	VARCHAR2,						-- 8° filtro di ricerca: Stinga con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) a cui devono essere ammessi i formati da estrarre
+37        			AltriCriteriIO			IN OUT 	NOCOPY CLOB,					-- Altri criteri di ricerca sugli attributi addizionali (XML conforme a schema LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+38        																	-- Ogni criterio è un tag Riga che può contenere le seguenti colonne:
+39        																	--	1) Nome (ATTR_NAME) dell'attributo cui è relativo il criterio
+40        																	--	2) (obblig.) Operatore logico. Valori possibili:
+41        																	--		"uguale" (ricerca esatta)
+42        																	--		"simile a (case-sensitive)" (ricerca case-sensitive in like)
+43        																	--		"simile a (case-insensitive)" (ricerca case-insensitive in like e che ignora i caratteri quali spazi, ., ecc)
+44        																	--		"maggiore" (se attributo numerico o data)
+45        																	--		"maggiore o uguale" (se attributo numerico o data)
+46        																	--		"minore" (se attributo numerico o data)
+47        																	--		"minore o uguale" (se attributo numerico o data)
+48        																	--		"tra" (se attributo numerico o data)
+49        																	--		"non valorizzato"
+50        																	--		"valorizzato"
+51        																	--		"spuntato" (se attributo di tipo casella di spunta)
+52        																	--		"non spuntato" (se attributo di tipo casella di spunta)
+53        																	--	3) 1° valore di confronto (obblig. e gestito solo se l'operatore non ha uno dei seguenti valori: valorizzato, non valorizzato, spuntato, non spuntato) (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+54        																	--	4) 2° valore di confronto (obblig. e gestito solo se l'operatore è "tra") (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+55        																	--	5) Label dell''attributo cui è relativo il criterio (se sotto-attributo di complesso <label del complesso> - <label del sotto-attributo>
+56        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+57        			ColOrderByIO			IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 8). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+58        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+59        																	-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+60        			FlgDescOrderByIO  		IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+61        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+62        			FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+63        			NroPaginaIO      			IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+64           			BachSizeIO				IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+65        																	-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+66        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+67        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+68        			NroTotRecOut			OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+69             			NroRecInPaginaOut 		OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+70        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+71        			ListaXMLOut				OUT		NOCOPY CLOB,					-- Lista dei formati trovati (XML conforme a schema LISTA_STD.xsd)
+72        																	-- Ogni formato è un tag Riga che contiene le seguenti colonne:
+73        																	-- 1:  Identificativo del formato
+74        																	-- 2:  Nome del formato
+75        																	-- 3:  Estensione/i del formato
+76        																	-- 4:  (valori 1/0) Se 1 è un formato binario
+77        																	-- 5:  (valori 1/0) Se 1 i documenti elettronici con il dato formato sono indicizzati/da indicizzare
+78        																	-- 6:  Data di inizio ammissibilità del formato (nel formato dato dal parametro FMT_STD_DATA)
+79        																	-- 7:  Data di fine ammissibilità del formato (nel formato dato dal parametro FMT_STD_DATA)
+80        																	-- 8:  Cod. identificativo del formato nel sistema di provenienza
+81        																	-- 9:  (valori 1/0) Se uno si tratta di un formato che è attualmente ammesso
+82        																	-- 10: Timestamp di creazione del formato(nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+83        																	-- 11: Descrizione dell'utente di creazione del formato
+84        																	-- 12: Timestamp di ultima modifica dei dati del formato (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+85        																	-- 13: Descrizione dell'utente di ultima modifica dei dati del formato
+86        																	-- 14: Mimetype
+87        			FlgAbilInsOut	 		OUT 		PLS_INTEGER ,            			-- (valori 1/0) Se 1 si ha abilitazione a inserimento di formato
+88        			FlgAbilUpdOut 			OUT 		PLS_INTEGER ,            			-- (valori 1/0) Se 1 si ha abilitazione a modifica di formato
+89        			FlgAbilDelOut 			OUT 		PLS_INTEGER,            			-- (valori 1/0) Se 1 si ha abilitazione a cancellazione di formato
+90        			FlgMostraAltriAttrOut		OUT		PLS_INTEGER,					-- (valori 1/0) Se 1 nella GUI vanno mostrati gli attributi addizionali per un nuovo formato (ce ne sono di visibile all'utente), se 0 no
+91        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+92        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+93        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+94        			return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+95        
+96        	/***** Funzione per ottenere tutti i dati di dettaglio di un formato elettronico *****/
+97        	function LoadDettFormatoEl(
+98        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+99        																	-- (obblig). Codice identificativo del token di connessione
+100        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+101        			IdFormatoElIO			IN OUT	DMT_FORMATI_EL_AMMESSI.ID_FORMATO_EL%type,-- (obblig.) Id. del formato di cui caricare il dettaglio
+102        			NomeFormatoElOut			OUT 		DMT_FORMATI_EL_AMMESSI.NOME_FORMATO%type,	-- Nome del formato elettronico
+103        			EstensioneFormatoElOut		OUT		VARCHAR2,						-- Estensione/i del formato elettronico
+104        			DtInizioAmmOut			OUT		VARCHAR2,						-- Data da cui il formato è ammesso (nel formato dato dal parametro di config. FMT_STD_DATA). Se NULL è ammesso da sempre.
+105        			DtFineAmmOut			OUT		VARCHAR2,						-- Data fino a cui il formato è ammesso (nel formato dato dal parametro di config. FMT_STD_DATA). Se NULL è ammesso per tempo illimitato.
+106        			FlgBinarioOut			OUT		DMT_FORMATI_EL_AMMESSI.FLG_BINARIO%type,	-- (valori 1/0) Indicatore di formato binario : 1 = Binario; 0 = Non binario
+107        			FlgDaIndicizzareOut		OUT		DMT_FORMATI_EL_AMMESSI.FLG_DA_INDICIZZARE%type,
+108        																	-- (valori 1/0) Indicatore di formato da indicizzare: 1 = Da indicizzare; 0 = Da non indicizzare
+109        			CIProvFormatoElOut		OUT 		DMT_FORMATI_EL_AMMESSI.PROV_CI_FORMATO_EL%TYPE,
+110        																	-- Codice identificativo del formato elettronico nel sistema di provenienza
+111        			MimetypeOut				OUT		DMT_FORMATI_EL_AMMESSI.MIMETYPE%type,	-- Mimetype
+112        			RowidOut				OUT		VARCHAR2,						-- Rowid del record del tipo di documento
+113        			AttributiAddOut			OUT		NOCOPY CLOB,					-- Lista degli eventuali ulteriori attributi con cui caratterizzare il formato (XML conforme a schema LISTA_STD.xsd)
+114        																	-- Ogni attributo è un tag "Riga" che contiene le seguenti colonne:
+115        																	-- 1: N.ro (valori da 1 a n) del riquadro (fieldset) in cui mostrare l'attributo
+116        																	-- 2: Nome identificativo dell'attributo (ATTR_NAME)
+117        																	-- 3: Label del campo con cui rappresentare l'attributo
+118        																	-- 4: Tipo di attributo. Valori: DATE, DATETIME, TEXT, TEXT-AREA, CHECK, INTEGER, EURO, DECIMAL, COMBO-BOX, LISTA
+119        																	-- 5: N.ro massimo di caratteri/cifre
+120        																	-- 6: Larghezza del campo con cui rappresentare l'attributo (size)
+121        																	-- 7: Valore dell'attributo
+122        																	-- 8: Label del riquadro (fieldset) in cui mostrare l'attributo
+123        																	-- 9: (valori 1/0) 1 indica che l'attributo è obbligatorio, 0 che è facoltativo
+124        																	-- 10: Altezza (in nro righe) del campo con cui rappresentare l'attributo (se TEXT-AREA)
+125        																	-- 11:(valori 1/0) 1 indica se l'attributo è modificabile, 0 che è in sola visualizzazione
+126        			FlgMostraAltriAttrOut		OUT		PLS_INTEGER,					-- (valori 1/0) Se 1 nella GUI vanno mostrati gli attributi addizionali (ce ne sono di visibile all'utente), se 0 no
+127        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+128        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+129        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+130        			return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+131        
+132        	/***** funzione per creare o modificare un formato elettronico ******/
+133        	function IUFormatoEl(
+134        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+135        																	-- (obblig). Codice identificativo del token di connessione
+136        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+137        			IdFormatoElIO			IN OUT	DMT_FORMATI_EL_AMMESSI.ID_FORMATO_EL%type,-- Id. del formato da modificare
+138        																	-- In output, salvo in caso di errore, è sempre valorizzato con l'id. del formato creato/modificato
+139        			NomeFormatoElIn			IN 		DMT_FORMATI_EL_AMMESSI.NOME_FORMATO%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+140        																	-- (obblig.) Nome del formato elettronico
+141        			EstensioneFormatoElIn		IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+142        																	-- (obblig.) Estensione/i del formato elettronico (se più di una separate da ; , o -)
+143        			DtInizioAmmIn			IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+144        																	-- Data da cui il formato è ammesso (nel formato dato dal parametro di config. FMT_STD_DATA). Se NULL è ammesso da sempre.
+145        			DtFineAmmIn				IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+146        																	-- Data fino a cui il formato è ammesso (nel formato dato dal parametro di config. FMT_STD_DATA). Se NULL è ammesso per tempo illimitato.
+147        			FlgBinarioIn			IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+148        																	-- (valori 1/0) Indicatore di formato binario : 1 = Binario; 0 = Non binario
+149        			FlgDaIndicizzareIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+150        																	-- (valori 1/0) Indicatore di formato da indicizzare: 1 = Da indicizzare; 0 = Da non indicizzare
+151        			CIProvFormatoElIn			IN 		DMT_FORMATI_EL_AMMESSI.PROV_CI_FORMATO_EL%TYPE DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+152        																	-- Codice identificativo del formato elettronico nel sistema di provenienza
+153        			MimetypeIn				IN		DMT_FORMATI_EL_AMMESSI.MIMETYPE%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+154        																	-- Mimetype
+155        			AttributiAddIn			IN		CLOB DEFAULT NULL,				-- XML contenente nomi e valori degli attributi dinamici da aggiornare (conforme allo schema SezioneCache.xsd)
+156        																	-- Gli attributi già presenti in DB e per i quali non c'è corrispondente nell'XML restano invariati
+157        																	-- Per tutti gli attributi vale quanto segue:
+158        																	-- Un attributo da settare è un tag "Variabile" dell'XML il cui tag "Nome" contiene il nome identificativo dell'attributo (ATTR_NAME di DMT_ATTRIBUTES_DEF)
+159        																	-- Un attributo da settare è una variabile con tag "ValoreSemplice" se è un attributo a singolo valore e non strutturato (cioè con tipo diverso da COMPLEX)
+160        																	-- altrimenti è una variabile con tag "Lista" che ha un'unica colonna con "Nro" pari a 1 se l'attributo non è strutturato, che ha invece tante colonne quanti gli attributi componenti (ordinate in base al loro NRO_ORD_IN_SUP) se l'attributo è complesso
+161        																	-- Nel caso di variabili con tag "Lista" i valori specificati nell'XML si aggiungono o sostituiscono quelli già presenti in DB a seconda che nell'XML sia presente o meno una variabile con tag "Nome" pari a #Append_<Nome attributo> e tag "ValoreSemplice" pari a 1
+162        																	-- In particolare se non sono specificati valori nell'XML (tag Lista vuoto) e se i valori non sono da aggiungere significa che tutti i valori dell'attributo già presenti in DB vanno rimossi
+163        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+164        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+165        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+166        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+167        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+168        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+169        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0 (in caso di errore)
+170        
+171        	/*** Funzione di eliminazione (fisica) di un formato elettronico	***/
+172        	function DFormatoEl(
+173        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+174        																	-- (obblig). Codice identificativo del token di connessione
+175        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+176        			IdFormatoElIn			IN 		DMT_FORMATI_EL_AMMESSI.ID_FORMATO_EL%type,-- (obblig.) Id. del formato da cancellare
+177        			MotiviIn				IN		DMT_ACTIVITIES.NOTE%type,			-- Motivi della cancellazione
+178        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+179        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+180        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+181        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+182        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+183        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+184        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0 (in caso di errore)
+185        
+186        
+187        	/***** funzione per testare se un cert mimetype corrisponde ad un formato ammesso *****/
+188        	function TestMimetypeForAmm(
+189        			CodIdConnectionTokenIn	IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+190        																				-- (obblig). Codice identificativo del token di connessione
+191        			MimetypeIn				IN		VARCHAR2,							-- (obbligatorio) mimetype da testare
+192        			FlgFmtAmmessoOut		OUT		PLS_INTEGER,						-- (valori 1/0) Indica se il mimetype corrisponde ad un formato ammesso (=1) o no (=0)
+193        			ErrContextOut			OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+194        			ErrCodeOut				OUT		PLS_INTEGER,						-- N.ro errore di uscita
+195        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+196        			return PLS_INTEGER;													-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+197        
+198        END DMPK_FORMATI_EL_AMMESSI;

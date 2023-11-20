@@ -1,0 +1,3 @@
+0.0.5: uniformità tracciato xml per archivi FS e FS(C)ZIP (riferimento Marco Garofalo)
+0.0.6: gestione salvataggio/lettura su BLOB e gestione SharePoint (Anna Tesauro)
+0.0.7: nuova dipendenza da java mail 1.4.7 (1.4.1. necessaria per il ministero) (Jacopo Ravagnan)

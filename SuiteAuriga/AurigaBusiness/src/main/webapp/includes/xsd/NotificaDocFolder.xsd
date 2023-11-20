@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Administrator (EMBRACE) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:simpleType name="FlagSiNoType">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="0|1"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="IdInSistemaEsternoType">
+		<xs:annotation>
+			<xs:documentation>Codice che identifica un oggetto in un sistema esterno</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="30"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="OggDiTabDiSistemaType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un oggetto censito in una tabella di sistema del sistema documentale</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="CodId" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Identificativo del dato di sistema nella banca dati del sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Decodifica_Nome" type="xs:string"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="EstremiXIdentificazioneFolderType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un folder attraverso il suo path (a partire dalla libreria di appartenenza esclusa)+ nome o il suo identificativo</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="IdFolder" type="xs:integer" minOccurs="0"/>
+			<xs:sequence>
+				<xs:element name="Libreria" type="OggDiTabDiSistemaType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Libreria di appartenenza (obblligatorio indicarla se la repository ne contiene più di una e non ve n'è una definita come "default" e se l'utente può accedere a più di una di queste)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Path_Nome" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Path (escluso il nome dellla libreria di appartenenza) e nome del folder. Per i fascicoli di titolario il nome è dato da anno di apertura del fascicolo + livelli di classificazione + n.ro di fascicolo + eventuale n.ro di sottofasc. + eventuale n.ro di inserto</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:choice>
+	</xs:complexType>
+	<xs:simpleType name="SiglaRegNumType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="30"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="AnnoType">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1900"/>
+			<xs:maxInclusive value="2100"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="NumRegType">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="9999999"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="EstremiRegNumType">
+		<xs:all>
+			<xs:element name="CategoriaReg" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Categoria di registrazione / numerazione; valori ammessi PG=Protocollo Generale; PP=Protocollo Particolare; R=Repertorio; E=Registrazione d'emergenza; A=Altra numerazione data esternamente al sistema documentale; I=Altra numerazione data internamente al sistema documentale</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="PG"/>
+						<xs:enumeration value="PP"/>
+						<xs:enumeration value="R"/>
+						<xs:enumeration value="E"/>
+						<xs:enumeration value="A"/>
+						<xs:enumeration value="I"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="SiglaReg" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="SiglaRegNumType"/>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="AnnoReg" type="AnnoType"/>
+			<xs:element name="NumReg" type="NumRegType"/>
+		</xs:all>
+	</xs:complexType>
+	<xs:simpleType name="NroLivelloGerarchiaType">
+		<xs:annotation>
+			<xs:documentation>Nro di un livello di una struttura gerarchica come la struttura organizzativa o il titolario di classificazione: 1 è il livello più alto (ad esempio il settore o il titolo), 2 il successivo (ad esempio il servizio o la classe) e così via</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="10"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="CodLivelloGerarchiaType">
+		<xs:restriction base="xs:string"/>
+	</xs:simpleType>
+	<xs:complexType name="LivelloGerarchiaType">
+		<xs:attribute name="Nro" type="NroLivelloGerarchiaType" use="required"/>
+		<xs:attribute name="Codice" type="CodLivelloGerarchiaType" use="required"/>
+	</xs:complexType>
+	<xs:complexType name="UOType">
+		<xs:annotation>
+			<xs:documentation>Indica una UO attraverso il suo identificativo o attarverso i suoi livelli o attraverso la sua denominazione. <!-- Ad esempio il "Servizio 10 del Settore 2" si può indicare come <my_element>  
+	<LivelloUO Nro=1 Cod=2> </LivelloUO>
+	<LivelloUO Nro=2 Cod=10> </LivelloUO>
+<my_element> -->
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="IdUO" type="xs:integer" minOccurs="0"/>
+			<xs:element name="LivelloUO" type="LivelloGerarchiaType" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="DenominazioneUO" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Può essere la denominazione semplice della UO o quest'ultima preceduta dalle denominazioni delle UO di livello superiore (separate da " | "). Es:  "Ufficio Rilasci" o "Settore Edilizia | Ufficio Rilasci"</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="UserType">
+		<xs:choice>
+			<xs:element name="IdInSistemaEsterno" type="IdInSistemaEsternoType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Id. dell'utente nell'applicazione che invoca il WS</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="IdInterno" type="xs:integer" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Id. dell'utente all'interno del sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="UsernameInterna" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Username con cui l'utente si autentica al sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Descrizione" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Descrizione dell'utente</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroMatricola" type="xs:string" minOccurs="0"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="ScrivaniaVirtualeType">
+		<xs:annotation>
+			<xs:documentation>La scrivania virtuale rappresenta un utente non come persona fisica, ma nella funzione che svolge presso una certa UO. Può essere indicata univocamente indicando UO e utente; oppure il sistema può cercare di identificarla anche o solo a partire dalla sua descrizione</xs:documentation>
+		</xs:annotation>
+		<xs:all>
+			<xs:element name="UO" type="UOType" minOccurs="0"/>
+			<xs:element name="Utente" type="UserType" minOccurs="0"/>
+			<xs:element name="IdScrivaniaVirt" type="xs:integer" minOccurs="0"/>
+			<xs:element name="DesScrivaniaVirt" type="xs:string" minOccurs="0"/>
+		</xs:all>
+	</xs:complexType>
+	<xs:complexType name="RuoloAmmContestualizzatoType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un ruolo amministrativo eventualmente circoscritto ad un certo livello della struttura organizzativa piuttosto che ad una specifica UO (es: Dirigente, Dirigente di Settore, Dirigente del settore X, Dirigenti dei Servizi del Settore X, Segretarie del Settore dell'Ufficio X)</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="RuoloAmm" type="OggDiTabDiSistemaType"/>
+			<xs:choice>
+				<xs:element name="VsLivelloUO" type="NroLivelloGerarchiaType" minOccurs="0"/>
+				<xs:element name="VsTipoUO" type="OggDiTabDiSistemaType" minOccurs="0"/>
+			</xs:choice>
+			<xs:element name="VsUO" type="UOEstesaType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="UOEstesaType">
+		<xs:complexContent>
+			<xs:extension base="UOType">
+				<xs:sequence>
+					<xs:element name="FlagIncluseSottoUO" type="FlagSiNoType" default="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="AssegnatarioEffType">
+		<xs:choice>
+			<xs:element name="UO" type="UOType"/>
+			<xs:element name="Utente" type="UserType"/>
+			<xs:element name="ScrivaniaVirtuale" type="ScrivaniaVirtualeType"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="SoggettoInternoType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un soggetto interno all'AOO che può essere: una UO, un utente, una scrivania virtuale (che rappresenta l'utente non come persona, ma nella funzione che svolge presso una certa UO), un gruppo (di utenti o UO o scrivanie virtuali) o un ruolo amministrativo (es: Dirigente, Direttore Generale ecc). Quando si assegna ad un gruppo o un ruolo il sistema assegna a tutti gli utenti, UO e scrivanie del gruppo o aventi il ruolo</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="UO" type="UOEstesaType"/>
+			<xs:element name="Utente" type="UserType"/>
+			<xs:element name="ScrivaniaVirtuale" type="ScrivaniaVirtualeType"/>
+			<xs:element name="Gruppo" type="OggDiTabDiSistemaType"/>
+			<xs:element name="RuoloAmmContestualizzato" type="RuoloAmmContestualizzatoType"/>
+			<xs:element name="RuoloVsDoc_Folder" type="OggDiTabDiSistemaType">
+				<xs:annotation>
+					<xs:documentation>Indica tutti i soggetti interni che hanno già un certo ruolo rispetto al documento/folder da notificare o che hanno accesso (secondo l'ACL) su di esso.
+					Il CodId è il codice del ruolo rispetto al documento/folder. Può assumere anche i valori particolari:
+						 #CON_ACCESSO = tutti coloro che hanno accesso anche in sola visualizzazione;
+						 #CON_ACCESSO_G = tutti i gruppi che hanno accesso anche in sola visualizzazione;
+						 #CON_ACCESSO_UT= tutti gli utenti che sono nell'ACL con permesso anche di sola visualizzazione;
+						 #CON_ACCESSO_IN_MODIFICA = tutti coloro che hanno accesso anche in modifica dei metadati e/o file;
+						 #CON_ACCESSO_IN_MODIFICA_G = tutti i gruppi che hanno accesso anche in modifica dei metadati e/o file;
+						 #CON_ACCESSO_IN_MODIFICA_UT= tutti gli utenti che sono nell'ACL con permesso di modifica dei metadati e/o file;
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="EstremiXIdentificazioneUDType">
+		<xs:annotation>
+			<xs:documentation>Contiene i dati attraverso cui identificare univocamente un'unità documentaria</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="IdUD" type="xs:integer">
+				<xs:annotation>
+					<xs:documentation>Identificativo univoco dell'unità documentaria all'interno del sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="EstremiRegNum" type="EstremiRegNumType">
+				<xs:annotation>
+					<xs:documentation>Estremi di registrazione/numerazione attraverso cui identificare un'unità documentaria</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:choice>
+	</xs:complexType>
+	<xs:element name="Notifica">
+		<xs:annotation>
+			<xs:documentation>Root element dello schema. Contiene i dati per condividere o mandare commenti su un  documento/folder ad altri soggetti</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:choice>
+					<xs:annotation>
+						<xs:documentation>Serve a scegliere l'oggetto - unità documentaria o folder - da notificare</xs:documentation>
+					</xs:annotation>
+					<xs:element name="UnitaDocumentaria" type="EstremiXIdentificazioneUDType">
+						<xs:annotation>
+							<xs:documentation>Estremi dell'unità documentaria da notificare</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element name="Folder" type="EstremiXIdentificazioneFolderType">
+						<xs:annotation>
+							<xs:documentation>Estremi del folder da notificare</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+				</xs:choice>
+				<xs:element name="Mittente" type="AssegnatarioEffType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Mittente della notifica. Deve essere una UO, scrivania o utente per cui si può lavorare</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Destinatario" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Soggetti interni destinatari della notifica</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:complexContent>
+							<xs:extension base="SoggettoInternoType">
+								<xs:sequence>
+									<xs:element name="Ruolo" type="OggDiTabDiSistemaType" minOccurs="0">
+										<xs:annotation>
+											<xs:documentation>Ruolo del destinatario della notifica</xs:documentation>
+										</xs:annotation>
+									</xs:element>
+									<xs:element name="ModalitaAccesso" default="V">
+										<xs:annotation>
+											<xs:documentation>Indica la modalità di accesso da dare al destinatario sul documento/folder notificato (ovvero indica le opzioni di accesso che il destinatario avrà nell'ACL dell'oggetto dopo la notifica, salvo ne avesse già di più ampie). Valori possibili: FC = Full control; M = Modifica metadati e files/contenuti; MM = Modifica soli metadati; V = Sola visualizzazione; VM = Visualizzazione dei soli metadati (non dei files)
+</xs:documentation>
+										</xs:annotation>
+										<xs:simpleType>
+											<xs:restriction base="xs:string">
+												<xs:enumeration value="FC"/>
+												<xs:enumeration value="M"/>
+												<xs:enumeration value="MM"/>
+												<xs:enumeration value="V"/>
+												<xs:enumeration value="VM"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:element>
+								</xs:sequence>
+							</xs:extension>
+						</xs:complexContent>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Motivo" type="OggDiTabDiSistemaType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Motivo della notifica (codificato in apposita entry del dizionario di sistema)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Messaggio" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Messaggio della notifica</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:whiteSpace value="preserve"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="LivelloPriorita" minOccurs="0">
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:pattern value="ALTA|NORMALE|BASSA"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="DecorrenzaAssegnazione" type="xs:dateTime" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Data da cui decorrerà la notifica (da specificare solo se la notifica deve essere visibile al destinatario non immediatamente ma da una data futura)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="RichiestaConferma" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se presente chi manda la notifica avrà a sua volta notifica della presa visione del documento/folder da parte di ciascun destinatario della notifica</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:attribute name="AncheViaEmail" use="optional" fixed="1">
+							<xs:annotation>
+								<xs:documentation>Se presente chi manda la notifica avrà la notifica dell'avvenuta presa visione anche via e-mail</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="NotificaMancataPresaVisione" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se presente chi manda la notifica avrà a sua volta notifica della mancata presa visione - entro un certo n.ro di giorni - del documento/folder da parte del/di uno dei destinatari della notifica</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:attribute name="NroGiorni" type="xs:positiveInteger" use="required">
+							<xs:annotation>
+								<xs:documentation>N.ro di giorni trascorsi i quali (dalla decorrenza della notifica) senza che il documento o folder sia stato visionato da un destinatario della notifica deve essere data la notifica di mancata presa visione al mittente</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+						<xs:attribute name="AncheViaEmail" use="optional" fixed="1">
+							<xs:annotation>
+								<xs:documentation>Se presente chi manda la notifica avrà la notifica della mancata presa visione anche via e-mail</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="eMail" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se presente indica che la notifica a sistema è accompagnata da una notifica via email</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="To" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>Indirizzo email a cui inviare la notifica. Se nessun indirizzo è specificato ma è presente il tag eMail la notifica eMail verrà mandata agli indirizzii presenti in banca dati per i destinatari della notifica</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:whiteSpace value="collapse"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="Subject" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Oggetto della mail di notifica. Se non valorizzato l'oggetto viene composto in automatico</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:maxLength value="250"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="Body" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Testo della mail di notifica. Se non valorizzato il body viene composto in automatico</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="SMS" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se presente indica che la notifica a sistema è accompagnata da una notifica via SMS</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="To" type="xs:unsignedInt" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>N.ro di cellulare a cui inviare la notifica SMS. Se nessun numero è specificato ma è presente il tag SMS la notifica SMS verrà mandata ai n.ri di cellulare presenti in banca dati per i destinatari della notifica</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="Testo" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Testo dell'SMS di notifica. Se non valorizzato il testo dell'SMS viene composto in automatico</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:maxLength value="250"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans" 
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans   
+       classpath:spring-beans.xsd">
+
+<bean id="processEngineConfiguration"
+		class="org.activiti.engine.impl.cfg.StandaloneProcessEngineConfiguration">
+    <!-- Database configurations -->
+   <!-- <property name="databaseType" value="h2" />
+    <property name="jdbcUrl" value="jdbc:h2:file:C:/data/activiti/storage" />
+    <property name="jdbcDriver" value="org.h2.Driver" />
+    <property name="jdbcUsername" value="admin" />
+    <property name="jdbcPassword" value="admin" /> -->
+    
+   <!--  <property name="databaseType" value="oracle" />
+    <property name="jdbcUrl" value="jdbc:oracle:thin:@172.27.1.139:1521:SVILUPPO" />
+    <property name="jdbcDriver" value="oracle.jdbc.driver.OracleDriver" />
+    <property name="jdbcUsername" value="AURI_OWNER_1" />
+    <property name="jdbcPassword" value="auri_owner_1" /> -->
+    
+     <property name="databaseType" value="oracle" />
+    <property name="jdbcUrl" value="jdbc:oracle:thin:@172.30.211.8:1521:SIRA2" />
+    <property name="jdbcDriver" value="oracle.jdbc.driver.OracleDriver" />
+    <property name="jdbcUsername" value="AURI_OWNER_1" />
+    <property name="jdbcPassword" value="auri_owner_1" /> 
+    
+</bean>
+
+</beans>

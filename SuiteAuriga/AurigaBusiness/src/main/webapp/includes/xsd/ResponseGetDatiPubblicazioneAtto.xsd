@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:complexType name="NumerazioneType">
+		<xs:sequence>
+			<xs:element name="SiglaRegistro" type="xs:string"/>
+			<xs:element name="Anno" type="xs:gYear"/>
+			<xs:element name="Nro" type="xs:positiveInteger"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="ResponseGetDatiPubblicazioneAtto">
+		<xs:annotation>
+			<xs:documentation>Root element della response del servizio per recuperare i dati di pubblicazione di un atto</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Esito">
+					<xs:annotation>
+						<xs:documentation>Indica se è presente o meno un atto con gli estremi specificat nella request</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:enumeration value="atto_trovato"/>
+							<xs:enumeration value="atto_non_trovato"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="DatiAtto" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Dati dell'atto trovato (presente solo se Esito=atto_trovato</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="IdUDAtto" type="xs:integer">
+								<xs:annotation>
+									<xs:documentation>Identificativo univoco dell'unità documentaria corrispondente all'atto di cui sono stati richiesti i dati di pubblicazione</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="EstremiNumerazioneAtto" type="NumerazioneType">
+								<xs:annotation>
+									<xs:documentation>Estremi di numerazione definitiva dell'atto di cui sono stati richiesti i dati di pubblicazione</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="StatoPubblicazione">
+								<xs:annotation>
+									<xs:documentation>Indica lo stato di pubblicazione dell'atto</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="pubblicazione_non_prevista"/>
+										<xs:enumeration value="in_attesa_pubblicazione"/>
+										<xs:enumeration value="pubblicazione_in_corso"/>
+										<xs:enumeration value="pubblicazione_terminata"/>
+										<xs:enumeration value="ripubblicazione_in_corso"/>
+										<xs:enumeration value="pubblicazione_annullata"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="GenerataRelataPubbl">
+								<xs:annotation>
+									<xs:documentation>Indica se è stata generata o meno la relata di pubblicazione</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:simpleContent>
+										<xs:extension base="xs:boolean">
+											<xs:attribute name="dataOraGenerazione" type="xs:dateTime">
+												<xs:annotation>
+													<xs:documentation>Data e ora di generazione della relata</xs:documentation>
+												</xs:annotation>
+											</xs:attribute>
+											<xs:attribute name="firmata" type="xs:boolean">
+												<xs:annotation>
+													<xs:documentation>Indica se la relata è firmata o meno</xs:documentation>
+												</xs:annotation>
+											</xs:attribute>
+										</xs:extension>
+									</xs:simpleContent>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="DatiPubblicazione" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Dati di pubblicazione, se prevista o già avvenuta</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="TipoDecorrenzaPubbl" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Tipo di decorrenza della pubblicazione indicato nella richiesta di pubblicazione</xs:documentation>
+											</xs:annotation>
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+													<xs:enumeration value="urgente"/>
+													<xs:enumeration value="giorno_successivo"/>
+													<xs:enumeration value="decorrenza_dal"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+										<xs:element name="NroPubblicazione" type="xs:positiveInteger" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Nro di pubblicazione (valorizzato se la pubblicazione è iniziata)</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="DataOraNumerazionePubbl" type="xs:dateTime" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Data e ora di assegnazione del numero di pubblicazione (all'inizio effettivo della pubblicazione)</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="DataInizioPubbl" type="xs:date">
+											<xs:annotation>
+												<xs:documentation>Data da cui inizia la pubblicazione. </xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="DataFinePubbl" type="xs:date">
+											<xs:annotation>
+												<xs:documentation>Data di termine pubblicazione</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="DurataPubbl">
+											<xs:annotation>
+												<xs:documentation>Durata della pubblicazione. </xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:simpleContent>
+													<xs:extension base="xs:positiveInteger">
+														<xs:attribute name="unita" use="required">
+															<xs:annotation>
+																<xs:documentation>Indica se la durata è espressa in giorni o anni</xs:documentation>
+															</xs:annotation>
+															<xs:simpleType>
+																<xs:restriction base="xs:string">
+																	<xs:enumeration value="giorni"/>
+																	<xs:enumeration value="anni"/>
+																</xs:restriction>
+															</xs:simpleType>
+														</xs:attribute>
+													</xs:extension>
+												</xs:simpleContent>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="DatiRipubblicazione" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Dati di eventuale ri-pubblicazione, se prevista o già avvenuta</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="NroPubblicazione" type="xs:positiveInteger" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Nro di ri-pubblicazione (valorizzato se la ri-pubblicazione è iniziata)</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="DataOraNumerazionePubbl" type="xs:dateTime" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Data e ora di assegnazione del numero di ri-pubblicazione (all'inizio effettivo della ri-pubblicazione)</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="DataInizioPubbl" type="xs:date">
+											<xs:annotation>
+												<xs:documentation>Data da cui inizia la ri-pubblicazione. </xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="DataFinePubbl" type="xs:date">
+											<xs:annotation>
+												<xs:documentation>Data di termine ri-pubblicazione</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="DurataPubbl">
+											<xs:annotation>
+												<xs:documentation>Durata della ri-pubblicazione</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:simpleContent>
+													<xs:extension base="xs:positiveInteger">
+														<xs:attribute name="unita" use="required">
+															<xs:annotation>
+																<xs:documentation>Indica se la durata è espressa in giorni o anni</xs:documentation>
+															</xs:annotation>
+															<xs:simpleType>
+																<xs:restriction base="xs:string">
+																	<xs:enumeration value="giorni"/>
+																	<xs:enumeration value="anni"/>
+																</xs:restriction>
+															</xs:simpleType>
+														</xs:attribute>
+													</xs:extension>
+												</xs:simpleContent>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="UrlPubblicazione" type="xs:string" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>URL di pubblicazione. Può essere vuoto se l'atto non è stato pubblicato</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="SezionePubblicazione" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Sezione in cui l'atto è pubblicato (derivante dalla tipologia). Può essere vuota se per l'atto non è stata richiesta pubblicazione</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

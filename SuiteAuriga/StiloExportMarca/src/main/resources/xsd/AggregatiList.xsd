@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xs:schema xmlns="http://www.csi.eng.it/deposito/types" 
+xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+xmlns:nsin="http://www.csi.eng.it/deposito/types" 
+targetNamespace="http://www.csi.eng.it/deposito/types">
+	
+	<xs:element name="Entita">
+		<xs:complexType>
+			<xs:choice>
+				<xs:element ref="nsin:Aggregato" minOccurs="1"/>
+				<xs:element ref="nsin:Documento" minOccurs="1"/>
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="Aggregato">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="id" type="xs:string"/>
+				<xs:element name="descrizione" type="xs:string"/>
+				<xs:element name="tipo" type="xs:string"/>
+				<xs:element name="xml" type="xs:string"/>
+				<xs:element name="dataChiusuraPotenziale" type="xs:dateTime" minOccurs="0"/>
+				<xs:element name="dataChiusuraEffettiva" type="xs:dateTime" minOccurs="0"/>
+				<xs:element ref="nsin:Aggregato" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="nsin:Documento" minOccurs="1" maxOccurs="unbounded"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="Documento">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="id" type="xs:string"/>
+				<xs:element name="descrizione" type="xs:string"/>
+				<xs:element name="tipo" type="xs:string"/>
+				<xs:element name="xml" type="xs:string"/>
+				<xs:element name="dataChiusuraPotenziale" type="xs:dateTime" minOccurs="0"/>
+				<xs:element name="dataChiusuraEffettiva" type="xs:dateTime" minOccurs="0"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	
+	
+</xs:schema>

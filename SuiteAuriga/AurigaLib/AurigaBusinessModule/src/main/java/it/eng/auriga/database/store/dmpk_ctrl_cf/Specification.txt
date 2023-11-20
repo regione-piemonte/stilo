@@ -1,0 +1,40 @@
+1        PACKAGE DMPK_CTRL_CF AUTHID CURRENT_USER IS
+2            FUNCTION ControlloCF(CdFiscIn  		IN		VARCHAR2,
+3        			   CognomeIn 		IN 		VARCHAR2,
+4        			   NomeIn    		IN 		VARCHAR2,
+5        			   SessoIO   		IN OUT 	VARCHAR2,
+6        			   DtNascIO  		IN OUT 	VARCHAR2,
+7        			   CodIstatCmnNascIO 	IN OUT 	VARCHAR2,
+8        			   CmnNascIO 	IN OUT 	VARCHAR2,
+9        			   ProvNascIO	IN OUT 	VARCHAR2,
+10        			   CodIstatStatoNascIO 	IN OUT 	VARCHAR2,			   
+11        			   StatoNascIO 	IN OUT 	VARCHAR2,			   
+12        			   ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+13        			   ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+14        			   ErrMsgOut			OUT 		VARCHAR2)
+15        			   return PLS_INTEGER;
+16        
+17        	FUNCTION cognome(v_str varchar2) RETURN varchar2;
+18        	FUNCTION nome(v_str varchar2) RETURN varchar2;
+19        	FUNCTION data_nascita(v_data varchar2, v_sesso varchar2) RETURN varchar2;
+20        	FUNCTION luogo_di_nascita(v_istat_comune varchar2, v_cod_stato varchar2 ) RETURN varchar2;
+21        	FUNCTION codice_controllo(v_str varchar2) RETURN varchar2;
+22        	
+23            FUNCTION trova_doppioni(str varchar2, car varchar2) RETURN BOOLEAN;
+24        	
+25        
+26        	
+27        	FUNCTION ComponiCF(
+28        			v_nome 					varchar2,  
+29        			v_cognome 				varchar2,  
+30        			v_data_di_nascita 		varchar2,
+31        			v_sesso 				varchar2,
+32        			v_istat_comune_di_nascita varchar2,
+33        			v_cod_stato_di_nascita varchar2,
+34        			v_codice_fiscale 	OUT VARCHAR2,				
+35        			ErrContextOut		OUT	VARCHAR2,					-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+36        			ErrCodeOut		OUT	PLS_INTEGER,					-- N.ro errore di uscita
+37        			ErrMsgOut		OUT 	VARCHAR2)
+38        			return PLS_INTEGER;									-- Restituisce 1 se il CF è stato calcolato per certo, altrimenti 0
+39        
+40        END DMPK_CTRL_CF;

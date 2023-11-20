@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-reverse-engineering PUBLIC "-//Hibernate/Hibernate Reverse Engineering DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-reverse-engineering-3.0.dtd" >
+
+<hibernate-reverse-engineering>
+	<type-mapping>
+		<sql-type jdbc-type="OTHER" hibernate-type="java.util.Date" />
+		<sql-type jdbc-type="DATE" hibernate-type="java.util.Date" />
+		<sql-type jdbc-type="CLOB" hibernate-type="String"></sql-type>
+	</type-mapping>
+
+
+	<table-filter match-name="T_ANAG_FRUITORI_CASELLE"></table-filter>
+	<table-filter match-name="T_APPLICAZIONI_MOD_PEC"></table-filter>
+	<table-filter match-name="T_ASSEGN_EMAIL"></table-filter>
+	<table-filter match-name="T_ATTACH_EMAIL_MGO"></table-filter>
+	<table-filter match-name="T_CAP_COMUNI"></table-filter>
+	<table-filter match-name="T_CAP_FRAZIONI"></table-filter>
+	<table-filter match-name="T_COMMENTI_EMAIL"></table-filter>
+	<table-filter match-name="T_DESTINATARI_EMAIL_MGO"></table-filter>
+	<table-filter match-name="T_EMAIL_MGO"></table-filter>
+	<table-filter match-name="T_EMAIL_VS_UTENTI"></table-filter>
+	<table-filter match-name="T_FOLDER_CASELLE"></table-filter>
+	<table-filter match-name="T_MEMBRI_MAILING_LIST"></table-filter>
+	<table-filter match-name="T_PARAMETERS"></table-filter>
+	<table-filter match-name="T_PROFILI_FRUITORI_MGO"></table-filter>
+	<table-filter match-name="T_PROFILI_UTENTI_MGO"></table-filter>
+	<table-filter match-name="T_REG_EST_VS_EMAIL"></table-filter>
+	<table-filter match-name="T_REG_PROT_VS_EMAIL"></table-filter>
+	<table-filter match-name="T_REL_CASELLE_FRUITORI"></table-filter>
+	<table-filter match-name="T_REL_EMAIL_FOLDER"></table-filter>
+	<table-filter match-name="T_REL_EMAIL_MGO"></table-filter>
+	<table-filter match-name="T_REL_UTENTI_VS_FRUITORI"></table-filter>
+	<table-filter match-name="T_RUBRICA_EMAIL"></table-filter>
+	<table-filter match-name="T_SCHEDE_DOC_VS_EMAIL"></table-filter>
+	<table-filter match-name="T_SEZIONI_DIZ"></table-filter>
+	<table-filter match-name="T_USER_PREFERENCES"></table-filter>
+	<table-filter match-name="T_UTENTI_MOD_PEC"></table-filter>
+	<table-filter match-name="T_VAL_DIZIONARIO"></table-filter>
+	<table-filter match-name="MAILBOX"></table-filter>
+	<table-filter match-name="MAILBOX_ACCOUNT"></table-filter>
+	<table-filter match-name="MAILBOX_ACCOUNT_CONFIG"></table-filter>
+	<table-filter match-name="MAILBOX_CONFIG"></table-filter>
+	<table-filter match-name="MAILBOX_INFO"></table-filter>
+	<table-filter match-name="MAILBOX_MESSAGE"></table-filter>
+	<table-filter match-name="MAILBOX_MESSAGE_OPERATION"></table-filter>
+	<table-filter match-name="MAILBOX_OPERATION"></table-filter>
+	<table-filter match-name="MAILBOX_OPERATION_CONFIG"></table-filter>
+</hibernate-reverse-engineering>

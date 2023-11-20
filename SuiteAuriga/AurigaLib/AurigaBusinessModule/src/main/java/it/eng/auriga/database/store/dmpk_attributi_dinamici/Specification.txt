@@ -1,0 +1,979 @@
+1        PACKAGE DMPK_ATTRIBUTI_DINAMICI AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        
+12        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+13        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        
+20        	/**** Funzione per ricercare gli attributi dinamici definiti ****/
+21        	FUNCTION TrovaAttributiDefiniti(
+22        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+23        																	-- (obblig). Codice identificativo del token di connessione
+24        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+25        			FlgPreimpostaFiltroIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1 i filtri e l'ordinamento vengono settati secondo le impostazioni dell'utente di lavoro, altrimenti restano come passati in input
+26        			--------------- inizio filtri di ricerca-------------------
+27        			NomeAttrIO				IN OUT	DMT_ATTRIBUTES_DEF.ATTR_NAME%type,		-- 1° filtro di ricerca: nome identificativo dell'attributo (ricerca case-insensitive in like)
+28        			LabelAttrIO				IN OUT	DMT_ATTRIBUTES_DEF.ATTR_LABEL%type,		-- 2° filtro di ricerca: label con cui l'attributo appare nella GUI (ricerca case-insensitive in like)
+29        			TipoAttrIO				IN OUT	DMT_ATTRIBUTES_DEF.ATTR_TYPE%type,		-- 3° filtro di ricerca: tipo di attributo. Valori possibili:
+30        																	-- CHECK		= Casella di spunta
+31        																	-- DATE		= Data (con o senza ora)
+32        																	-- DATETIME		= Data e ora
+33        																	-- NUMBER		= Numerico (inclusi importi in Euro)
+34        																	-- EURO		= Importo in Euro
+35        																	-- TEXT-BOX		= Alfanumerico su una riga
+36        																	-- TEXT-AREA	= Alfanumerico su più righe
+37        																	-- CKEDITOR		= Editor html
+38        																	-- TEXT		= Alfanimerico su una o più righe
+39        																	-- COMBO-BOX	= Lista di scelta
+40        																	-- RADIO		= Radio group
+41        																	-- COMPLEX		= Strutturato, ovvero composto da sotto-attributi
+42        																	-- SEMPLICE		= Qualsisai tipo tranne COMPLEX
+43        																	-- CASELLA_TESTO  = Uno dei tipi DATE, DATETIME, NUMBER, EURO, TEXT-BOX
+44        			DesAttrIO				IN OUT	DMT_ATTRIBUTES_DEF.ATTR_DESCRIPTION%type, -- 4° filtro di ricerca: descrizione dell'attributo (ricerca case-insensitive in like)
+45        			FlgInclAnnullatiIO		IN OUT	INTEGER,						-- (valori 1/0/NULL) 5° filtro di ricerca: se 1 vengono estratti anche gli attributi logicamente annullati, altrimenti no	
+46        			FlgEscludiSottoAttrIO		IN OUT	INTEGER,						-- (valori 1/0/NULL) 6° filtro di ricerca: se 1 gli attributi che appartengono ad un complesso non vengono estratti, altrimenti sì
+47        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+48        			ColOrderByIO			IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 6). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+49        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+50        																	-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+51        			FlgDescOrderByIO  		IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+52        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
+53        			FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+54        			NroPaginaIO      			IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+55           			BachSizeIO				IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+56        																	-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+57        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+58        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+59        			NroTotRecOut			OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+60             			NroRecInPaginaOut 		OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+61        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+62        			ListaXMLOut				OUT		NOCOPY CLOB,					-- Lista degli attributi trovati (XML conforme a schema LISTA_STD.xsd)
+63        																	-- Ogni attributo è un tag Riga che contiene le seguenti colonne: 
+64        																	-- 1:  Identificativo (ROWID) del record che definisce l'attributo
+65        																	-- 2:  Nome identificativo dell'attributo
+66        																	-- 3:  Descrizione dell'attributo
+67        																	-- 4:  Label con cui l'attributo viene mostrato nella GUI
+68        																	-- 5:  Tipo dell'attributo (decodificato)
+69        																	-- 6:  Label con cui l'attributo viene mostrato nella GUI preceduta dalla label con cui l'eventuale attributo di appartenenza viene mostrato nella GUI, se sotto-attributo, seguita dalle label degli attributi componenti, se attributo complesso
+70        																	-- 7:  Nome identificativo dell'eventuale attributo di appartenenza
+71        																	-- 8: (valori 1/0) Se 1 si tratta di un attributo già utilizzato e dunque con caratteristiche non modificabili tranne: label, descrizione, valore di default, caratteristiche di presentation (larghezza e altezza) e limitazioni di accesso
+72        																	-- 9: (valori 1/0) Se 1 si tratta di un attributo annullato
+73        																	-- 10: Timestamp di creazione dell'attributo(nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+74        																	-- 11: Descrizione dell'utente di creazione dell'attributo
+75        																	-- 12: Timestamp di ultima modifica dei dati dell'attributo(nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+76        																	-- 13: Descrizione dell'utente di ultima modifica dei dati dell'attributo																						
+77        																	-- 14: (valori 1/0) Flag di attributo da riversare nelle parole chiave per essere indicizzato
+78        																	-- 15: (valori 1/0) Flag di attributo con valori univoci
+79        																	-- 16: (valori 1/0) Flag di attributo con dati sensibili
+80        			FlgAbilInsOut	 		OUT 		PLS_INTEGER ,            	-- (valori 1/0) Se 1 si ha abilitazione a creazione di nuovi attributi
+81        			FlgAbilUpdOut 			OUT 		PLS_INTEGER ,            	-- (valori 1/0) Se 1 si ha abilitazione a modifica di attributi
+82        			FlgAbilDelOut 			OUT 		PLS_INTEGER,            	-- (valori 1/0) Se 1 si ha abilitazione a cancellazione di attributi
+83        			FlgMostraACLOut			OUT		PLS_INTEGER,					-- (valori 1/0) Indica se l'ACL è gestibile o meno per gli attributi e dunque se va mostrata nella GUI
+84        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+85        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+86        			ErrMsgOut				OUT 		VARCHAR2,					-- Messaggio d'errore
+87        			NomeAttrSupIn			IN 		DMT_ATTRIBUTES_DEF.ATTR_NAME_SUP%type DEFAULT NULL,		
+88        																			-- filtro di ricerca: nome identificativo dell'attributo di appartenenza (ricerca case-insensitive in like)
+89        			IdModelloNotIn			IN		DMT_MODELLI_DOC.ID_MODELLO%type DEFAULT NULL,
+90        																			-- Filtro di ricerca: id_modello di un modello compilabile on-line ai cui input/tabelle NON devono già essere associati gli attributi da ricercare
+91        			NomeAttrToForceIn		IN		DMT_ATTRIBUTES_DEF.ATTR_NAME%type DEFAULT NULL
+92        																			-- Nome di un attributo da mettere comunque nel result set restituito anche se non matcha tutti i filtri di ricerca
+93        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+94        
+95        	/**** Funzione per estrarre il ROWID di un attributo dinamico ****/
+96        	FUNCTION GetAttrRowId(
+97        			CodIdConnectionTokenIn	IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	-- (obblig). Codice identificativo del token di connessione
+98        			NomeAttrIO				IN OUT	DMT_ATTRIBUTES_DEF.ATTR_NAME%type,		-- nome identificativo dell'attributo (ricerca case-insensitive in like)
+99        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+100        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+101        			ErrMsgOut				OUT 	VARCHAR2)					-- Messaggio d'errore
+102        			return VARCHAR2;	--restituisce il rowid dell'attributo altrimenti null	
+103        
+104        	/***** Funzione per ottenere tutti i dati di dettaglio di un attributo dinamico definito *****/
+105        	function LoadDettAttributo(
+106        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+107        																	-- (obblig). Codice identificativo del token di connessione
+108        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+109        			NomeIO					IN OUT	DMT_ATTRIBUTES_DEF.ATTR_NAME%type,		-- (obblig.) Nome identificativo dell'attributo
+110        			LabelOut				OUT		DMT_ATTRIBUTES_DEF.ATTR_LABEL%type,		-- Label con cui l'attributo appare nella GUI
+111        			TipoOut					OUT		DMT_ATTRIBUTES_DEF.ATTR_TYPE%type,		-- Tipo di attributo. Valori possibili:
+112        																	-- CHECK		= Casella di spunta
+113        																	-- DATE		= Data (senza ora)
+114        																	-- DATETIME		= Data e ora
+115        																	-- NUMBER		= Numerico
+116        																	-- EURO		= Importo in Euro
+117        																	-- TEXT-BOX		= Testo mono-riga
+118        																	-- TEXT-AREA	= Area di testo
+119        																	-- CKEDITOR		= Editor html
+120        																	-- COMBO-BOX	= Lista di scelta
+121        																	-- RADIO		= Radio group
+122        																	-- COMPLEX		= Strutturato, ovvero composto da sotto-attributi 
+123        			SubTipoOut				OUT		DMT_ATTRIBUTES_DEF.ATTR_SUBTYPE%type, 
+124        																	-- Sotto-tipo di attributo. Valorizzato per tipo CKEDITOR con i valori: STANDARD EXTENDED, RESTRICTED
+125        			DescrizioneOut			OUT		DMT_ATTRIBUTES_DEF.ATTR_DESCRIPTION%type, -- Descrizione dell'attributo
+126        			NomeAttrAppOut			OUT		DMT_ATTRIBUTES_DEF.ATTR_NAME%type,		-- Nome identificativo dell'eventuale attributo di appartenenza
+127        			LabelAttrAppOut			OUT		DMT_ATTRIBUTES_DEF.ATTR_LABEL%type,		-- Label con cui l'eventuale attributo di appartenenza viene mostrato nella GUI
+128        			NroOrdInAttrAppOut		OUT		DMT_ATTRIBUTES_DEF.NRO_ORD_IN_SUP%type,	-- N.ro che indica la posizione dell'attributo tra i vari sotto-attributi che compongono l'eventuale attributo di appartenenza 
+129        			NroRigaInAttrAppOut		OUT			DMT_ATTRIBUTES_DEF.NRO_RIGA_IN_SUP%type,	-- N.ro (da 1 in su) che indica la riga che occupa l'attributo nel riquadro corrispondente all'eventuale attributo di appartenenza 
+130        			FlgObbligInAttrAppOut		OUT		DMT_ATTRIBUTES_DEF.FLG_OBBLIG_IN_SUP%type,-- (valori 1/0) 1 indica che è un sotto-attributo obbligatorio dell'attributo di appartenenza 
+131        			NroCifreCaratteriOut		OUT		DMT_ATTRIBUTES_DEF.ATTR_SIZE%type,		-- N.ro di caratteri se attributo alfanumerico o di cifre se numerico
+132        			PrecisioneDecimaleOut		OUT		DMT_ATTRIBUTES_DEF.ATTR_SCALE%type,		-- N.ro di cifre decimali (se attributo numerico)
+133        			FormatoNumericoOut		OUT		DMT_ATTRIBUTES_DEF.ATTR_FORMAT%type,	-- Formato di presentazione dell'attributo se numerico (un formato numerico Oracle)
+134        			ValoreMinOut			OUT		VARCHAR2,						-- Valore minimo consentito (se attributo numerico o data/timestamp) (se è un attributo data/timestamp è espresso in formato dato dal parametro di config. FMT_STD_DATA/FMT_STD_TIMESTAMP)
+135        			ValoreMaxOut			OUT		VARCHAR2,						-- Valore massimo consentito (se attributo numerico o data/timestamp) (se è un attributo data/timestamp è espresso in formato dato dal parametro di config. FMT_STD_DATA/FMT_STD_TIMESTAMP)
+136        			RestrizioniSulCaseOut		OUT		DMT_ATTRIBUTES_DEF.CASE_RESTRICTION%type,	-- Restrizioni sul case (se attributo alfanumerico). Valori possibili: 
+137        																	-- UPPER	=	Tutto maiuscolo
+138        																	-- LOWER	=	Tutto minuscolo		
+139        			LarghGUIOut				OUT		DMT_ATTRIBUTES_DEF.ATTR_WIDTH%type,		-- Larghezza (size) con cui mostrare nelle GUI il campo corrispondente all''attributo
+140        			AltezzaGuiOut			OUT		DMT_ATTRIBUTES_DEF.ATTR_HEIGTH%type,	-- Altezza (n.ro righe) con cui mostrare nelle GUI il campo corrispondente all''attributo (valorizzato solo se il tipo è TEXT-AREA o CKEDITOR)
+141        			ValoreDefaultOut			OUT		DMT_ATTRIBUTES_DEF.ATTR_DEF_VALUE%TYPE,	--   Valore di default
+142        			QueryPerValoriPossibiliOut	OUT		DMT_ATTRIBUTES_DEF.ATTR_LIST_QUERY%type,	-- Query per estrarre la lista dei valori possibili per l'attributo se di tipo "lista di scelta" (query con un unica selected column)
+143        			URLWSValoriPossibiliOut	OUT			DMT_ATTRIBUTES_DEF.WSDL_URL%type,				-- End-point del web-service per estrarre la lista dei valori possibili per l'attributo
+144        			XMLInWSValoriPossibiliOut OUT		NOCOPY CLOB,							-- XML di input da passare al web-service per estrarre la lista dei valori possibili per l'attributo
+145        			FlgDaIndicizzareOut		OUT		DMT_ATTRIBUTES_DEF.FLG_DA_INDICIZZARE%type,-- (valori 1/0) 1 indica che è un attributo da riversare nelle parole chiave per essere indicizzato
+146        			FlgProtectedOut			OUT		DMT_ATTRIBUTES_DEF.FLG_PROTECTED%type,		-- (valori 1/0/NUL) 1 indica che è un attributo contenente dati sensibili
+147        			FlgValoriUnivociOut		OUT		DMT_ATTRIBUTES_DEF.FLG_VALORI_UNIVOCI%type,	-- (valori 1/0/NUL) 1 indica che è un attributo i cui valori devono essere univoci (ovvero più entità non possono assumere gli stessi valori). Può essere 1 anche nel caso di attributi complessi, nel qual caso è univica l'ennupla dei valori dei sotto-attributi
+148        			RegularExprOut			OUT		DMT_ATTRIBUTES_DEF.REGULAR_EXPR%type,	-- Espressione regolare con cui validare il contenuto dell'attributo se TEXT_BOX o TEXT_AREA
+149        			XMLValoriPossibiliOut		OUT		NOCOPY CLOB,					-- Lista con i valori possibili per l'attributo se di tipo "lista di scelta" (XML conforme a schema LISTA_STD.xsd)					
+150        																	-- Ogni valore possibile è un tag "Riga" che contiene le seguenti colonne:
+151        																	-- 1: Valore possibile
+152        			XMLACLOut				OUT		NOCOPY CLOB,					-- ACL che limita l'accesso all'attributo (XML conforme a schema LISTA_STD.xsd)					
+153        																	-- Ogni ACE è un tag "Riga" che che contiene le seguenti colonne:
+154        																	-- 1: Flag che indica il tipo di soggetto a cui sono assentiti/negati permessi. Valori:
+155        																		-- 	SP	= Soggetto produttore 
+156        																		-- 	AOO	= AOO
+157        																		-- 	UT 	= Utente
+158        																		--	SV	= Scrivania virtuale (vale a dire la scrivania che un utente occupa nello svolgimento di un dato ruolo nella struttura organizzativa)
+159        																		--	UO	= Unità organizzativa (vale a dire tutte le scrivanie virtuali ad essa afferenti)
+160        																		--	G	= Gruppo (di utenti, UO, scrivanie)
+161        																		--	R	= Ruolo amministrativo contestualizzato ovvero i soggetti che hanno un certo ruolo amministrativo (eventualmente rispetto ad una certa UO o un dato livello della struttura organizzativa o entrambi)
+162        																	-- 2: Id. del soggetto nell'anagrafe di origine (se SP o AOO è l'ID_SP_AOO, se UT l'ID_USER, se SV l'ID_SCRIVANIA, se UO l'ID_UO, se G l'ID_GRUPPO, se R l'ID_RUOLO_AMM, se RP il RUOLO_SOGG_IN_PROC)
+163        																	-- 3: Denominazione/nome del destinatario del permesso 
+164        																	-- 4: Identificativo della UO cui appartiene la scrivania destinataria del permesso 
+165        																	-- 5: Nri livello della UO destinataria del permesso o a cui appartiene la scrivania destinataria (sono specificati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; sono separati dal separatore dei livelli valido per il soggetto produttore/AOO di appartenenza della UO)
+166        																	-- 6: Denominazione della UO cui appartiene la scrivania destinataria del permesso
+167        																	-- 7: Codice che identifica nell'applicazione esterna da cui ci si connette l'utente destinatario del permesso o quello che occupa la scrivania destinataria del permesso
+168        																	-- 8: Denominazione dell'utente che occupa la scrivania destinataria del permesso
+169        																	-- 9: (valore 1) Indica che il destinatario del permesso, se UO, sono anche tutte le sue sotto-UO
+170        																	-- 10: (valori interi da 1 a n) Livello della struttura organizzativa in cui si espleta il ruolo amministrativo destinatario del permesso
+171        																	-- 11: Se colonna 1 =R: Codice del tipo di unità organizzativa in cui si espleta il ruolo amministrativo destinatario del permesso (alternativo alla colonna 10)
+172        																	-- 	Se colonna 1 =UT o SV: Username (delle credenziali locali) dell'utente destinatario del permesso o che occupa la scrivania destinataria del permesso
+173        																	-- 12: Se colonna 1 =R: Descrizione del tipo di unità organizzativa (es: settore, servizio, ecc) in cui si espleta il ruolo amministrativo destinatario del permesso (alternativo alla colonna 10)
+174        																	--	Se colonna 1 =UT o SV: N.ro di matricola dell'utente destinatario del permesso o che occupa la scrivania destinataria del permesso
+175        																	-- 13: Identificativo della UO in cui si espleta il ruolo amministrativo destinatario del permesso o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario del permesso
+176        																	-- 14: Denominazione/nome della UO in cui si espleta il ruolo amministrativo destinatario del permesso o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario del permesso (può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+177        																	-- 15: Nri livello della UO in cui si espleta il ruolo amministrativo destinatario del permesso o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario del permesso (tutti o alcuni; però se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno specificati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; sono separati dal separatore dei livelli valido per il soggetto produttore/AOO di appartenenza della UO)
+178        																	-- 16:(valore 1) Indica che il ruolo amministrativo destinatario del permesso si espleta anche nelle sotto-UO della/e UO rintracciate tramite i valori delle 3 colonne precedenti
+179        																	-- 17: Flag di visibilità dell'attributo. Valori:
+180        																		-- 1: Consentita
+181        																		-- 0: Negata
+182        																		-- NUL = Nulla di specificato 
+183        																	-- 18: Flag di modificabilità dell'attributo. Valori:
+184        																		-- 1: Consentita
+185        																		-- 0: Negata
+186        																		-- NUL = Nulla di specificato
+187        																	-- 29: Dati identificativi del soggetto
+188        			NomeIdLookupOut			OUT		DMT_ATTRIBUTES_DEF.LISTA_LOOKUP%type,	-- Nome identificativo della lista che fa da lookup (lista di scelta) per l'attributo
+189        			DesLookupOut			OUT		VARCHAR2,						-- Descrizione della lista che fa da lookup (lista di scelta) per l'attributo
+190        			NroColLookupOut			OUT		DMT_ATTRIBUTES_DEF.NRO_COL_LOOKUP%type,	-- N.ro della colonna del clob di popolamento della lista di scelta (lookup) che contiene il valore da riportare nell'attributo
+191        			DesColLookupOut			OUT		VARCHAR2,						-- Descrizione del contenuto della colonna del clob di popolamento della lista di scelta (lookup) che contiene il valore da riportare nell'attributo
+192        			FiltroInLookupOut			OUT		DMT_ATTRIBUTES_DEF.FILTRO_IN_LOOKUP%type,	-- Nome identificativo del campo di filtro della lista di scelta (lookup) che va popolato con il valore dell'attributo
+193        			FlgSoloValDaLookupOut		OUT		PLS_INTEGER,					-- (valori 1/0/NULL) Se 1 significa che i valori possibili per l'attributo sono solo quelli presi dalla lookup indicata 
+194        			RowidOut				OUT		VARCHAR2,						-- Rowid del record dell'attributo
+195        			FlgUtilizzatoOut			OUT		PLS_INTEGER,					-- (valori 1/0)  Se 1 si tratta di un attributo già utilizzato e dunque con caratteristiche non modificabili tranne: label, descrizione, valore di default, caratteristiche di presentation (larghezza e altezza) e limitazioni di accesso
+196        			BachSizeOut				OUT		PLS_INTEGER,					-- Indica il massimo n.ro di record per ogni pagina da mostrare nelle liste restituite in output
+197        			FlgMostraACLOut			OUT		PLS_INTEGER,					-- (valori 1/0) Indica se l'ACL è gestibile o meno per gli attributi e dunque se va mostrata nella GUI
+198        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+199        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+200        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+201        			return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+202        
+203        
+204        	/***** funzione per creare o modificare un attributo dinamico ******/
+205        	function IUAttributo(
+206        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+207        																	-- (obblig). Codice identificativo del token di connessione
+208        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+209        			RowidIO				IN OUT	VARCHAR2,						-- Rowid del record-attributo da modificare. Se non valorizzato l'attributo è da inserire ex-novo
+210        																	-- In output, salvo in caso di errore, è sempre valorizzato	
+211        			NomeIn				IN 		DMT_ATTRIBUTES_DEF.ATTR_NAME%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+212        																	-- (obblig.) Nome identificativo dell'attributo da creare o modificare
+213        			LabelIn				IN		DMT_ATTRIBUTES_DEF.ATTR_LABEL%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+214        																	-- (obblig.) Label con cui l'attributo appare nella GUI
+215        			TipoIn				IN		DMT_ATTRIBUTES_DEF.ATTR_TYPE%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+216        																	-- (obblig.) Tipo di attributo. Valori possibili:
+217        																	-- CHECK		= Casella di spunta
+218        																	-- DATE		= Data (senza ora)
+219        																	-- DATETIME		= Data e ora
+220        																	-- NUMBER		= Numerico
+221        																	-- EURO		= Importo in Euro
+222        																	-- TEXT-BOX		= Testo mono-riga
+223        																	-- TEXT-AREA	= Area di testo
+224        																	-- CKEDITOR		= Editor html
+225        																	-- COMBO-BOX	= Lista di scelta
+226        																	-- RADIO		= Radio group
+227        																	-- COMPLEX		= Strutturato, ovvero composto da sotto-attributi 
+228        			SubTipoIn				IN		DMT_ATTRIBUTES_DEF.ATTR_SUBTYPE%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+229        																	-- Sotto-tipo di attributo. Valorizzato per tipo CKEDITOR con i valori: STANDARD EXTENDED, RESTRICTED
+230        			DescrizioneIn			IN		DMT_ATTRIBUTES_DEF.ATTR_DESCRIPTION%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+231        																	 -- Descrizione dell'attributo
+232        			NomeAttrAppIn			IN		DMT_ATTRIBUTES_DEF.ATTR_NAME%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+233        																	-- Nome identificativo dell'eventuale attributo di appartenenza. 
+234        			LabelAttrAppIn			IN		DMT_ATTRIBUTES_DEF.ATTR_LABEL%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+235        																	-- Label con cui l'eventuale attributo di appartenenza viene mostrato nella GUI
+236        			NroOrdInAttrAppIn			IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+237        																	-- N.ro che indica la posizione dell'attributo tra i vari sotto-attributi che compongono l'eventuale attributo di appartenenza 
+238        																	-- Viene considerato e gestito solo se è valorizzato uno dei 2 argomenti precedenti
+239        			NroRigaInAttrAppIn			IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+240        																	-- N.ro (da 1 in su) che indica la riga che occupa l'attributo nel riquadro corrispondente all'eventuale attributo di appartenenza 
+241        																	-- Viene considerato e gestito solo se è valorizzato uno dei 2 argomenti NomeAttrAppIn e LabelAttrAppIn
+242        			FlgObbligInAttrAppIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+243        																	-- (valori 1/0/NUL) 1 indica che è un sotto-attributo obbligatorio dell'attributo di appartenenza 
+244        			NroCifreCaratteriIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+245        																	-- N.ro di caratteri se attributo alfanumerico o di cifre (decimali inclusi) se numerico
+246        																	-- Viene considerato e gestito solo se è il tipo è: NUMBER, EURO, TEXT-BOX, TEXT-AREA
+247        			PrecisioneDecimaleIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+248        																	-- N.ro di cifre decimali (se attributo numerico)
+249        																	-- Viene considerato e gestito solo se è il tipo è: NUMBER
+250        			FormatoNumericoIn			IN		DMT_ATTRIBUTES_DEF.ATTR_FORMAT%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+251        																	-- Formato di presentazione dell'attributo se numerico (un formato numerico Oracle)
+252        																	-- Viene considerato e gestito solo se è il tipo è: NUMBER														
+253        			ValoreMinIn				IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+254        																	-- Valore minimo consentito (se attributo numerico o data/timestamp) (se è un attributo data/timestamp va espresso in formato dato dal parametro di config. FMT_STD_DATA/FMT_STD_TIMESTAMP)
+255        																	-- Viene considerato e gestito solo se è il tipo è: NUMBER, EURO, DATE, DATETIME
+256        			ValoreMaxIn				IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+257        																	-- Valore massimo consentito (se attributo numerico o data/timestamp) (se è un attributo data/timestamp va espresso in formato dato dal parametro di config. FMT_STD_DATA/FMT_STD_TIMESTAMP)
+258        																	-- Viene considerato e gestito solo se è il tipo è: NUMBER, EURO, DATE, DATETIME														
+259        			RestrizioniSulCaseIn		IN		DMT_ATTRIBUTES_DEF.CASE_RESTRICTION%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+260        																	-- Restrizioni sul case (se attributo alfanumerico). Valori possibili: 
+261        																	-- UPPER	=	Tutto maiuscolo
+262        																	-- LOWER	=	Tutto minuscolo	
+263        																	-- Viene considerato e gestito solo se è il tipo è:TEXT-BOX, TEXT-AREA															
+264        			LarghGUIIn				IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+265        																	-- Larghezza (size) con cui mostrare nelle GUI il campo corrispondente all''attributo
+266        																	-- Viene considerato e gestito solo se il tipo è: NUMBER, TEXT-BOX, TEXT-AREA, EURO, CKEDITOR
+267        			AltezzaGuiIn			IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+268        																	-- Altezza (n.ro righe) con cui mostrare nelle GUI il campo corrispondente all''attributo
+269        																	-- Viene considerato e gestito solo se il tipo è: TEXT-AREA, CKEDITOR
+270        			ValoreDefaultIn			IN		DMT_ATTRIBUTES_DEF.ATTR_DEF_VALUE%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+271        																	-- Valore di default (se attributo di tipo DATE va espresso in formato pari al parametro di config. FMT_STD_DATA, se il tipo è DATETIME in formato pari al parametro di config. FMT_STD_TIMESTAMP, se è un numero il separatore dei decimali da usare è la ",", quello delle migliaia il .)
+272        			QueryPerValoriPossibiliIn	IN		DMT_ATTRIBUTES_DEF.ATTR_LIST_QUERY%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+273        																	-- Query per estrarre la lista dei valori possibili per l'attributo (query con un unica selected column)
+274        																	-- Viene considerato e gestito solo se il tipo è: COMBO_BOX o TEXT-BOX
+275        			URLWSValoriPossibiliIn	IN		DMT_ATTRIBUTES_DEF.WSDL_URL%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+276        																	-- End-point del web-service per estrarre la lista dei valori possibili per l'attributo
+277        																	-- Viene considerato e gestito solo se il tipo è: COMBO_BOX o TEXT-BOX
+278        			XMLInWSValoriPossibiliIn IN		CLOB DEFAULT TO_CLOB(dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD')),
+279        																	-- XML di input da passare al web-service per estrarre la lista dei valori possibili per l'attributo
+280        																	-- Viene considerato e gestito solo se il tipo è: COMBO_BOX o TEXT-BOX
+281        			FlgDaIndicizzareIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+282        																	-- (valori 1/0/NUL) 1 indica che è un attributo da riversare nelle parole chiave per indicizzarlo
+283        			FlgProtectedIn			IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+284        																	-- (valori 1/0/NUL) 1 indica che è un attributo contenente dati sensibili
+285        			FlgValoriUnivociIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+286        																	-- (valori 1/0/NUL) 1 indica che è un attributo i cui valori devono essere univoci (ovvero più entità non possono assumere gli stessi valori). Può essere 1 anche nel caso di attributi complessi, nel qual caso è univica l'ennupla dei valori dei sotto-attributi
+287        			RegularExprIn			IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+288        																	-- Espressione regolare per validare il contenuto del campo se TEXT-BOX o TEXT_AREA 
+289        			FlgModValoriPossibiliIn		IN		VARCHAR2 DEFAULT 'I',				-- (valori I/C) Indica se i valori possibili per l'attributo che sono indicati nell'argomento successivo sono forniti in modo incrementale (=I) (solo quelle da inserire/modificare/cancellare) oppure completo (=C), vale a dire che dovranno soppiantare tutti quelli già specificati in caso di attributo da aggiornare
+290        			XMLValoriPossibiliIn		IN		CLOB DEFAULT NULL,				-- Lista con i valori possibili per l'attributo se di tipo "lista di scelta" (XML conforme a schema LISTA_STD.xsd)					
+291        																	-- Ogni valore possibile è un tag "Riga" che contiene le seguenti colonne:
+292        																	-- 1: Valore possibile
+293        																	-- 2: (valori 1/0/NULL) Flag di record da eliminare
+294        			FlgModACLIn				IN		VARCHAR2 DEFAULT 'I',				-- (valori I/C) Indica se le Access Control Entries (ACE) indicate nell'argomento successivo sono fornite in modo incrementale (=I) (solo quelle da aggiungere) oppure completo (=C), vale a dire che dovranno soppiantare tutte quelle già specificate
+295        			XMLACLIn				IN		CLOB DEFAULT NULL,				-- ACL che limita l'accesso all'attributo (XML conforme a schema LISTA_STD.xsd)	
+296        																	-- Ogni ACE è un tag "Riga" che può contenere le seguenti colonne:
+297        																		-- 1: Flag che indica il tipo di soggetto a cui sono assentiti/negati permessi. Valori:
+298        																		-- 	SP	= Soggetto produttore 
+299        																		-- 	AOO	= AOO
+300        																		-- 	UT 	= Utente
+301        																		--	SV	= Scrivania virtuale (vale a dire la scrivania che un utente occupa nello svolgimento di un dato ruolo nella struttura organizzativa)
+302        																		--	UO	= Unità organizzativa (vale a dire tutte le scrivanie virtuali ad essa afferenti)
+303        																		--	G	= Gruppo (di utenti, UO, scrivanie)
+304        																		--	R	= Ruolo amministrativo contestualizzato ovvero i soggetti che hanno un certo ruolo amministrativo (eventualmente rispetto ad una certa UO o un dato livello della struttura organizzativa o entrambi)
+305        																	-- 2: Id. del soggetto nell'anagrafe di origine (se SP o AOO è l'ID_SP_AOO, se UT l'ID_USER, se SV l'ID_SCRIVANIA, se UO l'ID_UO, se G l'ID_GRUPPO, se R l'ID_RUOLO_AMM, se RP il RUOLO_SOGG_IN_PROC)
+306        																	--	ATTENZIONE: Se non è congruente con le altre colonne che danno gli estremi del soggetto viene ignorato 	
+307        																	-- 3: Denominazione/nome del destinatario del permesso (se trattasi di UO può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+308        																	-- 4: Identificativo della UO cui appartiene la scrivania destinataria del permesso 
+309        																	-- 5: Nri livello della UO destinataria del permesso o a cui appartiene la scrivania destinataria (tutti o alcuni; però se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno specificati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; sono separati dal separatore dei livelli valido per il soggetto produttore/AOO di appartenenza della UO)
+310        																	-- 6: Denominazione della UO cui appartiene la scrivania destinataria del permesso (può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+311        																	-- 7: Codice che identifica nell'applicazione esterna da cui ci si connette l'utente destinatario del permesso o quello che occupa la scrivania destinataria del permesso
+312        																	-- 8: Denominazione dell'utente che occupa la scrivania destinataria del permesso
+313        																	-- 9: (valore 1) Indica che il destinatario del permesso, se UO, sono anche tutte le sue sotto-UO
+314        																	-- 10: (valori interi da 1 a n) Livello della struttura organizzativa in cui si espleta il ruolo amministrativo destinatario del permesso
+315        																	-- 11: Se colonna 1 =R: Codice del tipo di unità organizzativa in cui si espleta il ruolo amministrativo destinatario del permesso (alternativo alla colonna 10)
+316        																	-- 	Se colonna 1 =UT o SV: Username (delle credenziali locali) dell'utente destinatario del permesso o che occupa la scrivania destinataria del permesso
+317        																	-- 12: Se colonna 1 =R: Descrizione del tipo di unità organizzativa (es: settore, servizio, ecc) in cui si espleta il ruolo amministrativo destinatario del permesso (alternativo alla colonna 10)
+318        																	--	Se colonna 1 =UT o SV: N.ro di matricola dell'utente destinatario del permesso o che occupa la scrivania destinataria del permesso
+319        																	-- 13: Identificativo della UO in cui si espleta il ruolo amministrativo destinatario del permesso o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario del permesso
+320        																	-- 14: Denominazione/nome della UO in cui si espleta il ruolo amministrativo destinatario del permesso o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario del permesso (può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+321        																	-- 15: Nri livello della UO in cui si espleta il ruolo amministrativo destinatario del permesso o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario del permesso (tutti o alcuni; però se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno specificati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; sono separati dal separatore dei livelli valido per il soggetto produttore/AOO di appartenenza della UO)
+322        																	-- 16:(valore 1) Indica che il ruolo amministrativo destinatario del permesso si espleta anche nelle sotto-UO della/e UO rintracciate tramite i valori delle 3 colonne precedenti
+323        																	-- 17:(valori 1/0/NULL) Indica se la visualizzazione dell'attributo è assentita (1) o negata (0) o se nulla è specificato in merito (NULL)
+324        																	-- 18: (valori 1/0/NULL) Indica se la modifica/cancellazione dell'attributo è assentita (1) o negata (0) o se nulla è specificato in merito (NULL)
+325        			NomeIdLookupIn			IN		DMT_ATTRIBUTES_DEF.LISTA_LOOKUP%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+326        																	-- Nome identificativo della lista che fa da lookup (lista di scelta) per l'attributo
+327        																	-- Viene considerato e gestito solo se è il tipo non è COMPLEX e COMBO_BOX
+328        			NroColLookupIn			IN		DMT_ATTRIBUTES_DEF.NRO_COL_LOOKUP%type DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+329        																	-- N.ro della colonna del clob di popolamento della lista di scelta (lookup) che contiene il valore da riportare nell'attributo
+330        																	-- Viene considerato e gestito solo se è il tipo non è COMPLEX e COMBO_BOX
+331        			FiltroInLookupIn			IN		DMT_ATTRIBUTES_DEF.FILTRO_IN_LOOKUP%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+332        																	-- Nome identificativo del campo di filtro della lista di scelta (lookup) che va popolato con il valore dell'attributo
+333        																	-- Viene considerato e gestito solo se è il tipo non è COMPLEX e COMBO_BOX
+334        			FlgSoloValDaLookupIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+335        																	-- (valori 1/0/NULL) Se 1 significa che i valori possibili per l'attributo sono solo quelli presi dalla lookup indicata 
+336        																	-- Viene considerato e gestito solo se è il tipo non è COMPLEX e COMBO_BOX
+337        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+338        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+339        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+340        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+341        			WarningMsgOut			OUT		VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+342        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+343        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+344        			ErrMsgOut				OUT 		VARCHAR2,						-- Messaggio d'errore
+345        			FlgCallByGUIIn			IN		PLS_INTEGER DEFAULT 1				-- (1/0/NULL) Se 1 se la stored è chiamata dalla GUI di una web application per cui gli id. dei soggetti non vengono considerati se non sono popolati anche altri campi visibili a video o se non sono congruenti con i valori dei campi stessi
+346        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+347        
+348        	/*** Funzione di eliminazione di un attributo									***/	
+349        	/*** Si può specificare se l'eliminazione deve essere fisica o solo logica (annullamento)		***/
+350        	/*** Se non lo si specifica il sistema fa quella fisica se possibile, se no quella logica		***/
+351        	function DAttributo(
+352        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+353        																	-- (obblig). Codice identificativo del token di connessione
+354        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+355        			NomeIn   				IN 		DMT_ATTRIBUTES_DEF.ATTR_NAME%type,		-- (obblig.) Nome identificativo dell'attributo	
+356        			FlgCancFisicaIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL): Se 1 si richiede la cancellazione fisica; se 0 l'annullamento logico; se non è valorizzato quella possibile delle 2. 		
+357        			MotiviIn				IN		DMT_PROCESS_TYPES.MOTIVI_ANN%type,		-- Motivi della cancellazione/annullamento
+358        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+359        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+360        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+361        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+362        			WarningMsgOut			OUT		VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+363        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+364        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+365        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+366        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+367        
+368        	/********* funzione per estrarre nomi e label degli attributi dinamici definiti per le entità contenute in una data tabella ed eventualmente di uno specifico tipo   	*****/
+369        	/********* degli attributi complessi NON estrae i sotto-attributi se non richiesto esplicitamente tramite FlgInclSottoAttrIn=1											*****/
+370        	function GetAttrDinXEntita(
+371        			IdDominioAutIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- Id. del dominio in cui ci è autenticati e si sta lavorando (se NULL è lo schema)
+372        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- (obblig.) Id. dell'utente di lavoro (quello per cui mostrare gli attributi dinamici previsti)	
+373        			NomeTabellaIn			IN		VARCHAR2,								-- (obblig.) Nome della tabella in cui si trova l'entità di cui trovare dati degli attributi dinamici previsti
+374        																					-- E' ammesso anche il valore DMT_DOCUMENTS.VERSIONI che indica che l'entità è una versione di documento
+375        																					-- E' ammesso anche il valore DMT_DOCUMENTS+UD che indica che si vogliono gli attributi dinamici previsti per un documento primario e quindi comprensivi di quelli dell'unità documentaria di appartenenza
+376        																					-- E' ammesso anche il valore DMT_DOCUMENTS+VER+UD che indica che si vogliono gli attributi dinamici previsti per documento, sue versioni elettroniche e unità documentaria
+377        																					-- E' ammesso anche il valore REPOSITORY che indica che si vogliono gli attributi dinamici previsti per documento, sue versioni elettroniche e unità documentaria + quelli previsti per un folder
+378        																					-- E' ammesso anche il valore SO che indica che si vogliono gli attributi dinamici previsti per tutte le entità correlate con la struttura organizzativa ovvero: unità operative, utenti, scrivanie virtuali
+379        			CITipoEntitaIn			IN		VARCHAR2 DEFAULT NULL,					-- Identificativo del tipo dell'entità (es: tipo di evento, di documento, di folder, di processo) se da questo dipendono gli attributi dinamici possibili
+380        																					-- Se NomeTabellaIn = REPOSITORY è l'id. del tipo preceduto da D o F a seconda che sia un ID_DOC_TYPE o ID_FOLDER_TYPE rispettivamente
+381        			TipoAttrIn				IN		DMT_ATTRIBUTES_DEF.ATTR_TYPE%type DEFAULT NULL,
+382        																					-- Filtro di ricerca che serve a restringere l'estrazione agli attributi di un dato tipo. Valori possibili:
+383        																					-- CHECK		= Casella di spunta
+384        																					-- DATE		= Data (con o senza ora)
+385        																					-- DATETIME		= Data e ora
+386        																					-- NUMBER		= Numerico (inclusi importi in Euro)
+387        																					-- EURO		= Importo in Euro
+388        																					-- TEXT-BOX		= Alfanumerico su una riga
+389        																					-- TEXT-AREA	= Alfanumerico su più righe
+390        																					-- CKEDITOR		= Editor html
+391        																					-- TEXT		= Alfanimerico su una o più righe
+392        																					-- COMBO-BOX	= Lista di scelta
+393        																					-- RADIO		= Radio group															
+394        																					-- COMPLEX		= Strutturato, ovvero composto da sotto-attributi
+395        																					-- SIMPLE		= Tutti i tipi trenne COMPLEX
+396        			FlgInclSottoAttrIn		IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Solo se valorizzato a 1 vengono estratti anche eventuali sotto-attributi degli attributi complessi associati al dato tipo di entità											
+397        			FlgSoloAttrMultiValIn	IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Filtro di ricerca che serve a restringere l'estrazione ai soli attributi multivalore (1) o mono-valore (0)
+398        			FlgSoloVisInGUIIn		IN		PLS_INTEGER DEFAULT 1,					-- Se 1 vengono estratti solo gli attributi di cui è definito dove devono essere mostrati nelle web GUI
+399        																					-- Se 2 solo quelli che devono essere mostrati nei tab dinamici
+400        			AttribTabOut			OUT		DMTO_DECODIFICHE,						-- Tabella con nomi e label degli attributi (per i sotto-attributi <label padre> - <label sotto-attributi>)
+401        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore 	
+402        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+403        			ErrMsgOut				OUT 	VARCHAR2								-- Messaggio d'errore
+404        			) return PLS_INTEGER;													-- Vale 1 se tutto è andato a buon fine, altrimenti 0 
+405        
+406        	/********* funzione per estrarre nomi e label degli attributi dinamici definiti per una data tabella-entità *****/
+407        	/********* non estrae gli attributi complessi, ma solo i loro sotto-attributi						*****/
+408        	/********* serve per ottenere gli attributi dinamici su cui mettere filtri di ricerca				*****/
+409        	function GetAttrDinXRicerca(
+410        			IdDominioAutIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- Id. del dominio in cui ci è autenticati e si sta lavorando (se NULL è lo schema)
+411        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- (obblig.) Id. dell'utente di lavoro (quello per cui mostrare gli attributi dinamici previsti)	
+412        			NomeTabellaIn			IN		VARCHAR2,						-- (obblig.) Nome della tabella in cui si trova l'entità di cui trovare dati degli attributi dinamici previsti
+413        																	-- E' ammesso anche il valore DMT_DOCUMENTS.VERSIONI che indica che l'entità è una versione di documento
+414        																	-- E' ammesso anche il valore DMT_DOCUMENTS+UD che indica che si vogliono gli attributi dinamici previsti per un documento primario e quindi comprensivi di quelli dell'unità documentaria di appartenenza
+415        																	-- E' ammesso anche il valore DMT_DOCUMENTS+VER+UD che indica che si vogliono gli attributi dinamici previsti per documento, sue versioni elettroniche e unità documentaria
+416        																	-- E' ammesso anche il valore REPOSITORY che indica che si vogliono gli attributi dinamici previsti per documento, sue versioni elettroniche e unità documentaria + quelli previsti per un folder
+417        																	-- E' ammesso anche il valore SO che indica che si vogliono gli attributi dinamici previsti per tutte le entità correlate con la struttura organizzativa ovvero: unità operative, utenti, scrivanie virtuali
+418        			CITipoEntitaIn			IN		VARCHAR2 DEFAULT NULL,				-- Identificativo del tipo dell'entità (es: tipo di evento, di documento, di folder, di processo) se da questo dipendono gli attributi dinamici possibili
+419        																	-- Se NomeTabellaIn = REPOSITORY è l'id. del tipo preceduto da D o F a seconda che sia un ID_DOC_TYPE o ID_FOLDER_TYPE rispettivamente
+420        			AttribTabOut			OUT		DMTO_DECODIFICHE,					-- Tabella con nomi e label degli attributi (per i sotto-attributi <label padre> - <label sotto-attributi>)
+421        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore 	
+422        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+423        			ErrMsgOut				OUT 		VARCHAR2,						-- Messaggio d'errore
+424        			TipoAttrIn				IN		DMT_ATTRIBUTES_DEF.ATTR_TYPE%type DEFAULT NULL,
+425        																	-- Filtro di ricerca che serve a restringere l'estrazione agli attributi di un dato tipo. Valori possibili:
+426        																	-- CHECK		= Casella di spunta
+427        																	-- DATE		= Data (con o senza ora)
+428        																	-- DATETIME		= Data e ora
+429        																	-- NUMBER		= Numerico (inclusi importi in Euro)
+430        																	-- EURO		= Importo in Euro
+431        																	-- TEXT-BOX		= Alfanumerico su una riga
+432        																	-- TEXT-AREA	= Alfanumerico su più righe
+433        																	-- CKEDITOR		= Editor html
+434        																	-- TEXT		= Alfanimerico su una o più righe
+435        																	-- COMBO-BOX	= Lista di scelta
+436        																	-- RADIO		= Radio group															
+437        																	-- COMPLEX		= Strutturato, ovvero composto da sotto-attributi
+438        			FlgSoloAttrMultiValIn		IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Filtro di ricerca che serve a restringere l'estrazione ai soli attributi multivalore (1) o mono-valore (0)
+439        			FlgSoloVisInGUIIn		IN		PLS_INTEGER DEFAULT 0			-- Se 1 vengono estratti solo gli attributi di cui è definito dove devono essere mostrati nelle web GUI
+440        																			-- Se 2 solo quelli che devono essere mostrati nei tab dinamici
+441        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0 
+442        
+443        	/********* uguale alla funzione GetAttrDinXRicerca salvo che gli attributi sono restituiti come lista xml 	*****/
+444        	/********* funzione per estrarre nomi e label degli attributi dinamici definiti per una data tabella-entità *****/
+445        	/********* non estrae gli attributi complessi, ma solo i loro sotto-attributi						*****/
+446        	/********* serve per ottenere gli attributi dinamici su cui mettere filtri di ricerca				*****/
+447        	function GetAttrDinXRicerca_J(
+448        			IdDominioAutIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- Id. del dominio in cui ci è autenticati e si sta lavorando (se NULL è lo schema)
+449        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- (obblig.) Id. dell'utente di lavoro (quello per cui mostrare gli attributi dinamici previsti)	
+450        			NomeTabellaIn			IN		VARCHAR2,						-- (obblig.) Nome della tabella in cui si trova l'entità di cui trovare dati degli attributi dinamici previsti
+451        																	-- E' ammesso anche il valore DMT_DOCUMENTS.VERSIONI che indica che l'entità è una versione di documento
+452        																	-- E' ammesso anche il valore DMT_DOCUMENTS+UD che indica che si vogliono gli attributi dinamici previsti per un documento primario e quindi comprensivi di quelli dell'unità documentaria di appartenenza
+453        																	-- E' ammesso anche il valore DMT_DOCUMENTS+VER+UD che indica che si vogliono gli attributi dinamici previsti per documento, sue versioni elettroniche e unità documentaria
+454        																	-- E' ammesso anche il valore REPOSITORY che indica che si vogliono gli attributi dinamici previsti per documento, sue versioni elettroniche e unità documentaria + quelli previsti per un folder
+455        																	-- E' ammesso anche il valore SO che indica che si vogliono gli attributi dinamici previsti per tutte le entità correlate con la struttura organizzativa ovvero: unità operative, utenti, scrivanie virtuali
+456        			CITipoEntitaIn			IN		VARCHAR2 DEFAULT NULL,				-- Identificativo del tipo dell'entità (es: tipo di evento, di documento, di folder, di processo) se da questo dipendono gli attributi dinamici possibili
+457        																	-- Se NomeTabellaIn = REPOSITORY è l'id. del tipo preceduto da D o F a seconda che sia un ID_DOC_TYPE o ID_FOLDER_TYPE rispettivamente
+458        			AttribTabOut			OUT		NOCOPY CLOB,			-- Lista XML (schema ListaStd.xsd) con i dati degli attributi (per i sotto-attributi <label padre> - <label sotto-attributo>)
+459        																	-- Ogni tag Riga è un attributo che contiene le colonne:
+460        																	-- 1) Nome identificativo dell'attributo
+461        																	-- 2) Label dell'attributo
+462        																	-- 3) Tipo dell'attributo
+463        																	-- 4) Flg 1/0 che indica se sull'attributo testo serve prevedere la ricerca full-text (1) o meno (0)
+464        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore 	
+465        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+466        			ErrMsgOut				OUT 		VARCHAR2,						-- Messaggio d'errore
+467        			TipoAttrIn				IN		DMT_ATTRIBUTES_DEF.ATTR_TYPE%type DEFAULT NULL,
+468        																	-- Filtro di ricerca che serve a restringere l'estrazione agli attributi di un dato tipo. Valori possibili:
+469        																	-- CHECK		= Casella di spunta
+470        																	-- DATE		= Data (con o senza ora)
+471        																	-- DATETIME		= Data e ora
+472        																	-- NUMBER		= Numerico (inclusi importi in Euro)
+473        																	-- EURO		= Importo in Euro
+474        																	-- TEXT-BOX		= Alfanumerico su una riga
+475        																	-- TEXT-AREA	= Alfanumerico su più righe
+476        																	-- CKEDITOR		= Editor html
+477        																	-- TEXT		= Alfanimerico su una o più righe
+478        																	-- COMBO-BOX	= Lista di scelta
+479        																	-- RADIO		= Radio group															
+480        																	-- COMPLEX		= Strutturato, ovvero composto da sotto-attributi
+481        			FlgSoloAttrMultiValIn		IN		PLS_INTEGER DEFAULT NULL			-- (valori 1/0/NULL) Filtro di ricerca che serve a restringere l'estrazione ai soli attributi multivalore (1) o mono-valore (0)
+482        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0 
+483        
+484        	/********* funzione per estrarre nomi e label delle sezioni/tab in cui raggruppare gli attributi nella GUI *****/
+485        	function GetAttrDinSezTabGUI(
+486        			IdDominioAutIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- Id. del dominio in cui ci è autenticati e si sta lavorando (se NULL è lo schema)
+487        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- (obblig.) Id. dell'utente di lavoro (quello per cui mostrare gli attributi dinamici previsti)	
+488        			NomeTabellaIn			IN		VARCHAR2,						-- (obblig.) Nome della tabella in cui si trova l'entità di cui trovare dati degli attributi dinamici previsti
+489        																	-- E' ammesso anche il valore DMT_DOCUMENTS.VERSIONI che indica che l'entità è una versione di documento
+490        																	-- E' ammesso anche il valore DMT_DOCUMENTS+UD che indica che si vogliono gli attributi dinamici previsti per un documento primario e quindi comprensivi di quelli dell'unità documentaria di appartenenza
+491        																	-- E' ammesso anche il valore DMT_DOCUMENTS+VER+UD che indica che si vogliono gli attributi dinamici previsti per documento, sue versioni elettroniche e unità documentaria
+492        																	-- E' ammesso anche il valore REPOSITORY che indica che si vogliono gli attributi dinamici previsti per documento, sue versioni elettroniche e unità documentaria + quelli previsti per un folder
+493        																	-- E' ammesso anche il valore SO che indica che si vogliono gli attributi dinamici previsti per tutte le entità correlate con la struttura organizzativa ovvero: unità operative, utenti, scrivanie virtuali
+494        			CITipoEntitaIn			IN		VARCHAR2 DEFAULT NULL,			-- Identificativo del tipo dell'entità (es: tipo di evento, di documento, di folder, di processo) se da questo dipendono gli attributi dinamici possibili
+495        																			-- Se NomeTabellaIn = REPOSITORY è l'id. del tipo preceduto da D o F a seconda che sia un ID_DOC_TYPE o ID_FOLDER_TYPE rispettivamente
+496        			AttribTabOut			OUT		DMTO_DECODIFICHE,				-- Tabella con nomi e label delle sezioni/tab
+497        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore 	
+498        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+499        			ErrMsgOut				OUT 		VARCHAR2					-- Messaggio d'errore
+500        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0 
+501        
+502        	/**** funzione per testare se per una nuova entità da inserire in una data tabella vi sono o meno attributi dinamici definibili 					*****/
+503        	/**** Va usata solo per le entità in cui la presenza o meno di attributi dinamici non è legata ad attributi non dinamici (come ad es. x documenti, folder)	*****/
+504        	function TestPresAttrDinXNuovaEntita(
+505        			IdDominioAutIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- Id. del dominio in cui ci è autenticati e si sta lavorando (se NULL è lo schema)
+506        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- (obblig.) Id. dell'utente di lavoro (quello per cui mostrare gli attributi dinamici previsti)	
+507        			NomeTabellaIn			IN		VARCHAR2,						-- (obblig.) Nome della tabella in cui si inserire l'entità per cui testare se vi sono attributi dinamici definibili
+508        			FlgPresenzaAttrDinOut		OUT		PLS_INTEGER,					-- (valori 1/0) Indica se per le nuove entità da inserire nella tabella vi sono (1) o meno (0) attributi dinamici definibili
+509        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore 	
+510        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+511        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+512        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0 
+513        
+514        	/***** Funzione per caricare gli attributi dinamici di una data entità (visibili all'utenza di lavoro)												*****/
+515        	/***** che gestisce gli attributi dinamici in una struttura nested table "ALTRI_ATTRIBUTI" (dunque senza storicizzazione degli attributi)							*****/
+516        	/***** restituisce sia i dati per rappresentarli nella GUI, sia i loro valori 																*****/
+517        	/***** (salvo per gli attributi multivalore, di cui si restituiscono solo le informazioni di presenza)												*****/
+518        	/***** nel caso in cui l'entità sia un documento i valori che vengono mostrati sono solo quelli non relativi ad una specifica versione  							*****/
+519        	function LoadAttrDinamici(
+520        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+521        																	-- (obblig). Codice identificativo del token di connessione
+522        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+523        			NomeTabellaIn			IN		VARCHAR2,						-- (obblig.) Nome della tabella in cui si trova l'entità di cui caricare i dati degli attributi dinamici 
+524        																	-- E' ammesso anche il valore DMT_DOCUMENTS.VERSIONI che indica che l'entità è una versione di documento
+525        																	-- E' ammesso anche il valore DMT_DOCUMENTS+UD che indica che si vogliono gli attributi dinamici di un documento primario e quindi comprensivi di quelli dell'unità documentaria di appartenenza
+526        			RowidIn				IN		VARCHAR2 DEFAULT NULL,				-- Rowid del record di DB che corrisponde all'entità di cui caricare i dati degli attributi dinamici 
+527        																	-- Se NULL significa che si vuole caricare i dati degli attributi dinamici di un nuovo record della tabella NomeTabellaIn
+528        			CITipoEntitaIn			IN		VARCHAR2 DEFAULT NULL,				-- Identificativo del tipo dell'entità (es: tipo di evento, di documento, di folder) se da questo dipendono gli attributi dinamici possibili
+529        																	-- Deve essere valorizzato con l'id. del tipo che appare nella GUI, anche se non ancora aggiornato/salvato in DB
+530        			ListaTipiRegIn			IN		CLOB DEFAULT NULL,				-- Lista con TUTTI i tipi di registrazione, se l'entità  è un'unità doc. o un documento+ unità doc.(XML conforme a schema LISTA_STD.xsd)
+531        																	-- Ogni tag "Riga" contiene 2 colonne:
+532        																	-- 1: Codice della categoria del tipo di registrazione (es: PG = Protocollo Generale; PP = Protocollo Particolare, R = Repertorio ecc. Valori codificati in apposita dictionary entry)
+533        																	-- 2: Sigla che identifica il tipo di registrazione
+534        			AttrValuesXMLIn			IN		CLOB DEFAULT NULL,				-- XML contenente nomi e valori degli attributi dinamici attualmente mostrati nella GUI anche se non ancora salvati in DB (conforme allo schema SezioneCache.xsd) 
+535        																	-- Serve passarlo laddove gli attributi dinamici possano variare in funzione di attributi dell'entità (il tipo, le registrazioni) affinchè i valori degli attributi dinamici già settati/variati nella GUI e non ancora salvati in DB, se possibile, non vadano persi
+536        																	-- Gli attributi già presenti in DB per l'entità e per i quali non c'è corrispondente nell'XML si intendono invariati
+537        																	-- Per tutti gli attributi vale quanto segue:
+538        																	-- Un attributo è un tag "Variabile" dell'XML il cui tag "Nome" contiene il nome identificativo dell'attributo (ATTR_NAME di DMT_ATTRIBUTES_DEF)
+539        																	-- Un attributo è una variabile con tag "ValoreSemplice" se è un attributo a singolo valore e non strutturato (cioè con tipo diverso da COMPLEX)
+540        																	-- altrimenti è una variabile con tag "Lista" che ha un'unica colonna con "Nro" pari a 1 se l'attributo non è strutturato, che ha invece tante colonne quanti gli attributi componenti (ordinate in base al loro NRO_ORD_IN_SUP) se l'attributo è complesso 
+541        																	-- Nel caso di variabili con tag "Lista" i valori specificati nell'XML si aggiungono o sostituiscono quelli già presenti in DB a seconda che nell'XML sia presente o meno una variabile con tag "Nome" pari a #Append_<Nome attributo> e tag "ValoreSemplice" pari a 1  
+542        																	-- In particolare se non sono specificati valori nell'XML (tag Lista vuoto) e se i valori non sono da aggiungere si intende che tutti i valori dell'attributo già presenti in DB vanno rimossi
+543        			AttributiAddOut			OUT		NOCOPY CLOB,					-- Lista degli attributi dinamici visibili all'utente di lavoro e da mostrare nella GUI (XML conforme a schema LISTA_STD.xsd)
+544        																	-- Ogni attributo è un tag "Riga" che contiene le seguenti colonne:
+545        																	-- 1: N.ro (valori da 1 a n) del riquadro (fieldset) in cui mostrare l'attributo
+546        																	-- 2: Nome identificativo dell'attributo (ATTR_NAME)
+547        																	-- 3: Label del campo con cui rappresentare l'attributo 
+548        																	-- 4: Tipo di attributo. Valori: DATE, DATETIME, TEXT, TEXT-AREA, CHECK, INTEGER (solo gli interi senza separatore delle migliaia e senza segno), EURO, DECIMAL (anche se senza decimali, ricadono in questo tipo gli interi con separatore delle migliaia e/o con segno), LISTA, COMBO-BOX, RADIO, CKEDITOR (editor html)
+549        																	-- 5: N.ro massimo di caratteri/cifre
+550        																	-- 6: Larghezza del campo con cui rappresentare l'attributo (size)
+551        																	-- 7: Valore dell'attributo
+552        																	-- 8: Label del riquadro (fieldset) in cui mostrare l'attributo
+553        																	-- 9: (valori 1/0) 1 indica che l'attributo è obbligatorio, 0 che è facoltativo
+554        																	-- 10: Altezza (in nro righe) del campo con cui rappresentare l'attributo (se TEXT-AREA o CKEDITOR)
+555        																	-- 11:(valori 1/0) 1 indica se l'attributo è modificabile, 0 che è in sola visualizzazione   
+556        																	-- 12: N.ro di cifre decimali (se DECIMAL o EURO)
+557        																	-- 13: Codice della lista di lookup associata all'attributo (viene mostrato solo se attributo modificabile in base ACL, anche se non editabile) 
+558        																	-- 14: Nomi identificativi degli attributi custom (quello corrente ed eventuali altri dello stesso fieldset) da popolare con la lookup e corrispondenti indici delle colonne del clob di popolamento della lista di lookup (nel formato <ATTR_NAME_1>|-|<Indice_1>|-|.....|-|<ATTR_NAME_n>|-|<Indice_n>)
+559        																	-- 15: Nomi identificativi degli attributi custom (quello corrente ed eventuali altri dello stesso fieldset) che servono a prefiltrare la lookup e corrispondenti campi di filtro della lookup (così come sono indicati nella jsp) 	(nel formato <ATTR_NAME_1>|-|<Filtro_1>|-|.....|-|<ATTR_NAME_n>|-|<Filtro_n>)	
+560        																	-- 16: Nro di riga (da 1 in su) in cui posizionare l'attributo nel fieldest di appartenenza (i.e. attributo complesso)
+561        																	-- 17: end-point del web-service attraverso cui popolare la lista di possibili valori dell'attributo
+562        																	-- 18: xml/input da passare al web-service per popolare la lista di possibili valori dell'attributo
+563        																	-- 19:(valori 1/0) Se 1 indica che è un attributo che contiene dati sensibili
+564        																	-- 20: valori del radio (se attributo di tipo RADIO)
+565        																	-- 21: property che corrisponde all'attributo in un sistema esterno (esempio catasti SIRA)
+566        																	-- 22: codice che indica in che tab/sezione della GUI mettere l'attributo
+567        																	-- 23: (valori 1/NULL) Indica se nell'attributo - di tipo LISTA - le azioni di creazione e cancellazione record vanno inibite
+568        																	-- 24: Label che indica in che tab/sezione della GUI mettere l'attributo
+569        																	-- 25: Espressione regolare di controllo del campo
+570        																	-- 26: (UPPER/LOWER) Indicazione se campo upper-case o lower-case
+571        																	-- 27: Flag 1/0 che indica se il campo è diverso rispetto a quanto settato in altro task di processo in cui i dati vengono verificati
+572        																	-- 28: Sotto-tipo di attributo. Usato per tipo CKEDITOR (sotto-tipi del tipo CKEDITOR: RESTRICTED / STANDARD / EXTENDED)
+573        			FlgMostraAltriAttrOut		OUT		PLS_INTEGER,					-- (valori 1/0) 1 se c'è almeno un attributo dinamico visibile, 0 altrimenti
+574        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore 	
+575        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+576        			ErrMsgOut				OUT 		VARCHAR2,					-- Messaggio d'errore
+577        			FlgMostraTuttiIn			IN		PLS_INTEGER DEFAULT NULL,	-- (valori 1/0/NULL) Se 1 vengono mostrati tutti gli attributi, anche quelli che non vanno nel tab "Altri dati" delle pagine jsp
+578        			FlgNomeAttrConSuffIn		IN		PLS_INTEGER DEFAULT NULL,	-- (valori 1/0/NULL) Viene considerato solo se si estraggono attributi di unità doc./documenti e loro versioni
+579        																			-- Se 1 al nome degli attributi viene appeso il suffisso _Doc, _Ud e _Ver per indicare se attributo di documento, unità documentaria o versione
+580        			NomeFlussoWFIn			IN		DMT_DETT_ATTIVITA_WF.PROV_CI_TY_FLUSSO_WF%type DEFAULT NULL,
+581        																			-- (considerato solo se ActivityNameWFIn è valorizzato) Nome identificativo del flusso workflow cui si riferisce ActivityNameWFIn
+582        			ProcessNameWFIn			IN		DMT_DETT_ATTIVITA_WF.PROCESS_NAME%type DEFAULT NULL,
+583        																			-- (considerato solo se ActivityNameWFIn è valorizzato) Nome del sotto-processo(=fase) del flusso workflow cui si riferisce ActivityNameWFIn
+584        			ActivityNameWFIn		IN		DMT_DETT_ATTIVITA_WF.ACTIVITY_NAME%type DEFAULT NULL,				
+585        																			-- Internal name del task workflow in cui devono apparire gli attributi
+586        																			-- Serve a rendere NON editabili quelli che non devono esserlo in quel task se vi sono restrizioni in tal senso
+587        			FlgDatiStoriciTaskIn	IN		PLS_INTEGER DEFAULT NULL,		-- Flag 1/0: se 1 indica che gli attributi da mostrare sono quelli storici del task di processo precedenti all'invio del task di verifica dei dati stessi
+588        			FlgDettUDConIterWFIn	IN		PLS_INTEGER DEFAULT NULL		-- flag 1/0/NULL: Se 1 indica che si sta chiamando dal dettaglio UD di un documento che ha iter workflow
+589        																			-- per cui devono essere mostrati solo gli attributi visibili extra-iter
+590        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0 
+591        
+592        	/***** Funzione per caricare i dati di una lista che fa parte degli attributi dinamici di una data entità 						*****/
+593        	/***** che gestisce gli attributi dinamici in una struttura nested table "ALTRI_ATTRIBUTI" (dunque senza storicizzazione degli attributi)	*****/
+594        	/***** restituisce sia i dati per rappresentare la lista nella GUI, sia il contenuto della lista							*****/
+595        	/***** nel caso in cui l'entità sia un documento i valori che vengono mostrati sono solo quelli non relativi ad una specifica versione  	*****/
+596        	function LoadAttrDinamicoLista(
+597        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+598        																	-- (obblig). Codice identificativo del token di connessione
+599        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+600        			NomeTabellaIn			IN		VARCHAR2,						-- (obblig.) Nome della tabella in cui si trova l'entità di cui caricare i dati della lista che fa parte degli attributi dinamici 
+601        																	-- E' ammesso anche il valore DMT_DOCUMENTS.VERSIONI che indica che l'entità è una versione di documento
+602        																	-- E' ammesso anche il valore DMT_DOCUMENTS+UD che indica che si trattano gli attributi dinamici di un documento primario comprensivi di quelli dell'unità documentaria di appartenenza
+603        			RowidIn				IN		VARCHAR2 DEFAULT NULL,				-- Rowid del record di DB che corrisponde all'entità di cui caricare i dati della lista che fa parte degli attributi dinamici
+604        																	-- Se NULL significa che si vuole caricare i dati della lista che fa parte degli attributi dinamici di un nuovo record della tabella NomeTabellaIn
+605        			NomeAttrListaIn   		IN 		DMT_ATTRIBUTES_DEF.ATTR_NAME%type,		-- (obblig.) Nome identificativo dell'attributo	lista di cui caricare i dati 
+606        			TitoloListaOut			OUT		VARCHAR2,						-- Titolo della lista
+607        			DatiDefListaOut			OUT		NOCOPY CLOB,					-- Lista con le informazioni per rappresentare nella GUI l'attributo lista come tabella (XML conforme a schema LISTA_STD.xsd)	
+608        																	-- La lista ha tante righe quante le colonne dell'attributo lista, ovvero quanti sono gli attributi che compongono l'attributo lista				
+609        																	-- Ogni colonna della tabella è un tag "Riga" che contiene le seguenti colonne:
+610        																	-- 1: Intestazione della colonna
+611        																	-- 2: Nome identificativo dell'attributo che corrisponde alla colonna
+612        																	-- 3: Larghezza della colonna (in %)
+613        			DatiDettListaOut			OUT		NOCOPY CLOB,		-- Lista con le informazioni per rappresentare nella GUI il dettaglio del singolo record della lista (XML conforme a schema LISTA_STD.xsd)	
+614        																	-- La lista ha tante righe quante le colonne dell'attributo lista, ovvero quanti sono gli attributi che compongono l'attributo lista				
+615        																	-- Ogni campo del dettaglio (tanti quante le colonne dell'attributo lista) è un tag "Riga" che contiene le seguenti colonne:
+616        																	-- 1: N.ro (valori da 1 a n) del riquadro (fieldset) in cui mostrare il campo
+617        																	-- 2: Nome identificativo del campo (ATTR_NAME)
+618        																	-- 3: Label del campo 
+619        																	-- 4: Tipo di campo. Valori: DATE, DATETIME, TEXT, TEXT-AREA, CHECK, INTEGER (solo gli interi senza separatore delle migliaia e senza segno), EURO, DECIMAL (anche se senza decimali, ricadono in questo tipo gli interi con separatore delle migliaia e/o con segno), LISTA, COMBO-BOX, RADIO, CKEDITOR
+620        																	-- 5: N.ro massimo di caratteri/cifre
+621        																	-- 6: Larghezza del campo (size)
+622        																	-- 7: Valore di default
+623        																	-- 8: <NON UTILIZZATA>
+624        																	-- 9: (valori 1/0) 1 indica che il campo è obbligatorio, 0 che è facoltativo
+625        																	-- 10: Altezza (in nro righe) del campo (se TEXT-AREA o CKEDITOR)
+626        																	-- 11:(valori 1/0) 1 indica se il campo è modificabile, 0 che è in sola visualizzazione   
+627        																	-- 12: N.ro di cifre decimali (se tipo EURO o DECIMAL)
+628        																	-- 13: Codice della lista di lookup associata al campo (viene mostrato solo se attributo modificabile in base ACL, anche se non editabile) 
+629        																	-- 14: Nomi identificativi dei campi (quello corrente ed eventuali altri dello stesso attributo strutturato) da popolare con la lookup e corrispondenti indici delle colonne del clob di popolamento della lista di lookup (nel formato <ATTR_NAME_1>|-|<Indice_1>|-|.....|-|<ATTR_NAME_n>|-|<Indice_n>)
+630        																	-- 15: Nomi identificativi dei campi (quello corrente ed eventuali altri dello stesso attributo strutturato) che servono a prefiltrare la lookup e corrispondenti campi di filtro della lookup (così come sono indicati nella jsp di lookup) (nel formato <ATTR_NAME_1>|-|<Filtro_1>|-|.....|-|<ATTR_NAME_n>|-|<Filtro_n>)	
+631        																	-- 16: Nro di riga (da 1 in su) in cui posizionare l'attributo nel fieldest di appartenenza (i.e. attributo complesso)
+632        																	-- 17: end-point del web-service attraverso cui popolare la lista di possibili valori dell'attributo
+633        																	-- 18: xml/input da passare al web-service per popolare la lista di possibili valori dell'attributo
+634        																	-- 19:(valori 1/0) Se 1 indica che è un attributo che contiene dati sensibili
+635        																	-- 20: valori del radio (se attributo di tipo RADIO)
+636        																	-- 21: property che corrisponde all'attributo in un sistema esterno (esempio catasti SIRA)
+637        																	-- 25: Espressione regolare di controllo del campo
+638        																	-- 26: (UPPER/LOWER) Indicazione se campo upper-case o lower-case
+639        																	-- 27: non utilizzata
+640        			ValoriListaOut			OUT		NOCOPY CLOB,			-- Lista con i valori delle righe dell'attributo lista (XML conforme a schema LISTA_STD.xsd)
+641        																	-- Ogni riga dell'attributo lista è un tag "Riga" che contiene una sola colonna se l'attributo lista non è strutturato, altrimenti le colonne corrispondenti le colone con Nro pari a NRO_ORD_IN_SUP degli attributi che corrispondono alle n colonne) 
+642        			FlgDatiVariatiOut		OUT		NOCOPY CLOB,			-- Lista xml di flag 1/0 che indicano - 1 - se dato variato rispetto al task di confronto; ha tante righe e colonne quanti in ValoriListaOut (XML conforme a schema LISTA_STD.xsd)
+643        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore 	
+644        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+645        			ErrMsgOut				OUT 		VARCHAR2,					-- Messaggio d'errore
+646        			NomeFlussoWFIn			IN		DMT_DETT_ATTIVITA_WF.PROV_CI_TY_FLUSSO_WF%type DEFAULT NULL,
+647        																			-- (considerato solo se ActivityNameWFIn è valorizzato) Nome identificativo del flusso workflow cui si riferisce ActivityNameWFIn
+648        			ProcessNameWFIn			IN		DMT_DETT_ATTIVITA_WF.PROCESS_NAME%type DEFAULT NULL,
+649        																			-- (considerato solo se ActivityNameWFIn è valorizzato) Nome del sotto-processo(=fase) del flusso workflow cui si riferisce ActivityNameWFIn
+650        			ActivityNameWFIn		IN		DMT_DETT_ATTIVITA_WF.ACTIVITY_NAME%type DEFAULT NULL,				
+651        																			-- Internal name del task workflow in cui devono apparire gli attributi
+652        																			-- Serve a rendere NON editabili quelli che non devono esserlo in quel task se vi sono restrizioni in tal senso
+653        			FlgDatiStoriciTaskIn	IN		PLS_INTEGER DEFAULT NULL,		-- flag 1/0: se 1 indica che gli attributi da mostrare sono quelli storici del task di processo precedenti all'invio del task di verifica dei dati stessi
+654        			CallingFuncNameIn		IN		VARCHAR2 DEFAULT NULL			-- Nome della stored procedure che richiama la LoadAttrDinamicoLista
+655        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0 
+656        
+657        	/***** Funzione per ottenere un frammento XML con i valori degli attributi dinamici di una data entità (visibili all'utenza di lavoro)													*****/
+658        	/***** che gestisce gli attributi dinamici in una struttura nested table "ALTRI_ATTRIBUTI" (dunque senza storicizzazione degli attributi)													*****/
+659        	/***** Nel caso in cui l'entità sia un documento gli attributi che vengono mostrati sono solo quelli non relativi ad una specifica versione  												*****/
+660        	/***** Restituisce solo i nomi degli attributi e i loro valori (attributi valorizzati e non )																				*****/
+661        	/***** Ogni attributo è un tag con nome NomeAttrTagIn fatto come un tag "Variabile"	dello schema SezioneCache.xsd																	*****/
+662        	/***** Un attributo nomo-valore ha il valore nel tag "ValoreSemplice"; uno lista nel tag "Lista" (le cui righe hanno tante colonne quante i sotto-attributi componenti, ordinati in base al loro NRO_ORD_IN_SUP	*****/
+663        	function GetXMLValoriAttrDinamici(
+664        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+665        																	-- (obblig). Codice identificativo del token di connessione
+666        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+667        			NomeTabellaIn			IN		VARCHAR2,						-- (obblig.) Nome della tabella in cui si trova l'entità di cui caricare gli attributi dinamici 
+668        																	-- E' ammesso anche il valore DMT_DOCUMENTS.VERSIONI che indica che l'entità è una versione di documento
+669        																	-- E' ammesso anche il valore DMT_DOCUMENTS+UD che indica che si vogliono gli attributi dinamici di un documento primario e quindi comprensivi di quelli dell'unità documentaria di appartenenza
+670        			RowidIn				IN		VARCHAR2,						-- (obblig.) Rowid del record di DB che corrisponde all'entità di cui caricare gli attributi dinamici 
+671        			NomeAttrTagIn			IN		VARCHAR2 DEFAULT 'AttributoAdd',		-- Nome del tag che rappresenta un attributo nell'XML di output
+672        			AttributiAddXMLOut		OUT		NOCOPY CLOB,					-- Lista degli attributi dinamici visibili all'utente di lavoro (frammento XML fatto da una lista di tag NomeAttrTagIn composti come un tag "Variabile" dello schema SezioneCache.xsd)
+673        																	-- Ogni attributo è un tag NomeAttrTagIn che contiene:
+674        																	-- il tag "Nome" con il nome identificativo dell'attributo (ATTR_NAME)
+675        																	-- il tag "ValoreSemplice" con il valore dell'attributo, se mono-valore
+676        																	-- il tag "Lista" con la lista dei valori dell'attributo se multi-valore (le righe della lista hanno tante colonne quante i sotto-attributi componenti, ordinati in base al loro NRO_ORD_IN_SUP)
+677        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore 	
+678        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+679        			ErrMsgOut				OUT 		VARCHAR2,						-- Messaggio d'errore
+680        			FlgNomeAttrConSuffIn		IN		PLS_INTEGER DEFAULT NULL			-- (valori 1/0/NULL) Viene considerato solo se si estraggono attributi di unità doc./documenti e loro versioni
+681        																	-- Se 1 al nome degli attributi viene appeso il suffisso _Doc, _Ud e _Ver per indicare se attributo di documento, unità documentaria o versione
+682        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+683        
+684        	/********* Funzione per settare il/i valori di uno o più attributi dinamici (sia semplici che strutturati e/o multivalore) di una data entità 				*********/
+685        	/********* che gestisce gli attributi dinamici in una struttura nested table "ALTRI_ATTRIBUTI" (dunque senza storicizzazione degli attributi)				*********/
+686        	/********* non esegue alcun controllo di abilitazione dell'utenza di lavoro ad aggiornare dati dell'entità										*********/
+687        	function SetAttrDinamici(
+688        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+689        																	-- (obblig). Codice identificativo del token di connessione
+690        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+691        			NomeTabellaIn			IN		VARCHAR2,						-- (obblig.) Nome della tabella in cui si trova l'entità di cui settare gli attributi dinamici 
+692        																	-- E' ammesso anche il valore DMT_DOCUMENTS.VERSIONI che indica che l'entità è una versione di documento
+693        			RowidIn				IN		VARCHAR2,						-- (obblig.) Rowid del record di DB che corrisponde all'entità di cui settare gli attributi dinamici 
+694        			AttrValuesXMLIn			IN		CLOB,							-- XML contenente nomi e valori degli attributi da aggiornare (conforme allo schema SezioneCache.xsd) 
+695        																	-- Gli attributi già presenti in DB per l'entità e per i quali non c'è corrispondente nell'XML restano invariati
+696        																	-- Per tutti gli attributi vale quanto segue:
+697        																	-- Un attributo da settare è un tag "Variabile" dell'XML il cui tag "Nome" contiene il nome identificativo dell'attributo (ATTR_NAME di DMT_ATTRIBUTES_DEF)
+698        																	-- Un attributo da settare è una variabile con tag "ValoreSemplice" se è un attributo a singolo valore e non strutturato (cioè con tipo diverso da COMPLEX)
+699        																	-- altrimenti è una variabile con tag "Lista" che ha un'unica colonna con "Nro" pari a 1 se l'attributo non è strutturato, che ha invece tante colonne quanti gli attributi componenti (ordinate in base al loro NRO_ORD_IN_SUP) se l'attributo è complesso 
+700        																	-- Nel caso di variabili con tag "Lista" i valori specificati nell'XML si aggiungono o sostituiscono quelli già presenti in DB a seconda che nell'XML sia presente o meno una variabile con tag "Nome" pari a #Append_<Nome attributo> e tag "ValoreSemplice" pari a 1  
+701        																	-- In particolare se non sono specificati valori nell'XML (tag Lista vuoto) e se i valori non sono da aggiungere significa che tutti i valori dell'attributo già presenti in DB vanno rimossi
+702        			FlgIgnoreAttrNonPrevistiIn 	IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che gli in presenza di eventuali attributi in input non previsti questi vengono solo ignorati (non salvati nè aggiornati) senza dare errore, altrimenti la loro presenza dà luogo a errore
+703        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+704        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+705        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+706        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+707        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+708        			ErrMsgOut				OUT 		VARCHAR2,						-- Messaggio d'errore
+709        			FlgIgnoraObbligIn		IN			PLS_INTEGER DEFAULT NULL,		-- Se 1 vengono esclusi i controlli di obbligatorietà
+710        			ActivityNameWFIn		IN		DMT_DETT_ATTIVITA_WF.ACTIVITY_NAME%type DEFAULT NULL,				
+711        																			-- Internal name del task workflow in cui si salvano gli attributi
+712        			EsitoActivityWFIn		IN		VARCHAR2 DEFAULT NULL,				
+713        																			-- Esito del task workflow in cui si salvano gli attributi
+714        			FlgNewRecordIn			IN		PLS_INTEGER DEFAULT NULL,		-- valori 1/0/NULL: se 1 indica che il record per cui si settano gli attributi è appena stato creato (quindi non serve cancellare attributi dinamici pre-sistenti)
+715        			FlgRecDaCarMassivoIn	IN		PLS_INTEGER DEFAULT NULL		-- valori 1/0/NULL: se 1 indica che il record per cui si settano gli attributi è un record derivante da caricamento massivo (es. migrazione pregresso)
+716        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+717        
+718        	/********* Funzione per listare gli attributi dinamici delle entità contenute in una data tabella **********/	
+719        	function TrovaAttrDinamiciEntita(
+720        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+721        																	-- (obblig). Codice identificativo del token di connessione
+722        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+723        			FlgPreimpostaFiltroIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1 i filtri e l'ordinamento vengono settati secondo le impostazioni dell'utente di lavoro, altrimenti restano come passati in input
+724        			--------------- inizio filtri di ricerca-------------------
+725        			NomeTabellaConEntitaIO		IN OUT	VARCHAR2,						-- (obblig.) Nome della tabella in cui si trovano le entità di cui trovare gli attributi dinamici 
+726        																	-- E' ammesso anche il valore DMT_DOCUMENTS.VERSIONI che indica che l'entità è una versione di documento
+727        			FlgSoloVldIO 			IN OUT 	INTEGER, 						-- (valori 1/0/NULL) 1° filtro di ricerca: Se 1 indica se si devono estrarre solo gli attributi legati alle entità della tabella alla data odierna
+728        			TsVldIO				IN OUT	VARCHAR2,						-- 2° filtro di ricerca: Stinga con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) a cui gli attributi devono essere legati alle entità della tabella
+729        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+730        			ColOrderByIO			IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (si può ordinare per le colonne da 1 a 7 e per la 9). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+731        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+732        																	-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+733        			FlgDescOrderByIO  		IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+734        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
+735        			FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+736        			NroPaginaIO      			IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+737           			BachSizeIO				IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+738        																	-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+739        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+740        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+741        			NroTotRecOut			OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+742             			NroRecInPaginaOut 		OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+743        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+744        			ListaXMLOut				OUT		NOCOPY CLOB,					-- Lista con le relazioni delle entità contenute nella tabella NomeTabellaIn con gli attributi dinamici (XML conforme a schema LISTA_STD.xsd)					
+745        																	-- Ogni relazione è tag "Riga" che contiene le seguenti colonne:
+746        																	-- 1: Identificativo (ROWID) con cui la relazione è già stata registrata in banca dati
+747        																	-- 2: Nome identificativo dell'attributo (internal name)
+748        																	-- 3: Label con cui viene mostrato l'attributo nella GUI
+749        																	-- 4: (valori 1/0) Indicatore di obbligatorietà dell'attributo per le entità della tabella
+750        																	-- 5: Massimo numero di valori possibili per l'attributo sulle entità della tabella
+751        																	-- 6: Data di inizio validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità decorre da sempre.
+752        																	-- 7: Data di fine validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità è illimitata.
+753        																	-- 8: (valori 1/0) Se 1 indica che la relazione è attualmente valida
+754        																	-- 9: N.ro d'ordine dell'attributo tra quelli associati all'entità
+755        			FlgAbilInsOut	 		OUT 		PLS_INTEGER ,            			-- (valori 1/0) Se 1 si ha abilitazione a creazione di nuove relazioni attributo-tabella
+756        			FlgAbilUpdOut 			OUT 		PLS_INTEGER ,            			-- (valori 1/0) Se 1 si ha abilitazione a modifica di relazioni attributo-tabella
+757        			FlgAbilDelOut 			OUT 		PLS_INTEGER,            			-- (valori 1/0) Se 1 si ha abilitazione a cancellazione di relazioni attributo-tabella
+758        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+759        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+760        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+761        			return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+762        
+763        	/****** Funzione per settare/resettare la table di tipo DMTO_ATTR_DEF, che contiene i dati degli attributi dinamici associati ad un dato oggetto (tipo/entità) ******/
+764        	/****** ATTENZIONE: non controlla le abilitazioni dell'utente																	******/
+765        	function SetDefAttrDinamici(
+766        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+767        																	-- (obblig). Codice identificativo del token di connessione
+768        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+769        			FlgTipoTargetIn			IN		VARCHAR2,						-- (obblig.) Indica il tipo del target per cui settare/resettare gli attributi dinamici associati. Valori poosibili:  
+770        																	-- E 	= Entità
+771        																	-- TD = Tipo di documento
+772        																	-- TF	= Tipo di folder
+773        																	-- TE	= Tipo di evento di processo
+774        																	-- TR	= Tipo di registrazione
+775        																	-- TM = Tipi di mezzi pubblicitari (per ICP)
+776        																	-- TEA = Tipi di elenchi/albi
+777        																	-- TOP = Tipologie degli oggetti di dominio trattati nei procedimenti
+778        																	-- E' ammesso anche il valore DMT_DOCUMENTS.VERSIONI che indica che l'entità è una versione di documento
+779        			CITargetIn				IN		VARCHAR2,						-- (obblig.) Identificativo del target per cui settare/resettare gli attributi dinamuci associati
+780        																	-- Se FlgTipoTargetIn = 'E' è il nome della tabella che contiene le entità
+781        																	-- altrimenti è l'id. del tipo di documento/folder/evento di processo/registrazione/mezzo
+782        			FlgModSetIn				IN		VARCHAR2 DEFAULT 'I',				-- (valori I/C) Indica se le definizioni di attributi dinamici associati indicati nell'argomento successivo sono forniti in modo incrementale (=I) (solo quelli da inserire/modificare/cancellare) oppure completo (=C), 
+783        																	-- vale a dire se devono solo aggiornare o piuttosto soppiantare le definizioni indicate come input DefAttrTabIO
+784        			XMLDefAttrDinamiciIn		IN		CLOB DEFAULT NULL,				-- Lista con i dati per l'aggiornamento (XML conforme a schema LISTA_STD.xsd)					
+785        																	-- Ogni relazione con attributo è tag "Riga" che può contenere le seguenti colonne:
+786        																	-- 1: Identificativo (ROWID) con cui la relazione è già stata registrata in banca dati
+787        																	-- 2: Nome identificativo dell'attributo (internal name)
+788        																	-- 3: Label con cui viene mostrato l'attributo nella GUI
+789        																	-- 4: (valori 1/0) Indicatore di obbligatorietà dell'attributo
+790        																	-- 5: Massimo numero di valori possibili per l'attributo 
+791        																	-- 6: Data e ora di inizio validità della relazione (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP). Se non specificata la validità decorre da sempre.
+792        																	-- 7: Data e ora di fine validità della relazione (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP). Se non specificata la validità è illimitata.
+793        																	-- 8: N.ro (valori da 1 a n) che indica la posizione dell'attributo tra tutti quelli associati
+794        																	-- 9: (valori 1/0/NULL) Flag di relazione da eliminare
+795        																	-- 10: (flag 1/0) Indica se l'attributo va nel primo TAB della GUI
+796        																	-- 11: Codice del TAB in cui mostrare l'attributo
+797        																	-- 12: Label del TAB in cui mostrare l'attributo
+798        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+799        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+800        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+801        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+802        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+803        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+804        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon, altrimenti 0 (in caso di errore)
+805        
+806        	/********* funzione per creare o modificare un'associazione di attributo dinamico con le entità contenute in una data tabella **********/
+807        	function IUAttrDinamicoEntita(
+808        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+809        																	-- (obblig). Codice identificativo del token di connessione
+810        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+811        			NomeTabellaConEntitaIO		IN OUT	VARCHAR2,						-- (obblig. se RowidIO è NULL) Nome della tabella in cui si trovano le entità per cui creare/modificare un associazione con un attributo dinamico 
+812        																	-- E' ammesso anche il valore DMT_DOCUMENTS.VERSIONI che indica che l'entità è una versione di documento
+813        			RowidIO				IN OUT	VARCHAR2,						-- Rowid del record-associazione da modificare. Se non valorizzato l'associazione è da inserire ex-novo
+814        																	-- In output, salvo in caso di errore, è sempre valorizzato	
+815        			NomeIn				IN 		DMT_ATTRIBUTES_DEF.ATTR_NAME%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+816        																	-- Nome identificativo dell'attributo da associare. Obbligatorio se l'argomento successivo non è valorizzato.
+817        			LabelIn				IN		DMT_ATTRIBUTES_DEF.ATTR_LABEL%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+818        																	-- Label con cui l'attributo da associare appare nella GUI. Obbligatorio se l'argomento precedente non è valorizzato
+819        			NroPosizioneIn			IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),	
+820        																	-- N.ro (valori da 1 a n) che indica la posizione che deve avere l'attributo tra tutti quelli associati alle entità del dato tipo
+821        																	-- Se NULL e l'associazione è da creare il n.ro posizione viene settato pari al max. n.ro degli attributi associati + 1
+822        			FlgObbligIn				IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+823        																	-- (valori 1/0/NUL) 1 indica che è un attributo obbligatorio per le entità del dato tipo
+824        			MaxNumValuesIn			IN		INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+825        																	-- Massimo numero di valori possibili per l'attributo
+826        			DtInizioVldIn			IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+827        																	-- Data di inizio validità dell'associazione (nel formato dato dal parametro di conf. FMT_STD_DATA).
+828        			DtFineVldIn				IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+829        																	-- Data di fine validità dell'associazione (nel formato dato dal parametro di conf. FMT_STD_DATA).
+830        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+831        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+832        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+833        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+834        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+835        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+836        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon, altrimenti 0 (in caso di errore)
+837        
+838        	/********* funzione per mostrare i dati di un'associazione di attributo dinamico con le entità contenute in una data tabella **********/
+839        	function LoadDettAttrDinamicoEntita(
+840        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+841        																	-- (obblig). Codice identificativo del token di connessione
+842        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+843        			RowidIO				IN OUT	VARCHAR2,						-- (obblig.) Rowid del record-associazione di cui ricavare i dati
+844        			NomeTabellaConEntitaOut		OUT		VARCHAR2,						-- Nome della tabella in cui si trovano le entità cui è relativa l'associazione ad attributo dinamico di cui ricavare i dati
+845        																	-- Può assumere anche il valore DMT_DOCUMENTS.VERSIONI che indica le versioni di documento
+846        			NomeOut				OUT		DMT_ATTRIBUTES_DEF.ATTR_NAME%type,		-- Nome identificativo dell'attributo associato.
+847        			LabelOut				OUT		DMT_ATTRIBUTES_DEF.ATTR_LABEL%type,		-- Label con cui l'attributo associato appare nella GUI. 
+848        			NroPosizioneOut			OUT		PLS_INTEGER,					-- N.ro (valori da 1 a n) che indica la posizione dell'attributo tra tutti quelli associati alle entità del dato tipo
+849        			FlgObbligOut			OUT		PLS_INTEGER,					-- (valori 1/0) 1 indica che è un attributo obbligatorio per le entità del dato tipo
+850        			MaxNumValuesOut			OUT		INTEGER,						-- Massimo numero di valori possibili per l'attributo
+851        			DtInizioVldOut			OUT		VARCHAR2,						-- Data di inizio validità dell'associazione (nel formato dato dal parametro di conf. FMT_STD_DATA).
+852        			DtFineVldOut			OUT		VARCHAR2,						-- Data di fine validità dell'associazione (nel formato dato dal parametro di conf. FMT_STD_DATA).
+853        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+854        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+855        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+856        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon, altrimenti 0 (in caso di errore)
+857        
+858        	/********* funzione per rimuovere un'associazione di attributo dinamico con le entità contenute in una data tabella **********/
+859        	function DAttrDinamicoEntita(		
+860        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+861        																	-- (obblig). Codice identificativo del token di connessione
+862        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+863        			RowidIn				IN		VARCHAR2,						-- (obblig.) Rowid del record-associazione da cancellare
+864        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+865        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+866        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+867        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+868        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+869        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+870        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon, altrimenti 0 (in caso di errore)
+871        
+872        	/************* funzione per ottenere, da una lista di crriteri su attributi dinamici, la where condition da appendere ad una query dinamica perchè includa i criteri specificati *****/
+873        	function ComponiCriteriSuAttrDin(
+874        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+875        																	-- (obblig). Codice identificativo del token di connessione
+876        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+877        			AliasTabellaIn			IN		VARCHAR2,						-- Alias con cui la tabella master con la colonna ALTRI_ATTRIBUTi è identificata nella query principale
+878        			PKTabellaIn				IN		VARCHAR2,						-- Campo o concatenazione dei campi (prefissati dall'alias) che fanno da PK per la tabella master con la colonna ALTRI_ATTRIBUTI 
+879        			CriteriSuAttrDinIn		IN		DMTO_MATRICE_VALORI,				-- Criteri di ricerca sugli attributi addizionali (table di DMVA_STRING). Se più di uno vengono applicati in AND.
+880        																	-- Ogni criterio è una riga che può contenere le seguenti colonne:
+881        																	--	1) Nome (ATTR_NAME) dell'attributo cui è relativo il criterio
+882        																	--	2) (obblig.) Operatore logico. Valori possibili:
+883        																	--		"uguale" (ricerca esatta) 
+884        																	--		"simile a (case-sensitive)" (ricerca case-sensitive in like)
+885        																	--		"simile a (case-insensitive)" (ricerca case-insensitive in like e che ignora i caratteri quali spazi, ., ecc)
+886        																	--		"maggiore" (se attributo numerico o data)
+887        																	--		"maggiore o uguale" (se attributo numerico o data)
+888        																	--		"minore" (se attributo numerico o data)
+889        																	--		"minore o uguale" (se attributo numerico o data)
+890        																	--		"tra" (se attributo numerico o data)
+891        																	--		"non valorizzato"
+892        																	--		"valorizzato"
+893        																	--		"spuntato" (se attributo di tipo casella di spunta)
+894        																	--		"non spuntato" (se attributo di tipo casella di spunta)
+895        																	--	3) 1° valore di confronto (obblig. e gestito solo se l'operatore non ha uno dei seguenti valori: valorizzato, non valorizzato, spuntato, non spuntato) (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+896        																	--	4) 2° valore di confronto (obblig. e gestito solo se l'operatore è "tra") (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+897        																	--	5) Label dell''attributo cui è relativo il criterio (se sotto-attributo di complesso <label del complesso> - <label del sotto-attributo>)
+898        																	--	6) Flag 1/0/NULL: se 1 indica che la condizione non si deve verificare, altrimenti è una condizione che si deve verificare
+899        																	--		il campo viene ignorato se l'operatore vale "non valorizzato", "valorizzato", "spuntato", "non spuntato"
+900        			WhereConditionToAddOut		OUT		VARCHAR2,					-- Stringa con la condizione da aggiungere (preceduta da AND) alla query affinchè vi siano i criteri sugli attributi dinamici
+901        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+902        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+903        			ErrMsgOut				OUT 	VARCHAR2,						-- Messaggio d'errore
+904        			NomeTabellaIn			IN		VARCHAR2 DEFAULT NULL,			-- Nome esteso della tabella master con la colonna ALTRI_ATTRIBUTI. Va valorizzata per tabelle con molti record al fine di rendere + efficiente
+905        			TabConIndexReverseIn	IN		PLS_INTEGER	DEFAULT NULL,		-- Se 1 indica che è una tabella con indice sulla funzione di rivesciamento della stringa
+906        			TabConIndexCtxSysIn		IN		PLS_INTEGER	DEFAULT NULL		-- Se 1 indica che è una tabella con indice context sugli attributi stringa
+907        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon, altrimenti 0 (in caso di errore)
+908        
+909        	-----overload della precedente, solo che i criteri sugli attributi addizionali sono passati come XML anzichè come DMTO_MATRICE_VALORI	
+910        	function ComponiCriteriSuAttrDin(
+911        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+912        																	-- (obblig). Codice identificativo del token di connessione
+913        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+914        			AliasTabellaIn			IN		VARCHAR2,						-- Alias con cui la tabella master con la colonna ALTRI_ATTRIBUTi è identificata nella query principale
+915        			PKTabellaIn				IN		VARCHAR2,						-- Campo o concatenazione dei campi (prefissati dall'alias) che fanno da PK per la tabella master con la colonna ALTRI_ATTRIBUTI 
+916        			CriteriSuAttrDinIn		IN		CLOB,							-- Criteri di ricerca sugli attributi addizionali (come XML conforme a schme LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+917        																	-- Ogni criterio è un tag "Riga" che può contenere le seguenti colonne:
+918        																	--	1) Nome (ATTR_NAME) dell'attributo cui è relativo il criterio
+919        																	--	2) (obblig.) Operatore logico. Valori possibili:
+920        																	--		"uguale" (ricerca esatta) 
+921        																	--		"simile a (case-sensitive)" (ricerca case-sensitive in like)
+922        																	--		"simile a (case-insensitive)" (ricerca case-insensitive in like e che ignora i caratteri quali spazi, ., ecc)
+923        																	--		"maggiore" (se attributo numerico o data)
+924        																	--		"maggiore o uguale" (se attributo numerico o data)
+925        																	--		"minore" (se attributo numerico o data)
+926        																	--		"minore o uguale" (se attributo numerico o data)
+927        																	--		"tra" (se attributo numerico o data)
+928        																	--		"non valorizzato"
+929        																	--		"valorizzato"
+930        																	--		"spuntato" (se attributo di tipo casella di spunta)
+931        																	--		"non spuntato" (se attributo di tipo casella di spunta)
+932        																	--	3) 1° valore di confronto (obblig. e gestito solo se l'operatore non ha uno dei seguenti valori: valorizzato, non valorizzato, spuntato, non spuntato) (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+933        																	--	4) 2° valore di confronto (obblig. e gestito solo se l'operatore è "tra") (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+934        																	--	5) Label dell''attributo cui è relativo il criterio (se sotto-attributo di complesso <label del complesso> - <label del sotto-attributo>)
+935        																	--	6) Flag 1/0/NULL: se 1 indica che la condizione non si deve verificare, altrimenti è una condizione che di deve verificare
+936        			WhereConditionToAddOut		OUT		VARCHAR2,					-- Stringa con la condizione da aggiungere (preceduta da AND) alla query affinchè vi siano i criteri sugli attributi dinamici
+937        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+938        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+939        			ErrMsgOut				OUT 		VARCHAR2,					-- Messaggio d'errore
+940        			NomeTabellaIn			IN		VARCHAR2 DEFAULT NULL,			-- Nome esteso della tabella master con la colonna ALTRI_ATTRIBUTI. Va valorizzata per tabelle con molti record al fine di rendere + efficiente
+941        			TabConIndexReverseIn	IN		PLS_INTEGER	DEFAULT NULL,		-- Se 1 indica che è una tabella con indice sulla funzione di rivesciamento della stringa
+942        			TabConIndexCtxSysIn		IN		PLS_INTEGER	DEFAULT NULL		-- Se 1 indica che è una tabella con indice context sugli attributi stringa
+943        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon, altrimenti 0 (in caso di errore)
+944        
+945        	-----funzione per ottenere la From Clause aggiuntiva quando ci sono filtri su attributi addizionali passati in input in xml CriteriSuAttrDinIn
+946        	function GetFromClauseSuAttrDin(
+947        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+948        																	-- (obblig). Codice identificativo del token di connessione
+949        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+950        			AliasTabellaIn			IN		VARCHAR2,						-- Alias con cui la tabella master con la colonna ALTRI_ATTRIBUTi è identificata nella query principale
+951        			PKTabellaIn				IN		VARCHAR2,						-- Campo o concatenazione dei campi (prefissati dall'alias) che fanno da PK per la tabella master con la colonna ALTRI_ATTRIBUTI 
+952        			CriteriSuAttrDinIn		IN		CLOB,							-- Criteri di ricerca sugli attributi addizionali (come XML conforme a schme LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+953        																	-- Ogni criterio è un tag "Riga" che può contenere le seguenti colonne:
+954        																	--	1) Nome (ATTR_NAME) dell'attributo cui è relativo il criterio
+955        																	--	2) (obblig.) Operatore logico. Valori possibili:
+956        																	--		"uguale" (ricerca esatta) 
+957        																	--		"simile a (case-sensitive)" (ricerca case-sensitive in like)
+958        																	--		"simile a (case-insensitive)" (ricerca case-insensitive in like e che ignora i caratteri quali spazi, ., ecc)
+959        																	--		"maggiore" (se attributo numerico o data)
+960        																	--		"maggiore o uguale" (se attributo numerico o data)
+961        																	--		"minore" (se attributo numerico o data)
+962        																	--		"minore o uguale" (se attributo numerico o data)
+963        																	--		"tra" (se attributo numerico o data)
+964        																	--		"non valorizzato"
+965        																	--		"valorizzato"
+966        																	--		"spuntato" (se attributo di tipo casella di spunta)
+967        																	--		"non spuntato" (se attributo di tipo casella di spunta)
+968        																	--	3) 1° valore di confronto (obblig. e gestito solo se l'operatore non ha uno dei seguenti valori: valorizzato, non valorizzato, spuntato, non spuntato) (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+969        																	--	4) 2° valore di confronto (obblig. e gestito solo se l'operatore è "tra") (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+970        																	--	5) Label dell''attributo cui è relativo il criterio (se sotto-attributo di complesso <label del complesso> - <label del sotto-attributo>)
+971        																	--	6) Flag 1/0/NULL: se 1 indica che la condizione non si deve verificare, altrimenti è una condizione che di deve verificare
+972        			FromClauseToAddOut		OUT		VARCHAR2,					-- Stringa con il pezzo - senza FROM iniziale - da aggiungere alla from clause della query affinchè vi siano i criteri sugli attributi dinamici
+973        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+974        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+975        			ErrMsgOut				OUT 		VARCHAR2,					-- Messaggio d'errore
+976        			NomeTabellaIn			IN		VARCHAR2 DEFAULT NULL			-- Nome esteso della tabella master con la colonna ALTRI_ATTRIBUTI. Va valorizzata per tabelle con molti record al fine di rendere + efficiente
+977        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon, altrimenti 0 (in caso di errore)
+978        
+979        END DMPK_ATTRIBUTI_DINAMICI;

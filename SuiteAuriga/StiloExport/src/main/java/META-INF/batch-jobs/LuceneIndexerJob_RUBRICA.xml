@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<job id="luceneIndexerJob_RUBRICA">
+    <step id="luceneIndexerStep_RUBRICA" >
+        <batchlet ref="luceneIndexerJob_RUBRICA"/>
+    </step>
+</job>

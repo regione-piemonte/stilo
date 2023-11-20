@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE web-app PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN" "http://java.sun.com/dtd/web-app_2_3.dtd">
+
+<web-app>
+
+	<filter>
+		<filter-name>encodingFilter</filter-name>
+		<filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+		<init-param>
+			<param-name>encoding</param-name>
+			<param-value>ISO-8859-1</param-value>
+		</init-param>
+		<init-param>
+			<param-name>forceEncoding</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+	
+	<filter>
+		<filter-name>LoginFilter</filter-name>
+		<filter-class>it.eng.utility.authentication.module.filter.LoginFilter</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>encodingFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+	
+	<filter-mapping>
+		<filter-name>LoginFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+	<listener>
+		<listener-class>it.eng.utility.ui.listener.ContextListener</listener-class>
+	</listener>
+
+	<servlet>
+		<servlet-name>smartgwtdispather</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+
+	<servlet>
+		<servlet-name>servletinitialize</servlet-name>
+		<servlet-class>it.eng.utility.ui.servlet.ServletInitialize</servlet-class>
+		<init-param>
+			<param-name>springcontextxml</param-name>
+			<param-value>config</param-value>
+		</init-param>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+	
+	<servlet>
+		<servlet-name>downloadservlet</servlet-name>
+		<servlet-class>it.eng.utility.ui.servlet.DownloadServlet</servlet-class>		
+	</servlet>
+		
+	<servlet>
+	   <servlet-name>uploadservlet</servlet-name>
+	   <servlet-class>it.eng.utility.ui.servlet.UploadServlet</servlet-class>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>smartgwtdispather</servlet-name>
+		<url-pattern>/rest/*</url-pattern>
+	</servlet-mapping>
+	
+	<servlet-mapping>
+		<servlet-name>downloadservlet</servlet-name>
+		<url-pattern>/download</url-pattern>
+	</servlet-mapping>
+
+	<servlet-mapping>
+	   <servlet-name>uploadservlet</servlet-name>
+	   <url-pattern>/upload</url-pattern>
+	</servlet-mapping>
+		
+	<!-- Default page to serve -->
+	<welcome-file-list>
+		<welcome-file>index.jsp</welcome-file>
+	</welcome-file-list>
+
+	<!--security-constraint>
+		<display-name>Security Constraint</display-name>
+		<web-resource-collection>
+			<web-resource-name>Protected Area</web-resource-name>
+			<url-pattern>/rest/*</url-pattern>
+			<url-pattern>/download</url-pattern>
+			<url-pattern>/upload</url-pattern>
+			<http-method>GET</http-method>
+			<http-method>POST</http-method>
+		</web-resource-collection>
+		<auth-constraint>
+			<role-name>*</role-name>
+		</auth-constraint>
+	</security-constraint-->
+
+	<!--login-config>
+		<auth-method>FORM</auth-method>
+		<realm-name>Example Form-Based Authentication Area</realm-name>
+		<form-login-config>
+			<form-login-page>/login.jsp</form-login-page>
+			<form-error-page>/error.jsp</form-error-page>
+		</form-login-config>
+	</login-config-->
+
+	<security-role>
+		<role-name>*</role-name>
+	</security-role>
+
+</web-app>

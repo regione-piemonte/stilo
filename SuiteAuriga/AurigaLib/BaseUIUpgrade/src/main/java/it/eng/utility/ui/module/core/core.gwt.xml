@@ -1,0 +1,33 @@
+<module rename-to='core'>
+	<inherits name="com.google.gwt.user.User"/>
+	<inherits name="com.google.gwt.i18n.I18N"/>
+	<!--inherits name="name.pehl.piriti.json.JSON" /-->
+	<!--inherits name="name.pehl.piriti.xml.XML" /-->
+	
+	<extend-property name="locale" values="it" />
+	
+	<define-property name="ente" values="default, ente1" />
+       
+    <property-provider name="ente">
+    <![CDATA[
+        var ente = __gwt_getMetaProperty("ente");
+        if (!__gwt_isKnownPropertyValue("ente", ente)){
+            ente = "default";
+        }
+        return ente;
+    ]]>
+    </property-provider>
+		
+	<replace-with class="it.eng.utility.ui.module.core.client.i18n.defaults.I18NDefaultMessagesFactory">
+        <when-type-is class="it.eng.utility.ui.module.core.client.i18n.I18NMessagesFactory"/>
+        <when-property-is name="ente" value="default"/>
+    </replace-with>
+    <replace-with class="it.eng.utility.ui.module.core.client.i18n.custom.ente1.I18NEnte1MessagesFactory">
+        <when-type-is class="it.eng.utility.ui.module.core.client.i18n.I18NMessagesFactory"/>
+        <when-property-is name="ente" value="ente1"/>
+    </replace-with>
+	
+	<source path='client' />
+	<source path='shared' />
+	
+</module>

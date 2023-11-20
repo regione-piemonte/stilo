@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:simpleType name="FlagSiNoType">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="0|1"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="NroLivelloGerarchiaType">
+		<xs:annotation>
+			<xs:documentation>Nro di un livello di una struttura gerarchica come la struttura organizzativa o il titolario di classificazione: 1 e' il livello piu' alto (ad esempio il settore o il titolo), 2 il successivo (ad esempio il servizio o la classe) e cosi' via</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="10"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="CodLivelloGerarchiaType">
+		<xs:restriction base="xs:string"/>
+	</xs:simpleType>
+	<xs:complexType name="LivelloGerarchiaType">
+		<xs:attribute name="Nro" type="NroLivelloGerarchiaType" use="required">
+			<xs:annotation>
+				<xs:documentation>N.ro d'ordine del livello</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="Codice" type="CodLivelloGerarchiaType" use="required">
+			<xs:annotation>
+				<xs:documentation>Codice identificativo del livello</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="OggDiTabDiSistemaType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un oggetto censito in una tabella di sistema del sistema di protocollo</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="CodId">
+				<xs:annotation>
+					<xs:documentation>Identificativo del dato di sistema nella banca dati</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Decodifica_Nome">
+				<xs:annotation>
+					<xs:documentation>Decodifica del dato di sistema nella banca dati</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="PaginazioneType">
+		<xs:sequence>
+			<xs:element name="NroPagina" type="xs:positiveInteger" default="1" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>E' il numero della pagina da estrarre. Se non valorizzato si intende pari a 1</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroRecordInPagina" type="xs:positiveInteger" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Indica la dimensione (n.ro di record) della pagina da estrarre. Se non indicata viene settata pari ad una dimensione di default</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="TrovaInOrganigramma">
+		<xs:annotation>
+			<xs:documentation>ROOT element dello schema. Contiene i filtri di ricerca e le modalita' di estrazione del risultato</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="TipoNodo" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Serve a restringere la ricerca solo a: Unita' Operative (UO), scrivanie utente (SV) o utenti senza scrivania (SV)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:enumeration value="UO"/>
+							<xs:enumeration value="SV"/>
+							<xs:enumeration value="UT"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="FinalitaRicerca" default="ALTRO" minOccurs="1">
+					<xs:annotation>
+						<xs:documentation>Indica la finalita' per cui si ricercano nodi dell'organigramma</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:enumeration value="ALTRO"/>
+							<xs:enumeration value="ASSEGNAZIONE"/>
+							<xs:enumeration value="ASS_CARTACEO"/>
+							<xs:enumeration value="INVIO_CC_NOTIFICA"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="DesNodo" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Stringa contenuta nella descrizione dei nodi organigramma da cercare (ricerca case-insensitive in like)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="1000"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="CodiciUO" type="LivelloGerarchiaType" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Codici che identificano i livelli della UO in cui ricercare</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="CodUOInSistMasterDataOrganigramma" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Cod. della struttura nel sistema che fa da master data dell'organigramma (ricerca case insensitive in like)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="SoloUOAttive" type="xs:integer" fixed="1" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se 1 vengono ricercate solo le UO attive</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="SoloNodiUtenteAttivi" type="xs:integer" fixed="1" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se 1 vengono ricercate solo le postazioni utente attive</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FlgSoloPuntiProtocollo" type="xs:integer" fixed="1" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se 1 vengono ricercate solo le UO che sono punti di protocollo</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="UsernameUtenteCollegatoUO" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Username dell'utente di cui si cercano le UO cui e' collegato</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="EstrazionePaginata" type="PaginazioneType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se presente il tag, allora l'estrazione e' paginata, ovvero ogni chiamata al Web Service permette di estrarre un set-pagina di record che soddisfano i filtri.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

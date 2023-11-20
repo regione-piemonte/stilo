@@ -1,0 +1,25 @@
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="RicercaAgibilita">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element type="xs:string" name="CodiceFiscaleRic"/>
+        <xs:element type="xs:string" name="CognomeRic"/>
+        <xs:element type="xs:string" name="NomeRic"/>
+        <xs:element type="xs:string" name="EmailRic"/>
+        <xs:element type="xs:string" name="TelefonoRic"/>
+        <xs:element type="xs:string" name="CodiceFiscaleDel"/>
+        <xs:element type="xs:string" name="CognomeDel"/>
+        <xs:element type="xs:string" name="NomeDel"/>
+        <xs:element type="xs:string" name="EmailDel"/>
+        <xs:element type="xs:string" name="CodiceToponomastico"/>
+        <xs:element type="xs:string" name="DenominazioneVia"/>
+        <xs:element type="xs:string" name="NumCivico"/>
+        <xs:element type="xs:string" name="AppCivico"/>
+        <xs:element type="xs:string" name="ClassificazioneRic"/>
+        <xs:element type="xs:string" name="Motivazione"/>
+        <xs:element type="xs:string" name="Allegato"/>
+        <xs:element type="xs:string" name="Note"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

@@ -1,0 +1,25 @@
+package ${beanPackage};
+
+import it.eng.core.business.beans.AbstractBean;
+#foreach ($sp in ${importer})
+	${sp}
+#end
+
+import java.io.Serializable;
+import javax.xml.bind.annotation.XmlRootElement;
+
+@XmlRootElement
+public class ${bean} extends AbstractBean implements Serializable {
+
+	private static final long serialVersionUID = -7341833444762147789L;
+	
+#foreach ($sp in ${attributi})
+	${sp}
+#end
+
+#foreach ($sp in ${getterSetter})
+	${sp}
+
+#end
+
+}    

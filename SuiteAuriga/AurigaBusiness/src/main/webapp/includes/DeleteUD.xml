@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+	<DeleteUD>  		
+  			<!--  <IdUD>622</IdUD>-->
+			<EstremiRegNum>
+				<SiglaReg>N.I.</SiglaReg>
+				<AnnoReg>2016</AnnoReg>
+				<NumReg>220</NumReg>
+			</EstremiRegNum>
+			<FlagDelLogicaFisica>F</FlagDelLogicaFisica>						
+	</DeleteUD>

@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2023 sp1 (x64) (http://www.altova.com) by Valentina Martinucci (Municipia SpA) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:complexType name="OggDiTabDiSistemaType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un oggetto censito in una tabella di sistema del sistema di protocollo</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="CodId">
+				<xs:annotation>
+					<xs:documentation>Identificativo del dato di sistema nella banca dati</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Decodifica_Nome">
+				<xs:annotation>
+					<xs:documentation>Decodifica del dato di sistema nella banca dati</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="CriterioRicercaSuAttributoAddType">
+		<xs:sequence>
+			<xs:element name="Nome" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Nome identificativo dell'attributo cui è relativo il criterio di ricerca</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="OperatoreLogico">
+				<xs:annotation>
+					<xs:documentation>Operatore logico da utilizzare sul/i valori dell'attributo per imporre il filtro di ricerca</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="uguale"/>
+						<xs:enumeration value="simile a (case-sensitive)"/>
+						<xs:enumeration value="simile a (case-insensitive)"/>
+						<xs:enumeration value="minore"/>
+						<xs:enumeration value="maggiore o uguale"/>
+						<xs:enumeration value="minore"/>
+						<xs:enumeration value="minore o uguale"/>
+						<xs:enumeration value="compreso tra"/>
+						<xs:enumeration value="non valorizzato"/>
+						<xs:enumeration value="valorizzato"/>
+						<xs:enumeration value="spuntato"/>
+						<xs:enumeration value="non spuntato"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="ValoreConfronto_1" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Va specificato se l'operatore logico prevede uno o 2 valori di confronto (dunque salvo se: valorizzato/non valorizzato, spuntato/non spuntato). Se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data o date e ora deve essere nei formati configurati a sistema per date e timestamp. </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="ValoreConfronto_2" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Va specificato se l'operatore logico prevede 2 valori di confronto (dunque solo nl caso di "compreso tra"). Se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data o date e ora deve essere nei formati configurati a sistema per  date e timestamp. </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="PaginazioneType">
+		<xs:sequence>
+			<xs:element name="NroPagina" type="xs:positiveInteger" default="1" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>E' il numero della pagina da estrarre. Se non valorizzato si intende pari a 1</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroRecordInPagina" type="xs:positiveInteger" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Indica la dimensione (n.ro di record) della pagina da estrarre. Se non indicata viene settata pari ad una dimensione di default</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="TrovaRegistriNumerazione">
+		<xs:annotation>
+			<xs:documentation>ROOT element dello schema. Contiene i filtri di ricerca e le modalità di estrazione del risultato</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Categoria" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Categoria/e dei registri di registrazione / numerazione; valori ammessi PG=Protocollo Generale; PP=Protocollo Particolare; R=Repertorio; PR= Protocollo o repertorio; E=Registrazione d'emergenza; A=Altro</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:enumeration value="PG"/>
+							<xs:enumeration value="PP"/>
+							<xs:enumeration value="R"/>
+							<xs:enumeration value="PR"/>
+							<xs:enumeration value="E"/>
+							<xs:enumeration value="A"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="IdRegistro" type="xs:integer" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Identificativo interno al sistema documentale del regsitro da ricercare</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Descrizione" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Stringa contenuta nella descrizione del registri (la ricerca è case-insensitive in like)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="1000"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="Sigla" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Sigla identificativa del registro di numerazione (ricerca esatta case-insensitive)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="1000"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="PerTipoDoc" type="OggDiTabDiSistemaType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Tipologia documentale che usa il/i registri di numerazione da ricercare</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="NumerazioneConsentita" fixed="1" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se valorizzato la ricerca comprende solo i registri in cui si può numerare</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="InclusioneCessati" fixed="1" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se valorizzato la ricerca include anche i registri di numerazione non più attiivi, altrimenti no</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="AttributoAdd" type="CriterioRicercaSuAttributoAddType" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Criteri di ricerca sugli attributi addizionali dei registri di numerazione (cioè quelli non predefiniti in banca dati). Se sono più di uno vengono applicati in AND. I criteri possono essere relativi solo agli attributi non strutturati.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="EstrazionePaginata" type="PaginazioneType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se presente il tag, allora l'estrazione è paginata, ovvero ogni chiamata al Web Service permette di estrarre un set-pagina di record che soddisfano i filtri.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

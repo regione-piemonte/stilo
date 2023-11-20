@@ -1,0 +1,1 @@
+0.0.5 dipendenza dalla versione 0.0.4 di LuceneManager 1.4.7 di mail.jar (Jacopo Ravagnan)

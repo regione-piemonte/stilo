@@ -1,0 +1,407 @@
+1        PACKAGE DMPK_DOC_TYPES AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        
+12        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+13        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        
+20        	/**** Funzione per ricercare i tipi di documenti ****/
+21        	FUNCTION TrovaDocTypes(
+22        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+23        																	-- (obblig). Codice identificativo del token di connessione
+24        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+25        			FlgPreimpostaFiltroIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1 i filtri e l'ordinamento vengono settati secondo le impostazioni dell'utente di lavoro, altrimenti restano come passati in input
+26        			--------------- inizio filtri di ricerca-------------------
+27        			IdDocTypeIO				IN OUT	DMT_DOC_TYPES.ID_DOC_TYPE%type,		-- 1° filtro di ricerca: id. del tipo di documento da ricercare
+28        			NomeIO				IN OUT	DMT_DOC_TYPES.NOME_DOC_TYPE%type, 		-- 2° filtro di ricerca: stringa contenuta nel nome del tipo di documento (ricerca case-insensitive in like)
+29        			DescrizioneIO			IN OUT	DMT_DOC_TYPES.DES_DOC_TYPE%type,		-- 3° filtro di ricerca: stringa contenuta la descrizione del tipo di documento (ricerca case-insensitive in like)
+30        			IdDocTypeGenIO			IN OUT	DMT_DOC_TYPES.ID_DOC_TYPE%type,		-- 5° filtro di ricerca: id. del tipo di documento più generale in cui ricade. Viene considerato e gestito solo se è valorizzato l'argomento successivo. Se i due non sono congruenti l'id. viene ignorato
+31        			NomeDocTypeGenIO			IN OUT	DMT_DOC_TYPES.NOME_DOC_TYPE%type, 		-- 6° filtro di ricerca: Nome del tipo di documento più generale in cui ricade (ricerca case-insensitive in like)
+32        			FlgAllegatoIO			IN OUT	PLS_INTEGER,					-- 7° filtro di ricerca: indica se i documenti dei tipi da trovare possono essere o meno allegati di unità documentarie. Valori ammessi: 1 = Possibile allegato; 0 = Solo primario (ovvero non è un possibile allegato)
+33        			CIProvDocTypeIO			IN OUT	DMT_DOC_TYPES.PROV_CI_DOC_TYPE%TYPE,	-- 8° filtro di ricerca: Codice identificativo del tipo di documento nel sistema di provenienza: ricerca esatta case-sensitive
+34        			CodNaturaIO				IN OUT	DMT_DOC_TYPES.COD_NATURA%type,		-- 9° filtro di ricerca: Codice della natura del tipo di documento (atto pubblico, scrittura privata ecc). Valori codificati in apposita dictionary entry. Ricerca esatta case-sensitive
+35        			FlgTipoProvIO			IN OUT	DMT_DOC_TYPES.FLG_TIPO_PROV%type,		-- 10° filtro di ricerca: Serve a restringere la ricerca ai soli tipi di documenti che in genere sono: E = In Entrata; I = Interni; U = In Uscita
+36        			CodSupportoOrigIO			IN OUT	DMT_DOC_TYPES.COD_SUPPORTO_ORIG%type,	-- 11° filtro di ricerca: Codice del supporto su cui normalmente nascono i documenti del dato tipo (cartaceo, informatico, ottico ecc). Valori codificati in apposita dictionary entry. Ricerca esatta case-sensitive
+37        			PeriodoDiConservazioneDaIO	IN OUT	PLS_INTEGER,					-- 12° filtro di ricerca: restringe la ricerca ai soli tipi che devono essere conservati almeno per il n.ro di anni specificato in questo argomento
+38        			CodSupportoConservIO		IN OUT	DMT_DOC_TYPES.COD_SUPPORTO_CONSERV%type,	-- 13° filtro di ricerca: Codice del supporto fisico di conservazione (carta, disco ottico, microfilm ecc) per i documenti del dato tipo. Valori codificati in apposita dictionary entry. Ricerca esatta case-sensitive
+39        			FlgDaScansionareIO		IN OUT	PLS_INTEGER,					-- 14° filtro di ricerca: serve a restringere la ricerca ai documenti per cui è prevista la scansione (1) o per i quali non è prevista (0)
+40        			IdClassificazioneIO		IN OUT	DMT_TITOLARIO.ID_CLASSIFICAZIONE%type,	-- 15° filtro di ricerca: Identificativo della classificazione in cui ricadono i tipi documento da ricercare (vengono ricercati anche i tipi documento che ricadono in sotto-classifiche)
+41        																	-- Viene considerato e gestito solo se è valorizzato uno dei 2 argomenti successivi; se non congruenti con questi l'id. viene ignorato
+42        			LivelliClassificazioneIO	IN OUT	VARCHAR2,						-- 16° filtro di ricerca: Stringa con i n.ri livello della classificazione in cui ricadono i tipi documento da ricercare (vengono ricercati anche i tipi documento che ricadono in sotto-classifiche)
+43        																	-- 	(se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno indicati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; vanno separati dal separatore dei livelli di classificazione valido nel dominio di lavoro)
+44        			DesClassificazioneIO		IN OUT	VARCHAR2,						-- 17° filtro di ricerca: Denominazione della classificazione in cui ricadono i tipi documento da ricercare (ricerca case insensitive in like)(vengono ricercati anche i tipi documento che ricadono in sotto-classifiche). Può essere quella semplice o la concatenazione con separatore "|" delle denominazioni delle classifiche superiori + quella della classifica
+45        			IdFormatoElIO			IN OUT	DMT_DOC_TYPES.ID_FORMATO_EL%type,		-- 18° filtro di ricerca: identificativo del formato elettronico dei tipi di documento da ricercare
+46        																	-- Viene considerato e gestito solo se è valorizzato uno dei 2 argomenti successivi; se non congruenti con questi l'id. viene ignorato
+47        			NomeFormatoElIO			IN OUT	DMT_FORMATI_EL_AMMESSI.NOME_FORMATO%type,
+48        																	-- 19° filtro di ricerca: nome del formato elettronico dei tipi di documento da ricercare (ricerca case-insensitive in like)
+49        			EstensioneFormatoElIO		IN OUT	VARCHAR2,						-- 20° filtro di ricerca: estensione del formato elettronico dei tipi di documento da ricercare (ricerca case-insensitive esatta)
+50        			FlgConFolderizzAutoIO		IN OUT	PLS_INTEGER,					-- (valori 1/0/NULL) 21° filtro di ricerca: se 1 indica che si devono estrarre solo i tipi che prevedono una folderizzazione automatica, se 0 solo quelli che non la prevedono
+51        			FlgConModelloIO			IN OUT	PLS_INTEGER,					-- (valori 1/0/NULL) 22° filtro di ricerca: se 1 indica che si devono estrarre solo i tipi che hanno modelli associati, se 0 solo quelli che non li hanno
+52        			FlgInclAnnullatiIO		IN OUT	INTEGER,						-- (valori 1/0/NULL) 23° filtro di ricerca: se 1 vengono estratti anche i tipi di documenti logicamente annullati, altrimenti no
+53        			AltriCriteriIO			IN OUT 	NOCOPY CLOB,					-- Altri criteri di ricerca sugli attributi addizionali dei tipi documenti (XML conforme a schema LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+54        																	-- Ogni criterio è un tag Riga che può contenere le seguenti colonne:
+55        																	--	1) Nome (ATTR_NAME) dell'attributo cui è relativo il criterio
+56        																	--	2) (obblig.) Operatore logico. Valori possibili:
+57        																	--		"uguale" (ricerca esatta)
+58        																	--		"simile a (case-sensitive)" (ricerca case-sensitive in like)
+59        																	--		"simile a (case-insensitive)" (ricerca case-insensitive in like e che ignora i caratteri quali spazi, ., ecc)
+60        																	--		"maggiore" (se attributo numerico o data)
+61        																	--		"maggiore o uguale" (se attributo numerico o data)
+62        																	--		"minore" (se attributo numerico o data)
+63        																	--		"minore o uguale" (se attributo numerico o data)
+64        																	--		"tra" (se attributo numerico o data)
+65        																	--		"non valorizzato"
+66        																	--		"valorizzato"
+67        																	--		"spuntato" (se attributo di tipo casella di spunta)
+68        																	--		"non spuntato" (se attributo di tipo casella di spunta)
+69        																	--	3) 1° valore di confronto (obblig. e gestito solo se l'operatore non ha uno dei seguenti valori: valorizzato, non valorizzato, spuntato, non spuntato) (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+70        																	--	4) 2° valore di confronto (obblig. e gestito solo se l'operatore è "tra") (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+71        																	--	5) Label dell''attributo cui è relativo il criterio (se sotto-attributo di complesso <label del complesso> - <label del sotto-attributo>
+72        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+73        			ColOrderByIO			IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 17). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+74        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+75        																	-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+76        			FlgDescOrderByIO  		IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+77        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+78        			FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+79        			NroPaginaIO      			IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+80           			BachSizeIO				IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+81        																	-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+82        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+83        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+84        			NroTotRecOut			OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+85             			NroRecInPaginaOut 		OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+86        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+87        			ListaXMLOut				OUT		NOCOPY CLOB,					-- Lista dei tipi di documenti trovati (XML conforme a schema LISTA_STD.xsd)
+88        																	-- Ogni tipo di documento è un tag Riga che può contenere le seguenti colonne:
+89        																	-- 1:  Identificativo del tipo di documento
+90        																	-- 2:  Nome del tipo di documento
+91        																	-- 3:  Descrizione dettagliata del tipo di documento
+92        																	-- 4:  Nome del tipo di documento più generale in cui ricade
+93        																	-- 5:  Identificativo del tipo di documento più generale in cui ricade
+94        																	-- 6:  (valori 1/2/0) Se 1 indica che può essere un allegato di un unità documentaria, se 2 che deve esserlo necessariamente, se 0 che non può essere un allegato
+95        																	-- 7:  Natura del tipo di documento (atto pubblico, scrittura privata ecc).
+96        																	-- 8:  Indica se in genere i documenti del dato tipo sono in entrata (E), interni (I) o in uscita (U) dal soggetto produttore / AOO
+97        																	-- 9:  Livelli e descrizione dell'eventuale classificazione in cui ricadono tutti i documenti del dato tipo
+98        																	-- 10: Supporto fisico su cui normalmente nascono i documenti del dato tipo
+99        																	-- 11: Nome del formato elettronico che hanno in genere i documenti del dato tipo
+100        																	-- 12: Indica se in genere un documento cartaceo del dato tipo in possesso del soggetto produttore è: originale unico (OU), originale non unico (ONU), copia (C)
+101        																	-- 13: (valori 1/0) Se 1 indica che è richiesta la scansione dei documenti del dato tipo in caso siano originariamente cartacei
+102        																	-- 14: Periodo di conservazione ("Illimitato" o espresso come n.ro di anni) dei documenti del dato tipo
+103        																	-- 15: Descrizione del supporto di conservazione previsto per i documenti del dato tipo
+104        																	-- 16: Specifiche di accessibilità
+105        																	-- 17: Specifiche di riproducibilità
+106        																	-- 18: (valori 1/0) Se 1 è un tipo di documento che ha modelli associati, se 0 no
+107        																	-- 19: Folder dato in automatico ai documenti del dato tipo (le parti variabili sono indicate in brackets)
+108        																	-- 20: Annotazioni sul tipo di documento
+109        																	-- 21: Flag di annullamento logico (valori 1/0)
+110        																	-- 22: Motivi dell'annullamento logico
+111        																	-- 23: Cod. identificativo del tipo di documento nel sistema di provenienza
+112        																	-- 24: Timestamp di creazione del tipo di documento (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+113        																	-- 25: Descrizione dell'utente di creazione del tipo di documento
+114        																	-- 26: Timestamp di ultima modifica dei dati del tipo di documento (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+115        																	-- 27: Descrizione dell'utente di ultima modifica dei dati del tipo di documento
+116        																	-- 28: (valori 1/0) Indicatore di tipo di documento riservato dal sistema e non modificabile da applicativo
+117        																	-- 29: (valori 1/0): se 1 è richiesta abilitazione esplicita per visualizzare documenti del dato tipo
+118        																	-- 30: (valori 1/0): se 1 è richiesta abilitazione esplicita per gestire (modificare, versionare, cancellare) documenti del dato tipo
+119        																	-- 31: (valori 1/0): se 1 è richiesta abilitazione esplicita per assegnare il dato tipo ad un documento
+120        																	-- 32: (valori 1/0): se 1 è richiesta abilitazione esplicita per firmare documenti del dato tipo
+121        																	-- 33: (valori 1/0): se 1 è una tipologia associata ad un iter workflow
+122        																	-- 34: (valori V/P/NULL) indica se i documenti o allegati della tipologia devono avere una firma digitale: V = Valida, P = presente
+123        			FlgAbilInsOut	 		OUT 		PLS_INTEGER ,            			-- (valori 1/0) Se 1 si ha abilitazione a inserimento di tipo di documento
+124        			FlgAbilUpdOut 			OUT 		PLS_INTEGER ,            			-- (valori 1/0) Se 1 si ha abilitazione a modifica di tipo di documento
+125        			FlgAbilDelOut 			OUT 		PLS_INTEGER,            			-- (valori 1/0) Se 1 si ha abilitazione a cancellazione di tipo di documento
+126        			FlgMostraAltriAttrOut		OUT		PLS_INTEGER,					-- (valori 1/0) Se 1 nella GUI vanno mostrati gli attributi addizionali per un nuovo di tipo di documento (ce ne sono di visibile all'utente), se 0 no
+127        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+128        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+129        			ErrMsgOut				OUT 		VARCHAR2,						-- Messaggio d'errore
+130        			FlgRichAbilXVisualizzIn		IN		PLS_INTEGER default NULL,			-- (valori 1/0/NULL): filtro di ricerca per restringere la ricerca ai soli tipi per cui è richiesta abilitazione esplicita per visualizzare documenti del dato tipo (=1) o per cui non è richiesta abilitazione esplicita per visualizzare documenti del dato tipo (=0)
+131        			FlgRichAbilXGestIn		IN		PLS_INTEGER default NULL,			-- (valori 1/0/NULL): filtro di ricerca per restringere la ricerca ai soli tipi per cui è richiesta abilitazione esplicita per gestire (modificare, versionare, cancellare) documenti del dato tipo (=1) o per cui non è richiesta abilitazione esplicita per gestire documenti del dato tipo (=0)
+132        			FlgRichAbilXAssegnIn		IN		PLS_INTEGER default NULL,			-- (valori 1/0/NULL): filtro di ricerca per restringere la ricerca ai soli tipi per cui è richiesta abilitazione esplicita per assegnarli ad un documento (=1) o per cui non è richiesta abilitazione esplicita per assegnarli ad un documento (=0)
+133        			FlgRichAbilXFirmaIn		IN		PLS_INTEGER default NULL,			-- (valori 1/0/NULL): filtro di ricerca per restringere la ricerca ai soli tipi per cui è richiesta abilitazione esplicita per firmare documenti del dato tipo (=1) o per cui non è richiesta abilitazione esplicita per firmare documenti del dato tipo (=0)
+134        			FlgStatoAbilIn			IN		PLS_INTEGER default NULL,			-- (valori 1/0/NULL): filtro di ricerca per restringere la ricerca ai soli tipi cui l'utente/UO/scrivania/profilo ecc specificato nell'argomento IdDestAbilIn ha (= 1) o non ha (=0) abilitazione (con le opzioni eventualmente specificate nell'argomento OpzioniAbilIn)
+135        			FlgTpDestAbilIn			IN		VARCHAR2 default NULL,				-- (obblig. e gestito solo se FlgStatoAbilIn è valorizzato) Indica il tipo di chi (utente o UO ecc) deve avere o non avere abilitazione - con tutte le opzioni specificate in OpzioniAbilIn - verso i tipi da ricercare
+136        																	-- Valori ammessi:
+137        																	--	UO	=	U.O.
+138        																	-- 	SV	=	Scrivania virtuale
+139        																	--	UT	=	Utente
+140        																	--	PR	=	Profilo
+141        																	--	GP	=	Gruppo di privilegi
+142        			IdDestAbilIn			IN		INTEGER default NULL,				-- (obblig. e gestito solo se FlgStatoAbilIn è valorizzato) Identificativo (ID_UO o ID_SCRIVANIA o ID_USER o ID_PROFILO o ID_GRUPPO_PRIV) di chi deve avere o non avere abilitazione - con tutte le opzioni specificate in OpzioniAbilIn - verso i tipi da ricercare
+143        			OpzioniAbilIn			IN		VARCHAR2 DEFAULT NULL,				-- Indica la/le opzione (se più di una separate da ;) con cui IdDestAbilIn deve essere abilitato o meno (a seconda che FlgStatoAbilIn sia 1 o 0) ai tipi da ricercare
+144        																	-- Opzioni possibili:
+145        																	--	M	=	a Modificare/gestire
+146        																	--	A	=	ad Assegnare
+147        																	--	F	=	a Firmare
+148        																	--  P   =   a Pubblicare
+149        			NomeTagRigaIn			IN		VARCHAR2 default null,				--se valorizzato è il nome del tag riga che deve avere l'xml in output
+150        			NomeTagColonnaIn			IN		DMVA_STRING default null   			--se valorizzatorappresenta i nomi dei tag colonne dell'xml di output
+151        			)return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+152        
+153        	/***** Funzione per inserire o aggiornare un tipo di documento *****/
+154        	function IUDocType(
+155        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+156        																	-- (obblig). Codice identificativo del token di connessione
+157        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+158        			IdDocTypeIO   			IN OUT   	DMT_DOC_TYPES.ID_DOC_TYPE%type, 		-- Identificativo del tipo di documento da modificare. Se non valorizzato il tipo di documento è da inserire ex-novo
+159        																	-- In output, salvo in caso di errore, è sempre valorizzato
+160        			NomeIn				IN		DMT_DOC_TYPES.NOME_DOC_TYPE%TYPE DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+161        																	-- (obblig.) Nome del tipo di documento
+162        			DescrizioneIn			IN		DMT_DOC_TYPES.DES_DOC_TYPE%TYPE DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+163        																	-- Descrizione dettagliata del tipo di documento
+164        			IdDocTypeGenIn			IN		DMT_DOC_TYPES.ID_DOC_TYPE_GEN%TYPE DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+165        																	-- Identificativo del tipo di documento in cui ricade (viene considerato solo se è valorizzato anche l'argomento successivo)
+166        			NomeDocTypeGenIn			IN		DMT_DOC_TYPES.NOME_DOC_TYPE%TYPE DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+167        																	-- Nome del tipo di documento in cui ricade
+168        			FlgAllegatoIn			IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+169        																	-- (valori 1/2/0/NULL) Indica se i documenti del dato tipo possono (1) o devono (2) essere degli allegati o possono essere solo primari (0 o NULL)
+170        			CodNaturaIn				IN		DMT_DOC_TYPES.COD_NATURA%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+171        																	-- Codice della natura del tipo di documento (atto pubblico, scrittura privata ecc). Valori codificati in apposita dictionary entry.
+172        			FlgTipoProvIn			IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+173        																	-- (valori E/I/U) Indica se in genere i documenti del dato tipo sono in entrata (E), interni (I) o in uscita (U) dal soggetto produttore / AOO
+174        			CodSupportoOrigIn			IN		DMT_DOC_TYPES.COD_SUPPORTO_ORIG%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+175        																	-- Codice del supporto su cui normalmente nascono i documenti del dato tipo (cartaceo, informatico, ottico ecc). Valori codificati in apposita dictionary entry.
+176        			FlgTipoCartaceoIn			IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+177        																	-- (valori OU, ONU, C) Indica se in genere un documento del dato tipo in possesso del soggetto produttore è:
+178        																	-- OU 	= Originale Unico
+179        																	-- ONU 	= Originale Non Unico
+180        																	-- C		= Copia
+181        			FlgDaScansionareIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+182        																	-- (valori 1/0/NULL) Indica se per i documenti del dato tipo è prevista la scansione (1) o meno
+183        			FlgConservPermIn			IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+184        																	-- (valori 1/0/NULL) 1 indica che le unità documentarie del dato tipo vanno conservate per tempo illimitato
+185        			PeriodoConservIn			IN		DMT_DOC_TYPES.PERIODO_CONSERV%type DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+186        																	-- Periodo minimo di conservazione (espresso in anni) delle unità documentarie del dato tipo.
+187        			CodSupportoConservIn		IN		DMT_DOC_TYPES.COD_SUPPORTO_CONSERV%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+188        																	-- Codice del supporto di conservazione delle unità documentarie del dato tipo (valori da dizionario)
+189        			IdClassificazioneIn		IN		DMT_DOC_TYPES.ID_CLASSIFICAZIONE%type DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+190        																	-- Id. della classificazione delle unità documentarie del dato tipo.
+191        																	-- Viene considerato solo se almeno uno dei due argomenti successivi è valorizzato
+192        			LivelliClassificazioneIn	IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+193        																	-- Stringa con i n.ri livello della classificazione delle unità documentarie del dato tipo (tutti o solo alcuni; però se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno indicati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; vanno separati dal separatore dei livelli di classificazione valido per il soggetto produttore/AOO)
+194        			DesClassificazioneIn		IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+195        																	-- Descrizione della classificazione delle unità documentarie del dato tipo (o suo inizio; ricerca case insensitive in like).
+196        			IdFormatoElIn			IN 		DMT_DOC_TYPES.ID_FORMATO_EL%type DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+197        																	-- Identificativo del formato elettronico dei documenti del dato tipo
+198        																	-- Viene considerato e gestito solo se è valorizzato uno dei 2 argomenti successivi; se non congruenti con questi l'id. viene ignorato
+199        			NomeFormatoElIn			IN 		DMT_FORMATI_EL_AMMESSI.NOME_FORMATO%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+200        																	-- Nome del formato elettronico dei documenti del dato tipo (ricerca case-insensitive in like)
+201        			EstensioneFormatoElIn		IN 		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+202        																	-- Estensione del formato elettronico dei documenti del dato tipo (ricerca case-insensitive esatta)
+203        			SpecAccessibilitaIn		IN		DMT_DOC_TYPES.SPEC_ACCESSIBILITA%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+204        																	-- Specifiche di accessibilità dei documenti del dato tipo
+205        			SpecRiproducibilitaIn		IN		DMT_DOC_TYPES.SPEC_RIPRODUCIBILITA%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+206        																	-- Specifiche di riproducibilità  dei documenti del dato tipo
+207        			AnnotazioniIn			IN		DMT_DOC_TYPES.NOTE%TYPE DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+208        																	-- Annotazioni sul tipo
+209        			FlgRichAbilXVisualizzIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+210        																	-- (valori 1/0/NULL): se 1 è richiesta abilitazione esplicita per visualizzare documenti del dato tipo
+211        			FlgRichAbilXGestIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+212        																	-- (valori 1/0/NULL): se 1 è richiesta abilitazione esplicita per gestire (modificare, versionare, cancellare) documenti del dato tipo
+213        			FlgRichAbilXAssegnIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+214        																	-- (valori 1/0/NULL): se 1 è richiesta abilitazione esplicita per assegnare il dato tipo ad un documento
+215        			FlgRichAbilXFirmaIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+216        																	-- (valori 1/0/NULL): se 1 è richiesta abilitazione esplicita per firmare documenti del dato tipo
+217        			CIProvDocTypeIn			IN 		DMT_DOC_TYPES.PROV_CI_DOC_TYPE%TYPE DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+218        																	-- Codice identificativo del tipo di documento nel sistema di provenienza
+219        			FlgLockedIn				IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+220        																	-- (valori 1/0/NULL) Indicatore di tipo di documento riservato dal sistema e non modificabile/cancellabile da GUI
+221        			FlgModModelliIn			IN		VARCHAR2 DEFAULT 'I',				-- (valori I/C) Indica se i modelli indicati nell'argomento successivo sono forniti in modo incrementale (=I) (solo quelle da inserire/modificare/cancellare) oppure completo (=C), vale a dire che dovranno soppiantare tutti quelli già specificati (e relativi al dominio di lavoro) in caso di tipo di documento da aggiornare
+222        			XMLModelliIn			IN		CLOB DEFAULT NULL,				-- Lista con i modelli documentali associati al tipo di documento (XML conforme a schema LISTA_STD.xsd)
+223        																	-- Ogni associazione a modello è un tag "Riga" che può contenere le seguenti colonne:
+224        																	-- 1: Identificativo (ROWID) con cui la relazione tipo doc. - modello è già stata registrata in banca dati
+225        																	-- 2: Identificativo del modello
+226        																	-- 3: Nome del modello (ricerca case insesnsitive in like)
+227        																	-- 4: Data di inizio validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità decorre da sempre.
+228        																	-- 5: Data di fine validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità è illimitata.
+229        																	-- 6: (valori 1/0/NULL) Flag di record da eliminare
+230        			FlgModAttrAddXDocDelTipoIn	IN		VARCHAR2 DEFAULT 'I',				-- (valori I/C) Indica se gli attributi addizionali previsti per i documenti del dato tipo e indicati nell'argomento successivo sono forniti in modo incrementale (=I) (solo quelli da inserire/modificare/cancellare) oppure completo (=C), vale a dire che dovranno soppiantare tutti quelli già specificati (e relativi al dominio di lavoro) in caso di tipo di documento da aggiornare
+231        			XMLAttrAddXDocDelTipoIn		IN		CLOB DEFAULT NULL,				-- Lista con gli attributi addizionali previsti per i documenti del dato tipo (XML conforme a schema LISTA_STD.xsd)
+232        																	-- Ogni relazione tipo documento-attributo è tag "Riga" che può contenere le seguenti colonne:
+233        																	-- 1: Identificativo (ROWID) con cui la relazione è già stata registrata in banca dati
+234        																	-- 2: Nome identificativo dell'attributo (internal name)
+235        																	-- 3: Label con cui viene mostrato l'attributo nella GUI
+236        																	-- 4: (valori 1/0) Indicatore di obbligatorietà dell'attributo
+237        																	-- 5: Massimo numero di valori possibili per l'attributo
+238        																	-- 6: Data di inizio validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità decorre da sempre.
+239        																	-- 7: Data di fine validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità è illimitata.
+240        																	-- 8: N.ro (valori da 1 a n) che indica la posizione dell'attributo tra tutti quelli associati
+241        																	-- 9: (valori 1/0/NULL) Flag di relazione da eliminare
+242        																	-- 10: (flag 1/0) Indica se l'attributo va nel primo TAB della GUI
+243        																	-- 11: Codice del TAB in cui mostrare l'attributo
+244        																	-- 12: Label del TAB in cui mostrare l'attributo
+245        																	-- 13: (flag 1/0/NULL) Se 1 indica che è un attributo gestibile al di fuori dell'iter workflow
+246        			AttributiAddIn			IN		CLOB DEFAULT NULL,		-- XML contenente nomi e valori degli attributi dinamici da aggiornare (conforme allo schema SezioneCache.xsd)
+247        																	-- Gli attributi già presenti in DB e per i quali non c'è corrispondente nell'XML restano invariati
+248        																	-- Per tutti gli attributi vale quanto segue:
+249        																	-- Un attributo da settare è un tag "Variabile" dell'XML il cui tag "Nome" contiene il nome identificativo dell'attributo (ATTR_NAME di DMT_ATTRIBUTES_DEF)
+250        																	-- Un attributo da settare è una variabile con tag "ValoreSemplice" se è un attributo a singolo valore e non strutturato (cioè con tipo diverso da COMPLEX)
+251        																	-- altrimenti è una variabile con tag "Lista" che ha un'unica colonna con "Nro" pari a 1 se l'attributo non è strutturato, che ha invece tante colonne quanti gli attributi componenti (ordinate in base al loro NRO_ORD_IN_SUP) se l'attributo è complesso
+252        																	-- Nel caso di variabili con tag "Lista" i valori specificati nell'XML si aggiungono o sostituiscono quelli già presenti in DB a seconda che nell'XML sia presente o meno una variabile con tag "Nome" pari a #Append_<Nome attributo> e tag "ValoreSemplice" pari a 1
+253        																	-- In particolare se non sono specificati valori nell'XML (tag Lista vuoto) e se i valori non sono da aggiungere significa che tutti i valori dell'attributo già presenti in DB vanno rimossi
+254        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+255        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+256        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+257        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+258        			WarningMsgOut			OUT		VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+259        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+260        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+261        			ErrMsgOut				OUT 		VARCHAR2,						-- Messaggio d'errore
+262        			TemplateNomeUDIn		IN		DMT_DOC_TYPES.TEMPLATE_NOME_UD%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+263        																	-- Template secondo cui comporre il nome delle UD il cui file primario è del dato tipo (le variabili da sostituire sono tra $)
+264        			TemplateTimbroUDIn		IN		DMT_DOC_TYPES.TEMPLATE_TIMBRO_UD%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+265        																	-- Template secondo cui comporre il timbro da apporre sui documenti del dato tipo (le variabili da sostituire sono tra $)
+266        			IdProcessTypeIn          IN    	DMT_PROCESS_TYPES.ID_PROCESS_TYPE%type DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+267        																		--Identificativo del tipo di processo/procedimento collegato al tipo documento
+268                    NomeProcessTypeIn        IN    	DMT_PROCESS_TYPES.NOME_PROCESS_TYPE%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+269        																		-- Nome del tipo di processo/procedimento collegato al tipo documento
+270        			AbilitazioniPubblIn		 IN		CLOB DEFAULT NULL,			-- Indica le UO e i gruppi di privilegi abilitati alla pubblicazione dei documenti della data tipologia. E' una lista xml std
+271        																		-- Ogni riga corrisponde ad una UO o gruppo di privilegi e contiene le colonne:
+272        																		-- 1) Tipo di abilitato: GP= Gruppo di privilegi; UO = Struttura organigramma
+273        																		-- 2) ID_UO o ID_GRUPPO_PRIV
+274        																		-- 3) Descrizione/nome UO o gruppo privilegi
+275        																		-- 4) Nri livelli della UO
+276        			FlgRichFirmaDigitaleIn	 IN		VARCHAR2 DEFAULT NULL		-- Indica se per i file dei documenti della data tipologia è richiesta firma digitale.
+277        																		-- Valori ammessi: V = richiesta e deve essere Valida, P = richiesta ma può anche non essere valida
+278                    ) return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+279        
+280        	/*** Funzione di eliminazione di un tipo di documento								***/
+281        	/*** Si può specificare se l'eliminazione deve essere fisica o solo logica (annullamento)		***/
+282        	/*** Se non lo si specifica il sistema fa quella fisica se possibile, se no quella logica		***/
+283        	function DDocType(
+284        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+285        																	-- (obblig). Codice identificativo del token di connessione
+286        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+287        			IdDocTypeIn   			IN 		DMT_DOC_TYPES.ID_DOC_TYPE%TYPE,		-- (obblig.)Identificativo del tipo di documento
+288        			FlgCancFisicaIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL): Se 1 si richiede la cancellazione fisica; se 0 l'annullamento logico; se non è valorizzato quella possibile delle 2.
+289        			MotiviIn				IN		DMT_DOC_TYPES.MOTIVI_ANN%type,		-- Motivi della cancellazione/annullamento
+290        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+291        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+292        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+293        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+294        			WarningMsgOut			OUT		VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+295        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+296        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+297        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+298        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+299        
+300        	/**** Funzione per ottenere tutti i dati di dettaglio di una tipologia documentale tranne la folderizzazione automatica *****/
+301        	function LoadDettDocType(
+302        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+303        																	-- (obblig). Codice identificativo del token di connessione
+304        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+305        			IdDocTypeIO   			IN OUT   	DMT_DOC_TYPES.ID_DOC_TYPE%type, 		-- (obblig) Identificativo del tipo di documento di cui caricare il dettaglio
+306        			NomeOut				OUT		DMT_DOC_TYPES.NOME_DOC_TYPE%TYPE,		-- Nome del tipo di documento
+307        			DescrizioneOut			OUT		DMT_DOC_TYPES.DES_DOC_TYPE%TYPE,		-- Descrizione dettagliata del tipo di documento
+308        			IdDocTypeGenOut			OUT		DMT_DOC_TYPES.ID_DOC_TYPE_GEN%TYPE,		-- Identificativo del tipo di documento in cui ricade
+309        			NomeDocTypeGenOut			OUT		DMT_DOC_TYPES.NOME_DOC_TYPE%TYPE,		-- Nome del tipo di documento in cui ricade
+310        			FlgAllegatoOut			OUT		PLS_INTEGER ,					-- (valori 1/2/0) Indica se i documenti del dato tipo possono (1) o devono (2) essere degli allegati o possono essere solo primari (0)
+311        			CodNaturaOut			OUT		DMT_DOC_TYPES.COD_NATURA%type,		-- Codice della natura del tipo di documento (atto pubblico, scrittura privata ecc). Valori codificati in apposita dictionary entry.
+312        			FlgTipoProvOut			OUT		DMT_DOC_TYPES.FLG_TIPO_PROV%type,		-- (valori E/I/U) Indica se in genere i documenti del dato tipo sono in entrata (E), interni (I) o in uscita (U) dal soggetto produttore / AOO
+313        			CodSupportoOrigOut		OUT		DMT_DOC_TYPES.COD_SUPPORTO_ORIG%type,	-- Codice del supporto su cui normalmente nascono i documenti del dato tipo (cartaceo, informatico, ottico ecc). Valori codificati in apposita dictionary entry.
+314        			FlgTipoCartaceoOut		OUT		DMT_DOC_TYPES.FLG_TIPO_CARTACEO%type,	-- (valori OU, ONU, C) Indica se in genere un documento del dato tipo in possesso del soggetto produttore è:
+315        																	-- OU 	= Originale Unico
+316        																	-- ONU 	= Originale Non Unico
+317        																	-- C		= Copia
+318        			FlgDaScansionareOut		OUT		PLS_INTEGER,					-- (valori 1/0) Indica se per i documenti del dato tipo è prevista la scansione (1) o meno
+319        			FlgConservPermOut			OUT		PLS_INTEGER,					-- (valori 1/0) 1 indica che le unità documentarie del dato tipo vanno conservate per tempo illimitato
+320        			PeriodoConservOut			OUT		DMT_DOC_TYPES.PERIODO_CONSERV%type,		-- Periodo minimo di conservazione (espresso in anni) delle unità documentarie del dato tipo.
+321        			CodSupportoConservOut		OUT		DMT_DOC_TYPES.COD_SUPPORTO_CONSERV%type,	-- Codice del supporto di conservazione delle unità documentarie del dato tipo (valori da dizionario)
+322        			IdClassificazioneOut		OUT		DMT_DOC_TYPES.ID_CLASSIFICAZIONE%type,	-- Id. della classificazione delle unità documentarie del dato tipo.
+323        			LivelliClassificazioneOut	OUT		VARCHAR2,						-- Stringa con i n.ri livello della classificazione delle unità documentarie del dato tipo (sono separati dal separatore dei livelli di classificazione valido per il soggetto produttore/AOO)
+324        			DesClassificazioneOut		OUT		VARCHAR2,						-- Descrizione della classificazione delle unità documentarie del dato tipo
+325        			IdFormatoElOut			OUT 		DMT_DOC_TYPES.ID_FORMATO_EL%type,		-- Identificativo del formato elettronico dei documenti del dato tipo
+326        			NomeFormatoElOut			OUT 		DMT_FORMATI_EL_AMMESSI.NOME_FORMATO%type,	-- Nome del formato elettronico dei documenti del dato tipo
+327        			SpecAccessibilitaOut		OUT		DMT_DOC_TYPES.SPEC_ACCESSIBILITA%type,	-- Specifiche di accessibilità dei documenti del dato tipo
+328        			SpecRiproducibilitaOut		OUT		DMT_DOC_TYPES.SPEC_RIPRODUCIBILITA%type,	-- Specifiche di riproducibilità dei documenti del dato tipo
+329        			AnnotazioniOut			OUT		DMT_DOC_TYPES.NOTE%TYPE,			-- Annotazioni sul tipo
+330        			FlgRichAbilXVisualizzOut	OUT		PLS_INTEGER,					-- (valori 1/0): se 1 è richiesta abilitazione esplicita per visualizzare documenti del dato tipo
+331        			FlgRichAbilXGestOut		OUT		PLS_INTEGER,					-- (valori 1/0): se 1 è richiesta abilitazione esplicita per gestire (modificare, versionare, cancellare) documenti del dato tipo
+332        			FlgRichAbilXAssegnOut		OUT		PLS_INTEGER,					-- (valori 1/0): se 1 è richiesta abilitazione esplicita per assegnare il dato tipo ad un documento
+333        			FlgRichAbilXFirmaOut		OUT		PLS_INTEGER,					-- (valori 1/0): se 1 è richiesta abilitazione esplicita per firmare documenti del dato tipo
+334        			CIProvDocTypeOut			OUT 		DMT_DOC_TYPES.PROV_CI_DOC_TYPE%TYPE,	-- Codice identificativo del tipo di documento nel sistema di provenienza
+335        			TemplateNomeUDOut			OUT		DMT_DOC_TYPES.TEMPLATE_NOME_UD%type,
+336        																				-- Template secondo cui comporre il nome delle UD il cui file primario è del dato tipo (le variabili da sostituire sono tra $)
+337        			TemplateTimbroUDOut			OUT		DMT_DOC_TYPES.TEMPLATE_TIMBRO_UD%type,
+338        																				-- Template secondo cui comporre il timbro da apporre sui documenti del dato tipo (le variabili da sostituire sono tra $)
+339        			IdProcessTypeOut        OUT    	DMT_PROCESS_TYPES.ID_PROCESS_TYPE%type,
+340        																				--Identificativo del tipo di processo/procedimento collegato al tipo documento
+341                    NomeProcessTypeOut      OUT    	DMT_PROCESS_TYPES.NOME_PROCESS_TYPE%type,
+342        																				-- Nome del tipo di processo/procedimento collegato al tipo documento
+343                    FlgLockedOut			OUT		PLS_INTEGER,					-- (valori 1/0) Indicatore di tipo di documento riservato dal sistema e non modificabile/cancellabile da GUI
+344        			RowidOut				OUT		VARCHAR2,						-- Rowid del record del tipo di documento
+345        			XMLModelliOut			OUT		NOCOPY CLOB,					-- Lista con i modelli documentali associati al tipo di documento (XML conforme a schema LISTA_STD.xsd)
+346        																	-- Ogni associazione a modello è un tag "Riga" che contiene le seguenti colonne:
+347        																	-- 1: Identificativo (ROWID) con cui la relazione tipo doc. - modello è già stata registrata in banca dati
+348        																	-- 2: Identificativo del modello
+349        																	-- 3: Nome del modello
+350        																	-- 4: Data di inizio validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità decorre da sempre.
+351        																	-- 5: Data di fine validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità è illimitata.
+352        			XMLAttrAddXDocDelTipoOut	OUT		NOCOPY CLOB,					-- Lista con gli attributi addizionali previsti per i documenti del dato tipo (XML conforme a schema LISTA_STD.xsd)
+353        																	-- Ogni relazione tipo documento-attributo è tag "Riga" che contiene le seguenti colonne:
+354        																	-- 1: Identificativo (ROWID) con cui la relazione è già stata registrata in banca dati
+355        																	-- 2: Nome identificativo dell'attributo (internal name)
+356        																	-- 3: Label con cui viene mostrato l'attributo nella GUI
+357        																	-- 4: (valori 1/0) Indicatore di obbligatorietà dell'attributo
+358        																	-- 5: Massimo numero di valori possibili per l'attributo
+359        																	-- 6: Data di inizio validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità decorre da sempre.
+360        																	-- 7: Data di fine validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità è illimitata.
+361        																	-- 8: N.ro (valori da 1 a n) che indica la posizione dell'attributo tra tutti quelli associati
+362        																	-- 10: (flag 1/0) Indica se l'attributo va nel primo TAB della GUI
+363        																	-- 11: Codice del TAB in cui mostrare l'attributo
+364        																	-- 12: Label del TAB in cui mostrare l'attributo
+365        																	-- 13: (flag 1/0/NULL) Se 1 indica che è un attributo gestibile al di fuori dell'iter workflow
+366        			AttributiAddOut			OUT		NOCOPY CLOB,			-- Lista degli eventuali ulteriori attributi con cui caratterizzare il tipo documento (XML conforme a schema LISTA_STD.xsd)
+367        																	-- Ogni attributo è un tag "Riga" che contiene le seguenti colonne:
+368        																	-- 1: N.ro (valori da 1 a n) del riquadro (fieldset) in cui mostrare l'attributo
+369        																	-- 2: Nome identificativo dell'attributo (ATTR_NAME)
+370        																	-- 3: Label del campo con cui rappresentare l'attributo
+371        																	-- 4: Tipo di attributo. Valori: DATE, DATETIME, TEXT, TEXT-AREA, CHECK, INTEGER, EURO, DECIMAL, COMBO-BOX, LISTA
+372        																	-- 5: N.ro massimo di caratteri/cifre
+373        																	-- 6: Larghezza del campo con cui rappresentare l'attributo (size)
+374        																	-- 7: Valore dell'attributo
+375        																	-- 8: Label del riquadro (fieldset) in cui mostrare l'attributo
+376        																	-- 9: (valori 1/0) 1 indica che l'attributo è obbligatorio, 0 che è facoltativo
+377        																	-- 10: Altezza (in nro righe) del campo con cui rappresentare l'attributo (se TEXT-AREA)
+378        																	-- 11:(valori 1/0) 1 indica se l'attributo è modificabile, 0 che è in sola visualizzazione
+379        			AbilitazioniPubblOut	OUT NOCOPY CLOB,				-- Indica le UO e i gruppi di privilegi abilitati alla pubblicazione dei documenti della data tipologia. E' una lista xml std
+380        																		-- Ogni riga corrisponde ad una UO o gruppo di privilegi e contiene le colonne:
+381        																		-- 1) Tipo di abilitato: GP= Gruppo di privilegi; UO = Struttura organigramma
+382        																		-- 2) ID_UO o ID_GRUPPO_PRIV
+383        																		-- 3) Descrizione/nome UO o gruppo privilegi
+384        																		-- 4) Nri livelli della UO														
+385        			FlgRichFirmaDigitaleOut	 OUT	VARCHAR2,					-- Indica se per i file dei documenti della data tipologia è richiesta firma digitale.
+386        																		-- Valori ammessi: V = richiesta e deve essere Valida, P = richiesta ma può anche non essere valida
+387                    BachSizeOut				OUT		PLS_INTEGER,					-- Indica il massimo n.ro di record per ogni pagina da mostrare nelle liste restituite in output
+388        			FlgMostraAltriAttrOut		OUT		PLS_INTEGER,					-- (valori 1/0) Se 1 nella GUI vanno mostrati gli attributi addizionali (ce ne sono di visibile all'utente), se 0 no
+389        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+390        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+391        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+392        			return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+393        
+394        	---- funzione per ottenere le caratteristica di una proposta di atto di un dato tipo indicato in input (IdDocTypeIn) tenendo conto di eventuali opzioni/specificità della spcifica proposta
+395        	function GetParametriTipoAtto(
+396        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+397        																							-- (obblig). Codice identificativo del token di connessione
+398        			IdUserLavoroIn				IN			DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+399        			IdDocTypeIn   				IN			DMT_DOC_TYPES.ID_DOC_TYPE%type, 		-- (obblig) Identificativo del tipo di documento
+400        			OpzioniTipoAttoIn 			IN			CLOB DEFAULT NULL, 						-- XML SezioneCache con eventuali opzioni/specificità dell'atto 
+401        			ParametriTipoAttoOut 		OUT			NOCOPY CLOB,							-- XML SezioneCache con i paramtri del tipo di atto (tenendo conto delle eventuali opzioni/specificità dell'atto)
+402        			ErrContextOut				OUT			VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+403        			ErrCodeOut					OUT			PLS_INTEGER,							-- N.ro errore di uscita
+404        			ErrMsgOut					OUT 		VARCHAR2)								-- Messaggio d'errore
+405        			return PLS_INTEGER;																-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+406        END DMPK_DOC_TYPES;
+407        

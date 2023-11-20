@@ -1,0 +1,23 @@
+.filebtn {
+    background-color: white;
+    border: none;
+    color: #17a2b8;
+    padding: 0px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  /* Darker background on mouse-over */
+   .filebtn:hover {
+    background-color: white;
+    border: none;
+    color: #177f8f;
+  } 
+
+  .row {
+    margin-top: 10px;
+  }
+
+  .fa-envelope-open, .fa-award, .fa-print, .fa-fingerprint, .fa-file-download {
+    line-height: 0 !important;
+  }

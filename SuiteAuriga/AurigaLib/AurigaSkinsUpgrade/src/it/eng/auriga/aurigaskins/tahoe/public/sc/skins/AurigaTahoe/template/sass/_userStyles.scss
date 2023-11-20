@@ -1,0 +1,744 @@
+/* _userStyles.scss - Fonderie override */
+
+$filter_none: none !important;
+$filter_invert: brightness(0) invert(1) !important;
+
+.au-backdrop.modalMask {
+	opacity: 1 !important;
+  	background-color: #767676;
+}
+
+.au-clickable {
+	cursor: pointer;
+}
+
+.au-userLabel,
+.au-userLabelFocused,
+.au-userLabelDisabled,
+.au-headerLabel,
+.au-headerLabelFocused,
+.au-headerLabelDisabled,
+.au-footerLabel,
+.au-footerLabelFocused,
+.au-footerLabelDisabled {
+	color: $standard_white; // utilizzare variabili se presenti
+}
+
+.au-userLabel,
+.au-userLabelFocused,
+.au-userLabelDisabled,
+.au-headerLabel,
+.au-headerLabelFocused,
+.au-headerLabelDisabled {
+	font-weight: bold;
+}
+
+/*
+.au-headerLabelDisabled {
+	color: $standard_gray;
+}
+*/
+
+.au-headerButton {
+	color: $standard_white;
+}
+
+.au-headerButton.toolStripButtonOver,
+.au-headerButton.toolStripButtonSelected,
+.au-headerButton.toolStripButtonFocusedOver,
+.au-headerButton.toolStripButtonSelectedOver,
+.au-headerButton.toolStripButtonSelectedFocused,
+.au-headerButton.toolStripButtonSelectedFocusedOver {
+  	background-color: $standard_white;
+  	color: $standard_black;
+}
+
+@if $invert_menu_icons_on_rollover {
+	.au-headerButton img {
+	  	filter: $filter_invert;
+	    -webkit-filter: $filter_invert;
+	    -moz-filter: $filter_invert;
+	    -o-filter: $filter_invert;
+	    -ms-filter: $filter_invert;
+	}
+	
+	.au-headerButton.toolStripButtonOver img,
+	.au-headerButton.toolStripButtonSelected img,
+	.au-headerButton.toolStripButtonFocusedOver img,
+	.au-headerButton.toolStripButtonSelectedOver img,
+	.au-headerButton.toolStripButtonSelectedFocused img,
+	.au-headerButton.toolStripButtonSelectedFocusedOver img {
+	  	filter: $filter_none;
+	    -webkit-filter: $filter_none;
+	    -moz-filter: $filter_none;
+	    -o-filter: $filter_none;
+	    -ms-filter: $filter_none;
+	}
+}
+
+.au-footerButton {
+	color: $standard_white;
+}
+
+.au-footerButton.toolStripButtonOver,
+.au-footerButton.toolStripButtonSelected,
+.au-footerButton.toolStripButtonFocusedOver,
+.au-footerButton.toolStripButtonSelectedOver,
+.au-footerButton.toolStripButtonSelectedFocused,
+.au-footerButton.toolStripButtonSelectedFocusedOver {
+  	background-color: $standard_white;
+  	color: $standard_black;
+}
+
+@if $invert_menu_icons_on_rollover {
+	.au-footerButton img {
+	  	filter: $filter_invert;
+	    -webkit-filter: $filter_invert;
+	    -moz-filter: $filter_invert;
+	    -o-filter: $filter_invert;
+	    -ms-filter: $filter_invert;
+	}
+	
+	.au-footerButton.toolStripButtonOver img,
+	.au-footerButton.toolStripButtonSelected img,
+	.au-footerButton.toolStripButtonFocusedOver img,
+	.au-footerButton.toolStripButtonSelectedOver img,
+	.au-footerButton.toolStripButtonSelectedFocused img,
+	.au-footerButton.toolStripButtonSelectedFocusedOver img {
+	  	filter: $filter_none;
+	    -webkit-filter: $filter_none;
+	    -moz-filter: $filter_none;
+	    -o-filter: $filter_none;
+	    -ms-filter: $filter_none;
+	}		
+}
+
+.au-detailButton {
+  	color: $standard_black;
+    background-color: $standard_white;
+    border: 1px solid $standard_black;     
+}
+
+.au-detailButton img {
+    filter: $filter_none;
+    -webkit-filter: $filter_none;
+    -moz-filter: $filter_none;
+    -o-filter: $filter_none;
+    -ms-filter: $filter_none;
+}
+
+.au-detailButton.toolStripButtonOver {   
+	color: $standard_white;
+    background-color: $standard_black;
+    border: 1px solid $standard_black;  	
+}
+
+.au-detailButton.toolStripButtonOver img {
+    filter: $filter_invert;
+    -webkit-filter: $filter_invert;
+    -moz-filter: $filter_invert;
+    -o-filter: $filter_invert;
+    -ms-filter: $filter_invert;
+}
+
+.au-detailButtonHiddenText {
+  	color: $standard_black;    
+    font-size: 0px;
+}
+
+.au-detailButtonHiddenText.toolStripButtonOver {    
+	font-size: 11px;
+}
+
+.au-frontEndButton {
+  	color: $standard_white;
+    background-color: $standard_black;
+    border: 1px solid $standard_black;  	
+}
+
+.au-frontEndButton img {   
+	filter: $filter_invert;
+    -webkit-filter: $filter_invert;
+    -moz-filter: $filter_invert;
+    -o-filter: $filter_invert;
+    -ms-filter: $filter_invert;	
+}
+	
+.au-headerToolStrip {
+	background-color: hsl($primary_hue, $default_saturation, $default_lightness);
+  	border: 1px solid hsl($primary_hue, $default_saturation, $default_lightness);
+ 	padding: 4px;
+  	padding-left: 6px;
+}
+
+.au-userToolStrip {
+	background-color: #767676;
+  	border: 1px solid #767676;
+ 	padding: 4px;
+  	padding-left: 6px;
+}
+
+.au-footerToolStrip {
+	color: #ffffff;
+	background-color: $standard_black;
+  	border: 1px solid $standard_black;
+  	padding: 4px;
+  	padding-left: 6px;
+}
+
+.au-detailToolStrip {
+	background-color: $standard_white;
+    border-top: 1px solid #767676;
+ 	padding: 4px;
+  	padding-left: 6px;
+}
+
+.au-navigationLayout {
+	background-color: $standard_gray !important;
+	border-bottom: 7px solid $standard_white !important;
+}
+
+.au-filterLayout {
+	background-color: $standard_gray !important;
+}
+
+.au-listLayout {
+	background-color: $standard_gray !important;
+}
+
+.au-detailLayout {
+	background-color: $standard_gray !important;
+}
+
+.au-detailLayoutWithTabSet {
+	background-color: $standard_white !important;
+}
+
+.au-detailSection {
+	border: 1px solid #767676 !important;	
+	background-color: $standard_white !important;
+}
+
+.au-headerDetailSection {
+	text-transform: uppercase;
+	background-color: $standard_white !important;
+}
+
+.au-headerDetailSectionTitle {
+	color: hsl($primary_hue, $default_saturation, $default_lightness);
+}
+
+.au-tabSetMenuNoBorder {
+	background-color: $standard_gray;	 
+}
+
+.au-menuTask {
+	margin-top: 5px !important;
+}
+
+.au-buttonMenu,
+.au-buttonMenuOver,
+.au-buttonMenuFocused,
+.au-buttonMenuFocusedOver,
+.au-buttonMenuDown,
+.au-buttonMenuFocusedDown,
+.au-buttonMenuSelected,
+.au-buttonMenuSelectedFocused,
+.au-buttonMenuSelectedDown,
+.au-buttonMenuSelectedFocusedDown,
+.au-buttonMenuSelectedOver,
+.au-buttonMenuSelectedFocusedOver,
+.au-buttonMenuDisabled,
+.au-buttonMenuSelectedDisabled {
+    font-size: 11px;
+    font-weight: bold;
+	color: $standard_white;
+    /*display: inline-block;*/
+	padding: 4px 4px;
+	margin-bottom: 0;
+	text-align: center;
+	cursor: pointer;
+	/*background: url(./images/SectionHeader/customHeader.jpg) repeat-x scroll;*/
+	background-color: #767676;	   
+	border-right: 5px solid $standard_gray;
+    border-left: 5px solid $standard_gray; 
+}
+
+.au-buttonMenuDisabled,
+.au-buttonMenuSelectedDisabled {
+	color: $standard_gray;
+	cursor: default;
+}
+
+.au-buttonMenu img,
+.au-buttonMenuOver img,
+.au-buttonMenuFocused img,
+.au-buttonMenuFocusedOver img,
+.au-buttonMenuDown img,
+.au-buttonMenuFocusedDown img,
+.au-buttonMenuSelected img,
+.au-buttonMenuSelectedFocused img,
+.au-buttonMenuSelectedDown img,
+.au-buttonMenuSelectedFocusedDown img,
+.au-buttonMenuSelectedOver img,
+.au-buttonMenuSelectedFocusedOver img,
+.au-buttonMenuDisabled img,
+.au-buttonMenuSelectedDisabled img {
+	 filter: $filter_invert;
+    -webkit-filter: $filter_invert;
+    -moz-filter: $filter_invert;
+    -o-filter: $filter_invert;
+    -ms-filter: $filter_invert;
+}
+
+.au-buttonMenuTitle,
+.au-buttonMenuTitleOver,
+.au-buttonMenuTitleDown,
+.au-buttonMenuTitleSelected,
+.au-buttonMenuTitleFocused,
+.au-buttonMenuTitleSelectedFocused,
+.au-buttonMenuTitleSelectedOver,
+.au-buttonMenuTitleFocusedOver,
+.au-buttonMenuTitleSelectedFocusedOver,
+.au-buttonMenuTitleSelectedDown,
+.au-buttonMenuTitleFocusedDown,
+.au-buttonMenuTitleSelectedFocusedDown,
+.au-buttonMenuTitleDisabled,
+.au-buttonMenuTitleSelectedDisabled {
+  	color: $standard_black;
+  	font-size: 12px;
+  	text-align: left;	
+}
+
+.au-buttonMenuTitleDisabled,
+.au-buttonMenuTitleSelectedDisabled {
+  	color: $standard_gray;
+  	font-weight: normal;
+}
+
+.au-labelMenu,
+.au-labelMenuDisabled,
+.au-labelMenuSelect {
+ 	/*cursor: pointer;*/
+ 	font-size: 11px;
+ 	padding-left: 10px;  
+ 	padding-right: 4px; 	
+	/*background: url(./images/SectionHeader/customSottoHeader.jpg) repeat-x scroll;*/
+	background-color: $standard_white;   	
+  	background-size: cover;
+    min-height: 30px;    
+    border-top: 1px solid $standard_gray;
+    border-left: 1px solid $standard_gray;
+    border-right: 5px solid $standard_gray;
+    border-left: 5px solid $standard_gray;
+}
+
+.au-labelMenuSelect {
+ 	/*background: url(./images/SectionHeader/customSottoHeaderOver.jpg) repeat-x scroll;*/
+ 	background-color: $active_over_bgColor;	
+  	background-size: cover;
+}
+
+.au-labelMenuDisabled {
+ 	/*cursor: default;*/
+ 	color: #767676;
+}
+
+.au-taskLabel,
+.au-taskLabelDisabled,
+.au-taskLabelSelect {
+ 	cursor: pointer;
+ 	font-size: 11px;
+ 	padding-left: 10px;    
+	background-size: cover;
+	background-color: $standard_white;
+	border: 1px solid #767676;
+}
+
+.au-taskLabelSelect {
+ 	background-size: cover;
+ 	background-color: $standard_white;
+}
+
+.au-taskLabelDisabled {
+ 	cursor: default;
+ 	color: #767676;
+ 	background-color: $standard_white;
+}
+
+.au-intestazioneLayout {
+	background-color: hsl(165, 100%, 25%);
+}
+ 	
+.au-titoloDettagliIntestazione {
+	background-color: transparent;
+ 	color: $standard_white; 
+ 	font-size: 12px;
+  	padding-bottom: 10px;
+}
+
+.au-buttonIntestazione {
+	background-color: transparent;
+ 	cursor: pointer;
+}
+
+.au-buttonIntestazione img {
+	 filter: $filter_invert;
+    -webkit-filter: $filter_invert;
+    -moz-filter: $filter_invert;
+    -o-filter: $filter_invert;
+    -ms-filter: $filter_invert;
+}
+
+.au-titoloTask {
+	font-weight: bold;
+	font-size: 12px;
+	font-style: normal;
+	text-decoration: underline;
+	color: $standard_black;
+	padding: 5;
+}
+
+.au-dettagliTask {
+	font-size: 11px;
+	font-style: normal;
+	color: $standard_black;
+}
+
+.au-motiviNonEsegTask {
+	font-weight: bold;
+	font-size: 11px;
+	font-style: normal;
+	color: #F13131;
+}
+
+.au-titlePortlet {
+    font-weight: normal;
+}
+
+.au-formTitleBold {	
+	font-weight: bold;
+	border: 0px;
+	background-color: transparent;
+}
+
+.au-readonlyItem, 
+.au-readonlyItemDisabled, 
+.au-readonlyItemFocused {
+	background-color: #F0F0F0;
+	color: $standard_black;
+}
+
+.au-portalDesktopButtonsTileGrid {
+	
+}
+
+.au-portalDesktopButtonsTileValue {
+	height: 140px;
+}
+
+.au-portalDestopButtonsTitle {
+	font-weight: bold;
+	font-size: 15px;
+	font-style: normal;
+	text-decoration: underline;
+	color: $standard_black;
+	padding: 5;
+	cursor: pointer;
+}
+
+.au-summaryLabelContents {
+	font-size: 12px;
+	font-style: normal;
+	color: $standard_black;	
+}
+
+.au-summaryLabelContentsDisabled {
+	font-weight: bold;
+	font-size: 12px;
+	font-style: normal;
+	color: #767676;
+}
+
+.au-allegatoLabelNome {
+	font-weight: bold;
+	font-size: 12px;
+	font-style: normal;
+	text-decoration: underline;
+	color: $standard_black;
+	padding: 5;
+}
+
+.au-allegatoLabelDescrizione {
+	font-size: 11px;
+	font-style: normal;
+	color: $standard_black;
+}
+
+.au-allegatoLabelPrescrizione {
+	font-weight: bold;
+	font-size: 11px;
+	font-style: nomal;
+	color: $standard_black;
+	padding-top: 10;
+}
+
+.au-taskLabelTitolo {
+	font-weight: bold;
+	font-size: 12px;
+	font-style: normal;
+	text-decoration: underline;
+	color: $standard_black;
+	padding: 5;
+}
+
+.au-taskLabelTitoloDisabled {
+	font-weight: bold;
+	font-size: 12px;
+	font-style: normal;
+	text-decoration: underline;
+	color: #767676;
+	padding: 5;	
+}
+
+.au-taskLabelDettagli {
+	font-size: 11px;
+	font-style: normal;
+	color: $standard_black;
+}
+
+.au-taskLabelDettagliDisabled {
+	font-size: 11px;
+	font-style: normal;
+	color: #767676;
+}
+
+@each $tabStyle in tabButton, iconOnlyTabButton {
+    @if $tabStyle == tabButton {
+/*============================================================
+    TabSet CSS tabs
+    tabSet.simpleTabBaseStyle
+============================================================*/
+} @else {
+/*============================================================
+    TabSet CSS tabs
+    tabSet.simpleTabIconOnlyBaseStyle
+============================================================*/
+}
+/* styles for simple css-styled tabs*/
+/* top */
+.#{$tabStyle}Top,
+.#{$tabStyle}TopOver,
+.#{$tabStyle}TopDown,
+.#{$tabStyle}TopFocusedDown,
+.#{$tabStyle}TopFocused,
+.#{$tabStyle}TopFocusedOver,
+.#{$tabStyle}TopSelectedFocused,
+.#{$tabStyle}TopSelectedFocusedOver,
+.#{$tabStyle}TopSelectedFocusedDown,
+.#{$tabStyle}TopSelected,
+.#{$tabStyle}TopSelectedOver,
+.#{$tabStyle}TopSelectedDown,
+.#{$tabStyle}TopSelectedDisabled,
+.#{$tabStyle}TopDisabled {
+    @include border-radius(0px 0px 0px 0px);
+    padding: 0px if($tabStyle == tabButton, 27px, 12px);
+    text-transform: uppercase;
+    font-weight: bold;
+}
+}
+
+.selectItemLiteControlErrorFocused {
+  	border: 1px solid $standard_widget_border_color;
+}
+
+.listGrid {
+	border: 0px;
+}
+
+.toolStrip {
+	border: 0px;
+	backgroundColor: transparent;
+}
+
+.vSplitbar,
+.hSplitbar {
+	background: $standard_white;
+}
+
+.windowBackground,
+.dialogBackground {
+  	border: 1px solid $standard_black;
+  	background: $standard_white;
+}
+
+.windowBody {
+	background: $standard_white;	
+}
+
+.button,
+.buttonOver,
+.buttonFocused,
+.buttonFocusedOver,
+.buttonDown,
+.buttonFocusedDown,
+.buttonSelected,
+.buttonSelectedFocused,
+.buttonSelectedDown,
+.buttonSelectedFocusedDown,
+.buttonSelectedOver,
+.buttonSelectedFocusedOver,
+.buttonDisabled,
+.buttonSelectedDisabled {
+	text-transform: uppercase;
+}
+
+.button img,
+.buttonOver img,
+.buttonFocused img,
+.buttonFocusedOver img,
+.buttonDown img,
+.buttonFocusedDown img,
+.buttonSelected img,
+.buttonSelectedFocused img,
+.buttonSelectedDown img,
+.buttonSelectedFocusedDown img,
+.buttonSelectedOver img,
+.buttonSelectedFocusedOver img,
+.buttonDisabled img,
+.buttonSelectedDisabled img {
+    filter: $filter_invert;
+    -webkit-filter: $filter_invert;
+    -moz-filter: $filter_invert;
+    -o-filter: $filter_invert;
+    -ms-filter: $filter_invert;
+}
+
+.sectionStack {
+	border: 0px;
+}
+
+.menu,
+.menuSelected,
+.menuOver,
+.menuSelectedOver,
+.menuDisabled,
+.menuDisabledDark,
+.menuTitleField,
+.menuTitleFieldDark,
+.menuTitleFieldSelected,
+.menuTitleFieldSelectedDark,
+.menuTitleFieldOver,
+.menuTitleFieldOverDark,
+.menuTitleFieldSelectedOver,
+.menuTitleFieldSelectedOverDark,
+.menuTitleFieldDisabled,
+.menuTitleFieldDisabledDark,
+.menuIconField,
+.menuIconFieldOver,
+.menuIconFieldSelected,
+.menuIconFieldSelectedOver,
+.menuIconFieldDisabled,
+.treeMenuSelected,
+.treeMenuSelectedOver,
+.treeMenuSelectedSelected,
+.treeMenuSelectedSelectedOver {
+    border: {
+        bottom: 0px solid transparent;
+        top: 0px solid transparent;
+    }
+    padding: {
+        bottom: 0px;
+        top: 0px; 
+    }
+}
+
+.menuIconField, 
+.menuIconFieldDark, 
+.menuIconFieldOver, 
+.menuIconFieldOverDark, 
+.menuIconFieldSelected, 
+.menuIconFieldSelectedDark, 
+.menuIconFieldSelectedOver, 
+.menuIconFieldSelectedOverDark, 
+.menuIconFieldDisabled {
+    padding-left: 5px;
+    padding-right: 2px;
+}
+
+@if $invert_menu_icons_on_rollover {
+	.menuIconFieldSelected img,
+	.menuSelected img,
+	.menuIconFieldOver img,
+	.menuOver img {
+		filter: $filter_invert;
+		-webkit-filter: $filter_invert;
+		-moz-filter: $filter_invert;
+		-o-filter: $filter_invert;
+		-ms-filter: $filter_invert;
+	}
+}
+
+@if $invert_menu_icons_on_rollover {	
+	.windowHeader [eventproxy$="_headerIcon"] img {
+	    filter: $filter_invert;
+	    -webkit-filter: $filter_invert;
+	    -moz-filter: $filter_invert;
+	    -o-filter: $filter_invert;
+	    -ms-filter: $filter_invert;
+	}
+}
+
+.tabSetContainer {
+	/* se metto il bordo in alto le sezioni in basso vengono tagliate */
+    border-top-width: 10px;
+}
+
+.simpleTile {
+	background-color: $standard_white !important;
+	border: 1px solid $standard_white !important;
+}
+
+.simpleTileOver {
+	background-image: none !important;
+	background-color: $active_over_bgColor !important;
+	border: 1px solid $active_over_bgColor !important;
+}
+
+.simpleTileSelected,
+.simpleTileSelectedOver {
+   	background-image: none !important;
+	background-color: $active_over_bgColor !important;
+	border: 1px solid $active_over_bgColor !important;
+}
+
+.groupLabel {	
+	color: $standard_black !important;   
+}
+
+[eventproxy*="tabBar_baseLine"] {
+  	background-color: $standard_gray !important;
+}
+
+[eventproxy^="isc_PickListMenu_"].listGrid { 
+	border: 1px solid $listGrid_border_color;
+}
+
+[eventproxy^="isc_GridItem_"].listGrid { 
+	border: 1px solid $listGrid_border_color;
+}
+
+[eventproxy*="Filter"][eventproxy$="_addButton"].imgButton img { 
+	width: 16px;
+    height: 16px;
+}
+
+[eventproxy*="Filter"][eventproxy$="_removeButton"].imgButton img { 
+	width: 16px;
+    height: 16px;
+}
+
+[eventproxy*="isc_PickListMenu_"][eventproxy$="_actionButton"] { 
+	border-width: 0px !important;
+	overflow: visible !important;
+}

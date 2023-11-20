@@ -1,0 +1,28 @@
+1        PACKAGE DMPK_LOAD_COMBO_SINAPOLI AUTHID CURRENT_USER IS
+2        function dmfn_Load_Combo_sinapoli(
+3                CodIdConnectionTokenIn    IN    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,    
+4                                                        -- (obblig salvo che se TipoComboIn=DOMINI_ACCRED). Codice identificativo del token di connessione
+5                TipoComboIn        IN    VARCHAR2,                -- (obblig.) Tipo di combo da caricare (case-insensitive)
+6                                                        -- Valori possibili:
+7                                                        -- TECNICI_STRUTTURE: 
+8                                                        -- PROCESSIPRIMARI
+9                                                        -- TIPORICHIEDENTE
+10                                                        -- TIPISIA
+11                                                        -- ORARIOESPL
+12                                                        -- ALTRESTRUTTURE
+13                                                        
+14                FlgSoloVldIn     IN     INTEGER DEFAULT 1,     -- (valori 1/0/NULL) Se 1 indica se si devono estrarre solo i valori validi alla data odierna
+15                TsVldIn            IN     VARCHAR2 DEFAULT NULL,    -- Stinga con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) a cui devono essere validi i valori
+16                PKRecIn           IN      VARCHAR2,         -- Valore di primary key del record di tabella per cui serve la combo. 
+17                                                        -- Se la primary key è composta da più colonne i relativi valori sono esparati da ;
+18                AltriParametriIn    IN    VARCHAR2,     -- Stringa contenente i possibili altri parametri con cui condizionare la ricerca dei valori per la combo:
+19                                                          -- nel formato <nome_par_1>|*|<valore>|*|<nome_par_2>|*|<valore>
+20                ListaXMLOut        OUT    NOCOPY CLOB,        -- Lista dei valori (XML conforme a schema LISTA_STD.xsd) con cui popolare la combo
+21                                                        -- Ogni valore è un tag Riga che contiene 2 colonne:
+22                                                        --    1) Internal value
+23                                                        --    2) Display value da mostrare in combo
+24                ErrContextOut        OUT    VARCHAR2,                -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+25                ErrCodeOut            OUT    PLS_INTEGER,            -- N.ro errore di uscita
+26                ErrMsgOut            OUT     VARCHAR2)                -- Messaggio d'errore
+27                return PLS_INTEGER;
+28        end DMPK_LOAD_COMBO_SINAPOLI;

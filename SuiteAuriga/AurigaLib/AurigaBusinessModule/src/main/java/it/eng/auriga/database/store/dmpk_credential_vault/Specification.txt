@@ -1,0 +1,73 @@
+1        PACKAGE DMPK_CREDENTIAL_VAULT AUTHID CURRENT_USER IS
+2        
+3          	FUNCTION PolicyFncXConnTkn (
+4        			schema_name IN VARCHAR2,
+5        			object_name IN VARCHAR2)
+6        			RETURN VARCHAR2;
+7        
+8         	FUNCTION PolicyFncXAuth (
+9        			schema_name IN VARCHAR2,
+10        			object_name IN VARCHAR2)
+11        			RETURN VARCHAR2;
+12        
+13          	PROCEDURE InitUserProfCtx(
+14        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE);
+15        
+16          	FUNCTION ApritiSesamo (
+17        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+18        			CodSistemaEsternoIn		IN		VARCHAR2 DEFAULT NULL,
+19        			CodIstSistemaEsternoIn		IN		VARCHAR2 DEFAULT NULL,
+20        			Sesamo1Out				OUT		VARCHAR2,
+21        			Sesamo2Out				OUT		VARCHAR2,
+22        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+23        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+24        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+25        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+26        
+27          	/**** funzione per ottenere la username di un utente in un sistema/container esterno e sua eventuale specifica istanza ****/
+28         	 Function GetUsernameExt (
+29        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+30        																	-- (obblig.) Token di connessione
+31        			IdUserIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- (obblig. se UsernameLocIn non è valorizzato) Id. dell'utente di cui trovare la username in un sistema esterno
+32        			UsernameLocIn			IN		DMT_USERS.USERNAME%type DEFAULT NULL,	-- (obblig. se IdUserIn non è valorizzato) Username locale di Auriga dell'utente di cui trovare la username in un sistema esterno
+33        			CodSistemaEsternoIn		IN		VARCHAR2,						-- Cod./nome identificativo del sistema esterno per cui trovare la username
+34        			CodIstSistemaEsternoIn		IN		VARCHAR2 DEFAULT NULL,				-- Cod./nome dell'eventuale istanza del sistema esterno per cui trovare la username
+35        			UsernameExtOut			OUT		VARCHAR2,						-- Username dell'utente nel sistema esterno
+36        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+37        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+38        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+39        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0 (in caso di errore o warning)
+40        
+41          	/***** funzione per memorizzare le credenziali di autenticazione ad un sistema esterno dell'utente connesso ******/
+42        	function RegistrazioneCredenziali(
+43        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+44        																	-- (obblig.) Codice identificativo del token di connessione
+45        			CodSistemaEsternoIn		IN		VARCHAR2,						-- (obblig.) Cod./nome identificativo del sistema esterno in cui valgono le credenziali da registrare
+46        			CodIstSistemaEsternoIn		IN		VARCHAR2 DEFAULT NULL,				-- Cod./nome dell'eventuale istanza del sistema esterno in cui valgono le credenziali da registrare
+47        			UsernameIn				IN		VARCHAR2,						-- (obblig.) Username dell'utente loggato nell'applicazione esterna (o sua istanza)
+48        			PasswordIn				IN		VARCHAR2,						-- Password dell'utente loggato nell'applicazione esterna (o sua istanza)
+49        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+50        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+51        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+52        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+53        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+54        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+55        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0 (in caso di errore)
+56        
+57        	/****** funzione per ottenere un token di connessione valido *****/
+58        	function GetConnToken(
+59        			UsernameIn			IN		DMT_USERS.USERNAME%type,				-- (obblig.) Username nel sistema documentale
+60        			PasswordIn			IN		DMT_USERS.PASSWORD%type,				-- Password nel sistema documentale
+61        			IdDominioAutIn		IN OUT 	DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,		-- Identificativo del dominio di autenticazione, vale a dire l'id. del soggetto produttore o AOO (se non valorizzato si intende che il dominio è l'intero schema DB)
+62        			CodApplicazioneEstIn	IN		VARCHAR2 DEFAULT NULL,					-- Codice dell'eventuale applicazione esterna da cui l'utente richiede il token
+63        			CodIstanzaApplEstIn	IN		VARCHAR2,							-- Codice dell'istanza di applicazione esterna da cui l'utente richiede il token (se applicazioni multi-istanza)
+64        			CodIdConnectionTokenOut	OUT		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- Id. del token di connessione restituito in caso di login avvenuta
+65        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+66        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+67        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+68        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+69        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+70        			ErrMsgOut			OUT 		VARCHAR2)							-- Messaggio d'errore
+71        			return PLS_INTEGER;											-- vale 1 in caso di successo, altrimenti 0
+72        
+73        END DMPK_CREDENTIAL_VAULT;

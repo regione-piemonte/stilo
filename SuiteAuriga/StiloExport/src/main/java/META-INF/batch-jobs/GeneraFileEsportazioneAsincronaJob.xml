@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<job id="generaFileEsportazioneAsincronaJob">
+    <step id="generaFileEsportazioneAsincronaStep" >
+        <batchlet ref="generaFileEsportazioneAsincronaJob"/>
+    </step>
+</job>

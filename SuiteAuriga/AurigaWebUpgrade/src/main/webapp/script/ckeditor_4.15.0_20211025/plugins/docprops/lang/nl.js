@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+docType:"Documenttype-definitie",docTypeOther:"Andere documenttype-definitie",label:"Documenteigenschappen",margin:"Pagina marges",marginBottom:"Onder",marginLeft:"Links",marginRight:"Rechts",marginTop:"Boven",meta:"Meta tags",metaAuthor:"Auteur",metaCopyright:"Auteursrechten",metaDescription:"Documentbeschrijving",metaKeywords:"Trefwoorden voor indexering (komma-gescheiden)",other:"Anders...",previewHtml:'\x3cp\x3eDit is \x3cstrong\x3evoorbeeld tekst\x3c/strong\x3e. Je gebruikt \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e.\x3c/p\x3e',
+title:"Documenteigenschappen",txtColor:"Tekstkleur",xhtmlDec:"XHTML declaratie invoegen"});

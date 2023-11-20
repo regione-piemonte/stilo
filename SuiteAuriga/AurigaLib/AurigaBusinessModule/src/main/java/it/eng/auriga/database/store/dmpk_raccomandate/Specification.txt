@@ -1,0 +1,45 @@
+1        package DMPK_RACCOMANDATE is
+2          l_XMLEncoding    CONSTANT VARCHAR2(100):=dmpk_utility.GetValConfigParamText(1, NULL, 'XML_ENCODING');
+3        	TYPE RefCurType			IS REF CURSOR;
+4        
+5          FUNCTION INS_RACCOMANDATE ( V_ID_UD                    RACCOMANDATE.ID_UD%TYPE,
+6                                      V_TIPO                     RACCOMANDATE.TIPO%TYPE,
+7                                      V_IDPOSTE                  RACCOMANDATE.IDPOSTE%TYPE,
+8                                      V_NUMERO_PROTOCOLLO        RACCOMANDATE.NUMERO_PROTOCOLLO%TYPE,
+9                                      V_DATA_PROTOCOLLO          VARCHAR2,
+10                                      V_ANNO_PROTOCOLLO          RACCOMANDATE.ANNO_PROTOCOLLO%TYPE,
+11                                      V_DATA_INVIO               VARCHAR2,
+12                                      V_STATO_DELLA_LAVORAZIONE  RACCOMANDATE.STATO_DELLA_LAVORAZIONE%TYPE,
+13                                      V_DATA_AGGIORNAMENTO_STATO VARCHAR2,
+14                                      V_MOTIVO_ECCEZIONE         RACCOMANDATE.MOTIVO_ECCEZIONE%TYPE,
+15                                      V_DATI_MITTENTE            RACCOMANDATE.DATI_MITTENTE%TYPE,
+16                                      V_DESTINATARI              RACCOMANDATE.DESTINATARI%TYPE,
+17                                      V_STATO_VERIFICA           RACCOMANDATE.STATO_VERIFICA%TYPE,
+18                                      V_IMPORTO_TOTALE           RACCOMANDATE.IMPORTO_TOTALE%TYPE,
+19                                      V_IMPONIBILE               RACCOMANDATE.IMPONIBILE%TYPE,
+20                                      V_IVA                      RACCOMANDATE.IVA%TYPE,
+21                                      V_NRO_RACCOMANDATA         RACCOMANDATE.NRO_RACCOMANDATA%TYPE,
+22                                      V_DATA_RACCOMANDATA        RACCOMANDATE.DATA_RACCOMANDATA%TYPE,
+23                                      V_IDRICEVUTA               RACCOMANDATE.IDRICEVUTA%TYPE,
+24                                      ERRCONTEXTOUT OUT VARCHAR2,
+25                                      ERRCODEOUT OUT PLS_INTEGER,
+26                                      ERRMSGOUT OUT VARCHAR2) RETURN INTEGER;
+27          FUNCTION UPD_RACCOMANDATE (V_ID RACCOMANDATE.ID_RACCOMANDATA%TYPE,
+28                                     ERRCONTEXTOUT OUT VARCHAR2,
+29                                     ERRCODEOUT OUT PLS_INTEGER,
+30                                     ERRMSGOUT OUT VARCHAR2) RETURN INTEGER;
+31          FUNCTION DEL_RACCOMANDATE (V_ID RACCOMANDATE.ID_RACCOMANDATA%TYPE,
+32                                               ERRCONTEXTOUT OUT VARCHAR2,
+33                                     ERRCODEOUT OUT PLS_INTEGER,
+34                                     ERRMSGOUT OUT VARCHAR2) RETURN INTEGER;
+35        
+36          FUNCTION RIC_RACCOMANDATE (V_RIC VARCHAR2,
+37                                     RESULTOUT OUT NOCOPY CLOB,
+38                                     ERRCONTEXTOUT OUT VARCHAR2,
+39                                     ERRCODEOUT OUT PLS_INTEGER,
+40                                     ERRMSGOUT OUT VARCHAR2) RETURN INTEGER;
+41        
+42          FUNCTION ADD_SEARCH_FILTER(V_FILTER VARCHAR2) RETURN VARCHAR2;
+43        
+44        end DMPK_RACCOMANDATE;
+45        

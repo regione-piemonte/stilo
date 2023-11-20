@@ -1,0 +1,166 @@
+1        PACKAGE DMPK_DIZIONARIO AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        	
+12        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+13        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        		
+20        	/********** Funzione per ottenere i valori possibili per una data voce di dizionario *********/
+21        	function TrovaDictValuesForDictEntry(
+22        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+23        																-- (obblig). Codice identificativo del token di connessione
+24        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+25        			DictionaryEntryIn		IN		DMT_DICTIONARY_ENTRIES.DICTIONARY_ENTRY%type,
+26        																-- (obblig.) Voce di dizionario di cui estrarre i valori (ricerca esatta case-insensitive)
+27        			TsRifIn			IN		VARCHAR2 default TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS'),
+28        																-- Stringa con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) per cui si richiede che i valori trovati siano validi. Se non valorizzato si intende che si richiedono valori validi a qualsisai data
+29        			StrInValueIn		IN		VARCHAR2,						-- Stringa che deve essere contenuta nei valori da trovare (ricerca case-insensitive in like)
+30        			StrInCodValueIn		IN		VARCHAR2,						-- Stringa che deve essere contenuta nei codici dei valori da trovare (ricerca case-insensitive in like)
+31        			ValueGenVincoloIn		IN		VARCHAR2,						-- Valore (decodificato) di un campo più generale al quale i valori da trovare sono vincolati
+32        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+33        			ColOrderByIO		IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (si può ordinare per tutte le colonne tranne da 1 a 7). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 1; 1,2)
+34        																-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+35        																-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+36        			FlgDescOrderByIO  	IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+37        																-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+38        			FlgSenzaPaginazioneIn 	IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+39        			NroPaginaIO      		IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+40           			BachSizeIO			IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+41        																-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+42        			OverFlowLimitIn		IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+43        			FlgSenzaTotIn		IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+44        			NroTotRecOut		OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+45             			NroRecInPaginaOut 	OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+46        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+47        			ListaXMLOut			OUT		CLOB,							-- Lista dei possibili valori (XML conforme a schema LISTA_STD.xsd)
+48        																-- Ogni valore è un tag Riga che contiene 2 colonne:
+49        																-- 1: Valore
+50        																-- 2: Codice corrispondente al valore (non sempre valorizzato)
+51        																-- 3: Data di inizio validità del valore (nel formato dato dal parametro di config. FMT_STD_DATA)
+52        																-- 4: Data di fine validità del valore (nel formato dato dal parametro di config. FMT_STD_DATA)
+53        																-- 5: Significato del valore
+54        																-- 6: (valori 1/0) Se 1 è un valore riservato di sistema e non modificabile/cancellabile da GUI
+55        																-- 7: Valore a cui è vincolato (della dictionary entry di cui è dettaglio la DictionaryEntryIn) 
+56        																-- 8: (valori 1/0) Se 1 è un valore attualmente valido
+57        																-- 9: (valori 1/0) Se 1 è un valore modificabile dall'utente di lavoro
+58        																-- 10:(valori 1/0) Se 1 è un valore eliminabile dall'utente di lavoro
+59        																-- 11: Denominazione della UO nella cui porzione di dizionario si trova il valore
+60        																-- 12: (flag 1/0) Indica se valore visibile alle sotto-UO della UO indicata in colonna 11
+61        																-- 13: (flag 1/0) Indica se valore gestibile dalle sotto-UO della UO indicata in colonna 11
+62        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+63        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+64        			ErrMsgOut			OUT 		VARCHAR2,						-- Messaggio d'errore
+65        			RestringiADizDiUOIn	IN			CLOB DEFAULT NULL)					-- UO alla/e cui porzioni di vocabolario restringere la ricerca. Lista xml conforme a schema ListaSdt.xsd
+66        																					--					ogni riga è una UO
+67        																					--					in colonna 2) ID_UO; 3) flag 1/0 che indica anche le sotto-UO
+68        			return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+69        
+70        	
+71        	/*********** funzione per caricare ottenere i dati di un valore di dizionario *********/
+72        	function LoadDettDictionaryValue(
+73        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+74        																					-- (obblig). Codice identificativo del token di connessione
+75        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,		-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+76        			DictionaryEntryIO		IN OUT	DMT_DIZIONARIO.DICTIONARY_ENTRY%type,	-- (obblig.) Voce di dizionario cui è relativo il valore (ricerca esatta case-insensitive)
+77        			ValueIO				IN OUT	CLOB,						-- Valore di dizionario di cui mostrare i dettagli (ricerca esatta case-sensitive)
+78        			CodValueIO			IN OUT	DMT_DIZIONARIO.COD_VALUE%type,				-- Codice corrispondente al valore di dizionario di cui mostrare i dettagli (ricerca esatta case-sensitive)
+79        			FlgCodObbligatorioOut	OUT		PLS_INTEGER,							-- (valori 1/0) Se 1 indica che il codice è obbligatorio
+80        			MeaningOut			OUT 		DMT_DIZIONARIO.EXPLANATION%type,		-- Signifcato del valore
+81        			ValueGenVincoloOut	OUT		DMT_DIZIONARIO.VINCOLATO_A_VAL_GEN%type,	-- Valore di un campo più generale al quale il valore è vincolato
+82        			DictEntryVincoloOut	OUT		DMT_DIZIONARIO.DICTIONARY_ENTRY%type,		-- Dictionary entry cui sono relativi i possibili valori a cui vincolare
+83        			DtInizioVldOut		OUT		VARCHAR2,									-- Data di inizio validità del valore (nel formato dato dal parametro di conf. FMT_STD_DATA).
+84        			DtFineVldOut		OUT		VARCHAR2,									-- Data di fine validità del valore (nel formato dato dal parametro di conf. FMT_STD_DATA).
+85        			FlgLockedOut		OUT		PLS_INTEGER,								-- (valori 1/0) Indicatore di valore riservato dal sistema e non modificabile/cancellabile da GUI
+86        			FlgValueReferencedOut 	OUT 		PLS_INTEGER,            			-- (valori 1/0) Se 1 il valore è referenziato in qualche tabella, se 0 no
+87        			FlgCodValReferencedOut 	OUT 		PLS_INTEGER,            			-- (valori 1/0) Se 1 il codice associato al valore è referenziato in qualche tabella, se 0 no
+88        			ErrContextOut		OUT		VARCHAR2,									-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+89        			ErrCodeOut			OUT		PLS_INTEGER,								-- N.ro errore di uscita
+90        			ErrMsgOut			OUT 		VARCHAR2,								-- Messaggio d'errore
+91        			IdUOOut					OUT		INTEGER,								-- Id. della UO nella cui porzione di dizionario è censito il valore
+92        			LivelliUOOut			OUT		VARCHAR2,								-- Livelli della UO nella cui porzione di dizionario è censito il valore
+93        			DesUOOut				OUT		VARCHAR2,								-- Denominazione della UO nella cui porzione di dizionario è censito il valore
+94        			FlgVisibSottoUOout		OUT		PLS_INTEGER,							-- Flag 1/0. Se 1 la visibilità del valore è estesa a tutte le sotto UO di IdUOOut 
+95        			FlgGestSottoUOOut		OUT		PLS_INTEGER,							-- Flag 1/0. Se 1 la modifica/cancellazione del valore è estesa a tutte le sotto UO di IdUOOut 
+96        			FlgAbilModificaOut		OUT		PLS_INTEGER,							-- Flag 1/0. Se 1 indica che la modifica del valore è abilitata
+97        			FlgAbilEliminazioneOut		OUT		PLS_INTEGER							-- Flag 1/0. Se 1 indica che la cancellazione del valore è abilitata
+98        			)return PLS_INTEGER;													-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+99        
+100        	/*********** funzione per aggiungere/modificare un valore nel dizionario *********/
+101        	function IUDictionaryValue(
+102        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+103        																-- (obblig). Codice identificativo del token di connessione
+104        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+105        			DictionaryEntryIn	IN		DMT_DIZIONARIO.DICTIONARY_ENTRY%type,	
+106        																-- (obblig.) Voce di dizionario cui è relativo il valore
+107        			OldValueIn			IN		CLOB DEFAULT NULL,		-- Valore di dizionario da modificare
+108        																-- Se non valorizzato si intende che il valore è da aggiungere
+109        			ValueIn				IN		CLOB DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+110        																-- Valore di dizionario da settare
+111        			CodValueIn			IN		DMT_DIZIONARIO.COD_VALUE%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+112        																-- Codice corrispondente al valore di dizionario 
+113        			Meaningin			IN 		DMT_DIZIONARIO.EXPLANATION%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+114        																-- Signifcato del valore
+115        			ValueGenVincoloIn	IN		DMT_DIZIONARIO.VINCOLATO_A_VAL_GEN%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+116        																-- Valore di un campo più generale al quale i valori da trovare sono vincolati
+117        			DtInizioVldIn		IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+118        																-- Data di inizio validità del valore (nel formato dato dal parametro di conf. FMT_STD_DATA).
+119        			DtFineVldIn			IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+120        																-- Data di fine validità del valore (nel formato dato dal parametro di conf. FMT_STD_DATA).
+121        			FlgLockedIn			IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+122        																-- (valori 1/0) Indicatore di valore riservato dal sistema e non modificabile/cancellabile da GUI
+123        			FlgIgnoreWarningIn 	IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+124        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+125        																-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+126        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+127        			WarningMsgOut		OUT		VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+128        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+129        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+130        			ErrMsgOut				OUT 	VARCHAR2,						-- Messaggio d'errore
+131        			IdUOIn					IN		INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+132        																			-- Id. della UO nella cui porzione del dizionario è censito il valore 
+133        			FlgVisibSottoUOIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+134        																			-- Flag 1/0. Se 1 la visibilità del valore è estesa a tutte le sotto UO di IdUOIn 
+135        			FlgGestSottoUOIn		IN		PLS_INTEGER	DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD')
+136        																			-- Flag 1/0. Se 1 la modifica/cancellazione del valore è estesa a tutte le sotto UO di IdUOIn 
+137        			) return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+138        		
+139        	/*********** funzione per cancellare un valore del dizionario *********/
+140        	function DDictionaryValue(
+141        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+142        																-- (obblig). Codice identificativo del token di connessione
+143        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+144        			DictionaryEntryIn		IN 		DMT_DIZIONARIO.DICTIONARY_ENTRY%type,	-- (obblig.) Voce di dizionario cui è relativo il valore
+145        			ValueIn			IN		DMT_DIZIONARIO.VALUE%type,			-- Valore di dizionario da cancellare
+146        			CodValueIn			IN		DMT_DIZIONARIO.COD_VALUE%type,		-- Codice corrispondente al valore di dizionario da cancellare
+147        			FlgIgnoreWarningIn 	IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+148        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+149        																-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+150        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+151        			WarningMsgOut		OUT		VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+152        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+153        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+154        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore
+155        			) return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+156        		
+157        	function GetInfoDictionaryEntry(
+158        			DictionaryEntryIn		IN 		DMT_DIZIONARIO.DICTIONARY_ENTRY%type,	-- (obblig.) Voce di dizionario (ricerca esatta case-insensitive)
+159        			FlgCodObbligatorioOut	OUT		PLS_INTEGER,					-- (valori 1/0) Se 1 indica che il codice è obbligatorio sui valori della entry
+160        			DictEntryVincoloOut	OUT		DMT_DIZIONARIO.DICTIONARY_ENTRY%type,	-- Dictionary entry cui sono relativi i possibili valori a cui vincolare i valori della dictionary entry DictionaryEntryIn
+161        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+162        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+163        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore
+164        			) return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine, altrimenti 0 (in caso di errore o warning)
+165        								
+166        END DMPK_DIZIONARIO;

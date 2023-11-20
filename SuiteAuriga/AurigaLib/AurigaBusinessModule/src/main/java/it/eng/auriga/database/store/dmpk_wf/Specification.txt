@@ -1,0 +1,1117 @@
+1        PACKAGE DMPK_WF AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        
+12        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+13        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        	DEF_MSG_ATTIV_URL		CONSTANT	VARCHAR2(1000):='MSG_ATTIV';	
+20        	DEF_SCELTA_ESITO_URL	CONSTANT	VARCHAR2(1000):='SCELTA_ESITO';
+21        	DEF_SCELTA_DEST_URL	CONSTANT	VARCHAR2(1000):='SCELTA_DEST';
+22        		
+23        	
+24        	/*********** funzione per ottenere il PROC_DEF_ID_ di un'istanza di processo di cui si specifica in input l'ID	*******/
+25        	function GetProcDefIdFlussoWF(
+26        			CIFlussoWFIn			IN	VARCHAR2)		--(obblig.) Id. del flusso WF (ID_ dell'istanza di processo nel caso di Activiti)
+27        			return VARCHAR2;							-- è NULL in caso di flusso inesistente
+28        
+29        	/***********funzione per ottenere la data di avvio di un flusso WF ******/
+30        	function GetTsBeginFlussoWF(
+31        			CITypeFlussoWFIn		IN	VARCHAR2,		-- Id. del tipo di flusso WF (KEY_ o PROC_DEF_ID_ del processo nel caso di Activiti)
+32        			CIFlussoWFIn			IN	VARCHAR2)		--(obblig.) Id. del flusso WF (ID_ dell'istanza di processo nel caso di Activiti)
+33        			return DATE;								-- è NULL in caso di flusso inesistente
+34        
+35        	/****** serve ad ottenere l'XML in notazione BPMN 2.0 secondo cui si svolge un flusso di cui si forniscono in input tipo (KEY_ o PROC_DEF_ID_) e data di avvio ******/
+36        	function GetBPMNXml(
+37        			CITypeFlussoWFIn		IN	VARCHAR2)		--(obblig.) Id. del tipo e versione di flusso WF (PROC_DEF_ID_ del processo nel caso di Activiti) di cui si vuole recuperare l'XML in notazione BPMN
+38        			return CLOB;								-- XML in notazione BPMN 2.0 contenente il flusso modellato corrispondente alla data istanza di processo
+39        
+40        	/***** serve ad ottenere la variabile di "esito task" di una data attività di cui si passa in input l'internal name (TASK_DEF_KEY_) e che è in un flusso BPMN il cui XML viene passato anch'esso in input *****/
+41        	function GetVariabileEsitoTask(
+42        			BPMNXml				IN		CLOB,						-- (obblig) XML con il flusso in notazione BPMN 2.0 all'interno del quale ricercare la variabile esito task del task specificato
+43        			ActivityNameIn		IN		VARCHAR2)					-- (obblig.) Nome identificativo (TASK_DEF_KEY_) dell'attività di cui ottenere la variabile di esito task
+44        			return VARCHAR2;										-- Nome della variabile di "esito task" se presente
+45        
+46        	/****** funzione per testare se in un flusso di un dato tipo avviato ad una certa data esiste un'attività (userTask) con un certo display name *****/
+47        	function TestIsAttivita(
+48        			DisplayNameAttIn		IN	VARCHAR2,		--(obblig) Nome (NAME_ nel caso di Activiti) dello userTask di cui testare l'esistenza
+49        			CITypeFlussoWFIn		IN	VARCHAR2,		--(obblig.) Id. del tipo e versione di flusso WF (PROC_DEF_ID_ del processo nel caso di Activiti) in cui testare l'esistenza dell'attività
+50        			TsBeginFlussoIn			IN	DATE DEFAULT NULL)			-- NON utilizzata
+51        			return PLS_INTEGER;							-- 1=test positivo (esiste), 0=test negativo (non esiste) o errore
+52        
+53        
+54        	-----overload della precedente, con degli argomenti in output: internal name dell'attività e flag che indica se attività con esiti
+55        	function TestIsAttivita(
+56        			DisplayNameAttIn		IN	VARCHAR2,		--(obblig) Nome (NAME_ nel caso di Activiti) dello userTask di cui testare l'esistenza
+57        			CITypeFlussoWFIn		IN	VARCHAR2,		--(obblig.) Id. del tipo e versione di flusso WF (PROC_DEF_ID_ del processo nel caso di Activiti) in cui testare l'esistenza dell'attività
+58        			TsBeginFlussoIn			IN	DATE DEFAULT NULL,			-- NON utilizzata
+59        			ActivityNameOut			OUT	VARCHAR2,		-- Internal name (TASK_DEF_KEY_ per Activiti) dell'attività trovata
+60        			FlgConEsitiOut			OUT	PLS_INTEGER,	-- (valori 1/0/NULL) Se 1 indica che è un'attività con esiti
+61        			VariabileEsitoOut		OUT	VARCHAR2)		-- Nome della variabile dell'esito
+62        			return PLS_INTEGER;							-- 1=test positivo (esiste), 0=test negativo (non esiste) o errore
+63        
+64        	-----analoga alla precedente, con in input l'internal id del task e in output gli argomenti: display name dell'attività e flag che indica se attività con esiti
+65        	function TestIsAttivita_byID(
+66        			ActivityNameIn			IN	VARCHAR2,		-- (obblig) Internal name (TASK_DEF_KEY_ per Activiti) dell'attività 
+67        			CITypeFlussoWFIn		IN	VARCHAR2,		--(obblig.) Id. del tipo e versione di flusso WF (PROC_DEF_ID_ del processo nel caso di Activiti) in cui testare l'esistenza dell'attività
+68        			TsBeginFlussoIn			IN	DATE DEFAULT NULL,			-- NON utilizzata
+69        			DisplayNameAttOut		OUT	VARCHAR2,		-- Nome (NAME_ nel caso di Activiti) dello userTask di cui testare l'esistenza
+70        			FlgConEsitiOut			OUT	PLS_INTEGER,	-- (valori 1/0/NULL) Se 1 indica che è un'attività con esiti
+71        			VariabileEsitoOut		OUT	VARCHAR2)		-- Nome della variabile dell'esito
+72        			return PLS_INTEGER;							-- 1=test positivo (esiste), 0=test negativo (non esiste) o errore
+73        	
+74        	/****** serve ad ottenere l'XML in notazione BPMN 2.0 secondo cui si svolge un processo di Auriga (con flusso WF associato) di cui si fornisce in input l'id (ID_PROCESS) ******/
+75        	function GetBPMNXml_byIdProcess(
+76        			IdProcessIn			IN	DMT_PROCESSES.ID_PROCESS%type		--(obblig.) Id. del processo Auriga (ID_PROCESS) di cui si vuole recuperare l'XML in notazione BPMN
+77        			) return CLOB;											-- XML in notazione BPMN 2.0 contenente il flusso modellato corrispondente al dato processo AURIGA
+78        
+79        	/***** serve ad ottenere la lista delle scelte possibili per una variabile di "esito task" in un dato flusso BPMN il cui XML viene passato in input *****/
+80        	function GetScelteVariabileEsito(
+81        			BPMNXml				IN		CLOB,						-- (obblig) XML con il flusso in notazione BPMN 2.0 all'interno del quale ricercare le scelte possibili della variabile esito
+82        			VariabileEsitoIn	IN		VARCHAR2)					-- (obblig.) Nome della variabile di "esito task" di cui ottenere le possibili scelte
+83        			return DMVA_STRING ;									-- scelte possibili per la variabile esito
+84        
+85        	/***** serve ad ottenere la lista dei task - id e name, ovvero TASK_DEF_KEY_ e NAME_ - presenti in un dato flusso BPMN il cui XML viene passato in input *****/
+86        	function GetTaskFlussoWF(
+87        			BPMNXml				IN		CLOB)						-- (obblig) XML con il flusso in notazione BPMN 2.0 all'interno del quale ricercare i task disponibili
+88        			return DMTO_MATRICE_VALORI;								-- task trovati (null in caso di errore)
+89        																	-- ogni task-riga ha 2 colonne: la 1 con il TASK_DEF_ID_ e la 2a con il NAME_ del task
+90        
+91        	/**** Funzione per calcolare la dimensione (n.ro di righe) della pagina delle attività per un certo utente di lavoro in un certo dominio di lavoro ****/
+92        	FUNCTION CalcolaDimPaginaAtt(
+93        			FlgTpDominioAutIn		IN		PLS_INTEGER ,					-- (obblig.) Indica il tipo di dominio di lavoro: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+94        			IdDominioAutIn		IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%TYPE DEFAULT NULL,
+95        																-- (obblig. se FlgTpDominioAutIn vale 2 o 3) Identificativo del dominio di lavoro, vale a dire l'id. del soggetto produttore o AOO se FlgTpDominioAutOut vale 2 o 3
+96        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%TYPE,				-- (obblig.) Identificativo dell'utente di lavoro
+97        			DimPaginaOut		OUT		PLS_INTEGER,					-- Dimensione della pagina calcolata
+98        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+99        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+100        			ErrMsgOut			OUT 		VARCHAR2)						-- Messaggio d'errore
+101        			RETURN PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+102        
+103        	/***** Funzione per ottenere l'URL/nome identificativo dell'eventuale maschera specifica corrispondente ad una data attività WF in un dato dominio di lavoro ******/
+104        	function GetURLAttivita(
+105        			ActivityNameIn		IN		DMT_ATTIVITA_WF.ACTIVITY_NAME%type,		-- (obblig.) Nome identificativo (TASK_DEF_KEY_ nel caso di Activiti) dell'attività WF per cui trovare l'URL associato
+106        			IdDominioLavoroIn		IN		INTEGER					-- Id. del dominio di lavoro (sogg. prod./AOO) in cui trovare l'URL. Se NULL si intende che il dominio di lavoro è lo schema
+107        		) return VARCHAR2;										-- URL/nome identificativo che rimanda alla maschera di gestione specifica dell'attività nel dato dominio di lavoro
+108        														-- Se NULL vuol dire che non c'è una maschera specifica
+109        														
+110        	/****** Funzione per stabilire, in un dato processo, a che URL/nome identificativo maschera specifica corrisponde una data attività WF ricavando l'URL solo in base al nome dell'attività stessa 	******/
+111        	/*****  Se non c'è un URL ricavabile dal solo nome dell'attività la funzione restituisce comunque 1 e UrlFromNomeAttOut è NULL										******/				
+112        	function GetURLFromNameAtt(
+113        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+114        																-- (obblig). Codice identificativo del token di connessione
+115        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,				-- Id. dell'utente a nome di cui si sta lavorando. Se non valorizzato è l'utente connesso
+116        			IdProcessIn		IN		DMT_PROCESSES.ID_PROCESS%type,					-- (obblig.) Id. del processo 
+117        			ActivityNameIn		IN		DMT_ATTIVITA_WF.ACTIVITY_NAME%type,				-- (obblig.) Nome identificativo (TASK_DEF_KEY_ nel caso di Activiti) dell'attività WF per cui trovare l'URL associato
+118        			UrlFromNomeAttOut	OUT		VARCHAR2,							-- Eventuale URL/nome identificativo maschera specifica associato ricavabile dal nome dell'attività
+119        			IdTyEvtOut		OUT		INTEGER,							-- Id. del tipo evento corrispondente all'attività
+120        			NomeTyEvtOut		OUT		VARCHAR2,							-- Nome del tipo evento corrispondente all'attività
+121        			FlgEvtDurativoOut	OUT		PLS_INTEGER,							-- (valori 1/0/NULL) Se 1 il tipo evento IdTyEvtOut è durativo, altrimenti è puntuale
+122        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+123        			ErrCodeOut		OUT		PLS_INTEGER,							-- N.ro errore di uscita
+124        			ErrMsgOut		OUT 		VARCHAR2							-- Messaggio d'errore
+125        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+126        												
+127        	/****** Funzione da richiamare dopo l'avvio di un flusso WF da collegare ad un processo da registrare ex-novo in banca dati o in essa già presente	*******/
+128        	/****** Contestualmente permette di settare/aggiornare alcuni dati base del processo oltre al flusso associato						*******/
+129        	function StartFlussoWFForProcess(
+130        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+131        																-- (obblig). Codice identificativo del token di connessione
+132        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,				-- Id. dell'utente a nome di cui si avvia il processo. Se non valorizzato è l'utente connesso
+133        			CIFlussoWFIn		IN		DMT_PROCESSES.PROV_CI_FLUSSO_WF%type,				-- (obblig) Identificativo del flusso workflow associato (PROC_INST_ID nel caso di Activiti)
+134        			IdProcessIO		IN OUT		DMT_PROCESSES.ID_PROCESS%type,					-- Id. del processo cui associare il flusso da avviare. Se NULL il processo è da creare ex-novo
+135        			IdProcessTypeIn		IN		DMT_PROCESSES.ID_PROCESS_TYPE%type DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+136        																-- (obblig.) Identificativo del tipo di processo per cui avviare il flusso
+137        			CIProvProcessIn		IN		DMT_PROCESSES.PROV_CI_PROCESS%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+138        																-- Codice identificativo del processo in un eventuale sistema di provenienza
+139        			TsAvvioProcIn		IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+140        																-- Timestamp di avvio del processo (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP). Se non specificato e IdProcessIO è NULL si intende pari a data e ora correnti
+141        			DtDecorrenzaProcIn	IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+142        																-- Data di decorrenza dei termini del processo (nel formato dato dal parametro di conf. FMT_STD_DATA).
+143        			OggettoIn			IN		DMT_PROCESSES.OGGETTO%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+144        																-- Oggetto/descrizione del processo
+145        			FlgTpObjProcessOnIn	IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+146        																-- Indica il tipo di oggetto cui si riferisce il processo. Valori possibili:
+147        																-- C	=	Copia di unità documentaria
+148        																-- U	=	Unità documentaria
+149        																-- F	=	Folder
+150        																-- NULL = Processo non relativo a singola copia, unità doc. o folder
+151        			IdObjProcessOnIn		IN		INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+152        																-- Id. dell'eventuale copia/unità documentaria/folder cui si riferisce il processo (può essere valorizzato solo se lo è FlgTpPbjProcessOnIn)
+153        			IdProcessParentIn		IN		DMT_PROCESSES.ID_PROCESS_PARENT%type DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+154        																-- Id. dell'eventuale processo padre del processo per cui avviare il flusso WF
+155        			MotivazioniAvvioIn	IN		DMT_PROCESSES.MOTIVAZIONI%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+156        																-- Motivazioni per cui ha luogo il processo
+157        			NoteProcIn			IN		DMT_PROCESSES.NOTE%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+158        																-- Note del processo
+159        			AttributiAddAvvioIn	IN		CLOB DEFAULT NULL,				-- Lista degli eventuali attributi con cui caratterizzare l'avvio (XML conforme a schema LISTA_STD.xsd)
+160        																-- Ogni valore è un tag Riga che contiene 3 colonne che devono essere tutte valorizzate:
+161        																-- 1: (obblig.) Nome dell'attributo (stringa lung. max. 250)
+162        																-- 2: (obblig.) Tipo del valore (valori possibili: S=Stringa, N=Numerico, D=Data/Timestamp)
+163        																-- 3: (obblig.) Valore (se è un numerico deve avere la "," come separatore dei decimali; se è una data deve avere il formato DD/MM/RRRR HH24:MI:SS)
+164        																-- Un attributo con un certo nome può avere più valori (tutti dello stesso tipo) che vengono salvati mantenendo l'ordine con cui figurano nell'XML
+165        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+166        																-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+167        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+168        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+169        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+170        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore
+171        			) return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+172        
+173        	/****** Funzione per ottenere la descrizione della fase corrente del flusso WF associato ad un dato processo (ancora in corso) ******/
+174        	function GetDesFaseCorrente(
+175        			IdProcessIn			IN		DMT_PROCESSES.ID_PROCESS%type			-- (obblig.) Identificativo del processo
+176        			)return VARCHAR2;										-- restituisce la descrizione della fase corrente (attiva) del flusso del processo
+177        																-- è NULL in caso di errore o se non c'è una fase attiva (flusso concluso)
+178        
+179        	/***** Funzione per testare se una certa attività WF è eseguibile nel flusso WF di un dato processo 			*****/
+180        	/***** tenuto conto dei soli vincoli legati ai documenti (redazione/firma/prot./repertoriazione ecc)			*****/
+181        	function CtrlExecAtt_byDoc(
+182        			FlgWhenCtrlIn		IN		VARCHAR2,						-- (obblig.; valori A/B) Indica quando effettuo il controllo: B=Prima di completare l'attività;  A=Dopo averla completata
+183        			IdProcessIn			IN		DMT_PROCESSES.ID_PROCESS%type,		-- (obblig.) Identificativo del processo in cui verificare se l'attività è eseguibile
+184        			ActivityNameIn		IN		DMT_ATTIVITA_WF.ACTIVITY_NAME%type,		-- (obblig.) Nome identificativo (ACTIVITY_NAME nel caso di Oracle WF) dell'attività WF da testare se disponibile
+185        			EsitiAttIn			IN		DMVA_STRING DEFAULT NULL,				-- Esito/i con cui eseguire l'attività (viene considerato solo se FlgWhenCtrlIn='A')
+186        			WarningMsgOut		OUT		VARCHAR2,						-- Messaggio di warning da dare all'utente (solo in caso di return value 1): valorizzato quando ci sono obbligatorietà violate che non sono però bloccanti
+187        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+188        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+189        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore o motivo per cui il controllo dà esito negativo
+190        			)return PLS_INTEGER;										-- Vale 1 se il test è positivo (non ci sono obbligatorietà bloccanti violate), 0 se non lo è o in caso di errore
+191        
+192        	/***** Funzione per testare se una certa attività WF è eseguibile nel flusso WF di un dato processo 			*****/
+193        	/***** tenuto conto dei soli vincoli legati ai soggetti (interni ed esterni) del processo					*****/
+194        	function CtrlExecAtt_bySogg(
+195        			FlgWhenCtrlIn		IN		VARCHAR2,						-- (obblig.; valori A/B) Indica quando effettuo il controllo: B=Prima di completare l'attività;  A=Dopo averla completata
+196        			IdProcessIn			IN		DMT_PROCESSES.ID_PROCESS%type,		-- (obblig.) Identificativo del processo in cui verificare se l'attività è eseguibile
+197        			ActivityNameIn		IN		DMT_ATTIVITA_WF.ACTIVITY_NAME%type,		-- (obblig.) Nome identificativo (ACTIVITY_NAME nel caso di Oracle WF) dell'attività WF da testare se disponibile
+198        			EsitiAttIn			IN		DMVA_STRING DEFAULT NULL,				-- Esito/i con cui eseguire l'attività (viene considerato solo se FlgWhenCtrlIn='A')
+199        			WarningMsgOut		OUT		VARCHAR2,						-- Messaggio di warning da dare all'utente (solo in caso di return value 1): valorizzato quando ci sono obbligatorietà violate che non sono però bloccanti
+200        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+201        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+202        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore o motivo per cui il controllo dà esito negativo
+203        			)return PLS_INTEGER;										-- Vale 1 se il test è positivo (non ci sono obbligatorietà bloccanti violate), 0 se non lo è o in caso di errore
+204        
+205        	/***** Funzione per testare se una certa attività WF è eseguibile nel flusso WF di un dato processo 			*****/
+206        	/***** tenuto conto dei soli vincoli legati agli attributi 										*****/
+207        	function CtrlExecAtt_byAttr(
+208        			FlgWhenCtrlIn		IN		VARCHAR2,						-- (obblig.; valori A/B) Indica quando effettuo il controllo: B=Prima di completare l'attività;  A=Dopo averla completata
+209        			IdProcessIn			IN		DMT_PROCESSES.ID_PROCESS%type,		-- (obblig.) Identificativo del processo in cui verificare se l'attività è eseguibile
+210        			ActivityNameIn		IN		DMT_ATTIVITA_WF.ACTIVITY_NAME%type,		-- (obblig.) Nome identificativo (ACTIVITY_NAME nel caso di Oracle WF) dell'attività WF da testare se disponibile
+211        			EsitiAttIn			IN		DMVA_STRING DEFAULT NULL,				-- Esito/i con cui eseguire l'attività (viene considerato solo se FlgWhenCtrlIn='A')
+212        			WarningMsgOut		OUT		VARCHAR2,						-- Messaggio di warning da dare all'utente (solo in caso di return value 1): valorizzato quando ci sono obbligatorietà violate che non sono però bloccanti
+213        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+214        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+215        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore o motivo per cui il controllo dà esito negativo
+216        			)return PLS_INTEGER;										-- Vale 1 se il test è positivo (non ci sono obbligatorietà bloccanti violate), 0 se non lo è o in caso di errore
+217        
+218        	/***** Funzione per tracciare l'esecuzione di una certa attività del flusso WF di un processo (anche se attività non disponibile a livello di workflow)		******/
+219        	/***** Nel caso di Activiti viene richiamata prima di fare il completamento del task lato Activiti (se va fatto). 											******/
+220        	/***** Restituisce FlgActToCompleteInWFOut che se 1 indica che il task è da completare anche lato Activiti, se 0 no											******/
+221        	/***** Restituisce anche VariabileEsitoOut con l'id. dell'eventuale variabile da settare lato Activiti prima di completare il task 							******/
+222        	/***** al fine di definire il ramo di flusso con cui il flusso procederà (nel caso di più rami condizionati)												******/
+223        	/***** ATTENZIONE: vengono fatti i controlli che sia un'attività fattibile nella fase corrente in base al flusso workflow del processo + quelli 			******/
+224        	/*****		 sul fatto che siano siano assolti gli obblighi relativi a documenti, soggetti, attributi e altre attività necessari per completare l'attività  ******/
+225        	/*****		 invece non vengono fatti controlli di alcun tipo sull'abilitazione degli utenti connesso e di lavoro ad effettuare l'attività 					******/
+226        	/*****		 non ci sono neppure controlli che il nuovo assegnatario, se specificato e se l'attività comporta trasmissione/cambio ass., sia uno di quelli	******/
+227        	/*****		 consentiti in base ai possibili destinatari della trasmissone e in base alla fase in cui mi troverò dopo il completamento dell'attività		******/
+228        	function ExecAttFlusso(
+229        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+230        																-- (obblig). Codice identificativo del token di connessione
+231        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,				-- Id. dell'utente a nome di cui si svolge l'attività. Se non valorizzato è l'utente connesso
+232        
+233        			IdProcessIn		IN		DMT_PROCESSES.ID_PROCESS%type,					-- (obblig.) Identificativo del processo in cui eseguire l'attività
+234        			ActivityNameIn		IN		VARCHAR2,									-- (obblig.) Identificativo del task da completare (TASK_DEF_ID_ nel caso di Activiti)
+235        			MessaggioIn		IN		DMT_PROCESS_HISTORY.MESSAGGIO%type DEFAULT NULL,		-- Messaggio da legare all'esecuzione dell'attività
+236        			LogInfoIn		IN		DMT_PROCESS_HISTORY.LOG%type DEFAULT NULL,			-- Informazioni di log da associare all'esecuzione dell'attività
+237        			XMLAssegnatariIn	IN		CLOB,								-- XML (conforme allo schema LISTA_STD.xsd) con l'indicazione del/i nuovi assegnatari della copia di unità documentaria/unità documentaria/folder su cui agisce il processo: viene considerato e gestito solo se l'attività comporta una trasmissione/cambio assegnazione
+238        																-- Gli assegnatari sono soggetti interni e possono essere più di uno solo se il processo riguarda un'unità documentaria o una sua copia
+239        																-- Ogni tag "Riga" rappresenta un soggetto assegnatario ed ha 8 colonne con i seguenti significati:
+240        																-- 	1: FLG_TIPO (obblig.) Indica il tipo di soggetto. Valori possibili:
+241        																		-- 	UT 	= Utente
+242        																		--	SV	= Scrivania virtuale
+243        																		--	UO	= Unità organizzativa
+244        																		--	G	= Gruppo (possibile solo se il processo è relativo a unità documentaria o sua copia)
+245        																		--	R	= Ruolo contestualizzato ovvero i soggetti che hanno un certo ruolo amministrativo (eventualmente rispetto ad una certa UO o un dato livello della struttura organizzativa/tipo di UO o entrambi)(possibile solo se il processo è relativo a unità documentaria o sua copia)
+246        																--	2: ID_IN_ANAG_PROV (obblig) Identificativo (PK) di chi o cosa l'oggetto rappresenta nella sua "anagrafica":
+247        																		--		è un ID_UO di DMT_STRUTTURA_ORG se FLG_TIPO=UO,
+248        																		--		è un ID_GRUPPO di DMT_GRUPPI se FLG_TIPO=G
+249        																		--		è un ID_USER di DMT_USERS se FLG_TIPO=UT
+250        																		--		è un ID_SCRIVANIA di DMT_SCRIVANIE_VIRTUALI se FLG_TIPO=SV
+251        																		--		è un ID_RUOLO_AMM di DMT_RUOLI_AMM se FLG_TIPO=R
+252        																--	3: VS_LIVELLO_SO Può essere valorizzato solo se FLG_TIPO=R. Valori da 1 a n
+253        																		-- Indica il livello della struttura organizzativa in cui si espleta il ruolo (1 è il livello più alto) identificato da ID_IN_ANAG_PROV
+254        																--	4: VS_COD_TIPO_UO Può essere valorizzato solo se FLG_TIPO=R. Da valorizzare in alternativa a VS_LIVELLO_SO
+255        																		-- E' il codice del tipo di UO in cui si espleta il ruolo (valori da cod_value della dictionary entry con i tipi di UO) identificato da ID_IN_ANAG_PROV
+256        																--	5: VS_ID_UO Identificativo della UO in cui si espleta il ruolo o da cui risalire alla/e UO (con il livello o tipo indicati) in cui si espleta il ruolo identificato da ID_IN_ANAG_PROV
+257        																		-- Può essere valorizzato solo se FLG_TIPO=R.
+258        																--	6: FLG_INCL_SOTTOUO Può essere valorizzato solo se FLG_TIPO=R e VS_ID_UO è valorizzato. Valori ammessi: 1, 0, NULL
+259        																--	7: VS_UO_CON_RUOLO_PROC	Può essere valorizzato solo se FLG_TIPO=R. Alternativo rispetto a VS_ID_UO
+260        																		-- E' il ruolo di processo (es: ufficio proponente) che hanno la/e UO in cui si espleta il ruolo o da cui risalire alla/e UO (con il livello o tipo indicati) in cui si espleta il ruolo identificato da ID_IN_ANAG_PROV
+261        																--	8: RIF_SV_CON_RUOLO_PROC Può essere valorizzato solo se FLG_TIPO=R e se VS_LIVELLO_SO è valorizzato. Alternativo rispetto a VS_ID_UO e VS_UO_CON_RUOLO_PROC
+262        																		-- E' il ruolo di processo (es: Assessore di riferimento) che hanno la/e scrivanie da cui risalire alla/e UO (con il livello indicato) in cui si espleta il ruolo identificato da ID_IN_ANAG_PROV
+263        			AttributiAddIn		IN		CLOB DEFAULT NULL,						-- Lista degli eventuali altri attributi con cui caratterizzare il completamento dell'attività (XML conforme a schema LISTA_STD.xsd)
+264        																-- Ogni valore è un tag Riga che contiene 3 colonne che devono essere tutte valorizzate:
+265        																-- 1: (obblig.) Nome dell'attributo (stringa lung. max. 250)
+266        																-- 2: (obblig.) Tipo del valore (valori possibili: S=Stringa, N=Numerico, D=Data/Timestamp)
+267        																-- 3: (obblig.) Valore (se è un numerico deve avere la "," come separatore dei decimali; se è una data deve avere il formato DD/MM/RRRR HH24:MI:SS)
+268        																-- Un attributo con un certo nome può avere più valori (tutti dello stesso tipo) che vengono salvati mantenendo l'ordine con cui figurano nell'XML
+269        			FlgActToCompleteInWFOut OUT	PLS_INTEGER,								-- (valori 1/0) Se 1 indica che il task va completato lato Activiti, se 0 no
+270        			VariabileEsitoOut		OUT	VARCHAR2,									-- Indica l'identificativo della variabile da settare lato workflow per definire l'esito del task (ovvero il ramo di prosecuzione del flow)
+271        			EsitoOut				OUT		DMT_PROCESS_HISTORY.DES_ESITO%type,		-- Esito con cui eseguire l'attività lato motore di workflow
+272        			FlgIgnoreWarningIn 	IN 		PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se 0 o NULL significa che gli in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+273        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+274        																-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+275        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+276        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+277        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+278        			ErrMsgOut			OUT 		VARCHAR2,						-- Messaggio d'errore o warning
+279        			VariabiliEsitiOut	OUT		NOCOPY CLOB							-- XML conforme a schema ListaStd.xsd con le variabili di esito (anche quella riportata in VariabileEsitoOut se c'è una sola variabile):
+280        																			-- Ogni variabile è una riga con le colonne:
+281        																			-- 1) Nome della variabile
+282        																			-- 2) Esito da settare nella variabile
+283        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine senza warning, altrimenti 0
+284        
+285        	/***** Funzione da richiamare dopo il completamento di un'attività lato Activiti		******/
+286        	function AggProcHist_PostExecAttWF(
+287        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+288        																-- (obblig). Codice identificativo del token di connessione
+289        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,				-- Id. dell'utente a nome di cui si svolge l'attività. Se non valorizzato è l'utente connesso
+290        
+291        			IdProcessIn		IN		DMT_PROCESSES.ID_PROCESS%type,				-- (obblig.) Identificativo del processo in cui eseguire l'attività
+292        			ActivityNameIn		IN		VARCHAR2,								-- (obblig.) Identificativo del task da completare (TASK_DEF_ID_ nel caso di Activiti)
+293        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+294        																				-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+295        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+296        			ErrContextOut		OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+297        			ErrCodeOut			OUT		PLS_INTEGER,							-- N.ro errore di uscita
+298        			ErrMsgOut			OUT 		VARCHAR2							-- Messaggio d'errore o warning
+299        			) return PLS_INTEGER;												-- Vale 1 se tutto è andato a buon fine senza warning, altrimenti 0
+300        
+301        			
+302        	/***** Funzione per estrarre la lista delle attività del flusso WF (ancora in corso) di un dato processo. 															*****/
+303        	/***** Estrae le attività di tutte le fasi, NON solo di quella corrente																								*****/
+304        	/***** Vengono estratte tutte le attività, anche quelle non disponibili in generale (causa lo stato del flusso) o in particolare all'utente di lavoro  				*****/
+305        	/***** Vengono estratti anche i processi figli attualmente in corso																									*****/
+306        	function GetListaAttFlussoProc(
+307        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+308        																-- (obblig). Codice identificativo del token di connessione
+309        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si sta lavorando. Se non valorizzato è l'utente connesso
+310        
+311        			IdProcessIn			IN		DMT_PROCESSES.ID_PROCESS%type,				-- (obblig.) Identificativo del processo di cui estrarre la lista attività
+312        			CIDGruppoAttIn			IN		VARCHAR2 DEFAULT NULL,					-- Cod. identificativo del gruppo/fase dei task da estrarre
+313        			IdTipoEventoAppIn		IN		DMT_EVENT_TYPES.ID_EVENT_TYPE%type DEFAULT NULL,
+314        																					-- Id. del tipo evento del task complesso di appartenenza dei task da estrarre
+315        			ListaXMLOut			OUT		NOCOPY CLOB,						-- Lista delle fasi e attività e processi figli trovati (XML conforme a schema LISTA_STD.xsd)
+316        																			-- Ogni fase o attività o processo figlio è un tag Riga che contiene le colonne:
+317        																			-- 1) INSTANCE_ID 	Id. univoco di un'istanza del task workflow corrispondente al record che risulti eseguibile
+318        																			--					Nel caso di Activiti è l'ID_ di ACT_HI_TASKINST
+319        																			-- 2) FLG_EVENTO_DURATIVO 	(valori 1/0/NULL) Valorizzato solo se il record corrisponde ad un'attività NON modellata nel workflow (sono presente in DMT_EVENT_TYPES)
+320        																			--						Se 1 indica che è un'attività con durata, se 0 è un'attività puntuale
+321        																			-- 3) ACTIVITY_NAME 	Internal name che identifica l'attività nel disegno del flusso. 
+322        																			--					Nel caso di record che rappresenta una fase/gruppo o se l'attività NON è modellata nel flusso WF NON è valorizzata
+323        																			--					Nel caso di Activiti è TASK_DEF_KEY_ dell'attività (attribute id del BPMN)
+324        																			-- 4) DISPLAY_NAME 	Nome con cui mostrare l'attività o fase
+325        																			--					Nel caso di Activiti è il NAME_ dell'attività (attribute name del BPMN)
+326        																			-- 5) FLG_ESEGUIBILE	(valori 1/0) Se 1 significa che l'attività è eseguibile dall'utente di lavoro
+327        																			-- 6) MOTIVI_NON_ESEG 	Motivo per cui l'attività NON è eseguibile dall'utente di lavoro
+328        																			-- 7) FLG_DATI_VISIBILI	(valori 1/0) Se 1 significa che l'utente di lavoro può accedere alla consultazione dei dati gestiti nella maschera dell'attività
+329        																			-- 8) FLG_FATTA 		(valori 2/1/0) Se 2 significa che l'attività/fase è completata e NON è da rifare, se 1 che è stata iniziata/salvata ma non completata, se 0 che è da fare
+330        																			-- 9) ID_CHILD_PROCESS		Id. del processo filglio
+331        																			-- 10) ESTREMI_CHILD_PROCESS   Estremi del processo figlio (tipo, codice, data avvio)
+332        																			-- 11) rowid del record della DMT_PROCESS_HISTORY da cui recuperare gli attributi custom dell'evento corrispondente al task
+333        																			-- 12) Id. evento (PK della DMT_PROCESS_HISTORY) dell'ultimo evento custom salvato corrispondente al dato task
+334        																			-- 13) (valori G/AC/AS/P) Se G il record rappresenta un gruppo di attività (vale a dire una fase), se AS una singola attività, se AC un'attività con sotto-attività, se P un processo figlio
+335        																			-- 14) Id. del tipo evento corrispondente all'attività (può essere valorizzato solo se colonna 13 = AS o AC) o nome identificativo del gruppo di attività/fase (se colonna 13=G)
+336        																			-- 15) Nome dell'eventuale gruppo di attività/fase di appartenenza
+337        																			-- 16) Nome dell'eventuale attività complessa di appartenenza
+338        																			-- 17) <non utilizzata>
+339        																			-- 18) Spiegazione del significato dell'attività / gruppo di attività (=fase)
+340        																			-- 27) (flag 1/0) Se 1 signgifica che per visualizzare il task va chiamata la Call_ExecAtt (valorizzata solo se colonna 13=AS)
+341        																			-- 28)	Icona specifica dell'attività/fase
+342        																			-- 29) <non utilizzata>
+343        																			-- 30) Flag 1/0: se 1 indica che è un'attività di sola visualizzazione di quanto fatto in front-office
+344        																			-- 31) Esito task nell'ultima iterazione (prima di eventuale ritorno alla fase del task). Valori: OK, KO, W
+345        																			-- 32) Flag 1/0: 1 indica che è un passo disponibile nel workflow (non necessariamente eseguibile dall'utente)
+346        			DatiProcXAttOut		OUT		NOCOPY CLOB,						-- XML conforme a schema SezioneCache.xsd che restituise una serie di dati del procedimenti
+347        																			-- necessari alla visualizzazione/salvataggio delle maschere delle attività
+348        																			-- I dati restituiti corrispondono alle seguenti variabili:
+349        																			-- GPA_ID_UL	Id. dell'unità locale
+350        																			-- GPA_NOME_UL	Nome dell'unità locale
+351        																			-- GPA_ID_GEOM_AREA_INTERV_VIA	Id. che identifica la geometria dell'area di intervento in cartografia (IdUbicazione in SIRA)
+352        																			-- ID_UD_ISTANZA Id. UD dell'istanza firmata
+353        																			-- URI_RIC_AVVIO URI della ricevuta di avvio procedimento
+354        																			-- EMAIL_PROPONENTE INdirizzo e-mail del proponente
+355        																			-- #IdDefProcFlow id. del tipo di flusso WF associato al processo
+356        																			-- #IdInstProcFlow id. dell'istanza di flusso WF associato al processo
+357        																			-- ListaNextTask : html che indica i passi disponibili nel workflow o se l'iter è concluso
+358        			DesFaseCorrenteOut	OUT		VARCHAR2,							-- Descrizione della fase corrente del processo
+359        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+360        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+361        			ErrMsgOut			OUT 	VARCHAR2,							-- Messaggio d'errore
+362        			FlgNoDatiProcIn		IN		PLS_INTEGER DEFAULT NULL,			-- Se 1 DatiProcXAttOut non viene valorizzato
+363        			IdProcessTypeIn		IN		DMT_PROCESS_TYPES.ID_PROCESS_TYPE%type DEFAULT NULL
+364        																			-- (obblig. salvo se IdProcessIn è valorizzato) Identificativo del tipo del processo di cui estrarre la lista attività (se ancora da avviare e quindi IdProcessIn è null)
+365        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+366        
+367        	/***** Funzione per estrarre i processi/procedimenti guidati da workflow su cui un certo utente ha qualche attività da svolgere *****/
+368        	function TrovaListaLavoro(
+369        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+370        																-- (obblig). Codice identificativo del token di connessione
+371        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si sta lavorando. Se non valorizzato è l'utente connesso
+372        			FlgPreimpostaFiltroIn	IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1 i filtri e l'ordinamento vengono settati secondo le impostazioni dell'utente di lavoro, altrimenti restano come passati in input
+373        			--------------- inizio filtri di ricerca-------------------
+374        			CodApplicazioneIO		IN OUT	VARCHAR2,						-- Codice dell'applicazione "proprietaria" dei processi. Se non valorizzata e se l'utente è connesso da un'applicazione esterna si filtra per quella
+375        			CodIstanzaApplIO		IN OUT	VARCHAR2,						-- Codice dell'istanza di applicazione "proprietaria" dei processi. Se non valorizzata e se l'utente è connesso da un'applicazione esterna si filtra per l'eventuale specifica istanza di appl. esterna da cui è connesso
+376        			IdProcessTypeIO		IN OUT	DMT_PROCESSES.ID_PROCESS_TYPE%type,		-- Identificativo del tipo di processo (viene considerato solo se l'argomento successivo è anch'esso valorizzato e se i due filtri sono compatibili)
+377        			NomeProcessTypeIO		IN OUT	DMT_PROCESS_TYPES.NOME_PROCESS_TYPE%type,	-- Nome (o parte di esso) del tipo di processo (ricerca case-insensitive in like)
+378        			CITypeFlussoWFIO		IN OUT	DMT_PROCESSES.PROV_CI_TY_FLUSSO_WF%type,	-- Codice identificativo del tipo di flusso workflow associato al processo (ricerca esatta)
+379        			CIProvProcessIO		IN OUT	DMT_PROCESSES.PROV_CI_PROCESS%type,		-- Codice identificativo del processo (o parte di esso) in un eventuale sistema di provenienza (ricerca case-insensitive in like senza forzare % finale)
+380        			OggettoIO      		IN OUT	DMT_PROCESSES.OGGETTO%type ,			-- parola/frase contenuta nell'oggetto del processo (ricerca di tipo CONTAINS)
+381        			DtAvvioDaIO			IN OUT	VARCHAR2,						-- Estremo inferiore dell'intervallo di ricerca sulla data di avvio del processo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+382        			DtAvvioAIO			IN OUT	VARCHAR2,						-- Estremo superiore dell'intervallo di ricerca sulla data di avvio del processo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+383        			DtDecorrenzaDaIO		IN OUT	VARCHAR2,						-- Estremo inferiore dell'intervallo di ricerca sulla data di decorrenza dei termini del processo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+384        			DtDecorrenzaAIO		IN OUT	VARCHAR2,						-- Estremo superiore dell'intervallo di ricerca sulla data di decorrenza dei termini del processo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+385        			FlgStatoProcIO		IN OUT	VARCHAR2,						-- Indica lo stato del processo; valori possibili: I=Interrotto; S=Sospeso; E=In corso presso ente/soggetto esterno; A=In corso e in nessuno degli stati precedenti
+386        																		-- Può essere anche una combinazione dei valori precedenti separati da , o ;
+387        			FlgAvvioUserLavIO		IN OUT	PLS_INTEGER,					-- (valori 1/0/NULL): se 1 si ricercano solo i processi avviati dall'utente di lavoro
+388        			WfNameFaseCorrIO		IN OUT	DMT_PROCESS_HISTORY.ACTIVITY_NAME_WF%type,-- nome identificativo della fase in corso nell'iter del processo (ACTIVITY_NAME del sotto-processo WF attivo)(ricerca esatta)
+389        			WfNameAttEsegIO		IN OUT	DMT_PROCESS_HISTORY.ACTIVITY_NAME_WF%type,-- nome identificativo di un'attività che deve essere eseguibile dall'utente di lavoro sui processi da ricercare (ACTIVITY_NAME dell'attività WF)
+390        																					-- possono essere indicati più task separati da ; o ,
+391        			CriteriIterSvoltoIO	IN OUT	NOCOPY CLOB,					-- Lista con i criteri relativi all'iter già svolto sul processo (XML conforme a schema LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+392        																-- Ogni criterio relativo ad un evento dell'iter è un tag Riga che contiene le seguenti colonne:
+393        																--	1) (valori F/AE) Indica se ciò che deve essersi già svolto o almeno iniziato è una fase (F) o un'attività WF/evento (AE)
+394        																--	2) Nome identificativo della fase (PROCESS_NAME) o dell'attività WF (ACTIVITY_NAME preceduto da A; o senza alcun prefisso) o del tipo dell'evento (ID_EVENT_TYPE preceduto da E;)
+395        																--	3) Descrizione della fase/attività/evento (o suo inizio; ricerca case insenstive in like)
+396        																--	4) (valori 1/0/NULL) Se 1 indica che la fase/evento può essere anche solo iniziato (se durativo), altrimenti deve essersi verificato/concluso
+397        																--	5) (gestito solo se non è una fase) Nome identificativo della fase (suo ACTIVITY_NAME) in cui deve essersi verificato/iniziato l'evento/attività
+398        																--	6) Data e ora a partire dalla quale deve essersi verificato/concluso l'evento (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+399        																--	7) Data e ora entro la quale deve essersi verificato/concluso l'evento (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+400        																--	8) Data e ora a partire dalla quale deve essere iniziato l'evento (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+401        																--	9) Data e ora entro la quale deve essere iniziato l'evento (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+402        																--	10) Identificativo dell'utente che ha completato o a nome di cui è stato completato l'evento (viene considerato solo se il campo successivo è anch'esso valorizzato e se i due sono compatibili)
+403        																--	11) Descrizione dell'utente che ha completato o a nome di cui è stato completato l'evento (ricerca case insensitive in like)
+404        																--	12) Identificativo dell'utente che ha iniziato o a nome di cui è stato iniziato l'evento (viene considerato solo se il campo successivo è anch'esso valorizzato e se i due sono compatibili)
+405        																--	13) Descrizione dell'utente che ha iniziato o a nome di cui è stato iniziato l'evento (ricerca case insensitive in like)
+406        																--  14) Esito con cui è stata completata l'attività/fase
+407        			CriteriIterNonSvoltoIO	IN OUT	NOCOPY CLOB,					-- Lista con i criteri relativi a ciò che non deve ancora aver avuto luogo nell'iter del processo (XML conforme a schema LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+408        																-- Ogni criterio relativo ad un evento che non ha ancora avuto luogo nell'iter è un tag Riga che contiene le seguenti colonne:
+409        																--	1) (obblig.; valori F/AE) Indica se ciò che non deve essersi già verificato e/o iniziato è una fase (F) o un'attività WF/evento (AE)
+410        																--	2) Nome identificativo della fase (PROCESS_NAME) o dell'attività WF (ACTIVITY_NAME preceduto da A; o senza alcun prefisso) o del tipo dell'evento (ID_EVENT_TYPE preceduto da E;)
+411        																--	3) (valori 1/0/NULL) Se 1 indica che la fase/evento non deve essere neppure iniziato (se durativo), se 0 o NULL che non deve essersi verificato/concluso
+412        																--	4) (gestito solo se non è una fase) Nome identificativo della fase (suo ACTIVITY_NAME) in cui non deve essersi verificata/iniziata l'attività/evento
+413        			TpScadIO			IN OUT	VARCHAR2,						-- Non è un vero filtro di ricerca: serve per indicare il tipo di scadenza cui sono relativi i due filtri successivi; può avere valore:
+414        																-- #TERMINI = scadenza dei termini del processo in base alla durata prevista
+415        																-- (solo qualora il tipo di processo sia indicato) descrizione di una scadenza censita nello scadenziario, ovvero uno dei valori del campo DES_SCADENZA della tabella DMT_PROCESS_TYPE_SCAD
+416        																-- #ANY = una qualsiasi scadenza
+417        			ScadEntroNGGIO		IN OUT	PLS_INTEGER,					-- giorni entro cui si verificherà la scadenza TpScadIO sui processi da ricercare
+418        			ScadDaMinNGGIO		IN OUT	PLS_INTEGER,					-- (in OR rispetto al filtro precedente): nro di giorni minimo da cui deve essere trascorsa la scadenza TpScadIO sui processi da ricercare
+419        			FlgNoScadConEvtFinIO	IN OUT	PLS_INTEGER,					-- (valori 1/0/NULL) Se 1 le scadenze vanno considerate solo laddove l'evento di fine della scadenza non sia mai avvenuto, se 0 solo laddove l'evento di fine sia accaduto
+420        			NoteProcIO			IN OUT	DMT_PROCESSES.NOTE%type,			-- parola/frase contenuta nelle note del processo (ricerca di tipo CONTAINS)
+421        			AttributiProcIO		IN OUT	NOCOPY CLOB,					-- Altri criteri di ricerca sugli attributi addizionali dei procedimenti (XML conforme a schema LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+422        																	-- Ogni criterio è un tag Riga che può contenere le seguenti colonne:
+423        																	--	1) Nome (ATTR_NAME) dell'attributo cui è relativo il criterio
+424        																	--	2) (obblig.) Operatore logico. Valori possibili:
+425        																	--		"uguale" (ricerca esatta) 
+426        																	--		"simile a (case-sensitive)" (ricerca case-sensitive in like)
+427        																	--		"simile a (case-insensitive)" (ricerca case-insensitive in like e che ignora i caratteri quali spazi, ., ecc)
+428        																	--		"maggiore" (se attributo numerico o data)
+429        																	--		"maggiore o uguale" (se attributo numerico o data)
+430        																	--		"minore" (se attributo numerico o data)
+431        																	--		"minore o uguale" (se attributo numerico o data)
+432        																	--		"tra" (se attributo numerico o data)
+433        																	--		"non valorizzato"
+434        																	--		"valorizzato"
+435        																	--		"spuntato" (se attributo di tipo casella di spunta)
+436        																	--		"non spuntato" (se attributo di tipo casella di spunta)
+437        																	--	3) 1° valore di confronto (obblig. e gestito solo se l'operatore non ha uno dei seguenti valori: valorizzato, non valorizzato, spuntato, non spuntato) (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+438        																	--	4) 2° valore di confronto (obblig. e gestito solo se l'operatore è "tra") (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+439        																	--	5) Label dell''attributo cui è relativo il criterio (se sotto-attributo di complesso <label del complesso> - <label del sotto-attributo>
+440        			SoggettiIntIO		IN OUT	NOCOPY CLOB,					-- Lista con i criteri relativi ai soggetti interni del processo (XML conforme a schema LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+441        																-- Ogni criterio relativo ad un soggetto è un tag Riga che contiene le seguenti colonne:
+442        																--	1) Ruolo del soggetto nel processo (ricerca esatta)
+443        																--	2) (obblig) Indicatore del tipo di soggetto; valori possibili: UO = Unità operativa; UT = Utente; G = Gruppo; R = Ruolo amministrativo contestualizzato; SV = Scrivania virtuale
+444        																--	3) Identificativo del soggetto interno
+445        																--	4) Descrizione/denominazione del soggetto interno (se trattasi di UO può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+446        																--  5) Identificativo della UO cui appartiene la scrivania-soggetto che costituisce il soggetto interno
+447        																--	6) Nri livello della UO che costituisce il soggetto interno o della UO a cui appartiene la scrivania che costituisce il soggetto interno (tutti o alcuni; però se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno specificati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; sono separati dal separatore dei livelli valido per il soggetto produttore/AOO di appartenenza della UO)
+448        																--	7) Denominazione della UO cui appartiene la scrivania che costituisce il soggetto interno (può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+449        																--	8) Codice che identifica nell'applicazione esterna da cui ci si connette l'utente che costituisce il soggetto interno o quello che occupa la scrivania che costituisce il soggetto interno
+450        																--	9) Denominazione dell'utente che occupa la scrivania che costituisce il soggetto interno
+451        																--  10) (valore 1) Indica che il soggetto, se UO, sono anche tutte le sue sotto-UO
+452        																--	11) (valori interi da 1 a n) Livello della struttura organizzativa in cui si espleta il ruolo amministrativo che costituisce il soggetto interno
+453        																--	12) Codice del tipo di unità organizzativa in cui si espleta il ruolo amministrativo che costituisce il soggetto interno (alternativo alla colonna 9)
+454        																--	13) Descrizione del tipo di unità organizzativa (es: settore, servizio, ecc) in cui si espleta il ruolo amministrativo che costituisce il soggetto interno (alternativo alla colonna 9)
+455        																--	14) Identificativo della UO in cui si espleta il ruolo amministrativo che costituisce il soggetto interno o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo che costituisce il soggetto interno
+456        																--	15) Denominazione/nome della UO in cui si espleta il ruolo amministrativo che costituisce il soggetto interno o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo che costituisce il soggetto interno (può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+457        																--	16) Nri livello della UO in cui si espleta il ruolo amministrativo che costituisce il soggetto interno o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo che costituisce il soggetto interno (tutti o alcuni; però se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno specificati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; sono separati dal separatore dei livelli valido per il soggetto produttore/AOO di appartenenza della UO)
+458        																--	17)(valore 1) Indica che il ruolo amministrativo-soggetto si espleta anche nelle sotto-UO della/e UO rintracciate tramite i valori delle 3 colonne precedenti
+459        																--	18) Data a cui devono essere validi i soggetti interni che devono soddisfare il criterio (nel formato dato dal parametro di conf. FMT_STD_DATA); se non valorizzata il criterio si applica a tutti i soggetti interni, indipendentemente dal periodo di validità
+460        			FlgAssUserLavIO		IN OUT	PLS_INTEGER,					-- (valori 1/0/NULL) 1=Solo processi relativi a unità documentaria/folder attualmente assegnati all'utente di lavoro (ovvero ad una sua scrivania)
+461        			IdUserAssIO			IN OUT	DMT_USERS.ID_USER%type,				-- Identificativo dell'utente assegnatario dell'unità documentaria/folder cui è relativo il processo (viene considerato solo se l'argomento successivo è anch'esso valorizzato e se i due filtri sono compatibili)
+462        			DesUserAssIO		IN OUT	DMT_USERS.DES_USER%type,			-- Descrizione dell'utente attuale assegnatario dell'unità documentaria/folder cui è relativo il processo (ricerca case-insensitive in like)
+463        			SoggettiEstIO		IN OUT	NOCOPY CLOB,					-- Lista con i criteri relativi ai soggetti esterni del processo (XML conforme a schema LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+464        																-- Ogni criterio relativo ad un soggetto è un tag Riga che contiene le seguenti colonne:
+465        																--	1) Ruolo del soggetto nel processo (ricerca esatta)
+466        																--	2) Identificativo del soggetto nella rubrica soggetti
+467        																--	3) Denominazione del soggetto (quella storicizzata sul processo) (ricerca case-insensitive in like)
+468        																--	4) Codice fiscale del soggetto (quello storicizzato sul processo) (ricerca case-insensitive in like)
+469        																--	5) Partita IVA del soggetto (quella storicizzata sul processo) (ricerca case-insensitive in like)
+470        																--	6) Data di nascita del soggetto (quella storicizzata sul processo) (nel formato dato dal parametro di conf. FMT_STD_DATA)
+471        																--	7) Data a cui devono essere validi i soggetti esternii che devono soddisfare il criterio (nel formato dato dal parametro di conf. FMT_STD_DATA); se non valorizzata il criterio si applica a tutti i soggetti esterni, indipendentemente dal periodo di validità
+472        																--	8) Identificativo del soggetto in un anagrafe esterna (ACS)
+473        			UDProcIO			IN OUT	NOCOPY CLOB,					-- Lista con i criteri relativi alle unità documentarie coinvolte dal processo (XML conforme a schema LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+474        																-- Ogni criterio relativo ad un'unità è un tag Riga che contiene le seguenti colonne:
+475        																--	1) Codice del ruolo dell'unità documentaria nel processo (ricerca esatta)
+476        																--	2) Descrizione del ruolo dell'unità documentaria nel processo (ricerca esatta)
+477        																--	3) Identificativo dell'unità documentaria
+478        																--	4) Codice della categoria di una registrazione/numerazione dell'unità documentaria (ricerca esatta)
+479        																--	5) Sigla di una registrazione/numerazione dell'unità documentaria (ricerca esatta)
+480        																--	6) Anno di una registrazione/numerazione dell'unità documentaria
+481        																--	7) N.ro di una registrazione/numerazione dell'unità documentaria
+482        																--	8) Nome dell'unità documentaria (ricerca case-insensitive in like)
+483        			FolderProcIO		IN OUT	NOCOPY CLOB,					-- Lista con i criteri relativi ai folder coinvolti dal processo (XML conforme a schema LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+484        																-- Ogni criterio relativo ad un folder è un tag Riga che contiene le seguenti colonne:
+485        																--	1) Codice della natura della relazione del folder col processo (ricerca esatta)
+486        																--	2) Descrizione della natura della relazione del folder col processo (ricerca esatta)
+487        																--	2) Identificativo del folder
+488        																--	3) Percorso + nome del folder (percorso comprensivo del nome della libreria di appartenenza)
+489        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+490        			ColOrderByIO		IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (le colonne per cui si può ordinare sono solo quelle da 1 a 6 e la 14). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 1; 1,2)
+491        																-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+492        																-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+493        			FlgDescOrderByIO  	IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+494        																-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+495        			FlgSenzaPaginazioneIn 	IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+496        			NroPaginaIO      		IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+497           			BachSizeIO			IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+498        																-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+499        			OverFlowLimitIn		IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+500        			FlgSenzaTotIn		IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+501        			NroTotRecOut		OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+502             		NroRecInPaginaOut 	OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+503        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+504        			ListaXMLOut			OUT		NOCOPY CLOB,					-- Lista dei processi/procedimenti trovati (XML conforme a schema LISTA_STD.xsd)
+505        																-- Ogni processo/procedimento è un tag Riga che contiene le seguenti colonne:
+506        																-- 	1) Identificativo del processo (ID_PROCESS)
+507        																-- 	2) Id. del tipo di processo/procedimento (ID_PROCESS_TYPE)
+508        																-- 	3) Descrizione del tipo di processo/procedimento
+509        																-- 	4) Oggetto del processo/procedimento
+510        																-- 	5) Data e ora di avvio (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+511        																-- 	6) Data di decorrenza (nel formato dato dal parametro di conf. FMT_STD_DATA)
+512        																--	7) Dati dell'eventuale processo padre
+513        																-- 	8) Estremi (categoria/sigla/anno/n.ro + data e ora) di registrazione/numerazione dell'unità documentaria cui è relativo il processo
+514        																--	9) Dati identificativi del folder cui è relativo il processo
+515        																--	10) Stato del processo: Interrotto; Sospeso; In corso presso ente/soggetto esterno; NULL (ovvero in nessuno degli stati precedenti)
+516        																-- 	11) Estremi da mostrare a GUI(sigla/anno/n.ro) della registrazione/numerazione dell'unità documentaria che ha dato avvio al processo/procedimento (nel caso di iter atti il n° proposta)
+517        																-- 	12) Estremi da mostrare a GUI(sigla/anno/n.ro) della registrazione/numerazione dell'unità documentaria che sancisce l'esito del processo/procedimento (estremi repertorio atto se è un iter atto)
+518        																-- 	13) Descrizione della fase corrente
+519        																-- 	14) Data di scadenza dei termini (in formato pari al valore del parametro di config. FMT_STD_DATA)
+520        																--	15) (valori 1/0) Se 1 significa che i termini sono scaduti
+521        																--	16) Ultima attività/evento che ha avuto luogo nell'iter del processo (descrizione e data)
+522        																--	17) Messaggio apposto sull'ultima attività/evento che ha avuto luogo nell'iter del processo
+523        																--	18) Note del processo/procedimento
+524        																--	19) Denominazioni dei soggetti esterni (validi) del processo/procedimento che hanno un ruolo definito come "principale" nel dato tipo di proc.
+525        																--  20) Id. del folder associato al processo/procedimento
+526        																--  21) Id. dell'unità documentaria associata al processo/procedimento
+527        																--		Nel caso degli atti c'è UD della proposta anche se non direttamente associata al processo
+528        																-- 	23) Estremi da usare per ordinamento (categoria/sigla/anno/n.ro) della registrazione/numerazione dell'unità documentaria che ha dato avvio al processo/procedimento (nel caso di iter atti il n° proposta)
+529        																-- 	24) Estremi da usare per ordinamento(categoria/sigla/anno/n.ro) della registrazione/numerazione dell'unità documentaria che sancisce l'esito del processo/procedimento (estremi repertorio atto se è un iter atto)
+530        																-- 	25) Data (senza ora) della registrazione del documento iniziale (data di proposta se iter atti)
+531        																-- 	26) Data (senza ora) della registrazione del documento finale (data di repertorio atto se iter atti)
+532        																-- 	27) Oggetto del documento iniziale
+533        																--  28) U.O. proponente se processo che è un iter atti
+534        																--  29) Utente che ha avviato
+535        																--  30) Prossime attività da fare sul processo (quelle disponibili)
+536        																--  31) Ruolo di processo "ASSEGNATARO_...." che può essere impostato dall'utente di lavoro in virtù del fatto che può svolgere un'attività (da farsi o fatta) del processo che ha l'attributo "SMISTAMENTO" settato 
+537        																--  32) Denominazione di chi attualmente ha ruolo di processo "ASSEGNATARIO RAGIONERIA"
+538        																--	41) URI del file primario dell'UD iniziale (solo se firmato)
+539        																--	42) DisplayName del file primario dell'UD iniziale (solo se firmato)
+540        																--  43) Ultimo invio alla verifica contabile (data e ora)
+541        																--  44) Invio alla fase approvazione direttori 
+542        																--  45) RUP (Responsabile Unico del Provvedimento)
+543        																--  46) RdP (Responsabile di Procedimento)
+544        																--  47) Altri responsabili di concerto
+545        																--  48) Responsabili della spesa
+546        																--  49) UO competente per la definizione spesa
+547        																--  50) Adottante firmatario del provvedimento
+548        																--  51) Ricercatore incaricato (usato nelle visure SUE)
+549        																--  52) Tipo richiedente: ha due valori E (=Esterno) e I (Interno)
+550        																--  53) Indirizzo
+551        																--  54) Atti richiesti (se più di uno separati da ";")
+552        																--  55) ID folder degli atti richiesti (se più di uno separati da ";")
+553        																--  56) Classif.  atti (se più di una separate da ";")
+554        																--  57) Archivi coinvolti 
+555        																--  58) UDC     
+556        																--  59) Appuntamento in Cittadella  
+557        																--  60) Appuntamento in Bernina  
+558        																--  61) Cod. pratica SUE
+559        																--  62) Tipo/i tributo (pratiche autotutela e CED)
+560        																--  63) Anno/i imposta (pratiche autotutela e CED)
+561        																--  64) Estremi atti di riferimento (pratiche autotutela e CED)
+562        																--  65) Flag 1/0 che indica presenza (1) o meno (0) di procedimenti collegati
+563        																--  66) Tipologia richiedente (visure Urbanistica)
+564        																--  67) Motivazione richiesta visura (visure Urbanistica)
+565        																--  68) (valori 1/0)  Richiesto cartaceo (visure Urbanistica)
+566        																--  69) (valori 1/0)  Richiesti atti di fabbrica
+567        																--  70) (valori E = esterno, I = Interno, EI = Esterno e Interno) Fino 1996 atti fabbricato interno/esterno (visure Urbanistica) 
+568        																--  71) (valori E = esterno, I = Interno, EI = Esterno e Interno) Dal 1997 atti fabbricato interno/esterno (visure Urbanistica) 
+569        																--  72) CIG
+570        																--  73) Attori del processo
+571        																--  74)	Id. modello del dispositivo 
+572        																--  75)	Nome modello del dispositivo
+573        																--  76)	Nome del file dispositivo quando si apre l'anteprima
+574        																--  77) Parole chiave
+575        																--  78) Iniziativa
+576        																--  79) Indicatore di atto con o senza "rilevanza contabile" (anche eventuali altre opzioni oltre SI/NO)
+577        																--  80) Tipo di dettaglio dell'atto
+578        																--  81) Cod. tipo atto dettaglio
+579        																--	82) Flag (1/0) di immediatamente eseguibile
+580        																--  83) Stato della proposta di atto/atto/documento collegato ad atto che corrisponde al processo
+581        																--  84) Id. del modello con la lista dei movimenti contabili da mostrare in lista atti
+582        																--  85) Nome del modello con la lista dei movimenti contabili da mostrare in lista atti
+583        																--  86) Display filename del modello con la lista dei movimenti contabili da mostrare in lista atti
+584        																--  87) IdDocVistoRegContabile o del documento di risposta nei CED/Autotutele
+585        																--  88) URIVistoRegContabile o del documento di risposta nei CED/Autotutele
+586        																--  89) DisplayFilename visto reg. contabile o del documento di risposta nei CED/Autotutele
+587        																--  90) Primo invio alla verifica contabile (data e ora)
+588        																--  91) N.ro invii alla ragioneria per la verifica contabile
+589        																--  92) CdC atto
+590        																--  93) Data scadenza liquidazione
+591        																--  94) Estremi degli ordinativi di pagamento (mandati) e incasso (reversali)
+592        																--  95) Cod. esito ultima attività svolta: ha i valori OK, KO e W
+593        																--  96) Descrizione esito ultima attività svolta
+594        																--  97) ID_UD dell'UD della risposta nel caso di CED/Autotutele
+595        																--  98) ID del tipo del documento della risposta nel caso di CED/Autotutele
+596        																--  99) mimetype del documento della risposta nel caso di CED/Autotutele (la risposta nel caso di CED/Autotutele)
+597        																--  100) flg file firmato  (valori 1/0) del documento della risposta nel caso di CED/Autotutele 
+598        																--  101) Label di atto visionato dall'utente di lavoro
+599        																--  102) Tag apposti sull'atto
+600        																--  103) Presenti notifiche assegnate all'utente di lavoro
+601        																--  104) Canale di arrivo dell'istanza che ha dato luogo al procedimento
+602        																--  105) (valori 1/0)  Richieste modifiche (per visure SUE)
+603        																--  106) N° atto per struttura
+604        																--  107) N° liquidazione contestuale
+605        																--  108) IdDoc dove versionare il file riepilogo firme e visti
+606        																--  109) URI del file riepilogo firme e visti
+607        																--  110) Nome del file riepilogo firme e visti
+608        																--  111) ID Modello con cui generare il file riepilogo firme e visti
+609        																--  112) Nome modello con cui generare il file riepilogo firme e visti
+610        																--  113) DisplayFilename del file riepilogo firme e visti
+611        																--  114) (valori 1/0) Flag di atto con emendamenti (se 1)
+612        																--  115) (valori 1/0) Se 1 indica che si deve generare file unioni al completamento del passo
+613        																--  116) ActivityName del prossimo task da svolgere (se più di uno dà il primo)
+614        																--  117) Struttura competente se processo che è un iter atti
+615        																--  118) (valori 1/0) se 1 indica che si deve numerare prima della firma atto prevista nel passo
+616        																--  119) ID Modello con cui generare il file riepilogo firme e visti 2 
+617        																--  120) Nome modello con cui generare il file riepilogo firme e visti 2
+618        																--  121) DisplayFilename del file riepilogo firme e visti 2 
+619        																-- 	122) Data certificato (data senza ora) (usato dai TSO)
+620        																-- 	123) Medico - Cognome (usato dai TSO)
+621        																-- 	124) Medico - Nome (usato dai TSO)
+622        																-- 	125) Medico - Contatti (usato dai TSO)
+623        																-- 	126) Paziente - Cognome (usato dai TSO)
+624        																-- 	127) Paziente - Nome (usato dai TSO)
+625        																-- 	128) Paziente - Data nascita (data senza ora) (usato dai TSO)
+626        																-- 	129) Paziente - Minore colonna (valori 1/0) (usato dai TSO)
+627        																-- 	130) Paziente - Luogo nascita (usato dai TSO)
+628        																--  131) Istruttore uff. competente
+629        																--  132) Istruttore pre-istruttoria
+630        																--  133) Cod. fiscale/partita IVA richiedente (mittente documento iniziale)
+631        																--  134) esito del prossimo task da svolgere se si sceglie "Visto appongo" o invio al libro firma
+632        																--  135) esito del prossimo task da svolgere se si sceglie "Visto rifiuto" 
+633        																--  136) Assegnatario Segreteria Generale
+634        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+635        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+636        			ErrMsgOut			OUT 	VARCHAR2,						-- Messaggio d'errore
+637        			CriteriAvanzatiIn	IN 		CLOB DEFAULT NULL				-- XML contenente nomi e valori di ulteriori filtri (conforme allo schema SezioneCache.xsd). 
+638        																		-- Ogni filtro è un tag "Variabile" dell'XML
+639        																		-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+640        																		-- I nomi dei filtri possibili sono:
+641        																		--  SoloAttiConWF: valori 1/0 se 1 la ricerca è ristretta alle proposte atti con iter workflow
+642        																		--  SoloProcedimentiAmm: valori 1/0 se 1 la ricerca è ristretta ai procedimenti amministrativi con esclusione proposte atti con iter workflow
+643        																		--	NroPropostaDa		
+644        																		--	NroPropostaA
+645        																		-- 	SigleProposta
+646        																		--  NroAttoDa
+647        																		--	NroAttoA
+648        																		--	SigleAtto
+649        																		--	DataAttoDa
+650        																		--	DataAttoA
+651        																		--	OggettoProposta
+652        																		--	IdUOProponentiProposta: lista fatta da 2 colonne: 1) ID_UO; 2) Flag di incluse sotto-UO (valori 1/0/NULL)
+653        																		--  IdUOCompetentiProposta: lista fatta da 2 colonne: 1) ID_UO; 2) Flag di incluse sotto-UO (valori 1/0/NULL)
+654        																		--	IdUserAvvio
+655        																		--  SoloEseguibili: tira fuori solo i processi con task eseguibili
+656        																		--  IdUserAssegnatario: chi ha il ruolo ISTRUTTORE nel procedimento
+657        																		--  IdUserAssegnatarioIstruttoria: chi ha il ruolo ISTRUTTORE UFF. COMPETENTE nel procedimento
+658        																		--  IdUserAssegnatarioPreIstruttoria: chi ha il ruolo ISTRUTTORE PRE-ISTRUTTORIA nel procedimento
+659        																		--  AttoRif.Tipo : tipo di atto riferimento nei procedimenti autotutela
+660        																		--  AttoRif.Registro : registro atto riferimento nei procedimenti autotutela
+661        																		--  AttoRif.Numero : N° atto riferimento nei procedimenti autotutela
+662        																		--  AttoRif.AnnoImpostaDa : inizio intervallo ricerca su anno imposta procedimenti autotutela/CED
+663        																		--  AttoRif.AnnoImpostaA: : fine intervallo ricerca su anno imposta procedimenti autotutela/CED
+664        																		--  AttoRif.Esito: esito nei procedimenti autotutela/CED (se più di uno separati da ;)
+665        																		--  DataPresentazioneInstanzaDa:  inizio intervallo ricerca su data di registrazione istanza che ha dato avvio al procedimento
+666        																		--  DataPresentazioneInstanzaA: fine intervallo ricerca su data di registrazione istanza che ha dato avvio al procedimento
+667        																		--  ListaTipiTributo: Tipo/i di tributi coinvolti (pratiche autotutela e CED) (se più di uno separati da ;)
+668        																		--  TipoRichiedenteVisuraSUE  	Tipo/i richiedente visura (se più di uno concatenati con ; )
+669        																		--	MotivoVisuraSUE				Motivo/i visura (se più di uno concatenati con ; )
+670        																		--	RichAttiDiFabbrica		 	(1/0) Indica se richiesti (1) o meno (0) atti di fabbrica
+671        																		--	FabbricatoAttiCostrFino1996	(valori E/I) Per costruzioni fino 1996 atti fabbricato esterno (=E) e interno (=I)
+672        																		--	FabbricatoAttiCostrDa1997 	(valori E/I) Per costruzioni dal 1997 atti fabbricato esterno (=E) e interno (=I)
+673        																		--	RichiestaVisuraCartacea		(1/0) Indica se richiesta (1) o meno (0) visura cartacea
+674        																		--  ParoleChiave				Parole chiave del documento di proposta
+675        																		--  NroEmendamentoDa 			Estremo inferiore intervallo di ricerca sul N° di emendamento
+676        																		--  NroEmendamentoA				Estremo superiore intervallo di ricerca sul N° di emendamento
+677        																		--  CodStatoDettUDIni			Cod. stato di dettaglio dell'UD iniziale
+678        																		--  CdCAtto						Centro di Costo dell'atto (ricerca esatta)
+679        																		--  DataScadenzaDa				Estremo inferiore - data senza ora nel formato del parametro FMT_STD_DATA - dell'intervallo di ricerca sulla data di scedenza delle liquidazioni
+680        																		--  DataScadenzaA				Estremo superiore - data senza ora nel formato del parametro FMT_STD_DATA - dell'intervallo di ricerca sulla data di scedenza delle liquidazioni
+681        																		--  FlgVisionato 				valori 1/0 : serve a ricercare gli atti visionati/non visionati dall'utente
+682        																		--  TagApposti					Tag apposti sull'atto (codici; se più di uno separati con , o ;)
+683        																		--  Indirizzo					Indirizzo immobile nelle visure (ricerca case-insensitive in like)
+684        																		--  Richiedente					Richiedente (usato nelle visure SUE e nei procedimenti amm., ricerca case-insensitive in like)
+685        																		--  CFPIVA_Richiedente			Cod. fiscale o P. IVA Richiedente (usato nei procedimenti amm., ricerca case-insensitive in like)
+686        																		--  DtAppuntamento1Da			Inizio intervallo di ricerca sulla data appuntamento in Cittadella
+687        																		--	DtAppuntamento1A			Fine intervallo di ricerca sulla data appuntamento in Cittadella
+688        																		--  DtAppuntamento2Da			Inizio intervallo di ricerca sulla data appuntamento in Bernina
+689        																		--	DtAppuntamento2A			Fine intervallo di ricerca sulla data appuntamento in Bernina
+690        																		--	RichModificheVisuraSUE		(1/0) Indica se richieste (1) o meno (0) modifiche degli atti di fabbrica
+691        																		--  RicercatoreVisuraSUE		Id. (ID_USER) del/i ricercatori visure SUE incaricati della visura (se più di uno separati da ; o ,)
+692        																		--  IscrittoInOdgSedutaDataDa	Estremo inferiore intervallo di ricerca sulla data seduta in cui l'atto è iscitto in OdG (consolidato) (nel formato FMT_STD_DATA)
+693        																		--	IscrittoInOdgSedutaDataA	Estremo superiore intervallo di ricerca sulla data seduta in cui l'atto è iscitto in OdG (consolidato) (nel formato FMT_STD_DATA)
+694        																		--	MaterieTipiAtto				Cod. materia/natura/tipo atto. Se più di uno separati da ;
+695        																		--	LiquidazioneContestualeImpegni	Valori true/false
+696        																		--	LiquidazioneContestualeAltriAspettiCont	Valori true/false
+697        																		--	DeterminaContrarreConGara	Valori true/false
+698        																		--	DeterminaAggiudicaGara		Valori true/false
+699        																		--	TipoAffidamento				Tipo/i di affidamento. Se più di uno separati da ;
+700        																		--	DeterminaRimodulazioneSpesaPostAggiudica	Valori true/false
+701        																		--  PresenzaOpere				1 = SI, 0 = NO
+702        																		--	CodOpere					Codici opera/e presenti. Se più di una separati da ;
+703        																		--  Paziente.Cognome			Cognome paziente (ricerca case-insensitive in like)
+704        																		--	FlgPazienteMinorenne		(valori 1/0) Flag paziente minorenne
+705        																		--	Medico.Cognome				Cognome medico
+706        																		--	IdUserIstruttore			Id. utente istruttore
+707        			)
+708        			return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+709        
+710        	/***** Funzione per ottenere la lista degli esiti di un''attività									*****/
+711        	/***** Da utilizzare per popolare la combo-box degli esiti attività 								*****/
+712        	/***** La lista non è mai paginata																	*****/
+713        	function TrovaListaEsitiAttivita(
+714        			CITypeFlussoWFIO	IN OUT	DMT_PROCESSES.PROV_CI_TY_FLUSSO_WF%type,		-- (obblig. se argomento successivo è NULL) Codice identificativo (KEY_ o PROC_DEF_ID_) del tipo di flusso workflow cui è relativa l'attività di cui estrarre gli esiti
+715        			IdProcessIn			IN 		DMT_PROCESSES.ID_PROCESS%type,					-- (obblig. se argomento precedente è NULL) Id. del processo/procedimento cui è relativa l'attività di cui estrarre i possibili esiti
+716        			ActivityNameIn		IN		DMT_DETT_ATTIVITA_WF.ACTIVITY_NAME%type,		-- (obblig.) Internal name (TASK_DEF_ID_ nel caso di Activiti) dell'attività di cui estrarre gli esiti
+717        			ListaXMLOut			OUT		NOCOPY CLOB,									-- Lista dei possibili esiti dell'attività (XML conforme a schema LISTA_STD.xsd)
+718        																						-- Ogni esito è un tag Riga che contiene le seguenti colonne:
+719        																						-- 1) Codice dell'esito
+720        																						-- 2) Descrizione dell'esito
+721        																						-- Nel caso di Activiti coincidono
+722        			ErrContextOut		OUT		VARCHAR2,										-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+723        			ErrCodeOut			OUT		PLS_INTEGER,									-- N.ro errore di uscita
+724        			ErrMsgOut			OUT 		VARCHAR2)									-- Messaggio d'errore
+725        			return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+726        
+727        	--------overload della precedente: consente di individuare tipo flusso e attività anche dai loro display value
+728        	function TrovaListaEsitiAttivita(
+729        			IdDominioIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,			-- Identificativo del dominio (soggetto produttore o AOO o lo schema, se NULL) in cui vale il tipo di flusso WF
+730        			CITypeFlussoWFIO	IN OUT	DMT_PROCESSES.PROV_CI_TY_FLUSSO_WF%type,		-- (obblig. se argomento successivo è NULL) Codice identificativo (KEY_ o PROC_DEF_ID_) del tipo di flusso workflow cui è relativa l'attività di cui estrarre gli esiti
+731        			NomeTypeFlussoWFIn	IN		VARCHAR2 DEFAULT NULL,							-- Nome del tipo di flusso workflow (o suo inizio; ricerca case insensitive in like che non forza il % finale) cui è relativa l'attività di cui estrarre gli esiti
+732        			IdProcessIn			IN 		DMT_PROCESSES.ID_PROCESS%type,					-- (obblig. se 2 argomenti precedenti sono NULL) Id. del processo/procedimento cui è relativa l'attività di cui estrarre i possibili esiti
+733        			ActivityNameIn		IN		DMT_DETT_ATTIVITA_WF.ACTIVITY_NAME%type,		-- (obblig.se argomento successivo è NULL) Internal name (TASK_DEF_ID_ nel caso di Activiti) dell'attività di cui estrarre gli esiti
+734        			DisplayNameAttIn		IN		VARCHAR2 DEFAULT NULL,						-- (obblig. se argomento precedente è NULL) Display name dell'attività (o suo inizio; ricerca case-insensitive in like che non forza il % finale)
+735        			ListaXMLOut			OUT		NOCOPY CLOB,									-- Lista dei possibili esiti dell'attività (XML conforme a schema LISTA_STD.xsd)
+736        																						-- Ogni esito è un tag Riga che contiene le seguenti colonne:
+737        																						-- 1) Codice dell'esito
+738        																						-- 2) Descrizione dell'esito
+739        																						-- Nel caso di Activiti coincidono
+740        			ErrContextOut		OUT		VARCHAR2,										-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+741        			ErrCodeOut			OUT		PLS_INTEGER,									-- N.ro errore di uscita
+742        			ErrMsgOut			OUT 		VARCHAR2)									-- Messaggio d'errore
+743        			return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+744        
+745        	/****** Funzione da chiamare quando l'operatore richiede di eseguire un'attività dell'iter di un processo  					******/
+746        	/****** In TaskInfoXMLOut restituisce tutte le informazioni per compilare la maschera del task e effetturane il salvataggio	******/
+747        	/******	Non effettua controlli per verificare che l'attività sia disponibile all'utente di lavoro	     					******/
+748        	/******	Nè per verificare che l'utente di lavoro esista/sia un utente vs cui l'utente connesso ha delega  					******/
+749        	function Call_ExecAtt(
+750        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+751        																				-- (obblig). Codice identificativo del token di connessione
+752        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si sta lavorando. Se non valorizzato è l'utente connesso
+753        			IdProcessIn				IN		DMT_PROCESSES.ID_PROCESS%type,			-- (obblig.) Identificativo del processo di eseguire l'attività
+754        			ActivityNameIn 			IN 		VARCHAR2,								-- (obblig.) Nome identificativo dell'attività del flusso WF da svolgere (TASK_DEF_KEY_ nel caso di Activiti)
+755        																					-- Nel caso sia un'attività NON modellata nel workflow è la DES_EVENT_TYPE dell'evento corrispondente all'attività
+756        			URLToRedirectToOut 		OUT 	VARCHAR2, 								-- Indica l'URL/nome identificativo del form a cui l'utente deve essere rediretto
+757        			TaskInfoXMLOut			OUT		NOCOPY CLOB,							-- XML di conforme a SezioneCache.xsd con le informazioni utili a popolamento e salvataggio del task
+758        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+759        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+760        			ErrMsgOut				OUT 		VARCHAR2							-- Messaggio d'errore
+761        			) return PLS_INTEGER;													-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+762        
+763        	--------------funzione che viene richiamata al completamento di un task che prevede invio notifica mail con #DocActions.InvioNotEmail.CallXDettagliMail = true nella Call_ExecAtt
+764        	--------------la stored viene chiamata dopo tutte le altre chiamate alle stored e API che fanno salvataggi tranne quella di completamento passo workflow che viene chiamata dopo
+765        	function GetDatiXInvioNotifMail(
+766        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+767        																					-- (obblig). Codice identificativo del token di connessione
+768        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si sta lavorando. Se non valorizzato è l'utente connesso
+769        			IdProcessIn				IN		DMT_PROCESSES.ID_PROCESS%type,			-- (obblig.) Identificativo del processo di eseguire l'attività
+770        			ActivityNameIn 			IN 		VARCHAR2, 								-- (obblig.) Nome identificativo dell'attività del flusso WF da svolgere (TASK_DEF_KEY_ nel caso di Activiti).
+771        																					-- Nel caso sia un'attività NON modellata nel workflow è la DES_EVENT_TYPE dell'evento corrispondente all'attività
+772        			MailInfoXMLOut			OUT		NOCOPY CLOB,							-- XML di conforme a SezioneCache.xsd con le informazioni sulla mail di notifica da inviare
+773        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+774        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+775        			ErrMsgOut				OUT 		VARCHAR2							-- Messaggio d'errore
+776        			) return PLS_INTEGER;													-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+777        			
+778        			
+779        	/***** Funzione per ottenere la stored function che trasferisce dalla cache in tabelle definitive i dati specifici di una data attività WF in un dato dominio di lavoro ******/
+780        	function GetStoredFncAttivita(
+781        			ActivityNameIn		IN		DMT_ATTIVITA_WF.ACTIVITY_NAME%type,		-- (obblig.) Nome identificativo (ACTIVITY_NAME nel caso di Oracle WF) dell'attività WF per cui trovare la stored function associata
+782        			IdDominioLavoroIn		IN		INTEGER						-- Id. del dominio di lavoro (sogg. prod./AOO) in cui trovare l'URL. Se NULL si intende che il dominio di lavoro è lo schema
+783        		) return VARCHAR2;											-- Stored function ([<Schema_name>.][<package_name>.]<function_name>) specifica dell'attività nel dato dominio di lavoro
+784        																-- Se NULL vuol dire che non c'è una maschera specifica
+785        
+786        	/******* serve a ricercare un tipo di flusso workflow per un dato sogg. produttore o AOO a partire da Id. e/o il nome						******/
+787        	/******* restituisce il codice identificativo del tipo di flusso solo se a partire dagli estremi immessi riesce a identificarlo univocamente		******/
+788        	function FindTypeFlussoWF(
+789        			IdDominioIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- Identificativo del dominio (soggetto produttore o AOO o lo schema, se NULL) per cui cercare il tipo di flusso WF
+790        			CodApplOwnerIn		IN		VARCHAR2 DEFAULT NULL,				-- Codice dell'applicazione "proprietaria" del tipo di flusso (ricerca esatta e case-sensitive)
+791        			CodIstApplOwnerIn		IN 		VARCHAR2 DEFAULT NULL,				-- Codice dell'istanza di applicazione "proprietaria" del tipo di flusso (ricerca esatta e case-sensitive)
+792        			FlgRestrApplOwnerIn	IN		INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 viene trovato solo un tipo di flussi di cui è proprietaria l'applicazione proprietaria (ed eventuale istanza) specificata in CodApplOwnerIn; se 0 o NULL e se CodApplOwnerIn è valorizzata vengono viene trovato un tipo di flusso senza applicazione proprietaria o con applicazione proprietria pari a quella specificata
+793        			CITypeFlussoWFIn		IN		DMT_PROCESSES.PROV_CI_TY_FLUSSO_WF%type DEFAULT NULL,
+794        																-- Codice identificativo del tipo di flusso
+795        			NomeTypeFlussoWFIn	IN		VARCHAR2 DEFAULT NULL,				-- Nome del tipo di flusso workflow (o suo inizio; ricerca case insensitive in like).
+796        			FlgSoloVldIn		IN		PLS_INTEGER DEFAULT 1,				-- (valori 1/0/NULL) Indica se il tipo di flusso deve essere valido (1) o no (al timestamp TsRifIn)
+797        			TsRifIn			IN		VARCHAR2 default TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS'),
+798        																-- Stringa con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) di riferimento al quale il tipo di flusso deve avere gli estremi specificati in input. Se non valorizzato si intende sysdate
+799        			FlgNoPercFinaleSuNomeIn	IN		PLS_INTEGER	DEFAULT NULL			-- (valori 1/0/NULL) Se 1 la ricerca sul nome non forza il % finale (a meno che non ci sia espressamente)
+800        			)return VARCHAR2;											-- Codice identificativo del tipo di flusso trovato. E' NULL in caso di errore o tipo di flusso non individuabile univocamente
+801        
+802        	/******* serve a ricercare un tipo di flusso workflow da avviare a partire da Id. e/o nome												******/
+803        	/******* restituisce tra gli output il codice identificativo del tipo di flusso solo se a partire dagli estremi immessi riesce a identificarlo univocamente		******/
+804        	function FindTypeFlussoWFDaAvviare(
+805        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+806        																-- (obblig). Codice identificativo del token di connessione
+807        			CITypeFlussoWFIO		IN OUT	DMT_PROCESSES.PROV_CI_TY_FLUSSO_WF%type,
+808        																-- Codice identificativo del tipo di flusso
+809        			NomeTypeFlussoWFIn	IN		VARCHAR2,						-- Nome del tipo di flusso workflow (o suo inizio; ricerca case insensitive in like).
+810        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+811        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+812        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore
+813        			) return PLS_INTEGER;										-- Vale 1 se l'individuazione è andata a buon fine, altrimenti 0
+814        
+815        	/******* serve a ricercare tipi di flussi (eventualmente relative ad un dato sogg. produttore o AOO e ad una data applicazione) a partire da Id. e/o nome del flusso 		******/
+816        	/******* restituisce gli id. (KEY_) dei tipi di flussi trovati																												******/
+817        	function FindTypesFlussiWF(
+818        			IdDominioIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- Identificativo del dominio (soggetto produttore o AOO o lo schema, se NULL) per cui cercare il tipo di flusso WF
+819        			CodApplOwnerIn		IN		VARCHAR2 DEFAULT NULL,					-- Codice dell'applicazione "proprietaria" del tipo di flusso (ricerca esatta e case-sensitive)
+820        			CodIstApplOwnerIn		IN 		VARCHAR2 DEFAULT NULL,				-- Codice dell'istanza di applicazione "proprietaria" del tipo di flusso (ricerca esatta e case-sensitive)
+821        			FlgRestrApplOwnerIn	IN		INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se 1 vengono trovati solo tipi di flussi di cui è proprietaria l'applicazione proprietaria (ed eventuale istanza) specificata in CodApplOwnerIn; se 0 o NULL e se CodApplOwnerIn è valorizzata vengono vengono trovati tipi di flussi senza applicazione proprietaria o con applicazione proprietria pari a quella specificata
+822        			CITypeFlussoWFIn		IN		DMT_PROCESSES.PROV_CI_TY_FLUSSO_WF%type DEFAULT NULL,
+823        																				-- Codice identificativo (KEY_) del tipo di flusso
+824        			NomeTypeFlussoWFIn	IN		VARCHAR2 DEFAULT NULL,					-- Nome del tipo di flusso workflow (o suo inizio; ricerca case insensitive in like).
+825        			FlgSoloVldIn		IN		PLS_INTEGER DEFAULT 1,					-- (valori 1/0/NULL) Indica se il tipo di flusso deve essere valido (1) o no (al timestamp TsRifIn)
+826        			TsRifIn			IN		VARCHAR2 default TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS'),
+827        																				-- Stringa con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) di riferimento al quale il tipo di flusso deve avere gli estremi specificati in input. Se non valorizzato si intende sysdate
+828        			FlgNoPercFinaleSuNomeIn	IN		PLS_INTEGER	DEFAULT NULL			-- (valori 1/0/NULL) Se 1 la ricerca sul nome non forza il % finale (a meno che non ci sia espressamente)
+829        			) return DMTO_STRING;												-- restituisce una lista con gli id. dei tipi di flusso trovati (le KEY_ nel caso di Activity). In caso di errore la lista è NULL
+830        
+831        	/***** serve a ottenere il nome di un flusso workflow di cui è noto il cod. identificativo (KEY_) *****/
+832        	function DecodeTypeFlussoWF(
+833        			IdDominioIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,			-- Identificativo del dominio (soggetto produttore o AOO o lo schema, se NULL) di lavoro
+834        			CITypeFlussoWFIn		IN		DMT_PROCESSES.PROV_CI_TY_FLUSSO_WF%type)	-- (obblig.) Codice identificativo (KEY_) del tipo di flusso
+835        			return VARCHAR2;															-- Nome del tipo di flusso. E' NULL in caso di errore o tipo di flusso inesistente
+836        		
+837        	/**** Funzione per ricercare i tipi di flussi workflow (nelle tabelle di Activiti) 	****/
+838        	function TrovaFlussiWFTypes(
+839        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+840        																			-- (obblig). Codice identificativo del token di connessione
+841        			StrInNomeIn			IN		VARCHAR2 DEFAULT NULL,				-- Stringa che deve essere contenuta nel nome dei tipi flussi da trovare (ricerca case-insensitive in like)
+842        			FlgSoloVldIn 		IN  		INTEGER DEFAULT NULL, 			-- (valori 1/0/NULL) Se 1 indica se si devono estrarre solo i tipi di flussi attivi alla data odierna
+843        			TsVldIn			IN 		VARCHAR2 DEFAULT NULL,					-- Stinga con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) a cui devono essere validi i tipi di flussi da estrarre
+844        			CodApplOwnerIn		IN		VARCHAR2 DEFAULT NULL,				-- Codice dell'applicazione "proprietaria" dei tipi di flussi. Se valorizzata pari a #BY_CONN_TKN e si è connessi da un'applicazione esterna si ricercano solo tipi di flussi di cui è proprietaria quell'applicazione
+845        			CodIstApplOwnerIn		IN 		VARCHAR2 DEFAULT NULL,			-- Codice dell'istanza di applicazione "proprietaria" dei tipi di flussi. Se valorizzata pari a #BY_CONN_TKN e si è connessi da un'applicazione esterna si ricercano solo tipi di flussi di cui è proprietaria l'istanza di applicazione esterna da cui si è connessi
+846        			FlgRestrApplOwnerIn	IN		INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 vengono estratti solo tipi di flussi di cui è proprietaria l'applicazione proprietaria (ed eventuale istanza) specificata in CodApplOwnerIn; se 0 o NULL e se CodApplOwnerIn è valorizzata vengono estratti solo i tipi di flussi senza applicazione proprietaria o con applicazione proprietria pari a quella specificata
+847        			CITypeFlussoWFToAddIn	IN		DMT_PROCESSES.PROV_CI_TY_FLUSSO_WF%type DEFAULT NULL,
+848        																			-- Codice di un  tipo di flusso da aggiungere comunque nella lista in output
+849        			NomeTypeFlussoWFToAddIn	IN		VARCHAR2 DEFAULT NULL,			-- Nome di un  tipo di flusso da aggiungere comunque nella lista in output
+850        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+851        			ColOrderByIO		IN OUT	VARCHAR2,							-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne 1 e 2). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 1; 1,2)
+852        																			-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+853        																			-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+854        			FlgDescOrderByIO  	IN OUT	VARCHAR2,							-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+855        																			-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+856        			FlgSenzaPaginazioneIn 	IN 		PLS_INTEGER DEFAULT NULL,       -- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+857        			NroPaginaIO      		IN OUT	PLS_INTEGER,                  	-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+858           			BachSizeIO			IN OUT	PLS_INTEGER,						-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+859        																			-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+860        			OverFlowLimitIn		IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+861        			FlgSenzaTotIn		IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+862        			NroTotRecOut		OUT		PLS_INTEGER,						-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+863             			NroRecInPaginaOut 	OUT   	PLS_INTEGER,                    -- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+864        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+865        			ListaXMLOut			OUT		CLOB,								-- Lista dei tipi di flussi trovati(XML conforme a schema LISTA_STD.xsd)
+866        																			-- Ogni tipo flusso è un tag Riga che contiene le seguenti colonne:
+867        																			-- 1: Codice identificativo (KEY_) del tipo flusso
+868        																			-- 2: Nome (NAME_) del tipo flusso
+869        																			-- 3: (1/0) Se 1 indica se il tipo flusso è attualmente valido
+870        																			-- 4: Flag che indica che il tipo di flusso è dell'applicazione CodApplOwnerIn ed eventuale istanza CodIstApplOwnerIn
+871        																			-- 5: Descrizione dell'applicazione (ed eventuale istanza) cui è relativo il tipo di flusso
+872        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+873        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+874        			ErrMsgOut			OUT 		VARCHAR2)						-- Messaggio d'errore
+875        			return PLS_INTEGER;												-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+876        
+877        	/***** Funzione per ottenere le fasi (ovvero i sotto-processi di primo livello) presenti in un dato flusso workflow 		******/
+878        	function TrovaFasiFlussoWF(
+879        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+880        																-- (obblig). Codice identificativo del token di connessione
+881        			CITypeFlussoWFIn		IN		DMT_PROCESSES.PROV_CI_TY_FLUSSO_WF%type DEFAULT NULL,
+882        																-- Codice identificativo del tipo di flusso di cui trovare le fasi
+883        			NomeTypeFlussoWFIn	IN		VARCHAR2 DEFAULT NULL,				-- Nome del tipo di flusso workflow di cui trovare le fasi (o suo inizio; ricerca case insensitive in like).
+884        			StrInNomeFaseIn		IN		VARCHAR2 DEFAULT NULL,				-- Stringa che deve essere contenuta nel nome (display name) delle fasi da trovare (o suo inizio; ricerca case insensitive in like)
+885        			CIFaseIn			IN		VARCHAR2 DEFAULT NULL,				-- Codice identificativo (ACTIVITY_NAME per Orcale WF) della fase da trovare (ricerca case-insensitive esatta)
+886        			FlgSoloVldIn 		IN  		INTEGER DEFAULT NULL, 				-- (valori 1/0/NULL) Se 1 indica se si devono estrarre solo le fasi valide alla data odierna
+887        			TsVldIn			IN 		VARCHAR2 DEFAULT NULL,				-- Stinga con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) a cui devono essere valide le fasi da estrarre
+888        			CIFaseToAddIn		IN		DMT_PROCESS_HISTORY.ACTIVITY_NAME_WF%type DEFAULT NULL,
+889        																-- Codice identificativo (ACTIVITY_NAME in caso di Orcale WF) di una fase da aggiungere comunque nella lista in output
+890        			NomeFaseToAddIn		IN		VARCHAR2 DEFAULT NULL,				-- Nome (DISPLAY_NAME in caso di Orcale WF) di una fase da aggiungere comunque nella lista in output
+891        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+892        			ColOrderByIO		IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne 1 e 2). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 1; 1,2)
+893        																-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+894        																-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+895        			FlgDescOrderByIO  	IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+896        																-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+897        			FlgSenzaPaginazioneIn 	IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+898        			NroPaginaIO      		IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+899           			BachSizeIO			IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+900        																-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+901        			OverFlowLimitIn		IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+902        			FlgSenzaTotIn		IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+903        			NroTotRecOut		OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+904             			NroRecInPaginaOut 	OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+905        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+906        			ListaXMLOut			OUT		CLOB,							-- Lista delle fasi trovate(XML conforme a schema LISTA_STD.xsd)
+907        																-- Ogni fase è un tag Riga che contiene le seguenti colonne:
+908        																-- 1: Codice identificativo della fase (ACTIVITY_NAME di Oracle WF)
+909        																-- 2: Display name della fase (DISPLAY_NAME di Oracle WF)
+910        																-- 3: (1/0) Se 1 indica che la fase è attualmente valida
+911        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+912        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+913        			ErrMsgOut			OUT 		VARCHAR2)						-- Messaggio d'errore
+914        			return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+915        
+916        	/***** Funzione per ottenere le attività utente (TASK) presenti in un dato flusso workflow 								   							******/
+917        	function TrovaAttFlussoWF(
+918        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+919        																						-- (obblig). Codice identificativo del token di connessione
+920        			CITypeFlussoWFIO		IN OUT	DMT_PROCESSES.PROV_CI_TY_FLUSSO_WF%type,	-- Codice identificativo del tipo di flusso di cui trovare le attività
+921        			NomeTypeFlussoWFIn		IN		VARCHAR2 DEFAULT NULL,						-- Nome del tipo di flusso workflow di cui trovare le attività (o suo inizio; ricerca case insensitive in like).
+922        			FlgListaIstanzeAttIn	IN		PLS_INTEGER DEFAULT NULL,					-- non utilizzato nel caso di Activiti
+923        																						-- (valori 1/0/NULL) Se 1 vengono trovati tanti record quante le istanze di attività del flusso che matchano i filtri (si accorpano comunque le istanze di una stessa attività che siano presenti nella stessa fase), altrimenti tanti record quante le attività (si accorpa per attività)
+924        																						-- Solo se 1 nella lista in output sono valorizzati i campi (cod. id. e display name) relativi alla fase (ovvero sotto-processo) in cui ricade l'istanza di attività
+925        			StrInNomeAttIn			IN		VARCHAR2 DEFAULT NULL,						-- Stringa che deve essere contenuta nel nome (display name) delle attività da trovare (ricerca case-insensitive in like)
+926        			CIAttivitaIn			IN		VARCHAR2 DEFAULT NULL,						-- Codice identificativo (TASK_DEF_KEY_ di Activiti) dell'attività da trovare (ricerca case-sensitive esatta)
+927        			StrInNomeFaseIn			IN		VARCHAR2 DEFAULT NULL,						-- Stringa che deve essere contenuta nel nome (display name) delle fasi che contengono l'attività da trovare (ricerca case-insensitive in like)
+928        			CIFaseIn				IN		VARCHAR2 DEFAULT NULL,						-- non utilizzato nel caso di Activiti
+929        																						-- Codice identificativo della fase in cui deve esserci almeno un'istanza delle attività da trovare (ricerca case-sensitive esatta)
+930        			FlgSoloVldIn 			IN  		INTEGER DEFAULT NULL, 					-- (valori 1/0/NULL) Se 1 indica se si devono estrarre solo le attività valide alla data odierna
+931        			TsVldIn					IN 		VARCHAR2 DEFAULT NULL,						-- Stinga con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) a cui devono essere valide le attività da estrarre
+932        			CIAttivitaToAddIn		IN		DMT_PROCESS_HISTORY.ACTIVITY_NAME_WF%type DEFAULT NULL,
+933        																						-- Codice identificativo (TASK_DEF_KEY_ di Activiti in caso di Orcale WF) di un'attività da aggiungere comunque nella lista in output
+934        			NomeAttivitaToAddIn	IN		VARCHAR2 DEFAULT NULL,							-- Nome (NAME_ in Activiti) di un'attività da aggiungere comunque nella lista in output
+935        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+936        			ColOrderByIO		IN OUT	VARCHAR2,										-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne 1, 2, 4 e 5, 6). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 1; 1,2)
+937        																						-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+938        																						-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+939        			FlgDescOrderByIO  	IN OUT	VARCHAR2,										-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+940        																						-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+941        			FlgSenzaPaginazioneIn 	IN 		PLS_INTEGER DEFAULT NULL,            		-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+942        			NroPaginaIO      		IN OUT	PLS_INTEGER,                  				-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+943           			BachSizeIO			IN OUT	PLS_INTEGER,									-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+944        																						-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+945        			OverFlowLimitIn		IN		PLS_INTEGER DEFAULT NULL,						-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+946        			FlgSenzaTotIn		IN		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+947        			NroTotRecOut		OUT		PLS_INTEGER,									-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+948             		NroRecInPaginaOut 	OUT   	PLS_INTEGER,                     				-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+949        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+950        			ListaXMLOut			OUT		CLOB,											-- Lista della attività o istanze di attività trovate(XML conforme a schema LISTA_STD.xsd)
+951        																						-- Ogni attività o sua istanza è un tag Riga che contiene le seguenti colonne:
+952        																						-- 1: Codice identificativo dell'attività (TASK_DEF_KEY_ di Activiti)
+953        																						-- 2: Display name dell'attività (NAME_ di Activiti)
+954        																						-- 3: (1/0) Se 1 indica che l'attività è attualmente valida
+955        																						-- 4: Codice identificativo della fase in cui ricade l'istanza di attività
+956        																						-- 5: Nome della fase in cui ricade l'istanza di attività
+957        																						-- 6: N.ro di ordine tra le attività della fase (valorizzato solo se lista di istanze attivita)
+958        			ErrContextOut		OUT		VARCHAR2,										-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+959        			ErrCodeOut			OUT		PLS_INTEGER,									-- N.ro errore di uscita
+960        			ErrMsgOut			OUT 		VARCHAR2,									-- Messaggio d'errore
+961        			FlgAggiungiFasiIn		IN		PLS_INTEGER DEFAULT 1)						-- (valori 1/0/NULL) Se diverso da 0 - 1 o NULL - nella lista in output vengono messe anche le fasi/processi con colonne 1 e 2 nulle
+962        			return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+963        
+964        	/***** Funzione per ottenere la decodifica dell'internal name (TASK_DEF_KEY_ nel caso di Activiti) di un'attività WF 	*****/
+965        	/***** In caso di errore solleva eccezione																				*****/
+966        	function DecodeAttivita(
+967        			CITypeFlussoWFIO	IN OUT	DMT_PROCESSES.PROV_CI_TY_FLUSSO_WF%type,		-- (obblig. se argomento successivo è NULL) Codice identificativo del tipo di flusso workflow cui è relativa l'attività da decodificare
+968        			IdProcessIn			IN 		DMT_PROCESSES.ID_PROCESS%type,					-- (obblig. se argomento precedente è NULL) Id. del processo/procedimento cui è relativa l'attività da decodificare
+969        			ActivityNameIn		IN		DMT_DETT_ATTIVITA_WF.ACTIVITY_NAME%type,		-- (obblig.) TASK_DEF_KEY_ dell'attività da decodificare
+970        			IdDominioIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type DEFAULT NULL	
+971        																						-- Identificativo del dominio (soggetto produttore o AOO o lo schema, se NULL) in cui si è connessi
+972        																						-- Viene considerato solo se IdProcessIn è NULL 
+973        			)return VARCHAR2;															-- Decodifica dell'attività WF
+974        
+975        	--------overload della precedente, ma senza argomenti OUT (quindi utilizzabile in una query)
+976        	function DecodeAttivita(
+977        			CITypeFlussoWFIn		IN		DMT_PROCESSES.PROV_CI_TY_FLUSSO_WF%type,	-- (obblig.) Codice identificativo del tipo di flusso workflow cui è relativa l'attività da decodificare
+978        			ActivityNameIn		IN		DMT_DETT_ATTIVITA_WF.ACTIVITY_NAME%type,		-- (obblig.) TASK_DEF_KEY dell'attività da decodificare
+979        			IdDominioIn			IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type DEFAULT NULL	
+980        																						-- Identificativo del dominio (soggetto produttore o AOO o lo schema, se NULL) in cui si è connessi
+981        			)return VARCHAR2;															-- Decodifica dell'attività WF
+982        	
+983        	/******* serve a ricercare attività WF a partire da estremi del flusso di appartenenza e dell'attività stessa				******/
+984        	/******* Le attività possono essere: task e anche sotto-processi															******/
+985        	/******* restituisce gli internal name (TASK_DEF_KEY_ nel caso di Activiti) delle attività trovate							******/
+986        	function FindAttivitaTab(
+987        			IdDominioIn				IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,		-- Identificativo del dominio (soggetto produttore o AOO o lo schema, se NULL) in cui vale il tipo di flusso WF
+988        			CITypeFlussoWFIO		IN OUT	DMT_PROCESSES.PROV_CI_TY_FLUSSO_WF%type,	-- Codice identificativo (KEY_ o PROC_DEF_ID_) del tipo di flusso workflow cui sono relative le attività da trovare
+989        			NomeTypeFlussoWFIn		IN		VARCHAR2 DEFAULT NULL,						-- Nome del tipo di flusso workflow (o suo inizio; ricerca case insensitive in like che non forza il % finale) cui sono relative le attività da trovare.
+990        			IdProcessIn				IN 		DMT_PROCESSES.ID_PROCESS%type DEFAULT NULL,		
+991        																						-- (obblig. se argomenti precedenti sono NULL) Id. del processo/procedimento cui sono relative le attività da trovare
+992        			FlgTipoAttivitaIn		IN		VARCHAR2 DEFAULT 'T',						-- (valori T/P/NULL) Flag per restringere la ricerca ad attività di tipo: T = Task, P=Process
+993        			ActivityNameIn			IN		DMT_DETT_ATTIVITA_WF.ACTIVITY_NAME%type DEFAULT NULL,	
+994        																						-- (obblig. se argomento successivo è NULL) Internal name (TASK_DEF_KEY_ nel caso di Activiti) dell'attività da trovare (ricerca case-sensitive esatta)
+995        			DisplayNameAttIn		IN		VARCHAR2 DEFAULT NULL)						-- (obblig. se argomento precedente è NULL) Display name dell'attività (o suo inizio; ricerca case-insensitive in like che non forza il % finale)
+996        			return DMTO_STRING;															-- Lista degli internal name delle attività trovate (TASK_DEF_KEY_ nel caso di Activiti)
+997        
+998        	/******* serve a ricercare un'attività WF a partire da estremi del flusso di appartenenza e dell'attività stessa					******/
+999        	/******* Le attività possono essere: task e anche sotto-processi																	******/
+1000        	/******* restituisce il l'internal name dell'attività solo se a partire dagli estremi immessi riesce a identificarla univocamente	******/
+1001        	function FindAttivita(
+1002        			IdDominioIn				IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,		-- Identificativo del dominio (soggetto produttore o AOO o lo schema, se NULL) in cui vale il tipo di flusso WF
+1003        			CITypeFlussoWFIO		IN OUT	DMT_PROCESSES.PROV_CI_TY_FLUSSO_WF%type,	-- Codice identificativo (KEY_ o PROC_DEF_ID_) del tipo di flusso workflow in cui trovare l'attività
+1004        			NomeTypeFlussoWFIn		IN		VARCHAR2 DEFAULT NULL,						-- Nome del tipo di flusso workflow (o suo inizio; ricerca case insensitive in like che non forza il % finale) in cui trovare l'attività
+1005        			IdProcessIn				IN 		DMT_PROCESSES.ID_PROCESS%type DEFAULT NULL,		
+1006        																						-- (obblig. se argomenti precedenti sono NULL) Id. del processo/procedimento nel cui flusso trovare l'attività
+1007        			FlgTipoAttivitaIn		IN		VARCHAR2 DEFAULT 'T',						-- (valori T/P/NULL) Flag per restringere la ricerca ad attività di tipo: T = Task, P=Process
+1008        			ActivityNameIn			IN		DMT_DETT_ATTIVITA_WF.ACTIVITY_NAME%type DEFAULT NULL,	
+1009        																						-- (obblig. se argomento successivo è NULL) Internal name (TASK_DEF_KEY_ nel caso di Activiti) dell'attività da trovare (ricerca case-sensitive esatta)
+1010        			DisplayNameAttIn		IN		VARCHAR2 DEFAULT NULL)						-- (obblig. se argomento precedente è NULL) Display name dell'attività (o suo inizio; ricerca case-insensitive in like che non forza il % finale)
+1011        			return VARCHAR2;															-- Internal name dell'attività trovata (TASK_DEF_KEY_ nel caso di Activiti) se univocamente individuata, altrimenti NULL
+1012        	
+1013        	function GetTaskInstIdInProcess(
+1014        			IdProcessIn				IN		DMT_PROCESSES.ID_PROCESS%type,		-- (obblig) Id. del processo/procedimento
+1015        			ActivityNameIn			IN		VARCHAR2,							-- (obblig.) Identificativo del task nel flusso workflow (in Activiti l'ID del task nel BPMN)
+1016        			TaskInstIDOut			OUT		VARCHAR2,							-- Id. dell'istanza del task eseguibile nel dato processo/procedimento
+1017        																				-- Se non c'è un'istanza eseguibili del task restituisce NULL
+1018        			ErrContextOut			OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+1019        			ErrCodeOut				OUT		PLS_INTEGER,						-- N.ro errore di uscita
+1020        			ErrMsgOut				OUT 	VARCHAR2							-- Messaggio d'errore
+1021        			) return PLS_INTEGER;												-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+1022        
+1023        	-----funzione per ottenere all'interno di una data istanza di flusso workflow 
+1024        	---- l'ID dell'istanza eseguibile di un task di cui sia specificato l'ID in input 
+1025        	function GetTaskInstIdInFlow(
+1026        			CIFlussoWFIn			IN	   VARCHAR2,						    -- (obblig.) Id. del flusso WF (ID_ dell'istanza di processo nel caso di Activiti)
+1027        			ActivityNameIn			IN		VARCHAR2,							-- (obblig.) Identificativo del task nel flusso workflow (in Activiti l'ID del task nel BPMN)
+1028        			TaskInstIDOut			OUT		VARCHAR2,							-- Id. dell'istanza del task eseguibile nel dato flusso Activiti
+1029        																				-- Se non c'è un'istanza eseguibili del task restituisce NULL
+1030        			ErrContextOut			OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+1031        			ErrCodeOut				OUT		PLS_INTEGER,						-- N.ro errore di uscita
+1032        			ErrMsgOut				OUT 	VARCHAR2							-- Messaggio d'errore
+1033        			) return PLS_INTEGER;												-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+1034        			
+1035        	----- funzione per istanziare un nuovo iter di atto/documento collegato ad atto (es emendamento) come copia di una proposta/atto già avviato
+1036        	function GetDatiNuovoIterAttoComeCopia(
+1037        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+1038        																								-- (obblig). Codice identificativo del token di connessione
+1039        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,				-- Id. dell'utente a nome di cui si sta lavorando. Se non valorizzato è l'utente connesso
+1040        			IdProcTypeDaAvviareIn	IN 		INTEGER,											-- (obblig.) Id. del tipo di processo da avviare come copia di uno precedente.
+1041        			FlgTipoNumerazioneIn	IN		VARCHAR2 DEFAULT NULL,								-- (valori I/F) Indica se la proosta/atto da cui copiare viene indicati con la numerazione di proposta/iniziale o quella finale. Può non essere valorizzato
+1042        			SiglaNumerazioneIn		IN		VARCHAR2,											-- Sigla del registro di numerazione della proosta/atto da cui copiare. Può non essere valorizzato
+1043        			AnnoNumerazioneIn		IN		INTEGER,											-- Anno di numerazione della proposta/atto da cui copiare. Può non essere valorizzato
+1044        			NumeroIn				IN		INTEGER,											-- (obblig.) N° della proposta/atto da cui copiare.
+1045        			IdUDDaCopiareOut		OUT		INTEGER,											-- ID_UD della proposta/atto da cui copiare i dati
+1046        			IdProcessDaCopiareOut	OUT		INTEGER,											-- ID_PROCESS del processo di lavorazione della proposta/atto da cui copiare i dati
+1047        			FlgDocTypeDiversoOut	OUT		INTEGER,											-- se 1 indica che il tipo dell'atto da cui copiare è diverso da quello del nuovo atto da avviare
+1048        			IdDocTypeDaCopiareOut	OUT		INTEGER,											-- Id del tipo documento dell'atto da copiare
+1049        			CodCatRegAttoDaCopiareOut	OUT		VARCHAR2,										-- Codice della categoria di numerazione dell'atto da copiare
+1050        			SiglaRegAttoDaCopiareOut	OUT		VARCHAR2,										-- Sigla di numerazione dell'atto da copiare
+1051        			AnnoAttoDaCopiareOut	OUT		INTEGER,											-- Anno di numerazione dell'atto da copiare
+1052        			NumAttoDaCopiareOut		OUT		INTEGER,											-- Numero atto da copiare
+1053        			ErrContextOut			OUT		VARCHAR2,											-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+1054        			ErrCodeOut				OUT		PLS_INTEGER,										-- N.ro errore di uscita
+1055        			ErrMsgOut				OUT 	VARCHAR2											-- Messaggio d'errore
+1056        			) return PLS_INTEGER;																-- Vale 1 se l'atto/proposta da copiare esiste ed è coerente con il tipo di processo da avviare ed è visibile all'utente di lavoro, altrimenti 0
+1057         
+1058         
+1059        	----- serve ad effettuare azioni massive su proposte di atti/atti 
+1060        	----- in caso di errore su una singola proposta/atto l'elaborazione NON si interrompe e procede con la successiva.
+1061        	----- su ogni proposta/atto elaborato viene subito fatta la commit se richiesta 
+1062        	function AzioneSuListaDocAtti(
+1063        		CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+1064        																				-- (obblig). Codice identificativo del token di connessione
+1065        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+1066        		AzioneIn					IN		VARCHAR2,							-- Azione da effettuare sulla lista di proposte/atti indicata
+1067        																				-- Valori ammessi:
+1068        																				-- PRESENTAZIONE_FIRMATARIO
+1069        																				-- RITIRO_FIRMATARIO
+1070        																				-- BLOCCO_PRESENTAZIONE_EMENDAMENTI
+1071        																				-- SBLOCCO_PRESENTAZIONE_EMENDAMENTI
+1072        																				-- SOTTOSCRIZIONE_CONSIGLIERE
+1073        																				-- ELIMINAZIONE_SOTTOSCRIZIONE_CONSIGLIERE
+1074        																				-- RILASCIO_VISTO
+1075        																				-- RIFIUTO_VISTO
+1076        																				-- ANNULLAMENTO
+1077        																				-- RIPRISTINO
+1078        																				-- ASSEGNAZIONE_ASSESSORE
+1079        																				-- APPOSIZIONE_TAG
+1080        																				-- ELIMINAZIONE_TAG
+1081        																				-- APPOSIZIONE_POST-IT
+1082        																				-- SBLOCCO_INVIO_TARDIVO_RAG
+1083        																				-- BLOCCO_INVIO_TARDIVO_RAG
+1084        		ListaPropAttiIn   			IN    	CLOB,				 				-- (obblig.) Lista XML conforme a schema ListaSTD.xsd
+1085        																				-- Ogni proposta/atto è un tag Riga; contiene le colonne:
+1086        																				-- 1) ID_UD della proposta/atto
+1087        																				-- 2) ID_PROCESS del processo della proposta/atto
+1088        		XMLDettAzioneIn				IN 		CLOB DEFAULT NULL,					-- Lista XML conforme a schema SezioneCache.xsd con i dati di dettaglio dell'azione
+1089        																				-- Le variabili gestite sono:
+1090        																				-- Nota (per azione APPOSIZIONE_POST-IT)
+1091        																				-- @Assessori (per azione ASSEGNAZIONE_ASSESSORE) lista con colonne: 1) ID_USER dell'assessore; 2) Cognome e Nome dell'assessore; 3) USERNAME dell'assessore
+1092        																				-- @Tag (per azioni APPOSIZIONE_TAG e ELIMINAZIONE_TAG) lista con colonne: 1) codice tag, 2) decodifica tag
+1093        																				-- BloccoDal (per azione BLOCCO_PRESENTAZIONE_EMENDAMENTI, non obbligatorio; se non indicato il blocco è istantaneo) Data e ora nel formato FMT_STD_TIMESTAMP
+1094        																				-- Motivo (per azioni ANNULLAMENTO, RITIRO_FIRMATARIO e RIPRISTINO)
+1095        																				-- Osservazioni (per azioni RILASCIO_VISTO 	e RIFIUTO_VISTO)
+1096        		FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+1097        																				-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+1098        		FlgAutoCommitIn				IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+1099        		EsitiOut					OUT		NOCOPY CLOB,						-- Lista XML conforme a schema ListaSTD.xsd che contiene gli esiti dell'operazione su ciascuna mail in input
+1100        																				-- Ogni proposta/atto corrisponde ad un tag riga con le colonne:
+1101        																				-- 1: ID_UD
+1102        																				-- 2: ESTREMI_PROPOSTA_ATTO
+1103        																				-- 3: Dati principali della proposta/atto (da mostrare come label)
+1104        																				-- 4: Esito operazione: OK, KO
+1105        																				-- 5: Messaggio di errore
+1106        		ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+1107        		ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+1108        		ErrMsgOut					OUT 	VARCHAR2							-- Messaggio d'errore
+1109        		) return PLS_INTEGER;													-- Vale 1 se non ci sono stati errori generali (vale a dire NON sulla singola proposta/atto), altrimenti 0
+1110        
+1111        	------------- funzione per testare se un certo ruolo di processo è presente in un task disponibile o già svolto su un dato processo
+1112        	function TestDaFareFattoTaskXRuoloProc(
+1113        			IdProcessIn			IN		DMT_PROCESSES.ID_PROCESS%type,		-- (obblig.) Id. del processo su cui fare il test
+1114        			RuoloProcIn			IN		VARCHAR2							-- (obblig.) Ruolo di processo da testare
+1115        			) return PLS_INTEGER;											-- restituisce 1 IN caso di test positivo, 0 IN caso di test negativo, valori negativi in caso di errore
+1116        
+1117        END DMPK_WF;

@@ -1,0 +1,407 @@
+1        package DMPK_STATISTICHE AUTHID CURRENT_USER as
+2        
+3        
+4        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+5        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+6        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+7        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+8        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+9        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+10        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+11        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+12        	
+13        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+14        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+15        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+16        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+17        	/**************		   >1000 errore non grave gestito														*******/
+18        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+19        
+20        	----funzione per testare se unità documnetaria ha o meno file validi associati
+21        	function TestUDConFile(IdUDIn	IN	DMT_UNITA_DOC.ID_UD%type) 					-- (obblig) ID dell'unità documentaria
+22        		return PLS_INTEGER;															--	1 = file presenti, 0 = file non presenti, valori negativi: verifica andata in errore					
+23        
+24        		
+25        	/*********** funzione per ottenere i dati per i report sui documenti con statistiche con raggruppamenti e percentuali/percentili per soggetto produttore/AOO/UO 												**********/
+26        	/*********** comprende i report che vengono prodotti in ADR per generare gli areogrammi per Società del Gruppo, Direzioni di una data Società (U.O. di primo livello) e UO di 2° livello in una data Direzione	**********/
+27        	function ReportDoc_GroupBySP_UO(
+28        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+29        																					-- (obblig) Codice identificativo del token di connessione
+30        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+31        			TipoReportIn				IN		VARCHAR2,							-- (obblig.) Tipo di report
+32        																					-- registrazioni_a_protocollo_effettuate
+33        																					-- assegnazioni_eseguite
+34        																					-- assegnazioni_senza_presa_in_carico
+35        																					-- tempi_medi_tra_assegnazione_e_presa_in_carico
+36        			LivelloDettReportIn			IN		PLS_INTEGER,						-- (obblig) Valori da 0 in su. Indica il livello di dettaglio del report, ovvero per cosa si raggruppa
+37        																					-- 0= Raggruppamento per SP/AOO
+38        																					-- valori da 1 in su: ragruppamento per UO dell'organigramma del livello indicato (1=apicale ecc)
+39        			IdSpAOOUOReportOnIn			IN		PLS_INTEGER,						-- (obblig. salvo se LivelloDettReportIn =1) E' l'id. del dominio (=soggetto prod. o AOO) o UO su cui fare il report
+40        			DataDaIn					IN		VARCHAR2,							-- (obblig.) Estremo inferiore (incluso) del periodo da considerare (nel formato dato dal parametro di config. FMT_STD_DATA). Si intende dalle 00.00 del giorno indicato.
+41        			DataAIn						IN		VARCHAR2,							-- (obblig.) Estremo superiore (incluso) del periodo da considerare (nel formato dato dal parametro di config. FMT_STD_DATA). Si intende fino alla mezzanotte del giorno indicato.
+42        			TipiRegistrazioniIn			IN		VARCHAR2 DEFAULT NULL,				-- Serve a restringere il report ad alcuni tipi di registrazioni
+43        																					-- E = In entrata
+44        																					-- U = In uscita
+45        																					-- I = Interne																				
+46        																					-- Può essere anche una combinazione dei valori precedenti separati da ,
+47        			ReportTitleOut				OUT		VARCHAR2,							-- Titolo del report
+48        			ReportContentsXMLOut		OUT		NOCOPY CLOB,						-- Lista XML (conforme a schema LISTA_STD.xsd) con i dati del report
+49        																					-- Ogni record riporta dati e percentuali di un dominio (=soggetto prod. o AOO) o UO e corrisponde ad un tag Riga con le seguenti colonne:
+50        																					-- 1: Id. del soggetto (ID_SP_AOO o ID_UO) cui si riferiscono dati e percentuali del record
+51        																					-- 2: Label del dominio (=soggetto prod. o AOO) o UO cui si riferiscono dati e percentuali del record
+52        																					-- 3: Valore assunto per il dato dominio/UO dalla variabile richiesta in base al tipo di report: conteggio o tempo medio, a seconda del tipo di report. 
+53        																					--	  Il tempo medio è espresso in ore
+54        																					--	  Sia i conteggi che i tempi sono in notazione italiana con la , come separatore dei decimali e il . per le migliaia
+55        																					-- 4: Percentuale (nel caso di conteggi) o percentile (nel caso di tempi medi) che corrisponde al valore. Sono in notazione italiana con la , come separatore dei decimali
+56        																					-- 5: Percentuale (nel caso di conteggi) o percentile (nel caso di tempi medi) arrotondato in modo tale che la somma delle varie percentuali sia 100. Sono in notazione italiana con la , come separatore dei decimali																		
+57        			NroRecordOut				OUT		PLS_INTEGER,						-- N.ro di record, ovvero di raggruppamenti, presenti nel report
+58        																					-- valorizzato solo in caso di esito positivo e se DatiRegistrazioniXMLOut è valorizzato in output
+59        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+60        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+61        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+62        			return PLS_INTEGER;														-- 1 in caso di report prodotto correttamente, 0 in caso di errore	
+63        
+64        	-----serve a calcolare statistiche avanzate su documenti
+65        	function ReportDocAvanzati(
+66        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+67        																					-- (obblig) Codice identificativo del token di connessione
+68        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+69        			FlgBatchIn					IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che la chiamata alla stored è dal batch che deve effettuare la statistica off-line
+70        			IdJobIO						OUT		PLS_INTEGER,						-- Id. del job che deve effettuare off-line il calcolo delle statistiche richieste
+71        																					-- Viene valorizzato in output se FlgBatchIn è NULL o 0 e  se la statistica non può essere calcolata on-line
+72        																					-- obblig. in input se FlgBatchIn = 1
+73        			TipoReportIn				IN		VARCHAR2 DEFAULT NULL,				-- (obblig. salvo se IdJobIO valorizzato in input) Tipo di report
+74        																					-- registrazioni_documenti
+75        																					-- invii_interni :invii di documenti interni all'AOO (per competenza o conoscenza)
+76        																					-- assegnazioni :assegnazioni per competenza effettuate all'interno dell'AOO
+77        																					-- invii_interni_cc	:invii interni all'AOO effettuati per conoscenza
+78        																					-- prese_in_carico
+79        			FiltriIn					IN		CLOB DEFAULT NULL,					-- XML SezioneCache che indica su quali dati calcolare la statistica.
+80        																					-- Se IdJobIO valorizzato in input i filtri sono ricavati dai parametri del job
+81        																					-- I possibili filtri con cui selezionare i dati sono:
+82        																					-- DataDa	(obblig.): estremo inferiore dell'intervallo di ricerca dei documenti su cui calcolare la statistica (data senza ora espressa nel formato dato dal parametro di conf. FMT_STD_DATA)
+83        																					-- DataA	(obblig.): estremo superiore dell'intervallo di ricerca dei documenti su cui calcolare la statistica (data senza ora espressa nel formato dato dal parametro di conf. FMT_STD_DATA)
+84        																					-- TipoRegistrazione (facolt.) : valori ammessi: E (Entrata), U (Uscita) e I (Interni). 
+85        																					--								Si possono specificare più valori separati da ; o ,
+86        																					--								Serve a restringere la statistica ai documenti con il/i tipi di registrazione specificati
+87        																					-- CategoriaRegistrazione (facolt.) : valori ammessi: PG = Protocollo Generale, PP = Protocollo Particolare, R = Repertorio, E= Emergenza, AI = Altro tipo di numerazione
+88        																					--								Si possono specificare più valori separati da ; o ,
+89        																					--								Serve a restringere la statistica ai documenti registrati ad un registro della/e categorie specificate
+90        																					-- SiglaRegistro (facolt.)		Sigla dello specifico registro a cui devono essere stati registrati i documenti da considerare
+91        																					--								Si possono specificare più valori separati da ; o ,
+92        																					--								Serve a restringere la statistica ai documenti registrati ad un registro di quelli specificati
+93        																					-- IdSpAOO (facolt.)			Può essere specificato solo se il dominio a cui si è loggati è quello trasversale (tipoDominio=1) o un ente con varie AOO
+94        																					--								Id. del soggetto produttore/AOO a cui restringere la ricerca
+95        																					-- IdUO	(facolt.)				Id. della UO che ha registrato o a cui è stato assegnato/inviato o che ha preso in carico
+96        																					-- FlgIncluseSottoUO (facolt.)	Se 1 vengono considerate anche le UO gerarchicamente subordinate a IdUO
+97        																					-- IdUser (facolt.)				Id. dell'utente che ha registrato/assegnato/inviato/preso in carico
+98        																					-- CodApplicazioneReg (facolt.)	Codice applicazione + |*| + codice istanza applicazione che ha registrato i documenti
+99        																					--								Si possono specificare più valori separati da ; o ,
+100        																					--								Serve a restringere la statistica ai documenti registrati - tramite web service - dalla/e applicazioni esterne indicate
+101        																					-- SupportoOriginale (facolt.)	Supporto originale del documento: valori ammessi: digitale, analogico, misto
+102        																					-- FlgPresenzaFile (facolt.)	Serve a restringere ai documenti: 1 = con file associati; 0 = senza file associati
+103        																					-- CodCanale (facolt.)			Codice del canale/mezzo di ricezione/trasmissione
+104        																					--								Si possono specificare più valori separati da ; o ,
+105        																					-- LivRiservatezza				Serve a restringere ai documenti: 1 o >1 = riservati; 0 = non riservati
+106        			RaggruppamentiIn			IN		CLOB,								-- XML SezioneCache che indica per quale/i elementi raggruppare i dati nelle statistiche restituite
+107        																					-- Se IdJobIO valorizzato in input i criteri di raggruppamento sono ricavati dai parametri del job
+108        																					-- I raggruppamenti possibili sono:
+109        																					-- Periodo 		    			Indica se le statistiche devono essere raggruppate per: giorno_anno, giorno_mese, giorno_settimana, settimana, mese, trimestre, quadrimestre, semestre, anno
+110        																					-- TipoRegistrazione 			valori 1/0. Se 1 significa che si deve raggruppare per tipo di registrazione: Entrata, Uscita, Interni
+111        																					-- CategoriaRegistrazione		valori 1/0. Se 1 significa che si deve raggruppare per categoria di registrazione: PG = Protocollo Generale, PP = Protocollo Particolare, R = Repertorio, A = Altro tipo di numerazione
+112        																					--								Se un documento è stato registrato a più registri con diverse categorie viene considerato più volte in più ragguppamenti
+113        																					-- Registro						valori 1/0. Se 1 significa che si deve raggruppare per registro di registrazione dei documenti.
+114        																					--								Se un documento è stato registrato a più registri viene considerato più volte in più ragguppamenti
+115        																					-- SpAOO						valori 1/0. Se 1 significa che si deve raggruppare per soggetto produttore/AOO
+116        																					--								Può essere impostato a 1 solo se il dominio a cui si è loggati è quello trasversale (tipoDominio=1) o un ente con varie AOO
+117        																					-- UO							valori: #UO o il codice di un tipo di UO. 
+118        																					--								Se #UO significa che si deve raggruppare per specifica UO, di qualsiasi tipo/livello, che ha registrato o a cui è stato assegnato/inviato o che ha preso in carico, 
+119        																					--								Se pari ad un codice di tipo di UO si raggruppa mettendo insieme tutte le UO ricadenti in una UO del dato tipo. Le UO che non ricadono in una del tipo indicato nè sono del dato tipo NON vengono considerate
+120        																					-- User							valori 1/0. Se 1 significa che si deve raggruppare per utente che ha registrato/assegnato/inviato/preso in carico
+121        																					-- ApplicazioneReg 				valori 1/0. Se 1 significa che si deve raggruppare per applicazione che ha registrato - tramite web service - i documenti
+122        																					-- SupportoOriginale 			valori 1/0. Se 1 significa che si deve raggruppare per supporto originale del documento (digitale, analogico, misto)
+123        																					-- PresenzaFile 				valori 1/0. Se 1 significa che si deve raggruppare per documenti con e senza file associati
+124        																					-- Canale 						valori 1/0. Se 1 significa che si deve raggruppare per canale/mezzo di ricezione/trasmissione
+125        																					-- Riservatezza					valori 1/0. Se 1 significa che si deve raggruppare per livello di riservatezza e separando non riservati da riservati
+126        																					-- RegAnnullate					valori 1/0. Se 1 si deve raggruppare in modo da distinguere le registrazioni non annullate da quelle annullate annullate
+127        			ReportTitleOut				OUT		VARCHAR2,							-- Titolo del report (valorizzato solo se IdJobIO non è valorizzato in output)
+128        			ReportContentsXMLOut		OUT		NOCOPY CLOB,						-- Lista XML (conforme a schema LISTA_STD.xsd) con i dati del report
+129        																					-- Valorizzata solo se IdJobIO non è valorizzato in output
+130        																					-- Ogni record riporta dati e percentuali di un gruppo e corrisponde ad un tag Riga con le seguenti colonne:
+131        																					-- La prima riga riporta i nomi delle colonne
+132        																					-- 1: Id. del soggetto produttore/AOO cui si riferiscono dati e percentuali del record (valorizzato se si raggruppa per SpAOO)
+133        																					-- 2: Nome del soggetto produttore/AOO cui si riferiscono dati e percentuali del record (valorizzato se si raggruppa per SpAOO)
+134        																					-- 3: Codice della UO del raggruppamento (valorizzato se si raggruppa per UO)
+135        																					-- 4: Nome della UO del raggruppamento (valorizzato se si raggruppa per UO)
+136        																					-- 5: Cod. dell'applicazione del raggruppamento (valorizzato se si raggruppa per ApplicazioneReg)
+137        																					-- 6: Nome dell'applicazione del raggruppamento (valorizzato se si raggruppa per ApplicazioneReg)
+138        																					-- 7: Username dell'utente del raggruppamento (valorizzato se si raggruppa per User)
+139        																					-- 8: Cognome e Nome dell'utente del raggruppamento (valorizzato se si raggruppa per User)
+140        																					-- 9: Tipo di registrazione: E (Entrata), U (Uscita) e I (Interni) (valorizzato se si raggruppa per TipoRegistrazione)
+141        																					-- 10: Categoria di registrazione : PG = Protocollo Generale, PP = Protocollo Particolare, R = Repertorio, A = Altro tipo di numerazione (valorizzato se si raggruppa per CategoriaRegistrazione)
+142        																					-- 11: Sigla registro di registrazione (valorizzato se si raggruppa per SiglaRegistro)
+143        																					-- 12: Supporto originale : digitale, analogico, misto (valorizzato se si raggruppa per SupportoOriginale)
+144        																					-- 13: Indicazione 1/0 della presenza o meno di file sui documenti del gruppo (valorizzato se si raggruppa per PresenzaFile)
+145        																					-- 14: Canale di ricezione/trasmissione (valorizzato se si raggruppa per Canale)
+146        																					-- 15: Livello di riservatezza (valorizzato se si raggruppa per Riservatezza)
+147        																					-- 16: Periodo (valorizzato se si raggruppa per Periodo): è sempre un numero 
+148        																					-- 17: N.ro di documenti del gruppo
+149        																					-- 18: Percentuale che corrisponde al conteggio di col 17. In notazione italiana con la , come separatore dei decimali
+150        																					-- 19: Percentuale arrotondata in modo tale che la somma delle varie percentuali sia 100. In notazione italiana con la , come separatore dei decimali																		
+151        																					-- 20: (valori VALIDE/ANNULLATE): Indice se registrazioni valide o annullate
+152        			NroRecordOut				OUT		PLS_INTEGER,						-- N.ro di record, ovvero di raggruppamenti, presenti nel report
+153        																					-- valorizzato solo in caso di esito positivo e se IdJobIO non è valorizzato in output
+154        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+155        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+156        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+157        			return PLS_INTEGER;														-- 1 in caso di report prodotto o schedulato correttamente, 0 in caso di errore	
+158        
+159        	-----serve a calcolare statistiche sulle mail
+160        	function ReportEmail(
+161        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+162        																					-- (obblig) Codice identificativo del token di connessione
+163        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+164        			FlgBatchIn					IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che la chiamata alla stored è dal batch che deve effettuare la statistica off-line
+165        			IdJobIO						OUT		PLS_INTEGER,						-- Id. del job che deve effettuare off-line il calcolo delle statistiche richieste
+166        																					-- Viene valorizzato in output se FlgBatchIn è NULL o 0 e  se la statistica non può essere calcolata on-line
+167        																					-- obblig. in input se FlgBatchIn = 1
+168        			TipoReportIn				IN		VARCHAR2 DEFAULT NULL,				-- (obblig. salvo se IdJobIO valorizzato in input) Tipo di report
+169        																					-- conteggi_email
+170        																					-- tempi_lavorazione_email
+171        																					-- conteggi_per_storico
+172        			FiltriIn					IN		CLOB DEFAULT NULL,					-- XML SezioneCache che indica su quali dati calcolare la statistica.
+173        																					-- Se IdJobIO valorizzato in input i filtri sono ricavati dai parametri del job
+174        																					-- I possibili filtri con cui selezionare i dati sono:
+175        																					-- Flusso (facolt.)		 	E = Entrata, U = Uscita, B = Bozze, N = Notifiche  o una loro concatenazione separata da , o ;
+176        																					-- DataInvioDa	(facolt.)	estremo inferiore dell'intervallo della data di invio delle mail su cui calcolare la statistica (data senza ora espressa nel formato dato dal parametro di conf. FMT_STD_DATA)
+177        																					-- DataInvioA	(facolt.)	estremo superiore dell'intervallo della data di invio delle mail su cui calcolare la statistica (data senza ora espressa nel formato dato dal parametro di conf. FMT_STD_DATA)
+178        																					-- DataChiusuraDa (facolt.): 	estremo inferiore dell'intervallo della data di chiusura delle mail su cui calcolare la statistica (data senza ora espressa nel formato dato dal parametro di conf. FMT_STD_DATA)
+179        																					-- DataChiusuraA (facolt.): 	estremo superiore dell'intervallo della data di chiusura delle mail su cui calcolare la statistica (data senza ora espressa nel formato dato dal parametro di conf. FMT_STD_DATA)
+180        																					-- DataChiusuraA (facolt.): 	estremo superiore dell'intervallo della data di chiusura delle mail su cui calcolare la statistica (data senza ora espressa nel formato dato dal parametro di conf. FMT_STD_DATA)
+181        																					-- DataStoricizzazioneDa (facolt.): 	estremo inferiore dell'intervallo della data di spostamento in archivio storico delle mail su cui calcolare la statistica (data senza ora espressa nel formato dato dal parametro di conf. FMT_STD_DATA)
+182        																					-- DataStoricizzazioneA (facolt.): 	estremo inferiore dell'intervallo della data di spostamento in archivio storico delle mail su cui calcolare la statistica (data senza ora espressa nel formato dato dal parametro di conf. FMT_STD_DATA)
+183        																					-- DataUltimoAggDa: estremo inferiore dell'intervallo della data di ultimo aggiornamento delle mail su cui calcolare la statistica (data senza ora espressa nel formato dato dal parametro di conf. FMT_STD_DATA)
+184        																					-- DataUltimoAggA: estremo superiore dell'intervallo della data di ultimo aggiornamento delle mail su cui calcolare la statistica (data senza ora espressa nel formato dato dal parametro di conf. FMT_STD_DATA)
+185        																					-- @Caselle		(facolt.) Lista delle caselle di ricezione (se tipo flusso = E o N) o da cui si è inviato (se flusso = U o B)
+186        																					--				Ogni riga della lista contiene 2 colonne (può essere valorizzata una sola): colonna 1) id. account della casella; colonna 2) indirizzo della casella (ricerca esatta case-insensitive)
+187        																					-- @UOAssegnatarie	(facolt.)	Lista della/e UO competenti/assegnatarie (attualmente) delle mail da ricercare
+188        																					--								Colonna 1 contiene ID_UO, colonna 2 contiene flag 1/0 di inclusione sotto-UO
+189        																					-- StatoLavorazione (facolt.): valori ammessi: lavorazione_aperta, lavorazione_conclusa
+190        																					-- MinNroMesiSenzaOperazioni (facolt.) minimo n.ro di mesi da cui non ci sono più operazioni, se non di mera consultazione, sulle mail da considerare
+191        																					
+192        																					--######### da qui filtri successivi sono da gestire/rivedere
+193        																					-- SoloNotificheOrfane		(valori 1/0/NULL) Se 1 la statistica va ristretta alle notifiche orfane, ovvero non associate ad una mail padre inviata
+194        																					-- @Categoria (facolt.)		Lista delle categorie delle mail da ricercare. Contiene solo una colonna che può avere i valori:
+195        																					--							PEC
+196        																					--							con Segnatura.xml
+197        																					--							
+198        																					-- FlgCasellaPEC_PEO (facolt.)	Se PEC serve a restringere la ricerca alle mail ricevute/inviate da PEC integrate in Auriga, se PEO a quelle ricevute/inviate da caselle ordinarie integrate in Auriga
+199        																					-- StatoLavorazione (facolt.): valori ammessi: lavorazione_aperta, lavorazione_conclusa
+200        																					-- FlgPresenzaAttach (facolt.)	Serve a restringere alle mail: 1 = con allegati; 0 = senza allegati
+201        																					-- FlgPresenzaAttachFirmati (facolt.)	Serve a restringere alle mail: 1 = con allegati firmati; 0 = senza allegati firmati
+202        																					-- FlgMittentePEC_PEO (facolt.)	Se PEC serve a restringere la ricerca alle mail inviate da PEC, se PEO a quelle inviate da caselle ordinarie
+203        																					-- NroGGAperteDa (facolt.):		estremo inferiore dell'intervallo di giorni da cui le mail sono aperte
+204        																					-- NroGGAperteA	(facolt.):		estremo superiore dell'intervallo di giorni da cui le mail sono aperte
+205        																					-- @UOPassaggio	(facolt.)		Lista della/e UO a cui anche in passato sono state assegnate le mail da ricercare
+206        																					--								Colonna 1 contiene ID_UO, colonna 2 contiene flag 1/0 di inclusione sotto-UO
+207        																					-- @UserInvio (facolt.)			Lista con ID (ID_UTENTE di T_UTENTI_MOD_PEC) del/gli utenti  che hanno inviato le mail da ricercare
+208        																					-- @UserInCarico (facolt.)		Lista con ID (ID_UTENTE di T_UTENTI_MOD_PEC) del/gli utenti  che hanno attualmente in carico le mail da ricercare
+209        																					-- @UserChiusura (facolt.)		Lista con ID (ID_UTENTE di T_UTENTI_MOD_PEC) del/gli utenti  che hanno chiuso le mail da ricercare
+210        																					-- @UserPassaggio (facolt.)		Lista con ID (ID_UTENTE di T_UTENTI_MOD_PEC) del/gli utenti  che hanno avuto in carico, anche in passato, le mail da ricercare
+211        																					-- FlgPresenteRisposta (facolt.)Serve a restringere alle mail: 1 = con almeno una risposta; 0 = senza risposta
+212        																					-- FlgInoltrate	(facolt.)		Serve a restringere alle mail: 1 = inoltrate; 0 = non inoltrate
+213        																					-- ######CATEGORIA, TAG, AZIONE DA FARE, STATO TRASMISSIONE, data assegnazione ?, mittente, destinatario
+214        			RaggruppamentiIn			IN		CLOB,								-- XML SezioneCache che indica per quale/i elementi raggruppare i dati nelle statistiche restituite
+215        																					-- Se IdJobIO valorizzato in input i criteri di raggruppamento sono ricavati dai parametri del job
+216        																					-- I raggruppamenti possibili sono:																			-- Flusso						valori 1/0. Se 1 significa che si deve raggruppare per flusso (Entrata, Uscita, Bozze, Notifiche)
+217        																					-- StatoLavorazione				valori 1/0. Se 1 significa che si deve raggruppare per stato di lavorazione_aperta
+218        																					-- InArchivio					valori 1/0. Se 1 significa che si deve raggruppare per archivio in cui si trovano le mail: corrente o storico
+219        																					-- Casella						valori 1/0. Se 1 significa che si deve raggruppare per casella
+220        																					-- TipoPeriodo					Se si chiede raggruppamento per periodo serve ad indicare che data considerare per tale raggruppamento
+221        																					--								Valori possibili: chiusura, ultimo_aggiornamento, storicizzazione, invio
+222        																					-- Periodo 						Indica se le statistiche devono essere raggruppate rispetto per: giorno_anno, giorno_mese, giorno_settimana, settimana, mese, trimestre, quadrimestre, semestre, anno
+223        																					-- UO							valori: #UO o il codice di un tipo di UO. 
+224        																					--								Se #UO significa che si deve raggruppare per specifica UO assegnataria, di qualsiasi tipo/livello
+225        																					--								Se pari ad un codice di tipo di UO si raggruppa mettendo insieme tutte le UO ricadenti in una UO del dato tipo. Le UO che non ricadono in una del tipo indicato nè sono del dato tipo NON vengono considerate
+226        			ReportTitleOut				OUT		VARCHAR2,							-- Titolo del report (valorizzato solo se IdJobIO non è valorizzato in output)
+227        			ReportContentsXMLOut		OUT		NOCOPY CLOB,						-- Lista XML (conforme a schema LISTA_STD.xsd) con i dati del report
+228        																					-- Valorizzata solo se IdJobIO non è valorizzato in output
+229        																					-- Ogni record riporta dati e percentuali di un gruppo e corrisponde ad un tag Riga con le seguenti colonne:
+230        																					-- La prima riga riporta i nomi delle colonne
+231        																					-- 1: Id. del soggetto produttore/AOO cui si riferiscono dati e percentuali del record (valorizzato se si raggruppa per SpAOO)
+232        																					-- 2: Nome del soggetto produttore/AOO cui si riferiscono dati e percentuali del record (valorizzato se si raggruppa per SpAOO)
+233        																					-- 3: Codice della UO assegnataria del raggruppamento (valorizzato se si raggruppa per UO)
+234        																					-- 4: Nome della UO assegnataria del raggruppamento (valorizzato se si raggruppa per UO)
+235        																					-- 5: Cod. dell'applicazione del raggruppamento (valorizzato se si raggruppa per ApplicazioneReg)
+236        																					-- 6: Nome dell'applicazione del raggruppamento (valorizzato se si raggruppa per ApplicazioneReg)
+237        																					-- 7: Username dell'utente del raggruppamento (valorizzato se si raggruppa per User)
+238        																					-- 8: Cognome e Nome dell'utente del raggruppamento (valorizzato se si raggruppa per User)
+239        																					-- 9: Flusso: E = Entrata, U = Uscita, B = Bozze, N = Notifiche
+240        																					-- 10: Archivio (storico o corrente) del raggruppamento (valorizzato se si raggruppa archivio in cui si trovano le mail: corrente o storico)
+241        																					-- 11: Casella del raggruppamento (valorizzato se si raggruppa per casella)
+242        																					-- 12: StatoLavorazione del raggruppamento (valorizzato se si raggruppa per StatoLavorazione)
+243        																					-- 13: Categoria della mail
+244        																					-- 14: non utilizzata
+245        																					-- 15: non utilizzata
+246        																					-- 16: Periodo (valorizzato se si raggruppa per Periodo): è sempre un numero 
+247        																					-- 17: N.ro di mail del gruppo
+248        																					-- 18: Percentuale che corrisponde al conteggio di col 17. In notazione italiana con la , come separatore dei decimali
+249        																					-- 19: Percentuale arrotondata in modo tale che la somma delle varie percentuali sia 100. In notazione italiana con la , come separatore dei decimali																		
+250        			NroRecordOut				OUT		PLS_INTEGER,						-- N.ro di record, ovvero di raggruppamenti, presenti nel report
+251        																					-- valorizzato solo in caso di esito positivo e se IdJobIO non è valorizzato in output
+252        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+253        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+254        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+255        			return PLS_INTEGER;														-- 1 in caso di report prodotto o schedulato correttamente, 0 in caso di errore	
+256        
+257        	--------------funzione per trovare le regole di campionamento degli atti
+258        	function TrovaRegoleCampionamentoAtti(
+259        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+260        																					-- (obblig) Codice identificativo del token di connessione
+261        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+262        			FiltroIn					IN		CLOB,								-- XML SezioneCache con i filtri delle regole di campionamento o meglio dei gruppi di atti sui cui si possono applicare le regole stesse
+263        																					-- I possibili filtri sono:
+264        																					-- IdDocType	Id. della tipologia di atto
+265        																					-- CodiciAtto:	Cod. tipo atto, se più di uno separati da ; o , 
+266        																					-- FlgCodTipoAttoParticolare (valore 1/0) se 1 indica tipo atto particolre, se 0 normale (NON particolare)
+267        																					-- FlgDetContrarre	Flag di determina a contrarre (valori 1/0)
+268        																					-- IdUOProponente	Id. della struttura proponente
+269        																					-- RangeImporto	Cod. del range di importi
+270        																					-- Percentuale		Percentuale di campionamento (numero intero da 0 a 99). Può avere valore assente o presente
+271        																					-- IdRegola	Id. regola di campionamento
+272        																					-- DataRif	Data di di riferimento (in formato FMT_STD_DATA)
+273        			ResultOut				OUT		NOCOPY CLOB,							-- Lista XML (conforme a schema LISTA_STD.xsd) con le regole o gruppi di atti su cui applicare le regole che corrispondono al filtro
+274        																					-- Ogni gruppo di atti/regola corrisponde ad un tag Riga con le seguenti colonne:
+275        																					-- 1: Id. del tipo di atto
+276        																					-- 2: Nome del tipo di atto
+277        																					-- 3: Cod. tipo atto
+278        																					-- 4: Descrizione del codice tipo atto
+279        																					-- 5: Flag di determinazione a contrarre (SI/NO)
+280        																					-- 6: Id. struttura proponente
+281        																					-- 7: Codice (nri livelli) struttura proponente
+282        																					-- 8: Descrizione struttura proponente
+283        																					-- 9: Range di importo in cui ricade l'atto
+284        																					-- 10: Percentuale di campionamento
+285        																					-- 11: Id. della regola di campionamento da cui deriva la %
+286        																					-- 12: Data e ora da cui decorre la regola di campionamento (nel formato data e ora FMT_STD_TIMESTAMP)
+287        																					-- 13: Dati della regola indicata in colonna 11: IdDocType|*|CodiceAtto|*|FlgCodTipoAttoParticolare|*|FlgDetContrarre|*|IdUOProponente|*|RangeImporto
+288        																					-- 14: Flag di tipo atto particolare (SI/NO)
+289        			NroRecordOut				OUT		PLS_INTEGER,						-- N.ro di record presenti nel risultato
+290        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+291        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+292        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+293        			return PLS_INTEGER;														-- 1 in caso di funzione completata correttamente, 0 in caso di errore	
+294        
+295        	--------------funzione per applicare nuova regola di campionamento atti
+296        	function ApplicaRegolaCampionamentoAtti(
+297        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+298        																					-- (obblig) Codice identificativo del token di connessione
+299        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+300        			FiltroIn					IN		CLOB,								-- XML SezioneCache con il filtro che dà il perimetro su cui si applica la regola
+301        																					-- I possibili filtri sono:
+302        																					-- IdDocType	Id. della tipologia di atto
+303        																					-- CodiciAtto:	Cod. tipo atto, se più di uno separati da ; o , 
+304        																					-- FlgCodTipoAttoParticolare (valore 1/0) se 1 indica tipo atto particolre, se 0 normale (NON particolare)
+305        																					-- FlgDetContrarre	Flag di determina a contrarre (valori 1/0)
+306        																					-- IdUOProponente	Id. della struttura proponente
+307        																					-- RangeImporto	Cod. del range di importi
+308        			PercentualeCampionamentoIn	IN		NUMBER,								-- Percentuale di campionamento (in notazione italiana con , per i decimali)															
+309        			GruppiAttiIn				IN		CLOB,						        -- Lista XML (conforme a schema LISTA_STD.xsd) con i gruppi di atti corrispondenti al filtro sui quali applicare la regola e come in caso di regola pre-esistente
+310        																					-- Ogni gruppo di atti corrisponde ad un tag Riga con le seguenti colonne:
+311        																					-- 1: (obblig.)Id. del tipo di atto
+312        																					-- 3: (obblig.)Cod. tipo atto
+313        																					-- 5: (obblig.)Flag di determinazione a contrarre (SI/NO)
+314        																					-- 6: (obblig.)Id. struttura proponente
+315        																					-- 9: (obblig.)Range di importo in cui ricade l'atto
+316        																					-- 11: Id. di eventuale regola di campionamento pre-esistente
+317        																					-- 12: (obblig. se 11 valorizzata) Flag M/C che indica se Mantenere (=M) e Cessare (=C) eventuale regola pre-esistente
+318        																					-- 13: (obblig.)Flag di tipo atto particolare (SI/NO)
+319        			IdRegolaOut					OUT		VARCHAR2,							-- Id. della nuova regola creata
+320        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+321        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+322        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+323        			return PLS_INTEGER;														-- 1 in caso di funzione completata correttamente, 0 in caso di errore	
+324        	
+325        	----------- funzione per verificare i campioni di attti del controllo di regolarità amm. al fine di fare campionamenti di raffinamento
+326        	function VerificaCampioniAttiCtrlRegAmm(
+327        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+328        																					-- (obblig) Codice identificativo del token di connessione
+329        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+330        			FiltroIn					IN		CLOB,								-- XML SezioneCache con il filtro per trovare i campioni da verificare
+331        																					-- I possibili filtri sono:
+332        																					-- DataInizioPeriodoVerifica: data senza ora (obblig)
+333        																					-- DataFinePeriodoVerifica: data senza ora (obblig)
+334        																					-- NumeroSogliaAttiAdottati (intero)
+335        																					-- SogliaImporto (numero con la virgola in notazione italiana con , per separare decimali)
+336        			TipoRaggruppamentoIn		IN		VARCHAR2,							-- (obblig.) Tipo di raggruppamento secondo cui dare i campioni: valori ammessi CODICE_ATTO e STRUTTURA
+337        			GruppiAttiOut				OUT		NOCOPY CLOB,						-- Lista XML (conforme a schema LISTA_STD.xsd) con i gruppi di atti corrispondenti al filtro e al raggruppamento
+338        																					-- Ogni gruppo di atti corrisponde ad un tag Riga con le seguenti colonne:
+339        																					--	1) Codice tipo atto o della struttura, a seconda del tipo di raggruppamento
+340        																					--	2) Descrizione del cod. tipo atto o della struttura, a seconda del tipo di raggruppamento
+341        																					--	3) Id. UO della struttura proponente, nel caso di raggruppamento per struttura
+342        																					--	4) Numero atti adottati
+343        																					--	5) Percentuale di campionamento
+344        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+345        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+346        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+347        			return PLS_INTEGER;														-- 1 in caso di funzione completata correttamente, 0 in caso di errore	
+348        
+349        	
+350        	----------- funzione per creare dei campioni di "raffinamento del controllo reg. amministrativa"
+351        	function RaffinaCampAttiCtrlRegAmm(
+352        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+353        																					-- (obblig) Codice identificativo del token di connessione
+354        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+355        			TipoRaggruppamentoIn		IN		VARCHAR2,							-- (obblig.) Tipo di raggruppamento secondo cui dare i campioni: valori ammessi CODICE_ATTO e STRUTTURA
+356        			PercentualeIn				IN		NUMBER,								-- (obblig.) Percentuale di campionamento da usare sui gruppi di atti in lista sotto
+357        			FiltroIn					IN		CLOB,								-- XML SezioneCache con il filtro che dà il perimetro su cui creare i campioni
+358        																					-- I possibili filtri sono:
+359        																					-- IdDocType			Id. della tipologia di atto
+360        																					-- FlgDetContrarre		Flag di determina a contrarre (valori 1/0)
+361        																					-- RangeImporto			Cod. del range di importi
+362        																					-- DataInizioPeriodoRif (obbig) Inizio del periodo su cui calcolare i campioni
+363        																					-- DataFinePeriodoRif 	(obblig.) Fine del periodo su cui calcolare i campioni
+364        			GruppiAttiIn				IN		CLOB,								-- Lista XML (conforme a schema LISTA_STD.xsd) con i gruppi di atti corrispondenti al filtro e al raggruppamento
+365        																					-- Ogni gruppo di atti da campionare corrisponde ad un tag Riga con le seguenti colonne:
+366        																					--	1) Codice tipo atto o id. UO della struttura, a seconda del tipo di raggruppamento
+367        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+368        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+369        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+370        			return PLS_INTEGER;														-- 1 in caso di funzione completata correttamente, 0 in caso di errore	
+371        
+372        	--------------funzione per creare un campione on-demand di atti e sottoporlo a controllo di reg. amministrativa
+373        	function CreaCampioneAtti(
+374        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+375        																					-- (obblig) Codice identificativo del token di connessione
+376        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+377        			FiltroIn					IN		CLOB,								-- XML SezioneCache con il filtro che dà il perimetro su cui creare il campione
+378        																					-- I possibili filtri sono:
+379        																					-- IdDocType	Id. della tipologia di atto
+380        																					-- CodiciAtto:	Cod. tipo atto, se più di uno separati da ; o , 
+381        																					-- FlgDetContrarre	Flag di determina a contrarre (valori 1/0)
+382        																					-- IdUOProponente	Id. della struttura proponente
+383        																					-- RangeImporto	Cod. del range di importi
+384        																					-- DataInizioPeriodoRif (obbig) Inizio del periodo su cui calcolare il campione
+385        																					-- DataFinePeriodoRif Fine del periodo su cui calcolare il campione
+386        			IdCampioneOut				OUT		VARCHAR2,							-- Id. del campione creato
+387        			NroAttiCampioneOut			OUT		INTEGER,							-- N.ro di atti del campione creato
+388        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+389        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+390        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+391        			return PLS_INTEGER;														-- 1 in caso di funzione completata correttamente, 0 in caso di errore	
+392        
+393        
+394        	--------------funzione per verificare se un atto deve essere sottoposto al controllo automatico di reg. amministrativa in base alle percentuali di campionamento stabilite
+395        	--------------se l'atto è da sottoporre  al controllo automatico fa anche tutti gli aggiornamenti necessari ad attivare il controllo e a marcare l'atto come da sottoporre al controllo
+396        	function VerificaAttoXCtrlRegAmmAuto(
+397        			IdUDIn						IN 		DMT_UNITA_DOC.ID_UD%type,			-- (obblig.) ID_UD dell'atto
+398        			FlgSottopostoCtrRegAmOut	OUT		PLS_INTEGER,						-- Se 1 significa che l'atto è stato sottoposto a controllo di regolarità amministrativa, se 0 no
+399        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+400        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+401        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+402        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+403        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+404        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+405        			return PLS_INTEGER;														-- 1 in caso di funzione completata correttamente, 0 in caso di errore	
+406        		
+407        END dmpk_Statistiche;

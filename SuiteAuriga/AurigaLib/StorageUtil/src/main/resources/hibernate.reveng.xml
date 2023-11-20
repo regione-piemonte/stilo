@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-reverse-engineering PUBLIC "-//Hibernate/Hibernate Reverse Engineering DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-reverse-engineering-3.0.dtd" >
+
+<hibernate-reverse-engineering>
+	<type-mapping>
+		<sql-type jdbc-type="BIGINT" hibernate-type="Long"></sql-type>
+		<sql-type jdbc-type="DECIMAL" precision="1" hibernate-type="java.lang.Boolean"></sql-type>
+		<sql-type jdbc-type="DECIMAL" hibernate-type="java.math.BigDecimal"></sql-type>
+		<sql-type jdbc-type="INTEGER" hibernate-type="java.math.BigDecimal"></sql-type>
+		<sql-type jdbc-type="BLOB" hibernate-type="byte[]"></sql-type>
+		<sql-type jdbc-type="CLOB" hibernate-type="java.lang.String"></sql-type>
+		<sql-type jdbc-type="DATE" hibernate-type="date" length="26">
+		</sql-type>
+	</type-mapping>
+</hibernate-reverse-engineering>

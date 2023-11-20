@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+
+	<bean id="AlboPretorioServletConfig" 
+		class="com.albopretorio.business.bean.AlboPretorioServletConfig">
+		
+		<!-- PathServizi di Bsuiness -->
+		<property name="pathWSAlboPretorio" value="http://localhost:8080/AurigaBusiness/rest/alboPretorio/"/>
+		
+		<!-- Schema per la connessione -->
+		<property name="schema" value="COLL_MAURIZIANO"/>
+		
+		<!-- Token per la connessione -->
+		<property name="token" value="#RESERVED_ALBO"/>
+		<property name="tokenStorico" value="#RESERVED_ALBOSTORICO"/>
+		<property name="readTimeout" value="120000"></property>
+		<property name="errorMessageTimeout" value="Impossibile evadere la richiesta nel tempo stabilito. Riprovare più tardi"></property>
+		
+		<property name="tokenMultiEnte">
+			<util:map key-type="java.lang.String" value-type="java.lang.String">
+				<entry key="coge" value="#RESERVED_ALBO"></entry>
+				<entry key="coge_STORICO" value="#RESERVED_ALBO_STORICO"></entry>
+				<entry key="aslvt" value="#RESERVED_ALBO_36"></entry>
+				<entry key="aslvt_STORICO" value="#RESERVED_ALBOSTORICO_36"></entry>
+				<entry key="test" value="#RESERVED_ALBO_8"></entry>
+				<entry key="test_STORICO" value="#RESERVED_ALBOSTORICO_8"></entry>
+			</util:map>
+		</property>
+	</bean>
+
+</beans>

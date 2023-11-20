@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+	<IUPrivilegi>
+		<TipoOggetto>TF</TipoOggetto>
+		<Oggetto>
+			<Decodifica_Nome>PROVA MODIFICA TIPO FOLDER DA WS</Decodifica_Nome>
+		</Oggetto>
+		<Utente>
+			<UsernameInterna>VALE</UsernameInterna>
+		</Utente>
+		<ListaPrivilegi>A;M</ListaPrivilegi>
+	</IUPrivilegi>

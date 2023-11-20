@@ -1,0 +1,467 @@
+1        PACKAGE DMPK_LOAD_COMBO AUTHID CURRENT_USER IS
+2        
+3        	DEF_ID_UA_TYPE		CONSTANT	INTEGER:=4;			--id. del tipo folder che significa "Unità archivistica (fascicolo basato sul piano di classificazione)"
+4        
+5        	function dmfn_Load_Combo(
+6        		CodIdConnectionTokenIn	IN	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+7        												-- (obblig salvo che se TipoComboIn=DOMINI_ACCRED). Codice identificativo del token di connessione
+8        		TipoComboIn			IN	VARCHAR2,				-- (obblig.) Tipo di combo da caricare (case-insensitive)
+9        												-- Valori possibili:
+10        												-- REGISTRI_EMERGENZA: lista dei registri di emergenza del dominio di lavoro. Le due colonne restituite contengono la sigla dei registri
+11        												-- UTENTI: utenti del sistema.
+12        												--					La lista restituisce 4 colonne: 1) Id. utente, 2) Cognome e nome, 3) Cod. rapido, 4) Username
+13        												--					La lista è ordinata per cognome e nome
+14        												--		      		Come altri parametri ci sono:
+15        												--			 							FLG_SOLO_ACCRED_IN_DOMINIO, che può essere valorizzato a 1 o 0: se 1 si vogliono solo gli utenti accreditati (anche non ora) nel dominio cui si è connessi
+16        												--										STR_IN_COD_RAPIDO, filtro sul codice rapido (ricerca case insensitive in like forzando % all'inizio e alla fine)
+17        												--										STR_IN_DES, filtro sulla descrizione (ricerca case insensitive in like forzando % all'inizio e alla fine)
+18        												--										STR_IN_USERNAME, filtro sulla username(ricerca case insensitive in like forzando % all'inizio e alla fine)
+19        												--				   					    CI_TO_ADD, id. user di un utente da mettere comunque nella lista
+20        												--										CI_TO_EXCLUDE, id. user di un utente da escludere dalla lista
+21        												-- UTENTI_ABIL_CPA: utenti attivi del dominio abilitati alla funzione di "conferma pre-assegnazione dei documenti"
+22        												--					La lista restituisce 4 colonne: 1) Id. utente, 2) Cognome e nome, 3) Cod. rapido, 4) Username
+23        												--					La lista è ordinata per cognome e nome
+24        												--		      		Come altri parametri ci sono:
+25        												--				   					    CI_TO_ADD, id. user di un utente da mettere comunque nella lista
+26        												-- 1_LIV_FUNZIONE: funzioni di sistema di primo livello (cioè solo con COD_FUNZ_P1 valorizzato e COD_FUNZ_P2 e COD_FUNZ_P3 nulli) che hanno sotto-funzioni e sono disponibili nel dominio ed eventuale applicazione esterna da cui si è connessi
+27        												--			 L'interna value è il COD_FUNZ_P1, il display value il nome della funzione
+28        												--			 Non prevede altri parametri.
+29        												-- 2_LIV_FUNZIONE: funzioni di sistema di 2° livello (cioè con COD_FUNZ_P1 e COD_FUNZ_P2 valorizzati e COD_FUNZ_P3 nullo) relative ad una certa funz. di primo livello, che hanno a loro volta sotto-funzioni e sono disponibili nel dominio ed eventuale applicazione esterna da cui si è connessi
+30        												--			 L'interna value è il COD_FUNZ_P2, il display value il nome della funzione
+31        												--			 Come altri parametri ci sono: COD_FUNZ_P1 (obblig.) che va valorizzato con il COD_FUNZ_P1 della funzione padre di 1° livello.
+32        												-- RUOLI_ATT_SOGG_EST_PROC: ruoli di un soggetto nella gestione soggetti esterni di un processo/procedimento
+33        												-- 				    PKRecIn è l'ID_RELAZIONE di un record di DMT_PROCESS_SOGG_EST.
+34        												--				    Come altri parametri ci sono: ID_PROCESS, id. del processo/procedimento (obblig. se la gestione nominativi non è un'attività WF nè PKRecIn è valorizzato)
+35        												-- RUOLI_ATT_SOGG_INT_PROC: ruoli di un soggetto interno (attori) all'interno di un procedimento
+36        												--			 Come altri parametri ci sono: CI_TYPE_FLUSSO_WF, codice identificativo (ITEM_TYPE) del tipo di flusso workflow che deve essere agganciato ai tipi processi di cui estrarre gli attori interni
+37        												--								 ID_PROCESS_TYPE, che va valorizzato con l'id. del tipo di processo di cui estrarre gli attori interni
+38        												--								 ID_PROCESS, id. del processo/procedimento di cui estrarre i possibili attori interni
+39        												-- TIPO_INDIRIZZO_SOGG: tipo di indirizzo/luogo di un soggetto
+40        												-- 				    PKRecIn è l'ID_RELAZIONE di un record di DMT_PROCESS_SOGG_EST.
+41        												--				    Come altri parametri ci sono: ROWID, che va valorizzato con il rowid del record di tabella per cui si carica la combo. Es: ROWID|*|XXXXX
+42        												--									  : NOME_TABELLA, che va valorizzato con il nome della tabella cui appartiene il record per la cui si carica la combo
+43        												--									  : NOME_COL_TABELLA, che va valorizzato con la colonna della tabella NOME_TABELLA che si rappresenta con la combo
+44        												-- TIPO_PERS_GIURIDICA: tipo e sottotipo di persona giuridica (nell'internal value tipo e sottotipo sono separati da ";").
+45        												--					Comprende anche il tipo UP (=Unità di personale) che è per una persona fisica (salvo se indicato negli altri parametri ESCLUDI_UP)
+46        												-- 				    PKRecIn è l'ID_SOGG_RUBRICA di un record di DMT_RUBRICA_SOGGETTI. Non prevede altri parametri.
+47        												--				    Come altri parametri ci sono:
+48        												--									  : ESCLUDI_UP: se presente dalla lista viene escluso il tipo UP (= unità di personale) che vale per le persone fisiche
+49        												--									  : INS_UPD_SOGG_RUBR: se presente indica che la lista serve per popolare la scelta di tipi di persona giuridica x inserire/modificare un soggetto in rubrica
+50        												--									  : CATEGORIA: indica la macro-categoria in cui devono ricadere i tipi e sotto-tipi da estrarre. Valori ammessi: #APA: Altra Pubblica Amministrazione (diversa da quella collegata) o sua articolazione ; #IAMM = Soggetto interno all'Amministrazione (che sia visibile a tutte le AOO dell'Amministrazione); #AG = Altra persona giuridica
+51        												-- CAUSALE_CESSAZIONE: causale di cessazione di un soggetto
+52        												-- 				    PKRecIn è l'ID_SOGG_RUBRICA di un record di DMT_RUBRICA_SOGGETTI. Non prevede altri parametri.
+53        												-- CONDIZIONE_GIURIDICA: condizione giuridica di un soggetto
+54        												-- 				    PKRecIn è l'ID_SOGG_RUBRICA di un record di DMT_RUBRICA_SOGGETTI. Non prevede altri parametri.
+55        												-- TIPO_INTESTAZIONE_ALTERNATIVA: tipo di intestazione alternativa di un soggetto.
+56        												--				    PKRecIn è il rowid di un record della nested table ALTRE_FOME_NOME di DMT_RUBRICA_SOGGETTI. Non prevede altri parametri.
+57        												-- TIPO_TEL: tipo di n.ro telefono
+58        												--				    PKRecIn è il rowid di un record della nested table TEL di DMT_RUBRICA_SOGGETTI. Non prevede altri parametri.
+59        												-- GENERICO: valori per una colonna di tabella che prende valori dal dizionario
+60        												--					Oltre alle colonne standard con int_value e display value può esserci una terza colonna che se 1 indica che è un valore "speciale" cui dare un'evidenza grafica diversa nelle GUI
+61        												--				    Come altri parametri ci sono: ROWID, che va valorizzato con il rowid del record di tabella per cui si carica la combo. Es: ROWID|*|XXXXX
+62        												--									  : NOME_TABELLA, che va valorizzato con il nome della tabella cui appartiene il record per la cui si carica la combo
+63        												--												possono essere anche più nomi tabella separati da +
+64        												--									  : NOME_COL_TABELLA, che va valorizzato con la colonna della tabella NOME_TABELLA che si rappresenta con la combo
+65        												--									  : VALORE_VINCOLO (opzionale): Valore (decodificato) di un campo più generale al quale i valori da trovare sono vincolati
+66        												--									  : ID_UD (opzionale): ID_UD dell'unità documentaria se si stanno caricando i motivi invio di una UD (in particoalre serve ad escludere i motivi NON consentiti per una UD protocollata a prot. generale)
+67        												-- DICTIONARY_ENTRY: dictionary entry (solo quelle con valori gestibili da GUI)
+68        												--				    Come altri parametri ci sono: FLG_RESTR_APPL_CONNESSA, che può essere valorizzato a 1 o 0: se 1 si vogliono solo entry di cui è proprietaria l'applicazione connessa (ed eventuale istanza); se 0 o NULL e se si è connessi da un'applicazione esterna si vogliono solo le entry senza applicazione proprietaria o con applicazione proprietria pari a quella connessa
+69        												-- VALORI_DIZIONARIO: valori di una dictionary entry
+70        												--				    Come altri parametri ci sono: DICTIONARY_ENTRY, obbligatorio, che va valorizzato con la dictionary entry di cui si vogliono i valori
+71        												--									  : INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato il codice identificativo (COD_VALUE) del valore se c'è, se no il valore stesso; DES significa che l'internal value è pari al display value
+72        												--									  : CI_TO_ADD, che va valorizzato con internal o display name (a seconda che l'internal value sia CID o DES) di un valore da mettere comunque nella lista di output
+73        												--									  : ID_USER_LAVORO: id. dell'utente per cui si lavora (delegante)
+74        												-- STATO_UD: stato di un'unità documentaria (primario e di dettaglio)
+75        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato il codice (COD_VALUE dello stato principale ; COD_VALUE dello stato di dettaglio) dello stato; DES significa che l'internal value è pari al display value.
+76        												--									  : CI_TO_ADD, che va valorizzato con internal o display name (a seconda che l'internal value sia CID o DES) di un valore da mettere comunque nella lista di output
+77        												-- STATO_FOLDER: stato di un folder (primario e di dettaglio)
+78        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato il codice (COD_VALUE dello stato principale ; COD_VALUE dello stato di dettaglio) dello stato; DES significa che l'internal value è pari al display value.
+79        												--									  : CI_TO_ADD, che va valorizzato con internal o display name (a seconda che l'internal value sia CID o DES) di un valore da mettere comunque nella lista di output
+80        												-- FLUSSI_WF: tipi di flussi workflow.
+81        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID e DES (default). CID significa che come INTERNAL VALUE della lista viene dato il codice identificativo del tipo flusso, DES significa che l'internal value è pari al display value.
+82        												--									  : CI_TO_ADD, che va valorizzato con id. o nome (a seconda che l'internal value sia codificato o meno) di un tipo flusso da mettere comunque nella lista di output
+83        												--				   					  : ID_PROCESS_TYPE, che va valorizzato con l'id. del tipo di processo a cui nel dominio (ed eventuale applicazione) di lavoro devono essere legati i flussi WF da mostrare
+84        												--				    					  : FLG_RESTR_APPL_CONNESSA, che può essere valorizzato a 1 o 0: se 1 si vogliono solo flussi di cui è proprietaria l'applicazione connessa (ed eventuale istanza); se 0 o NULL e se si è connessi da un'applicazione esterna si vogliono solo i flussi senza applicazione proprietaria o con applicazione proprietria pari a quella connessa
+85        												-- FASI_WF: fasi (ovvero sotto-processi) di un dato tipo di flusso WF
+86        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID e DES (default). CID significa che come INTERNAL VALUE della lista viene l'internal name del sotto-processo/fase (ACTIVITY_NAME), DES significa che l'internal value è pari al display value (DISPLAY_NAME del sotto-processo).
+87        												--									  : CI_TO_ADD, che va valorizzato con internal o display name (a seconda che l'internal value sia CID o DES) di un sotto-processo da mettere comunque nella lista di output
+88        												--				   					  : DES_TIPO_FLUSSO_WF, che va valorizzato con il display name del tipo di flusso WF di cui mostrare le fasi
+89        												--									  : CI_TYPE_FLUSSO_WF, codice identificativo (ITEM_TYPE) del tipo di flusso workflow di cui mostrare le fasi
+90        												--				   					  : ID_PROCESS_TYPE, che va valorizzato con l'id. del tipo di processo a cui nel dominio (ed eventuale applicazione) di lavoro devono essere legati i flussi WF di cui mostare le fasi
+91        												--									                     viene considerato solo se CI_TYPE_FLUSSO_WF e DES_TIPO_FLUSSO_WF non sono valoruzzati
+92        												-- ATTIVITA_WF: attività di tipo NOTICE di un dato tipo di flusso WF
+93        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID e DES (default). CID significa che come INTERNAL VALUE della lista viene l'internal name dell'attività (ACTIVITY_NAME), DES significa che l'internal value è pari al display value (DISPLAY_NAME dell'attività).
+94        												--									  : CI_TO_ADD, che va valorizzato con internal o display name (a seconda che l'internal value sia CID o DES) di un attività da mettere comunque nella lista di output
+95        												--				   					  : DES_TIPO_FLUSSO_WF, che va valorizzato con il display name del tipo di flusso WF di cui mostrare le attività
+96        												--									  : CI_TYPE_FLUSSO_WF, codice identificativo (ITEM_TYPE) del tipo di flusso workflow di cui mostrare le attività
+97        												--				   					  : DES_FASE_WF, che va valorizzato con il display name del sotto-processo (fase) di flusso WF cui devono appartenere le attività
+98        												--									  : CI_FASE_WF, nome identificativo (PROCESS_NAME) del sotto-processo (fase) di flusso WF cui devono appartenere le attività
+99        												--				   					  : ID_PROCESS_TYPE, che va valorizzato con l'id. del tipo di processo a cui nel dominio (ed eventuale applicazione) di lavoro devono essere legati i flussi WF di cui mostare le attività
+100        												--									                     viene considerato solo se CI_TYPE_FLUSSO_WF e DES_TIPO_FLUSSO_WF non sono valoruzzati
+101        												-- ATTIVITA_EVENTI_TIPO_PROC: attività WF ed eventi di un dato tipo procedimento.
+102        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE viene l'ACTIVITY_NAME preceduto dal suffisso "A;" o l'ID_EVENT_TYPE preceduto dal suffisso "E;", DES significa che l'internal value è pari al display value (descrizione dell'attività o evento).
+103        												--									  : CI_TO_ADD, che va valorizzato con internal o display name (a seconda che l'internal value sia CID o DES) di un attività/evento da mettere comunque nella lista di output
+104        												--				    					    ID_PROCESS_TYPE (obblig.), che va valorizzato con l'id. del tipo di processo
+105        												--									    ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+106        												-- ESITO_ATT_WF: lista dei possibili esiti di un'attività workflow (o di un evento mappato anche come attività wf, ovvero il nome del cui tipo coincide con il display name dell'attività)
+107        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID e DES (default). CID significa che come INTERNAL VALUE della lista viene dato il codice identificativo dell'esito (LOOKUP_CODE), DES significa che l'internal value è pari al display value (MEANING).
+108        												--									    CI_TYPE_FLUSSO_WF, codice identificativo (ITEM_TYPE) del tipo di flusso workflow cui è relativa l'attività di cui estrarre gli esiti
+109        												--									    NOME_TYPE_FLUSSO_WF, display name del tipo di flusso workflow (o suo inizio; ricerca case insensitive in like che non forza il % finale) cui è relativa l'attività di cui estrarre gli esiti
+110        												--									    ID_PROCESS, id. del processo/procedimento cui è relativa l'attività di cui estrarre i possibili esiti
+111        												--									    CI_ATT_WF, internale name (ACTIVITY_NAME) dell'attività di cui estrarre gli esiti
+112        												--									    NOME_ATT_WF, display name dell'attività (o suo inizio; ricerca case-insensitive in like che non forza il % finale) di cui estrarre gli esiti
+113        												-- SCADENZA_PROC: scadenze possibili sui procedimenti
+114        												--				    Come altri parametri ci sono: ID_PROCESS_TYPE, che va valorizzato con l'id. del tipo di processo di cui mostrare le scadnze specifiche.
+115        												-- FORMATO_ELETTRONICO: formati elettronici ammessi.
+116        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID e DES (default). CID significa che come INTERNAL VALUE della lista viene dato il codice identificativo del formato, DES significa che l'internal value è pari al display value.
+117        												--									    DISPLAY_VALUE, che può assumere i valori NOME(default) e MIMETYPE. Se vale NOME o non è presente il display value è il nome del formato, se vale MIMETYPE è il mimetype
+118        												--				   					    CI_TO_ADD, che va valorizzato con id. o nome (a seconda che l'internal value sia codificato o meno) di un formato da mettere comunque nella lista di output
+119        												-- TIPO_ATTRIBUTO_DINAMICO: tipo di un attributo dinamico
+120        												--				    Come altri parametri ci sono: FILTRO_RICERCA, che può assumere i valori 1 e 0 (default)
+121        												-- ATTRIBUTO_DINAMICO: valori possibili per attributo dinamico di tipo COMBO_BOX
+122        												--				    Come altri parametri ci deve essere obbligatoriamente il nome identificativo (ATTR_NAME) dell'attributo che va indicato come NOME
+123        												--				    Ci può essere anche STRINGA, che serve come filtro in like sulla selected column della query che popola l'attributo
+124        												-- RUOLO_AMM: ruoli amministrativi
+125        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID e DES (default). CID significa che come INTERNAL VALUE della lista viene dato l'identificativo del ruolo, DES significa che l'internal value è pari al display value.
+126        												--				    					    CI_TO_ADD, che va valorizzato con id. o nome (a seconda che l'internal value sia codificato o meno) di un ruolo da mettere comunque nella lista di output
+127        												-- ENTITA_CON_ATTR_DINAMICI: entità per cui si possono definire attributi dinamici. L'internal value è il nome della tabella che contiene le entità del dato tipo.
+128        												--				    Non prevede altri parametri.
+129        												-- TIPO_PRATICA_EDILIZIA: tipi di folder che ricadono nel tipo "Pratica edilizia"
+130        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato il codice identificativo del tipo pratica, DES significa che l'internal value è pari al display value.
+131        												--				    					    CI_TO_ADD, che va valorizzato con id. o nome (a seconda che l'internal value sia codificato o meno) di un tipo da mettere comunque nella lista di output
+132        												--									    ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+133        												--									    FLG_SOLO_ASSEGNABILI, che può essere valorizzato a 1 o 0: se 1 si vogliono solo i tipi di pratiche assegnabili dall'utente di lavoro o in sua assenza quello connesso
+134        												-- TIPO_PROCEDIMENTO: tipi di procedimenti amministrativi trattabili dall'utente di lavoro (o quello connesso)
+135        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato il codice identificativo del tipo procedimento, DES significa che l'internal value è pari al display value.
+136        												--				    					    CI_TO_ADD, che va valorizzato con id. o nome (a seconda che l'internal value sia codificato o meno) di un tipo da mettere comunque nella lista di output
+137        												--									    ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+138        												--									    FLG_SOLO_GESTIBILI, , che può essere valorizzato a 1 o 0: se 1 si vogliono solo i tipi di procedimenti gestibili dall'utente di lavoro o in sua assenza quello connesso
+139        												--									    FLG_SOLO_ASSEGNABILI, che può essere valorizzato a 1 o 0: se 1 si vogliono solo i tipi di procedimenti assegnabili/avviabili dall'utente di lavoro o in sua assenza quello connesso
+140        												-- TIPO_DOC_EDILIZIA: tipi di documenti che possono essere presenti nelle pratiche edilizie
+141        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato il codice identificativo del tipo, DES significa che l'internal value è pari al display value.
+142        												--				    					    CI_TO_ADD, che va valorizzato con id. o nome (a seconda che l'internal value sia codificato o meno) di un tipo da mettere comunque nella lista di output
+143        												--									    ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+144        												--									    FLG_SOLO_ASSEGNABILI, che può essere valorizzato a 1 o 0: se 1 si vogliono solo i tipi di documenti assegnabili dall'utente di lavoro o in sua assenza quello connesso
+145        												-- CRITERI_RIC_SU_ATTR_ADD: attributi custom su cui si possono mettere criteri di ricerca
+146        												--				    Come altri parametri ci sono: NOME_TABELLA (obblig. se NOME_LISTA non è presente), che deve riportare il nome della tabella che contiene gli oggetti su cui si ricerca
+147        												--									    NOME_LISTA (obblig. se NOME_TABELLA non è presente; viene considerato solo se NOME_TABELLA non è valorizzato), che deve riportare il nome identificativo della lista che contiene gli oggetti su cui si ricerca
+148        												--									    ID_TYPE, con l'id. dell'eventuale tipo specifico di oggetto da ricercare (tipo doc, tipo folder) (così vengono aggiunti gli attributi specifici del tipo)
+149        												--											se la tabella è REPOSITORY l'id. del tipo documento o tipo folder va prefissato con D o F rispettivamente
+150        												--									    INTERNAL_VALUE, che può assumere i valori: CID e DES (default). CID significa che come INTERNAL VALUE della lista viene dato il codice identificativo del tipo, DES significa che l'internal value è pari al display value.
+151        												--									    TIPO_ATTR, per restringere agli attributi di un dato tipo. Valori possibili:
+152        												-- 											CHECK		= Casella di spunta
+153        												-- 											DATE		= Data (con o senza ora)
+154        												-- 											DATETIME		= Data e ora
+155        												-- 											NUMBER		= Numerico (inclusi importi in Euro)
+156        												-- 											EURO		= Importo in Euro
+157        												-- 											TEXT-BOX		= Alfanumerico su una riga
+158        												-- 											TEXT-AREA	= Alfanumerico su più righe
+159        												-- 											TEXT		= Alfanumerico su una o più righe
+160        												-- 											COMBO-BOX	= Lista di scelta
+161        												-- 											COMPLEX		= Strutturato, ovvero composto da sotto-attributi
+162        												--									    FLG_SOLO_MULTIVALORE, (valori 1/0/NULL) serve a restringere l'estrazione ai soli attributi multivalore (1) o mono-valore (0)
+163        												-- OPERATORE_LOGICO: lista degli operatori logici utilizzabili in un criterio di ricerca
+164        												-- TIPO_DOC_IN_PROCESS: tipi di documenti che possono essere legati ad un certo processo/procedimento o a tutti i procedimenti di un dato tipo
+165        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato l'identificativo del tipo, DES significa che l'internal value è pari al display value.
+166        												--				    					    ID_PROCESS, obbligatorio se ID_PROCESS_TYPE non è valorizzato, che va valorizzato con l'identificativo del processo/procedimento di cui estrarre i tipi doc. possibili
+167        												--									    ID_PROCESS_TYPE, obbligatorio se ID_PROCESS non è valorizzato, che va valorizzato con l'identificativo del tipo di processo/procedimento di cui estrarre i tipi doc. previsti
+168        												--									    ACTIVITY_NAME, internal name dell'eventuale attività workflow in cui si utilizza la combo
+169        												--				    					    CI_TO_ADD, che va valorizzato con id. o nome (a seconda che l'internal value sia codificato o meno) di un tipo da mettere comunque nella lista di output
+170        												--									    ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+171        												--									    FLG_SOLO_ASSEGNABILI, che può essere valorizzato a 1 o 0: se 1 si vogliono solo i tipi di documenti assegnabili dall'utente di lavoro o in sua assenza quello connesso
+172        												--									    ID_TIPO_EVENTO  id dell'evento: se valorizzato il tipo doc da mostrare come selezionato nella combo è quello associato al tipo di evento se esiste l'associazione
+173        												-- MODELLO_X_TIPO_DOC: modelli disponibili per un dato tipo documento
+174        												--				    Come altri parametri ci sono: ID_DOC_TYPE, obbligatorio: id. del tipo documento per cui servono i modelli
+175        												--									    ESTENSIONE: estensione del formato dei modelli da cercare (doc, xml)
+176        												--									    INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato l'identificativo del modello, DES significa che l'internal value è pari al display value.
+177        												--				    					    ID_PROCESS, che va valorizzato con l'identificativo del processo/procedimento per cui servono i modelli
+178        												--									    ID_PROCESS_TYPE, che va valorizzato con l'identificativo del tipo del processo/procedimento per cui servono i modelli
+179        												--									    ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+180        												--									    FLG_RESTR_APPL_CONNESSA, che può essere valorizzato a 1 o 0: se 1 si vogliono solo modelli di cui è proprietaria l'applicazione connessa (ed eventuale istanza); se 0 o NULL e se si è connessi da un'applicazione esterna si vogliono solo i modelli senza applicazione proprietaria o con applicazione proprietria pari a quella connessa
+181        												-- RIGHE_X_PAGINA: serve a popolare la combo con il n.ro di righe per pagina di una lista
+182        												--			 L'internal value è il n.ro di righe; nel caso sia NULL vuol dire che la lista non va paginata (=tutte le righe)
+183        												-- LISTA: serve a ottenere le liste censite in tabella LISTE
+184        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato il nome identificativo della lista, DES significa che l'internal value è pari al display value.
+185        												--									    FLG_SOLO_LOOKUP, che può essere valorizzato a 1 o 0: se 1 si vogliono solo liste che sono possibili lookup, ovvero liste di selezione
+186        												--									    FLG_RESTR_APPL_CONNESSA, che può essere valorizzato a 1 o 0: se 1 si vogliono solo liste di cui è proprietaria l'applicazione connessa (ed eventuale istanza); se 0 o NULL e se si è connessi da un'applicazione esterna si vogliono solo le liste senza applicazione proprietaria o con applicazione proprietria pari a quella connessa
+187        												-- ORDINAMENTO_LISTA: serve a popolare la combo con i tipi di ordinamento possibili su una data lista
+188        												--			    L'internal value sono i n.ri delle colonne della lista per cui ordinare separati da ,
+189        												--				    Come altri parametri ci sono: NOME_LISTA, obbligatorio: cod. identificativo della lista di cui servono i possibili ordinamenti
+190        												-- COLONNA_LISTA: serve a popolare la combo con le colonne di una data lista
+191        												--		      L'internal value sono i n.ri delle colonne della lista come figurano nel clob (conforme a LISTA_STD.xsd) che popola la lista.
+192        												--				    Come altri parametri ci sono: NOME_LISTA, obbligatorio: cod. identificativo della lista di cui servono le colonne
+193        												-- FILTRO_LISTA: serve a popolare la combo con i filtri della GUI di una data lista
+194        												--				    Come altri parametri ci sono: NOME_LISTA, obbligatorio: cod. identificativo della lista di cui servono i filtri
+195        												-- DOMINI_ACCRED: serve a popolare la combo con i domini a cui può accedere un utente con una data username. L'internal value dei domini è il loro tipo (1, 2 o 3) seguito da : e da ID_SP_AOO nel caso il tipo sia 2 o 3 (es: 1, 2:13; 3:14)
+196        												--				    Come altri parametri ci sono: USERNAME, obbligatorio: username dell'utente di cui trovare i domini cui può accedere
+197        												-- ISTANZE_APPL_ACCRED: serve a popolare la combo con le istanze di una data applicazione esterna in cui è accreditato un utente con una data username. L'internal value dei domini è il cod_istanza.
+198        												--				    Come altri parametri ci sono: USERNAME, obbligatorio: username dell'utente di cui trovare le istanze di una data applicazione cui può accedere
+199        												--									    COD_APPLICAZIONE, obbligatorio: codice dell'applicazione di cui trovare le istanze
+200        												-- TIPO_DOC	 tipi di documenti.
+201        												--					Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato l'identificativo del tipo, DES significa che l'internal value è pari al display value (il NOME_DOC_TYPE)
+202        												--			 							CI_TO_ADD, che va valorizzato con id. o nome (a seconda che l'internal value sia codificato o meno) di un tipo da mettere comunque nella lista di output
+203        												--			 							ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+204        												--			 							FLG_SOLO_ASSEGNABILI, che può essere valorizzato a 1 o 0: se 1 si vogliono solo i tipi di documenti assegnabili dall'utente di lavoro o in sua assenza quello connesso
+205        												--										FLG_SOLO_DA_PUBBLICARE, che può essere valorizzato a 1 o 0: se 1 si vogliono solo le tipologie soggette a pubblicazione all'Albo
+206        												--										FLG_ALLEGATO_PRIMARIO, che può essere valorizzato a A o P: A = restringe ai tipi utilizzabili per degli Allegati; P = resringe ai tipi utilizzabili per un documento Primario di un'unità documentaria
+207        												--										STR_IN_DES, filtro sul nome del tipo (ricerca case insensitive in like forzando % all'inizio e alla fine)
+208        												-- RESP_FASCICOLO: scelta del responsabile o ufficio competente di un fascicolo basato sul titolario (UO o scrivania virtuale)
+209        												--					La lista restituisce 8 colonne: 1) Flag UO/SV che indica se si tratta di unità operativa (UO) o scrivania utente (SV)
+210        												--													2) Identificativo della UO (se colonna 1=UO) o della scrivania virtuale (se colonna 1 = SV)
+211        												--													3) Codice (nri livello) della UO
+212        												--													4) Descrizione: Denominazione della UO (se colonna 1=UO) o intestazione della scrivania virtuale + descrizione dell'utente e ruolo ricoperto (se colonna 1 = SV)
+213        												--													5) Denominazione estesa (cioè incluse le denominazioni delle UO superiori) dell'unità operativa (nel caso di scrivania quella della UO cui è legata la scrivania + la descrizione della scrivania)
+214        												--													6) Data inizio validità
+215        												--													7) Data fine validità
+216        												--													8) Flag 1/0 che indica se è un responsabile/competente da preimpostare come scelta
+217        												--		      		Come altri parametri ci sono:
+218        												--			 							CI_TO_ADD, che va valorizzato con Flag UO/SV + id. della UO/scrivania da mettere comunque nella lista di output
+219        												--									    ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+220        												--										ID_CLASSIFICAZIONE, id. della classificazione del fascicolo per cui si popola la lista
+221        												--										ID_FOLDER_APP, id. folder del fascicolo di appartenenza del sotto-fascicolo per cui si popola la lista
+222        												-- TIPO_FOLDER: tipi di folder. Restituisce 3 colonne: 1) Id. o Nome del tipo (a seconda che il parametro INTERNAL_VALUE sia CID o DES); 2) nome del tipo; 3) template di oggetto da usare per i fascicoli del dato tipo
+223        												--		      		Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato il codice identificativo del tipo folder, DES significa che l'internal value è pari al display value.
+224        												--				    					CI_TO_ADD, che va valorizzato con id. o nome (a seconda che l'internal value sia codificato o meno) di un tipo da mettere comunque nella lista di output
+225        												--									    ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+226        												--									    FLG_SOLO_ASSEGNABILI, che può essere valorizzato a 1 o 0: se 1 si vogliono solo i tipi di folder assegnabili dall'utente di lavoro o in sua assenza quello connesso
+227        												--										ID_CLASSIFICAZIONE, id. della classificazione a cui devono essere associabili le tipologie da estrarre
+228        												--										ID_FOLDER_APP, id. folder del fascicolo di appartenenza del sotto-fascicolo a cui devono essere associabili le tipologie da estrarre
+229        												-- TIPO_DOC_FOLDER: tipi di documenti e folder.
+230        												--					Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID e DES (default). CID significa che come INTERNAL VALUE della lista viene dato l'identificativo del tipo preceduto dal prefisso F (se tipo folder) o D (se tipo documento), DES significa che l'internal value è pari al display value.
+231        												--			 							CI_TO_ADD, che va valorizzato con id. (preceduto da F o D) o nome (a seconda che l'internal value sia codificato o meno) di un tipo da mettere comunque nella lista di output
+232        												--			 							ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+233        												--			 							FLG_SOLO_ASSEGNABILI, che può essere valorizzato a 1 o 0: se 1 si vogliono solo i tipi di documenti/folder assegnabili dall'utente di lavoro o in sua assenza quello connesso
+234        												-- TIPO_CLASSIFICAZIONE: tipi di classificazione (titolo, classe, sottoclasse ecc)
+235        												--		      		Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato il n.ro di livello gerarchico corrispondente al tipo, DES significa che l'internal value è pari al display value.
+236        												-- PIANI_CLASSIFICAZIONE: lista dei piani di classificazione, storici, attuali e in preparazione, relativi ad una data classe di AOO o di tutte
+237        												--					La lista restituisce 9 colonne:
+238        												--										1) Id. piano classificazione
+239        												--										2) Data di adozione (nel formato del parametro di config FMT_STD_DATA)
+240        												--										3) Data di dismissione (nel formato del parametro di config FMT_STD_DATA)
+241        												--										4) Note
+242        												--										5) Flag 1/0: se 1 è un piano di classificazione in vigore, se 0 non lo è
+243        												--										6) Id. della classe di soggetti prod./AOO per cui vale il piano
+244        												--										7) Descrizione della classe di soggetti prod./AOO per cui vale il piano
+245        												--										8) Id. del soggetto prod./AOO per cui vale il piano
+246        												--										9) Denominazione del soggetto prod./AOO per cui vale il piano
+247        												--					Come altri parametri ci sono:
+248        												--										ID_SP_AOO: id. dell'AOO o sogetto produttore per cui estrarre i piani. Se non specificato si intende quello a cui si è loggati e se si è loggati al livello di schema/ente (Tipo Dominio 1 o 2) vengono estratti tutti i piani degli enti/AOO ricompresi nel dominio a cui si è loggati
+249        												--										ID_CLASSE_SP_AOO (considerato sono se loggati a un dominio che ricomprende più soggetti prod./AOO): id. della specifica classe di soggetti produttori o AOO di cui estrarre i piani di classificazione
+250        												--										FLG_STATO (valori S/F):serve a restringere la lista restituita ai piani già dismessi se è S(=Storici) o a quelli ancora non entrati in vigore se vale F(=Futuri)
+251        												-- CLASSIFICAZIONE: voci del piano di classificazione (quello del piano in vigore nel dominio dell'utente loggato o quello del piano specificato negli altri parametri) visibili all'utente
+252        												--					La lista restituisce 6 colonne: 1) Id. classifica, 2) Indice della classifica, 3) Descrizione, 4) Descrizione estesa (cioè incluse le descrizioni delle classifiche superiori), 5) Data inizio validità, 6) Data fine validità
+253        												--					La lista è ordinata per indice
+254        												--		      		Come altri parametri ci sono:
+255        												--										ID_PIANO_CLASSIF: id. del piano in cui si trovano le classifiche da estrarre
+256        												--			 							CI_TO_ADD, che va valorizzato con id. della classifica da mettere comunque nella lista di output
+257        												--			 							ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+258        												--			 							FLG_SOLO_GESTIBILI, che può essere valorizzato a 1 o 0: se 1 si vogliono solo le classifiche la documentazione ricadente nelle quali è gestibile dall'utente di lavoro o in sua assenza da quello connesso
+259        												--			 							FLG_SOLO_ASSEGNABILI, che può essere valorizzato a 1 o 0: se 1 si vogliono solo le classifiche assegnabili dall'utente di lavoro o in sua assenza quello connesso
+260        												--										FLG_SOLO_AP_FASC, che può essere valorizzato a 1 o 0: se 1 si vogliono solo le classifiche in cui si possono aprire fascicoli
+261        												--										INDICE, filtro su indice (i livelli sono separati con il separatore usato per i livelli del titolario nelle GUI) (cerca la classifica con quell'indice e tutte quelle gerarchicamente subordinate)
+262        												--										STR_IN_DES, filtro sulla descrizione (ricerca case insensitive in like forzando % all'inizio e alla fine)
+263        												-- TIPO_UO: tipi di U.O. della struttura organizzativa
+264        												--		      		Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: LIV:CID (default), CID e DES.
+265        												--													CID significa che come INTERNAL VALUE della lista viene dato il codice corrispondente al tipo,
+266        												--													LIV:CID significa che come INTERNAL VALUE della lista viene dato il codice corrispondente al tipo preceduto dal più basso n.ro di livello gerarchico corrispondente al tipo (separati da :),
+267        												--													DES significa che l'internal value è pari al display value.
+268        												--										SOTTO_LIV_GERARCHICO: n.ro di livello gerarchico sotto cui devono stare i tipi di U.O. da estrarre
+269        												-- ORGANIGRAMMI_SP_AOO: lista dei diversi organigrammi, storici, attuali e in preparazione, di un dato soggetto produttore/AOO
+270        												--					La lista restituisce 5 colonne:
+271        												--										1) Id. organigramma
+272        												--										2) Data di adozione (nel formato del parametro di config FMT_STD_DATA)
+273        												--										3) Data di dismissione (nel formato del parametro di config FMT_STD_DATA)
+274        												--										4) Note
+275        												--										5) Flag 1/0: 1 se si tratta dell'organigramma ìn vigore, 0 altrimenti
+276        												--					Come altri parametri ci sono:
+277        												--										ID_SP_AOO: id. dell'AOO o sogetto produttore per cui estrarre gli organigrammi. Se non specificato si intende quello a cui si è loggati
+278        												--										FLG_STATO (valori S/F):serve a restringere la lista restituita agli organigrammi già dismessi se è S(=Storici) o a quelli ancora non entrati in vigore se vale F(=Futuri)
+279        												-- ORGANIGRAMMA: UO dell'organigramma dell'Ente/AOO collegato e utenti associati alle UO
+280        												--					La lista restituisce 7 colonne: 1) Flag UO/UT/SV che indica se si tratta di unità operativa (UO), utente senza scrivania (UT), scrivania occupata da utente (SV)
+281        												--													2) Identificativo della UO (se colonna 1=UO) o della scrivania virtuale (se colonna 1 = SV) o dell'utente (se colonna 1 = UT)
+282        												--													3) Codice (nri livello) della UO
+283        												--													4) Descrizione: Denominazione della UO (se colonna 1=UO) o intestazione della scrivania virtuale + descrizione dell'utente e ruolo ricoperto (se colonna 1 = SV) o descrizione dell'utente e ruolo ricoperto (se colonna 1 = UT)
+284        												--													5) Denominazione estesa (cioè incluse le denominazioni delle UO superiori) dell'unità operativa (nel caso di utente o scrivania quella della UO cui è legato l'utente/scrivania + la descrizione/nome dell'utente/scrivania)
+285        												--													6) Data inizio validità
+286        												--													7) Data fine validità
+287        												--					La lista è ordinata per Codice UO e Descrizione (prima le UO e poi scrivanie e utenti)
+288        												--		      		Come altri parametri ci sono:
+289        												--										FLG_NODO_TYPE: indica se la ricerca va ristretta alle sole unità operative (UO) o solo utenti con scrivania virtuale (SV) o utenti senza scrivania collegati alla struttura organizzativa(UT)
+290        												-- 													  Può essere una concatenazione dei valori ammessi separti da ";".
+291        												-- 													  Se non valorizzato si intende che la ricerca sia su UO e utenti con o senza scrivania
+292        												--			 							CI_TO_ADD, che va valorizzato con Flag UO/SV + id. della UO/scrivania da mettere comunque nella lista di output
+293        												--			 							ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+294        												--										NRI_LIVELLI_UO, filtro sui nri livelli (sono separati con il separatore usato per i livelli delle UO nelle GUI) (cerca la UO con quei n.ri livelli e tutte le UO/scrivanie/utenti gerarchicamente subordinate)
+295        												--										STR_IN_DES, filtro sulla descrizione (ricerca case insensitive in like forzando % all'inizio e alla fine)
+296        												-- AOO_SP: lista con le AOO e altri soggetti interni al soggetto produttore da cui si è collegati o cui appartiene l'AOO cui si è collegati
+297        												--					La lista restituisce le colonne:1) Id. dell'AOO/soggetto in rubrica
+298        												--													2) Cod. rapido dell'AOO/soggetto
+299        												--													3) Denominazione completa
+300        												--													4) (calcolata solo se presente negli altri parametri ESTRAI_DES_BREVE=1) Descrizione breve/acronimo (e se questa non è presente la denominazione completa)
+301        												--													5) ID_SP_AOO dell'AOO se censita in tabella DMT_SOGGETTI_PROD_AOO
+302        												--													6) Data inizio validità
+303        												--													7) Data fine validità
+304        												--					La lista è ordinata per colonna 3
+305        												--		      		Come altri parametri ci sono:
+306        												--										ESTRAI_DES_BREV: se 1 viene valorizzata colonna 4 della lista, altrimenti no
+307        												--										ESCLUDI_AOO_COLLEGATA: se 1 indica che la ricerca deve escludere l'AOO da cui si è collegati
+308        												--			 							CI_TO_ADD, che va valorizzato con l'ID in rubrica di una AOO/soggetti da mettere comunque nella lista di output
+309        												--										COD_RAPIDO, filtro sul codice rapido dell'AOO/soggetto (ricerca case insensitive in like forzando % solo alla fine)
+310        												--										STR_IN_DES, filtro sulla descrizione in colonna 3 (ricerca case insensitive in like forzando % all'inizio e alla fine)
+311        												--										STR_IN_DES_COMPLETA, filtro sulla descrizione in colonna 4(ricerca case insensitive in like forzando % all'inizio e alla fine)
+312        												-- GRUPPO_SOGG_RUBRICA: gruppi di soggetti della rubrica
+313        												--					La lista restituisce le colonne:1) Id. del gruppo
+314        												--													2) Cod. rapido del gruppo
+315        												--													3) Nome del gruppo
+316        												--													4) (valori O/E/I/M) Flag che indica se è un gruppo
+317        												--														O = di soli soggetti in organigramma
+318        												--														I = di soli soggetti interni (sia in organigramma che non)
+319        												--														M = sia di soggetti interni che esterni
+320        												--														E = di soli soggetti esterni
+321        												--													5) Id. dell'eventuale gruppo interno (in DMT_GRUPPI) che corrisponde al gruppo di sogg. di rubrica
+322        												--													6) Data inizio validità
+323        												--													7) Data fine validità
+324        												--					La lista è ordinata per colonna 3
+325        												--		      		Come altri parametri ci sono:
+326        												--			 							CI_TO_ADD, che va valorizzato con l'ID in rubrica di un gruppo di sogg. rubrica da mettere comunque nella lista di output
+327        												--										ID_GRUPPO_INT_TO_ADD, che va valorizzato con l'ID del gruppo interno da mettere comunque nella lista di output
+328        												--										FLG_SOLO_GRUPPI_SOGG_INT, che può essere valorizzato a se 2 o 1 se si vogliono solo gruppi che contengano almeno 1 soggetto interno - UO o unità di personale - al dominio cui si è connessi (se 2 anche presente in organigramma, se 1 anche non in organigramma)
+329        												--									    FLG_RESTR_APPL_CONNESSA, che può essere valorizzato a 1 o 0: se 1 si vogliono solo gruppi di cui è proprietaria l'applicazione connessa (ed eventuale istanza); se 0 o NULL e se si è connessi da un'applicazione esterna si vogliono solo i gruppi senza applicazione proprietaria o con applicazione proprietria pari a quella connessa
+330        												--										COD_RAPIDO, filtro sul codice rapido del gruppo (ricerca case insensitive in like forzando % solo alla fine)
+331        												--										STR_IN_NOME, filtro sul nome del gruppo (ricerca case insensitive in like forzando % all'inizio e alla fine)
+332        												-- MOTIVO_THREAD: motivi di avvio di un thread in un forum di discussione (sono dei tipi documento particolari)
+333        												--		      		Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID e DES (default). CID significa che come INTERNAL VALUE della lista viene dato il codice identificativo del motivo (ID_DOC_TYPE), DES significa che l'internal value è pari al display value.
+334        												--				    					    CI_TO_ADD, che va valorizzato con id. o nome (a seconda che l'internal value sia codificato o meno) di un motivo da mettere comunque nella lista di output
+335        												--									    ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+336        												--									    FLG_SOLO_ASSEGNABILI, che può essere valorizzato a 1 o 0: se 1 si vogliono solo i motivi assegnabili dall'utente di lavoro o in sua assenza quello connesso
+337        												-- WORKSPACE: workspace visibili
+338        												--					Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato l'identificativo del workspace, DES significa che l'internal value è pari al display value.
+339        												--			 							ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+340        												--			 							FLG_SOLO_MODIFICABILI, che può essere valorizzato a 1 o 0: se 1 si vogliono solo i workspace i cui metadati sono modificabili dall'utente di lavoro o in sua assenza quello connesso
+341        												--			 							FLG_SOLO_CON_CONTENUTO_MODIFICABILE, che può essere valorizzato a 1 o 0: se 1 si vogliono solo i workspace in cui l'utente di lavoro (o in sua assenza quello connesso) può mettere o da cui può togliere unità documentarie
+342        												--									      FLG_RESTR_APPL_CONNESSA, che può essere valorizzato a 1 o 0: se 1 si vogliono solo workspace di cui è proprietaria l'applicazione connessa (ed eventuale istanza); se 0 o NULL e se si è connessi da un'applicazione esterna si vogliono solo i workspace senza applicazione proprietaria o con applicazione proprietria pari a quella connessa
+343        												-- DELEGHE_VS_UTENTI: utenti verso cui ha delega l'utente connesso. Contiene 3 colonne: 1) ID_USER o DES_USER (a seconda del parametro INTERNAL_VALUE); 2) DES_USER; 3) USERNAME
+344        												--					Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato l'identificativo dell'utente, DES significa che l'internal value è pari al display value.
+345        												--					ID_USER: id. dell'utente di cui caricare verso chi ha delega (da valorizzare se è diverso dall'utente connesso)
+346        												-- TIPO_EVENTO_DERIVATO: tipi degli eventi di trasparenza che possono scaturire automaticamente da un dato evento
+347        												-- TIPO_BATCH: tipi di batch gestiti dal batchmanager
+348        												--			 L'interna value è il TIPO dei record della BMT_JOBS
+349        												--			 Non prevede altri parametri.
+350        												-- OGG_DA_CUI_EREDITARE_ACL: oggetti contenitore (folder e workspace) da cui una data unità documentaria o folder può ereditare i permessi
+351        												--					L'internal value è la sigla del tipo di oggetto contenitore (F o W) seguita dal suo id. (ID_FOLDER o ID_WORKSPACE)
+352        												--					Il display value è il path (libreria inclusa) se trattasi di folder o il nome se  trattasi di workspace (precedeuta dal tipo se può essere sia folder che workspace)
+353        												--					Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato l'identificativo dell'oggetto contenitore preceduto dalla sigla del tipo, DES significa che l'internal value è pari al display value.
+354        												--										OBJ_TYPE (obblig.; valori F/U). indica il tipo, unità documentaria (=U) o folder (=F), dell'oggetto per cui estrarre i contenitori da cui può ereditare
+355        												--										OBJ_ID (obblig.) indica l'identificativo (ID_UD o ID_FOLDER) dell'oggetto per cui estrarre i contenitori
+356        												--									      ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+357        												-- OPZ_ACE_X_DEST_INVIO_NOTIFICA: per popolare la scelta di opzioni di accesso con cui il destinatario di un invio/notifica di unità documentaria o folder va aggiunto nell'ACL dell'oggetto inviato/notificato
+358        												--					L'internal value è la sigla del tipo di opzione (VM, V, MM, M, FC)
+359        												--					Come altri parametri ci sono: FLG_IN (obblig. valori I/N) indica se si tratta di invio (I) o notifica/condivisione (N)
+360        												--										OBJ_TYPE (valori F/U). indica il tipo, unità documentaria (=U) o folder (=F), dell'oggetto inviato/notificato
+361        												--										OBJ_ID indica l'identificativo (ID_UD o ID_FOLDER) dell'oggetto inviato/notificato
+362        												--									      ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+363        												-- CONDIZ_RICH_NOTIFICA: per popolare la scelta di eventi a fronte dei quale può essere richiesta notifica al momento dell'invio/notifica di unità documentaria o folder
+364        												--					Come altri parametri ci sono: OBJ_TYPE (valori F/U). indica il tipo, unità documentaria (=U) o folder (=F), dell'oggetto inviato/notificato
+365        												--										OBJ_ID indica l'identificativo (ID_UD o ID_FOLDER) dell'oggetto inviato/notificato
+366        												-- DEST_RICH_NOTIFICA: per popolare la scelta dei possibi destinatari di una richiesta notifica fatta al momento dell'invio/notifica di unità documentaria o folder
+367        												--					Come altri parametri ci sono: OBJ_TYPE (valori F/U). indica il tipo, unità documentaria (=U) o folder (=F), dell'oggetto inviato/notificato
+368        												--										OBJ_ID indica l'identificativo (ID_UD o ID_FOLDER) dell'oggetto inviato/notificato
+369        												--									      ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+370        												-- LIVELLO_PRIORITA: possibili livelli di priorita
+371        												--					Non prevede parametri.
+372        												-- LIVELLO_RISERVATEZZA: possibili livelli di riservatezza degli oggetti della repository
+373        												--					Come altri parametri ci sono:
+374        												--									  ID_USER_LAVORO: id. dell'utente per cui si lavora (delegante)
+375        												-- SOGG_INT_COLLEGATI_UTENTE: per popolare la lista dei soggetti interni (utente stesso, UO, scrivanie) cui è collegato l'utente connesso o quello per cui lavora se specificato
+376        												--					L'internal value è la sigla del tipo di soggetto (UT = utente, UO = U.O., SV = Scrivania) seguita dal suo identificativo (es: UT101, UO1004)
+377        												--					Come altri parametri ci sono: TIPI_SOGG_INT: per restringere la lista solo a soggetti di un certo tipo/tipi. Valori ammessi: UT, UO, SV o una loro concatenazione separati da , (es: UT, SV,UO). Se nulla è specificato si estraggono i soggetti di tutti i tipi.
+378        												--										FLG_ANCHE_CON_DELEGA (valori 1/0/NULL) Se 1 vengono estratti anche i soggetti legati da relazioni di tipo delega, altrimenti no
+379        												--									      ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+380        												-- TIPI_ATTI: tipi di atti visibili all'utente
+381        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (Default) e DES. CID significa che come INTERNAL VALUE della lista viene dato l'identificativo del tipo di atto, DES significa che l'internal value è pari al display value.
+382        												--				    					    CI_TO_ADD, che va valorizzato con id. o nome (a seconda che l'internal value sia codificato o meno) di un tipo di atto da mettere comunque nella lista di output
+383        												--									    ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+384        												--									    FLG_SOLO_ASSEGNABILI, che può essere valorizzato a 1 o 0: se 1 si vogliono solo i tipi di atti assegnabili dall'utente di lavoro o in sua assenza quello connesso
+385        												-- REGISTRO_REG_NUM_UD: registri di registrazione /numerazione delle unità documentarie visibili all'utente
+386        												--				    Come altri parametri ci sono: DISPLAY_VALUE, che può assumere i valori: SIGLA e DES (default). SIGLA significa che come DISPLAY VALUE della lista viene data la sigla del registro, DES significa come DISPLAY VALUE della lista viene data la descrizione del registro
+387        												--									    INTERNAL_VALUE, che può assumere i valori: CID (Default) e DES. CID significa che come INTERNAL VALUE della lista viene data la sigla del registro, DES significa che l'internal value è pari al display value.
+388        												--									    ID_USER_LAVORO, con l'id. dell'utente di lavoro se diverso da quello connesso
+389        												--									    FLG_SOLO_ASSEGNABILI, che può essere valorizzato a 1 o 0: se 1 si vogliono solo i registri in cui può registrare/numerare l'utente di lavoro o in sua assenza quello connesso
+390        												--									    CATEGORIA: codice della categoria in cui devono ricadere le registrazioni/numerazioni da estrarre(PP=Protocollo Particolare, R = Repertorio, E = Emergenza, A = Altre numerazioni interne, I = Altre numerazioni interne, #U=Registrazione ufficiale, #NU=Numerazione non ufficiale)
+391        												--									    ID_DOC_TYPE: id. del tipo del documento per cui estrarre i registri assegnabili (viene considerato solo se FLG_SOLO_ASSEGNABILI=1)
+392        												-- TIPO_PROCESSO_SINAPOLI: tipi di processi di Sinapoli che ricomprendono attività con produzione documentale
+393        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato l'identificativo del tipo di processo, DES significa che l'internal value è pari al display value.
+394        												-- CATEGORIE_SINAPOLI: categorie di Sinapoli che ricomprendono attività con produzione documentale
+395        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato l'identificativo della categoria, DES significa che l'internal value è pari al display value.
+396        												--									    PROCESSO (obbligatorio): id. del processo primario cui afferisce la categoria
+397        												-- SOTTOCATEGORIE_SINAPOLI: sotto-categorie di Sinapoli che ricomprendono attività con produzione documentale
+398        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato l'identificativo della sotto-categoria, DES significa che l'internal value è pari al display value.
+399        												--									    PROCESSO (obbligatorio): id. del processo primario cui afferisce la sotto-categoria
+400        												--									    CATEGORIA (obbligatorio): id. della categoria cui afferisce la sotto-categoria
+401        												-- PRESTAZIONI_SINAPOLI: prestazioni di Sinapoli che ricomprendono attività con produzione documentale
+402        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato l'identificativo della prestazione, DES significa che l'internal value è pari al display value.
+403        												--									    PROCESSO (obbligatorio): id. del processo primario cui afferisce la prestazione
+404        												--									    CATEGORIA (obbligatorio): id. della categoria cui afferisce la prestazione
+405        												--									    SOTTOCATEGORIA (obbligatorio): id. della sottocategoria cui afferisce la prestazione
+406        												-- TIPO_ATTIVITA_SINAPOLI: tipi attività di Sinapoli che prevedono produzione documentale
+407        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato l'identificativo del tipo attività, DES significa che l'internal value è pari al display value.
+408        												--									    PROCESSO (obbligatorio): id. del processo primario cui afferisce l'attività
+409        												--									    CATEGORIA (obbligatorio): id. della categoria cui afferisce l'attività
+410        												--									    SOTTOCATEGORIA (obbligatorio): id. della sottocategoria cui afferisce l'attività
+411        												--									    PRESTAZIONE (obbligatorio): id. della prestazione cui afferisce l'attività
+412        												-- TECNICI_SINAPOLI: tecnici di Sinapoli. Mostra cognome e nome e username dei tecnici.
+413        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato l'identificativo del tecnico, DES significa che l'internal value è pari al display value.
+414        												-- STRUTTURE_SINAPOLI: strutture di Sinapoli collegate all'utente connesso.
+415        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato l'identificativo della struttura, DES significa che l'internal value è pari al display value.
+416        												-- STATI_NAZIONALI: stati (nazioni).
+417        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato il codice istat dello stato, DES significa che l'internal value è pari al display value.
+418        												--									    NOME_STATO, stringa contenuta nei nomi degli stati da estrarre (ricerca case-insensitive)
+419        												--									  : CI_TO_ADD, che va valorizzato con internal o display name (a seconda che l'internal value sia CID o DES) di un valore da mettere comunque nella lista di output
+420        												-- PROVINCE: province italiane. Restituisce una lista con tre colonne, di cui 1a può essere il cod. istat o il nome del provincia (a seconda del parametro INTERNAL_VALUE), la 2a è il nome della provincia e la 3a la targa della provincia
+421        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato il codice istat della provincia, DES significa che l'internal value è pari al display value.
+422        												--									    ISTAT_REGIONE, codice istat della regione cui devono appartenere le province da estarre
+423        												--									    NOME_PROVINCIA, stringa contenuta nei nomi delle province da estrarre (ricerca case-insensitive)
+424        												--										TARGA_PROV, targa della provincia (ricerca case-insensitive)
+425        												--									  : CI_TO_ADD, che va valorizzato con internal o display name (a seconda che l'internal value sia CID o DES) di un valore da mettere comunque nella lista di output
+426        												-- COMUNI_ITALIANI: comuni italiani. Restituisce una lista con tre colonne, di cui 1a prima può essere il cod. istat o il nome del comune (a seconda del parametro INTERNAL_VALUE), la 2a è il nome del comune e la 3a la targa della provincia
+427        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato il codice istat del comune, DES significa che l'internal value è pari al display value.
+428        												--									    ISTAT_REGIONE, codice istat della regione cui devono appartenere i comuni da estarre
+429        												--									    ISTAT_PROVINCIA, codice istat della provincia cui devono appartenere i comuni da estarre
+430        												--									    COD_DISTRETTO, codice del distretto SINAPOLI cui devono appartenere i comuni da estarre
+431        												--									    NOME_COMUNE, stringa contenuta nei nomi dei comuni da estrarre (ricerca case-insensitive)
+432        												--										TARGA_PROV, targa della provincia di appartenenza dei comuni da estrarre (ricerca case-insensitive)
+433        												--									  : CI_TO_ADD, che va valorizzato con internal o display name (a seconda che l'internal value sia CID o DES) di un valore da mettere comunque nella lista di output
+434        												-- FRAZIONI_CAP: frazioni dei comuni italiani che hanno un CAP. Restituisce 4 colonne: 1) e 2) Nome frazione (sono uguali), 3) Cod. istat del Comune, 4) Nome del comune
+435        												--				    Come altri parametri ci sono: COD_ISTAT_COMUNE: codice istat del comune cui sono relative le frazioni da estrarre
+436        												--				    Come altri parametri ci sono: NOME_COMUNE: nome del comune cui sono relative le frazioni da estrarre
+437        												-- CAP: Codici di Avviamento Postale (restituisce 2 colonne identiche con il CAP)
+438        												--				    Come altri parametri ci sono: COD_ISTAT_COMUNE: codice istat del comune cui sono relativi i CAP da estrarre
+439        												--										FRAZIONE: nome della frazione cui sono relativi i CAP da estrarre
+440        												-- DISTRETTI_SINAPOLI: distretti di comuni definiti in SINAPOLI
+441        												--				    Come altri parametri ci sono: INTERNAL_VALUE, che può assumere i valori: CID (default) e DES. CID significa che come INTERNAL VALUE della lista viene dato il codice del distretto, DES significa che l'internal value è pari al display value.
+442        												--									    ISTAT_PROVINCIA, codice istat della provincia cui devono appartenere i distretti da estarre
+443        												--									    INIZIO_NOME_DISTRETTO, stringa con cui devono iniziare i nomi dei distretti da estrarre (ricerca case-insensitive)
+444        												-- PROTECTED_ATTRIBUTES: lista degli attributi da indicizzare che sono ptotetti, ovvero che possono contenere dati riservati
+445        												--			 L'interna value è il nome identificaivo dell'attributo, il display la descrizione dell'attributo (o se non c'è il nome identificativo)
+446        												--			 Non prevede altri parametri.
+447        												-- INDEXED_ATTRIBUTES: lista degli attributi indicizzati su Lucene per un certo tipo di oggetti
+448        												--			 L'interna value è il nome identificaivo dell'attributo, il display la descrizione dell'attributo (o se non c'è il nome identificativo)
+449        												--			 Non prevede altri parametri.
+450        												--			 Come altri parametri ci sono: ATTR_LIST (obblig): nomi dei parametri restituiti dall'utility che li tira fuori dagli indici Lucene, separati da ;
+451        												--										   CATEGORIA (obblig.) Indica il tipo di oggetti (REP_DOC = doc. e fascicoli dell'archivio) per cui tirar fuori gli attributi indicizzati
+452        		FlgSoloVldIn 		IN 	INTEGER DEFAULT 1, 		-- (valori 1/0/NULL) Se 1 indica se si devono estrarre solo i valori validi alla data odierna
+453        		TsVldIn			IN 	VARCHAR2 DEFAULT NULL,		-- Stinga con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) a cui devono essere validi i valori
+454        		PKRecIn       		IN  	VARCHAR2, 				-- Valore di primary key del record di tabella per cui serve la combo.
+455        												-- Se la primary key è composta da più colonne i relativi valori sono esparati da ;
+456        		AltriParametriIn 		IN    VARCHAR2, 				-- Stringa contenente i possibili altri parametri con cui condizionare la ricerca dei valori per la combo:
+457        									  			-- nel formato <nome_par_1>|*|<valore>|*|<nome_par_2>|*|<valore>
+458        		ListaXMLOut			OUT	NOCOPY CLOB,			-- Lista dei valori (XML conforme a schema LISTA_STD.xsd) con cui popolare la combo
+459        												-- Ogni valore è un tag Riga che contiene 2 colonne:
+460        												--	1) Internal value
+461        												--	2) Display value da mostrare in combo
+462                    ErrContextOut		OUT	VARCHAR2,				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+463        		ErrCodeOut			OUT	PLS_INTEGER,			-- N.ro errore di uscita
+464        		ErrMsgOut			OUT 	VARCHAR2)				-- Messaggio d'errore
+465        		return PLS_INTEGER;							-- vale 1 in caso di successo, altrimenti 0
+466        
+467        end DMPK_LOAD_COMBO;

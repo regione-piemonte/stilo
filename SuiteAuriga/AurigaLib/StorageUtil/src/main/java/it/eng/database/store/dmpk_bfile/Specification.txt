@@ -1,0 +1,35 @@
+1        package DMPK_BFILE AUTHID CURRENT_USER as
+2        	--------- funzione per recuperare come BLOB il content di un file a partire dal suo URI nella notazione usata da StorageUtil per i BFILE
+3        	--------- ovvero [BFILE@<root_directory_alias>]<sub_directory_alias>/<nome_file_fisico>
+4        	function GetDocElettronico(
+5        			FileURIIn 				IN			VARCHAR2,				-- (obblig.) URI del file salvato come bfile, in notazione StorageUtil
+6        			FileContentOut			OUT			NOCOPY BLOB,			-- File restituito come BLOB (salvo in caso di errore)
+7        			ErrContextOut			OUT        	VARCHAR2,               -- Contesto in cui si è verificato l'errore
+8        			ErrCodeOut				OUT        	PLS_INTEGER,            -- N.ro errore di uscita
+9        			ErrMsgOut				OUT			VARCHAR2                -- Messaggio d'errore
+10        			) return PLS_INTEGER;                                     -- (valori 1/0) 1 = successo, 0 = errore
+11        
+12        	---- funzione per ottenere l'URI in notazione StorageUtil di un file salvato su directory mappata da Oracle
+13        	---- se la sotto-directory eventuale in cui si trova il file non è già mappata come directory Oracle la funzione provvede a farlo
+14        	function ComposeBfileURI(
+15        			RootDirAliasIn			IN	VARCHAR2,						-- (obblig.) Alias della directory Oracle che corrisponde allo storage bfile in cui salvare
+16        			FSPathFileNameIn		IN	VARCHAR2,						-- (obblig.) Percorso relativo + nome del file salvato su directory mappata da Oracle
+17        																		--			 Il percorso va indicato a partire, escludendola, dalla directory root che corrisponde a RootDirAliasIn
+18        			FileURIOut 				OUT			VARCHAR2,				-- URI del file salvato come bfile, in notazione StorageUtil
+19        			ErrContextOut			OUT        	VARCHAR2,               -- Contesto in cui si è verificato l'errore
+20        			ErrCodeOut				OUT        	PLS_INTEGER,            -- N.ro errore di uscita
+21        			ErrMsgOut				OUT			VARCHAR2                -- Messaggio d'errore
+22        			) return PLS_INTEGER;                                     	-- (valori 1/0) 1 = successo, 0 = errore
+23        			
+24        	---- funzione per ottenere a partire dall'URI in notazione StorageUtil (per un bfile)
+25        	---- il percorso e nome relativo del file a partire dalla directory root corrispondente allo storage (esclusa)
+26        	function GetRelativePath(
+27        			FileURIIn 				IN			VARCHAR2,				-- (obblig) URI del file salvato come bfile, in notazione StorageUtil
+28        			RelativePathOut			OUT			VARCHAR2,				-- path relativo + nome del file a partire dalla directory root corrispondente allo storage (esclusa)
+29        																		-- il path viene restituito senza / o \ iniziale
+30        			ErrContextOut			OUT        	VARCHAR2,               -- Contesto in cui si è verificato l'errore
+31        			ErrCodeOut				OUT        	PLS_INTEGER,            -- N.ro errore di uscita
+32        			ErrMsgOut				OUT			VARCHAR2                -- Messaggio d'errore
+33        			) return PLS_INTEGER;                                     	-- (valori 1/0) 1 = successo, 0 = errore
+34        
+35        end DMPK_BFILE;

@@ -1,0 +1,1080 @@
+/* _userStyles.scss - Fonderie override */
+
+$filter_none: none !important;
+$filter_invert: none !important;
+@if $invert_menu_icons_on_rollover {
+	$filter_invert: brightness(0) invert(1) !important;
+}
+
+.au-backdrop.modalMask {
+	opacity: 1 !important;
+  	background-color: $standard_dark_gray;
+}
+
+.au-link:hover {
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.au-clickable {
+	cursor: pointer;
+}
+
+.au-userLabel,
+.au-userLabelFocused,
+.au-userLabelDisabled,
+.au-headerLabel,
+.au-headerLabelFocused,
+.au-headerLabelDisabled {
+	color: $standard_title_font_color;
+	font-weight: bold;
+}
+
+.au-footerLabel,
+.au-footerLabelFocused,
+.au-footerLabelDisabled {
+	color: $standard_white;
+	font-weight: bold;
+}
+
+/*
+.au-headerLabelDisabled {
+	color: $standard_gray;
+}
+*/
+
+.au-headerButton {
+	color: $standard_white;
+}
+
+.au-headerButton.toolStripButtonOver,
+.au-headerButton.toolStripButtonSelected,
+.au-headerButton.toolStripButtonFocusedOver,
+.au-headerButton.toolStripButtonSelectedOver,
+.au-headerButton.toolStripButtonSelectedFocused,
+.au-headerButton.toolStripButtonFocused,
+.au-headerButton.toolStripButtonSelectedFocusedOver {
+  	background-color: $standard_white;
+  	color: $standard_title_font_color;
+  	border: 1px solid transparent;
+}
+
+/*
+.au-headerButton img {
+  	filter: $filter_invert;
+    -webkit-filter: $filter_invert;
+    -moz-filter: $filter_invert;
+    -o-filter: $filter_invert;
+    -ms-filter: $filter_invert;
+}
+
+.au-headerButton.toolStripButtonOver img,
+.au-headerButton.toolStripButtonSelected img,
+.au-headerButton.toolStripButtonFocusedOver img,
+.au-headerButton.toolStripButtonSelectedOver img,
+.au-headerButton.toolStripButtonSelectedFocused img,
+.au-headerButton.toolStripButtonSelectedFocusedOver img {
+  	filter: $filter_none;
+    -webkit-filter: $filter_none;
+    -moz-filter: $filter_none;
+    -o-filter: $filter_none;
+    -ms-filter: $filter_none;
+}
+*/
+
+.au-footerButton {
+	color: $standard_white;
+    font-weight: bold;
+    border: 1px solid white !important;
+}
+
+.au-footerButton.toolStripButtonOver,
+.au-footerButton.toolStripButtonSelected,
+.au-footerButton.toolStripButtonFocusedOver,
+.au-footerButton.toolStripButtonSelectedOver,
+.au-footerButton.toolStripButtonSelectedFocused,
+.au-footerButton.toolStripButtonFocused,
+.au-footerButton.toolStripButtonSelectedFocusedOver {
+  	background-color: $standard_white;
+  	color: $standard_title_font_color;
+  	font-weight: bold;
+  	border: 1px solid transparent !important;
+}
+
+.au-footerButton img {
+  	filter: $filter_invert;
+    -webkit-filter: $filter_invert;
+    -moz-filter: $filter_invert;
+    -o-filter: $filter_invert;
+    -ms-filter: $filter_invert;
+}
+
+.au-footerButton.toolStripButtonOver img,
+.au-footerButton.toolStripButtonSelected img,
+.au-footerButton.toolStripButtonFocusedOver img,
+.au-footerButton.toolStripButtonSelectedOver img,
+.au-footerButton.toolStripButtonSelectedFocused img,
+.au-footerButton.toolStripButtonSelectedFocusedOver img {
+  	filter: $filter_none;
+    -webkit-filter: $filter_none;
+    -moz-filter: $filter_none;
+    -o-filter: $filter_none;
+    -ms-filter: $filter_none;
+}		
+
+.au-detailButton {
+  	color: $standard_title_font_color;
+    background-color: $standard_white;
+    border: 1px solid $default_border_dark_color;
+}
+
+.au-detailButton img {
+    filter: $filter_none;
+    -webkit-filter: $filter_none;
+    -moz-filter: $filter_none;
+    -o-filter: $filter_none;
+    -ms-filter: $filter_none;
+}
+
+.au-detailButton.toolStripButtonOver {   
+	color: $standard_white;
+    background-color: hsl($primary_hue, $default_saturation, $default_lightness);
+    border: 1px solid hsl($primary_hue, $default_saturation, $default_lightness);
+    // background-color: $standard_black;
+    // border: 1px solid $standard_black;
+}
+
+.au-detailButton.toolStripButtonFocused,
+.au-detailButton.toolStripButtonFocusedOver {
+  	color: $standard_white;
+  	background-color: #466877;
+  	border: 1px solid #466877;
+}
+
+.au-detailButton.toolStripButtonOver img,
+.au-detailButton.toolStripButtonFocused img,
+.au-detailButton.toolStripButtonFocusedOver img {
+    filter: $filter_invert;
+    -webkit-filter: $filter_invert;
+    -moz-filter: $filter_invert;
+    -o-filter: $filter_invert;
+    -ms-filter: $filter_invert;
+}
+
+.au-detailButtonHiddenText {
+  	color: $standard_font_color;    
+    font-size: 0px;
+    padding-right: 0px;
+}
+
+.au-detailButtonHiddenText.toolStripButtonOver {    
+	font-size: 11px;
+}
+
+.au-frecciaDetailButton,
+.au-frecciaDetailButtonNoBorder {
+  	font-size: 0px;
+  	padding-right: 0px;    
+}
+
+.au-frecciaDetailButton {
+  	background-color: $standard_white;  
+  	border: 1px solid $default_border_dark_color;  
+}
+
+.au-frecciaDetailButton img {
+    filter: $filter_none;
+    -webkit-filter: $filter_none;
+    -moz-filter: $filter_none;
+    -o-filter: $filter_none;
+    -ms-filter: $filter_none;
+}
+
+.au-frecciaDetailButton.toolStripButtonOver {   
+	background-color: hsl($primary_hue, $default_saturation, $default_lightness);
+	border: 1px solid hsl($primary_hue, $default_saturation, $default_lightness);
+}
+
+.au-frecciaDetailButton.toolStripButtonOver img {
+    filter: $filter_invert;
+    -webkit-filter: $filter_invert;
+    -moz-filter: $filter_invert;
+    -o-filter: $filter_invert;
+    -ms-filter: $filter_invert;
+}
+
+.au-frontEndButton {
+  	color: $standard_white;
+    background-color: hsl($primary_hue, $default_saturation, $default_lightness);
+    border: 1px solid hsl($primary_hue, $default_saturation, $default_lightness);
+    // background-color: $standard_black;
+    // border: 1px solid $standard_black;
+}
+
+.au-frontEndButton img {   
+	filter: $filter_invert;
+    -webkit-filter: $filter_invert;
+    -moz-filter: $filter_invert;
+    -o-filter: $filter_invert;
+    -ms-filter: $filter_invert;	
+}
+	
+.au-headerToolStrip {
+	background-color: $active_over_bgColor;
+  	border: 1px solid $active_over_bgColor;
+ 	// background-color: hsl($primary_hue, $default_saturation, $default_lightness);
+  	// border: 1px solid hsl($primary_hue, $default_saturation, $default_lightness);
+ 	padding: 4px;
+  	padding-left: 6px;
+}
+
+.au-userToolStrip {
+	background-color: $active_over_bgColor;
+  	border: 1px solid $active_over_bgColor;
+  	// background-color: #767676;
+  	// border: 1px solid #767676;
+ 	padding: 4px;
+  	padding-left: 6px;
+}
+
+.au-footerToolStrip {
+	color: $standard_white;
+	background-color: hsl($primary_hue, $default_saturation, $default_lightness);
+  	border: 1px solid hsl($primary_hue, $default_saturation, $default_lightness);
+  	// background-color: $standard_black;
+  	// border: 1px solid $standard_black;
+  	padding: 4px;
+  	padding-left: 6px;
+}
+
+.au-detailToolStrip {
+	background-color: $standard_white;
+    border-top: 1px solid $standard_dark_gray;
+ 	padding: 4px;
+  	padding-left: 6px;
+}
+
+.au-navigationLayout {
+	background-color: $standard_gray !important;
+	border-bottom: 7px solid $standard_white !important;
+}
+
+.au-filterLayout {
+	background-color: $standard_gray !important;
+}
+
+.au-listLayout {
+	background-color: $standard_gray !important;
+}
+
+.au-detailLayout {
+	background-color: $standard_gray !important;
+}
+
+.au-detailLayoutWithTabSet {
+	background-color: $standard_white !important;
+}
+
+.au-formWithCKEditor {
+	padding-right: 30px;
+}
+
+.au-detailSection {
+	border: 1px solid $standard_dark_gray !important;	
+	/*background-color: $standard_white !important;*/
+	background-color: $standard_section_bgColor !important;
+}
+
+.au-headerDetailSection {
+	text-transform: uppercase;
+	/*background-color: $standard_white !important;*/
+	background-color: $standard_section_bgColor !important;
+}
+
+.au-headerDetailSectionTitle {
+	color: $standard_title_font_color;
+}
+
+.au-tabSetMenuNoBorder {
+	background-color: $standard_gray;	 
+}
+
+.au-menuTask {
+	margin-top: 5px !important;
+}
+
+.au-buttonMenu,
+.au-buttonMenuOver,
+.au-buttonMenuFocused,
+.au-buttonMenuFocusedOver,
+.au-buttonMenuDown,
+.au-buttonMenuFocusedDown,
+.au-buttonMenuSelected,
+.au-buttonMenuSelectedFocused,
+.au-buttonMenuSelectedDown,
+.au-buttonMenuSelectedFocusedDown,
+.au-buttonMenuSelectedOver,
+.au-buttonMenuSelectedFocusedOver,
+.au-buttonMenuDisabled,
+.au-buttonMenuSelectedDisabled {
+    font-size: 11px;
+    font-weight: bold;
+	color: $standard_white;
+    /*display: inline-block;*/
+	padding: 4px 4px;
+	margin-bottom: 0;
+	text-align: center;
+	cursor: pointer;
+	/*background: url(./images/SectionHeader/customHeader.jpg) repeat-x scroll;*/
+	background-color: $standard_dark_gray;	   
+	border-right: 5px solid $standard_gray;
+    border-left: 5px solid $standard_gray; 
+}
+
+.au-buttonMenuDisabled,
+.au-buttonMenuSelectedDisabled {
+	color: $standard_gray;
+	cursor: default;
+}
+
+.au-buttonMenu img,
+.au-buttonMenuOver img,
+.au-buttonMenuFocused img,
+.au-buttonMenuFocusedOver img,
+.au-buttonMenuDown img,
+.au-buttonMenuFocusedDown img,
+.au-buttonMenuSelected img,
+.au-buttonMenuSelectedFocused img,
+.au-buttonMenuSelectedDown img,
+.au-buttonMenuSelectedFocusedDown img,
+.au-buttonMenuSelectedOver img,
+.au-buttonMenuSelectedFocusedOver img,
+.au-buttonMenuDisabled img,
+.au-buttonMenuSelectedDisabled img {
+	 filter: $filter_invert;
+    -webkit-filter: $filter_invert;
+    -moz-filter: $filter_invert;
+    -o-filter: $filter_invert;
+    -ms-filter: $filter_invert;
+}
+
+.au-buttonMenuTitle,
+.au-buttonMenuTitleOver,
+.au-buttonMenuTitleDown,
+.au-buttonMenuTitleSelected,
+.au-buttonMenuTitleFocused,
+.au-buttonMenuTitleSelectedFocused,
+.au-buttonMenuTitleSelectedOver,
+.au-buttonMenuTitleFocusedOver,
+.au-buttonMenuTitleSelectedFocusedOver,
+.au-buttonMenuTitleSelectedDown,
+.au-buttonMenuTitleFocusedDown,
+.au-buttonMenuTitleSelectedFocusedDown,
+.au-buttonMenuTitleDisabled,
+.au-buttonMenuTitleSelectedDisabled {
+  	color: $standard_title_font_color;
+  	font-size: 12px;
+  	text-align: left;	
+}
+
+.au-buttonMenuTitleDisabled,
+.au-buttonMenuTitleSelectedDisabled {
+  	color: $standard_gray;
+  	font-weight: normal;
+}
+
+.au-labelMenu,
+.au-labelMenuDisabled,
+.au-labelMenuSelect {
+ 	/*cursor: pointer;*/
+ 	font-size: 11px;
+ 	padding-left: 10px;  
+ 	padding-right: 4px; 	
+	/*background: url(./images/SectionHeader/customSottoHeader.jpg) repeat-x scroll;*/
+	background-color: $standard_white;   	
+  	background-size: cover;
+    min-height: 30px;    
+    border-top: 1px solid $standard_gray;
+    border-left: 1px solid $standard_gray;
+    border-right: 5px solid $standard_gray;
+    border-left: 5px solid $standard_gray;
+}
+
+.au-labelMenuSelect {
+ 	/*background: url(./images/SectionHeader/customSottoHeaderOver.jpg) repeat-x scroll;*/
+ 	background-color: $active_over_bgColor;	
+  	background-size: cover;
+}
+
+.au-labelMenuDisabled {
+ 	/*cursor: default;*/
+ 	color: $standard_dark_gray;
+}
+
+.au-taskLabel,
+.au-taskLabelDisabled,
+.au-taskLabelSelect {
+ 	cursor: pointer;
+ 	font-size: 11px;
+ 	padding-left: 10px;    
+	background-size: cover;
+	background-color: $standard_white;
+	border: 1px solid $standard_dark_gray;
+}
+
+.au-taskLabelSelect {
+ 	background-size: cover;
+ 	background-color: $standard_white;
+}
+
+.au-taskLabelDisabled {
+ 	cursor: default;
+ 	color: $standard_dark_gray;
+ 	background-color: $standard_white;
+}
+
+.au-intestazioneLayout {
+	background-color: hsl($primary_hue, $default_saturation, $default_lightness);
+}
+ 	
+.au-titoloDettagliIntestazione {
+	background-color: transparent;
+ 	color: $standard_white; 
+ 	font-size: 12px;
+  	padding-bottom: 10px;
+}
+
+.au-buttonIntestazione {
+	background-color: transparent;
+ 	cursor: pointer;
+}
+
+.au-buttonIntestazione img {
+	 filter: $filter_invert;
+    -webkit-filter: $filter_invert;
+    -moz-filter: $filter_invert;
+    -o-filter: $filter_invert;
+    -ms-filter: $filter_invert;
+}
+
+.au-titoloTask {
+	font-weight: bold;
+	font-size: 12px;
+	font-style: normal;
+	text-decoration: underline;
+	color: $standard_title_font_color;
+	padding: 5;
+}
+
+.au-dettagliTask {
+	font-size: 11px;
+	font-style: normal;
+	color: $standard_font_color;
+}
+
+.au-motiviNonEsegTask {
+	font-weight: bold;
+	font-size: 11px;
+	font-style: normal;
+	color: #F13131;
+}
+
+.au-titlePortlet {
+	text-transform: uppercase;
+    font-weight: bold;
+}
+
+.au-formTitleBold {	
+	font-weight: bold;
+	border: 0px;
+	background-color: transparent;
+}
+
+.au-readonlyItem, 
+.au-readonlyItemDisabled, 
+.au-readonlyItemFocused {
+	background-color: #F0F0F0;
+	color: $standard_font_color;
+    overflow: scroll !important;
+    text-overflow: clip !important;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    overflow: -moz-scrollbars-none !important;
+}
+
+.au-readonlyItem::-webkit-scrollbar {
+    display: none;
+}
+
+.au-readonlyItemDisabled::-webkit-scrollbar {
+    display: none;
+}
+
+.au-readonlyItemFocused::-webkit-scrollbar {
+    display: none;
+}
+
+.au-formItemText {	
+	font-size: $formItem_font_size !important;
+    font: {
+        family: $primary_font !important;
+    }
+}
+
+.au-portalDesktopButtonsTileGrid {
+	
+}
+
+.au-portalDesktopButtonsTileValue {
+	height: 140px;
+}
+
+.au-portalDestopButtonsTitle {
+	font-weight: bold;
+	font-size: 15px;
+	font-style: normal;
+	text-decoration: underline;
+	color: $standard_font_color;
+	padding: 5;
+	cursor: pointer;
+}
+
+.au-summaryLabelContents {
+	font-size: 12px;
+	font-style: normal;
+	color: $standard_font_color;	
+}
+
+.au-summaryLabelContentsDisabled {
+	font-weight: bold;
+	font-size: 12px;
+	font-style: normal;
+	color: $standard_dark_gray;
+}
+
+.au-allegatoLabelNome {
+	font-weight: bold;
+	font-size: 12px;
+	font-style: normal;
+	text-decoration: underline;
+	color: $standard_font_color;
+	padding: 5;
+}
+
+.au-allegatoLabelDescrizione {
+	font-size: 11px;
+	font-style: normal;
+	color: $standard_font_color;
+}
+
+.au-allegatoLabelPrescrizione {
+	font-weight: bold;
+	font-size: 11px;
+	font-style: nomal;
+	color: $standard_font_color;
+	padding-top: 10;
+}
+
+.au-taskLabelTitolo {
+	font-weight: bold;
+	font-size: 12px;
+	font-style: normal;
+	text-decoration: underline;
+	color: $standard_font_color;
+	padding: 5;
+}
+
+.au-taskLabelTitoloDisabled {
+	font-weight: bold;
+	font-size: 12px;
+	font-style: normal;
+	text-decoration: underline;
+	color: $standard_dark_gray;
+	padding: 5;	
+}
+
+.au-taskLabelDettagli {
+	font-size: 11px;
+	font-style: normal;
+	color: $standard_font_color;
+}
+
+.au-taskLabelDettagliDisabled {
+	font-size: 11px;
+	font-style: normal;
+	color: $standard_dark_gray;
+}
+
+@each $tabStyle in tabButton, iconOnlyTabButton {
+@if $tabStyle == tabButton {
+/*============================================================
+    TabSet CSS tabs
+    tabSet.simpleTabBaseStyle
+============================================================*/
+} @else {
+/*============================================================
+    TabSet CSS tabs
+    tabSet.simpleTabIconOnlyBaseStyle
+============================================================*/
+}
+/* styles for simple css-styled tabs*/
+/* top */
+.#{$tabStyle}Top,
+.#{$tabStyle}TopOver,
+.#{$tabStyle}TopDown,
+.#{$tabStyle}TopDisabled,
+.#{$tabStyle}TopFocused,
+.#{$tabStyle}TopFocusedOver,
+.#{$tabStyle}TopFocusedDown,
+.#{$tabStyle}TopSelected,
+.#{$tabStyle}TopSelectedOver,
+.#{$tabStyle}TopSelectedDown,
+.#{$tabStyle}TopSelectedDisabled,
+.#{$tabStyle}TopSelectedFocused,
+.#{$tabStyle}TopSelectedFocusedOver,
+.#{$tabStyle}TopSelectedFocusedDown {
+    @include border-radius(0px 0px 0px 0px);
+    padding: 0px if($tabStyle == tabButton, 27px, 12px);
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.#{$tabStyle}Top img,
+.#{$tabStyle}TopOver img,
+.#{$tabStyle}TopDown img,
+.#{$tabStyle}TopDisabled img,
+.#{$tabStyle}TopFocused img,
+.#{$tabStyle}TopFocusedOver img,
+.#{$tabStyle}TopFocusedDown img {
+	filter: $filter_none;
+    -webkit-filter: $filter_none;
+    -moz-filter: $filter_none;
+    -o-filter: $filter_none;
+    -ms-filter: $filter_none;
+}
+}
+
+.normal,
+.normalFocused,
+.normalDisabled {
+    //@if $use_non_transparent_background {
+    //    background-color: $standard_bgColor;
+    //}
+    color: $normal_font_color;
+    font: {
+        family: $primary_font; 
+        size: $normal_font_size_Accessibilita;
+    }
+}
+
+.button:hover,
+.buttonOver,
+.buttonPendingOver {
+	color: $button_over_color;
+    font-weight: $button_over_font-weight;
+}
+
+.buttonFocusedOver,
+.buttonPendingFocusedOver {
+    color: $button_over_color;
+}
+
+.buttonFocused,
+.buttonSelectedFocused {
+    background-color: $button_selected_focused_bgColor;
+    border: $button_selected_focused_border;
+    color : $button_selected_focused_color;
+    font-weight: $button_selected_focused_font-weight;
+}
+
+.buttonFocused,
+.buttonSelectedFocused {
+    background-color: #A6D2FF;
+    border: 2px solid #466877;
+    color : #454546;
+    font-weight: bold;
+}
+
+.buttonFocusedOver,
+.buttonSelectedFocusedOver,
+.buttonSelectedFocusedDown {
+    background-color: $button_selected_focused_down_bgColor;
+    color: $button_selected_focused_down_color;
+    font-weight: $button_selected_focused_down_font-weight;
+}
+
+.menuMain,
+.menuMainRTL,
+.menuFill,
+.menuFillRTL {
+    background-color: $menuFillRTL_bgColor;
+}
+
+.textItemLiteFocused {
+  background-color : #A6D2FF !important;
+}
+
+.selectItemLiteControlErrorFocused {
+  	border: 1px solid $standard_widget_border_color;
+}
+
+.gridBody:focus {
+  background-color: $standard_white;
+}
+
+.textAreaItemLiteErrorOver,
+.textAreaItemLiteErrorOverRTL,
+.textAreaItemLiteErrorFocused,
+.textAreaItemLiteErrorFocusedRTL,
+.textAreaItemLiteErrorFocusedOver,
+.textAreaItemLiteErrorFocusedOverRTL {
+	color: $formItem_color;
+    font-size: $formItem_font_size;
+    padding: 2px 9px;
+    outline: none;
+    text-decoration: none;
+    font: {
+        family: $primary_font;
+    }
+    @include border-radius(0px);
+}
+
+.listGrid {
+	border: 0px;
+}
+
+.treeCellSelectedOver,
+.treeCellSelectedOverDark,
+.treeTallCellSelectedOver,
+.treeTallCellSelectedOverDark {
+    @include box-shadow(none);
+}
+
+.treeCellSelectedOver img,
+.treeCellSelectedOverDark img,
+.treeTallCellSelectedOver img,
+.treeTallCellSelectedOverDark img {
+	filter: $filter_invert;
+    -webkit-filter: $filter_invert;
+    -moz-filter: $filter_invert;
+    -o-filter: $filter_invert;
+    -ms-filter: $filter_invert;
+}
+
+.toolStrip {
+	border: 0px;
+	backgroundColor: transparent;
+}
+
+.labelAnchor,
+.labelAnchorRTL,
+.labelAnchorFocused,
+.labelAnchorFocusedRTL,
+.labelAnchorDisabled,
+.labelAnchorDisabledRTL,
+.labelAnchorError,
+.labelAnchorErrorRTL,
+.labelAnchorPending,
+.labelAnchorPendingRTL,
+.labelAnchorPendingFocused,
+.labelAnchorPendingFocusedRTL,
+.labelAnchorPendingDisabled,
+.labelAnchorPendingDisabledRTL,
+.labelAnchorPendingError,
+.labelAnchorPendingErrorRTL {
+    color: $standard_font_color;
+    outline: none;
+}
+
+.vSplitbar,
+.hSplitbar {
+	background: $standard_white;
+}
+
+.windowHeader, 
+.windowHeaderHilite, 
+.dialogHeader, 
+.dialogHeaderHilite {
+    background: hsl($primary_hue, $default_saturation, $default_lightness);
+}
+
+.windowHeaderText, 
+.dialogHeaderText, 
+.dialogStatusBarText {
+    background: hsl($primary_hue, $default_saturation, $default_lightness);
+}
+
+.windowBackground,
+.dialogBackground {
+  	border: 1px solid $default_border_dark_color;
+  	background: $standard_white;
+}
+
+.windowBody {
+	background: $standard_white;	
+}
+
+.button,
+.buttonOver,
+.buttonFocused,
+.buttonFocusedOver,
+.buttonDown,
+.buttonFocusedDown,
+.buttonSelected,
+.buttonSelectedFocused,
+.buttonSelectedDown,
+.buttonSelectedFocusedDown,
+.buttonSelectedOver,
+.buttonSelectedFocusedOver,
+.buttonDisabled,
+.buttonSelectedDisabled {
+	text-transform: uppercase;
+}
+
+.button img,
+.buttonDown img,
+.buttonDisabled img,
+.buttonSelectedDisabled img
+/*.buttonOver img,
+.buttonFocused img,
+.buttonFocusedOver img,
+.buttonFocusedDown img,
+.buttonSelected img,
+.buttonSelectedFocused img,
+.buttonSelectedDown img,
+.buttonSelectedFocusedDown img,
+.buttonSelectedOver img,
+.buttonSelectedFocusedOver img,*/ {
+    filter: $filter_invert;
+    -webkit-filter: $filter_invert;
+    -moz-filter: $filter_invert;
+    -o-filter: $filter_invert;
+    -ms-filter: $filter_invert;
+}
+
+.sectionStack {
+	border: 0px;
+}
+
+.menu,
+.menuSelected,
+.menuOver,
+.menuSelectedOver,
+.menuDisabled,
+.menuDisabledDark,
+.menuTitleField,
+.menuTitleFieldDark,
+.menuTitleFieldSelected,
+.menuTitleFieldSelectedDark,
+.menuTitleFieldOver,
+.menuTitleFieldOverDark,
+.menuTitleFieldSelectedOver,
+.menuTitleFieldSelectedOverDark,
+.menuTitleFieldDisabled,
+.menuTitleFieldDisabledDark,
+.menuIconField,
+.menuIconFieldOver,
+.menuIconFieldSelected,
+.menuIconFieldSelectedOver,
+.menuIconFieldDisabled,
+.treeMenuSelected,
+.treeMenuSelectedOver,
+.treeMenuSelectedSelected,
+.treeMenuSelectedSelectedOver {
+    border: {
+        bottom: 0px solid transparent;
+        top: 0px solid transparent;
+    }
+    padding: {
+        bottom: 0px;
+        top: 0px; 
+    }
+}
+
+.menuIconField, 
+.menuIconFieldDark, 
+.menuIconFieldOver, 
+.menuIconFieldOverDark, 
+.menuIconFieldSelected, 
+.menuIconFieldSelectedDark, 
+.menuIconFieldSelectedOver, 
+.menuIconFieldSelectedOverDark, 
+.menuIconFieldDisabled {
+    padding-left: 5px;
+    padding-right: 2px;
+}
+
+.menuIconFieldSelected img,
+.menuSelected img,
+.menuIconFieldOver img,
+.menuOver img {
+	filter: $filter_invert;
+	-webkit-filter: $filter_invert;
+	-moz-filter: $filter_invert;
+	-o-filter: $filter_invert;
+	-ms-filter: $filter_invert;
+}
+
+.formTitle,
+.formTitleRTL,
+.formTitleFocused,
+.formTitleFocusedRTL,
+.formTitleDisabled,
+.formTitleDisabledRTL,
+.formTitleError,
+.formTitleErrorRTL,
+.formTitleErrorFocused,
+.formTitleErrorFocusedRTL,
+.formTitleErrorFocusedOver,
+.formTitleErrorFocusedOverRTL,
+.formTitlePending,
+.formTitlePendingRTL,
+.formTitlePendingFocused,
+.formTitlePendingFocusedRTL,
+.formTitlePendingDisabled,
+.formTitlePendingDisabledRTL,
+.formTitlePendingError,
+.formTitlePendingErrorRTL {
+	font-weight: bold; 
+	color: $standard_title_font_color;
+}
+
+.windowHeader [eventproxy$="_headerIcon"] img {
+    filter: $filter_invert;
+    -webkit-filter: $filter_invert;
+    -moz-filter: $filter_invert;
+    -o-filter: $filter_invert;
+    -ms-filter: $filter_invert;
+}
+
+.tabSetContainer {
+	/* se metto il bordo in alto le sezioni in basso vengono tagliate */
+    border-top-width: 10px;
+}
+
+.simpleTile {
+	background-color: $standard_white !important;
+	border: 1px solid $standard_white !important;
+  	border-radius: 50px;
+}
+
+.simpleTileOver {
+	background-image: none !important;
+	background-color: $active_over_bgColor !important;
+	border: 1px solid $active_over_bgColor !important;
+	border-radius: 50px;
+}
+
+.simpleTileSelected,
+.simpleTileSelectedOver {
+   	background-image: none !important;
+	background-color: $active_over_bgColor !important;
+	border: 1px solid $active_over_bgColor !important;
+	border-radius: 50px;
+}
+
+.groupLabel {	
+	color: $standard_font_color !important;   
+	/*background-color: $standard_white !important;*/
+	background-color: $standard_section_bgColor !important;
+}
+
+[eventproxy*="tabBar_baseLine"] {
+  	background-color: $standard_gray !important;
+}
+
+[eventproxy^="isc_PickListMenu_"].listGrid { 
+	border: 1px solid $listGrid_border_color;
+}
+
+[eventproxy^="isc_GridItem_"].listGrid { 
+	border: 1px solid $listGrid_border_color;
+}
+
+[eventproxy*="Filter"][eventproxy$="_addButton"].imgButton img { 
+	width: 16px;
+    height: 16px;
+}
+
+[eventproxy^="isc_FiltriCustomDelTipoWindow_"][eventproxy$="_addButton"].imgButton img { 
+	width: 16px;
+    height: 16px;
+}
+
+[eventproxy*="Filter"][eventproxy$="_removeButton"].imgButton img { 
+	width: 16px;
+    height: 16px;
+}
+
+[eventproxy^="isc_FiltriCustomDelTipoWindow_"][eventproxy$="_removeButton"].imgButton img { 
+	width: 16px;
+    height: 16px;
+}
+
+[eventproxy*="isc_PickListMenu_"][eventproxy$="_actionButton"] { 
+	border-width: 0px !important;
+	overflow: visible !important;
+}
+
+[eventproxy*="isc_OpenedPortletMenuButton_"] { 
+	border-color: transparent !important;
+	background-color: transparent !important;
+}
+
+.au-hideScrollBar {
+	overflow: scroll !important;
+	overflow: -moz-scrollbars-none !important;
+}
+
+.au-hideScrollBar::-webkit-scrollbar {
+  display: none;
+}
+
+.SRonly {
+position: absolute !important;
+clip: rect(1px 1px 1px 1px); 
+clip: rect(1px, 1px, 1px, 1px);
+top: auto;
+left: -9999px;
+width: 1px;
+height: 1px;
+overflow: hidden;
+}
+
+html[dir=rtl] .SRonly {
+left: inherit;
+left: unset;
+right: -9999px;
+}
+
+.cellDeletePending, .cellDeletePendingDark {
+  background-color: #dfc6c7 !important;
+  cursor: not-allowed;
+  color: #868686; 
+  text-decoration:line-through;
+  font-size: 11px;
+  font-family: calibri;
+}
+
+.cellDeletePendingOver, .cellDeletePendingOverDark{
+  background-color: #dfc6c7 !important;
+  cursor: not-allowed;
+  color: #868686; 
+  text-decoration:line-through; 
+  font-size: 11px;  
+  font-family: calibri;
+}
+
+.labelNroTotDestinatariEmail{
+	padding-bottom: 8px;
+}
+
+.amm-trasp-top-dynamic-form {
+	display: flex;
+	align-items: center;
+	color: $normal_font_color;
+    font: {
+        family: $primary_font; 
+        size: $normal_font_size_Accessibilita;
+    }
+}

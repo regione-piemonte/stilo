@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+design:"Design",docTitle:"Seitentitel",docType:"Dokumententypüberschrift",docTypeOther:"Andere Dokumententypüberschrift",label:"Dokumenteigenschaften",margin:"Seitenränder",marginBottom:"Unten",marginLeft:"Links",marginRight:"Rechts",marginTop:"Oben",meta:"Metadaten",metaAuthor:"Autor",metaCopyright:"Copyright",metaDescription:"Dokumentbeschreibung",metaKeywords:"Schlüsselwörter (durch Komma getrennt)",other:"Andere...",previewHtml:'\x3cp\x3eDas ist ein \x3cstrong\x3eBeispieltext\x3c/strong\x3e. Du schreibst in \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e.\x3c/p\x3e',
+title:"Dokumenteigenschaften",txtColor:"Textfarbe",xhtmlDec:"Beziehe XHTML Deklarationen ein"});

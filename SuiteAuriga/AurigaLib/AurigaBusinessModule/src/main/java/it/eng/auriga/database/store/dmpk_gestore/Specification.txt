@@ -1,0 +1,321 @@
+1        PACKAGE DMPK_GESTORE AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        
+12        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+13        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        	/*****	Funzione da integrare all'interno di quelle di submit di una specifica attività del flusso WF di un processo						******/
+20        	/*****	Fa i controlli generali, salva in cache i dati comuni per procedere nella navigazione e calcola e restituisce l'URL a cui redirigere		******/
+21        	function Submit(
+22        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+23        																-- (obblig). Codice identificativo del token di connessione
+24        			CodEsitoSceltoIn		IN		DMT_PROCESS_HISTORY.ACTIVITY_RESULT_CODE_WF%type,
+25        																-- Codice dell'esito con cui si è scelto di completare l'attività (LOOKUP_CODE di workflow)
+26        			DesEsitoSceltoIn		IN		DMT_PROCESS_HISTORY.DES_ESITO%type DEFAULT NULL,
+27        																-- Descrizione esito con cui si è scelto di completare l'attività (verrà utilizzato solo se CodEsitoSceltoIn non è valorizzato)
+28        			NoteIn			IN		VARCHAR2 DEFAULT NULL,				-- Note del procedimento
+29        			MsgAttIn			IN		DMT_PROCESS_HISTORY.MESSAGGIO%type DEFAULT NULL,
+30        																-- Messaggio di completamento dell'attività
+31        			URLToRedirectToOut 	OUT 		VARCHAR2, 						-- Indica l'URL relativo a cui l'utente deve essere rediretto
+32        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+33        																-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+34        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+35        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+36        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+37        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore
+38        			) return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine e il progressivo è generato, altrimenti 0
+39        
+40        	/****** Funzione da chiamare per salvare definitivamente in DB lo svolgimento di una qualsiasi attività 	****/
+41        	/****** quando si è concluso il flusso di navigazione relativo allo svolgimento dell'attività stessa		****/
+42        	function SaveAtt(
+43        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+44        																-- (obblig). Codice identificativo del token di connessione
+45        			MsgAttIn			IN		DMT_PROCESS_HISTORY.MESSAGGIO%type DEFAULT NULL,
+46        																-- Messaggio di completamento dell'attività
+47        																-- se non valorizzato e se tra i parametri del flusso di navigazione c'era già, si salva quello
+48        			URLToRedirectToOut 	OUT		VARCHAR2,						-- Indica l'URL relativo a cui l'utente deve essere rediretto
+49        																-- Se non valorizzata deve essere rediretto al dettaglio procedimento
+50        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+51        																-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+52        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+53        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+54        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+55        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore
+56        			) return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+57        
+58        	/*****	Funzione per caricare la maschera di warning durante il flusso di navigazione 	******/
+59        	/*****	relativo allo svolgimento di un'attività nell'iter di un processo guidato da WF	******/
+60        	function Load_Warning(
+61        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+62        																-- (obblig). Codice identificativo del token di connessione
+63        			WarningMsgOut 		OUT 		VARCHAR2, 						-- Messaggio di warning da mostrare
+64        			WarningURLProcediOut 	OUT 		VARCHAR2, 						-- URL a cui redirigere nel caso in cui si scelga di procedere nonostante lo warning
+65        			IdTyEvtOut			OUT		INTEGER,						-- Id. del tipo evento da preimpostare nell'URL di redirezione se lista/dettaglio evento
+66        			NomeTyEvtOut		OUT		VARCHAR2,						-- Nome del tipo evento da preimpostare nell'URL di redirezione se lista/dettaglio evento
+67        			FlgEvtDurativoOut		OUT		PLS_INTEGER,					-- (valori 1/0/NULL) Se 1 il tipo evento IdTyEvtOut è durativo, altrimenti è puntuale
+68        			FlgEvtConEsitoOut		OUT		PLS_INTEGER,					-- (valori 1/0/NULL) Se 1 il tipo evento IdTyEvtOut prevede scelta esito (combo da renderizzare nel dettaglio evento), altrimenti no
+69        			EvtDurataMaxOut		OUT		PLS_INTEGER,					-- Duarata max (gg) d un evento del tipo IdTyEvtOut
+70        			IdTyDocEvtOut		OUT		DMT_DOC_TYPES.ID_DOC_TYPE%type,		-- Id. del tipo doc. associato al tipo evento IdTyEvtOut
+71        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+72        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+73        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore
+74        			) return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine e il progressivo è generato, altrimenti 0
+75        
+76        	/*****	Funzione per caricare la maschera di scelta esito durante il flusso di navigazione 	******/
+77        	/*****	relativo allo svolgimento di un'attività nell'iter di un processo guidato da WF	******/
+78        	function Load_SceltaEsitoAtt(
+79        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+80        																-- (obblig). Codice identificativo del token di connessione
+81        			EsitiXMLOut			OUT		NOCOPY CLOB,					-- Lista dei possibili esiti dell'attività. E' un xml (conforme a LISTA_STD.xsd).
+82        																-- Ogni tag Riga contiene due colonne:
+83        																-- 	1) CODICE_ESITO		LOOKUP_CODE dell'esito
+84        																-- 	2) DES_ESITO			Descrizione dell'esito (MEANING)
+85        			CodEsitoDefaultOut	OUT		DMT_PROCESS_HISTORY.ACTIVITY_RESULT_CODE_WF%type,
+86        																-- Codice dell'esito da preimpostare nella maschera (se null non si preimposta)
+87        			DisplayNameAttOut		OUT		VARCHAR2,						-- Nome dell'attività WF
+88        			MsgAttOut			OUT		DMT_PROCESS_HISTORY.MESSAGGIO%type,		-- Messaggio da preimpostare nella maschera
+89        			NoteProcOut			OUT		DMT_PROCESSES.NOTE%type,			-- Note del processo/procedimento
+90        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+91        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+92        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore
+93        			) return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine e il progressivo è generato, altrimenti 0
+94        
+95        	/*****	Funzione da invocare quando si conferma la scelta dell'esito con cui completare un attività				******/
+96        	/*****	durante il flusso di navigazione relativo allo svolgimento di un'attività nell'iter di un processo guidato da WF	******/
+97        	function Submit_SceltaEsitoAtt(
+98        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+99        																-- (obblig). Codice identificativo del token di connessione
+100        			CodEsitoSceltoIn		IN		DMT_PROCESS_HISTORY.ACTIVITY_RESULT_CODE_WF%type,
+101        																-- (obblig.) Codice dell'esito con cui si è scelto di completare l'attività
+102        			MsgAttIn			IN		DMT_PROCESS_HISTORY.MESSAGGIO%type DEFAULT NULL,
+103        																-- Messaggio di completamento dell'attività
+104        			NoteProcIn			IN		DMT_PROCESSES.NOTE%type,			-- Note del procedimento
+105        			URLToRedirectToOut 	OUT 		VARCHAR2, 						-- Indica l'URL relativo a cui l'utente deve essere rediretto
+106        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+107        																-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+108        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+109        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+110        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+111        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore
+112        			) return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine e il progressivo è generato, altrimenti 0
+113        
+114        	/*****	Funzione per caricare la maschera di inserimento messaggio durante il flusso di navigazione 	******/
+115        	/*****	relativo allo svolgimento di un'attività nell'iter di un processo guidato da WF			******/
+116        	function Load_MessaggioAtt(
+117        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+118        																-- (obblig). Codice identificativo del token di connessione
+119        			DisplayNameAttOut		OUT		VARCHAR2,						-- Nome dell'attività WF
+120        			MsgAttOut			OUT		DMT_PROCESS_HISTORY.MESSAGGIO%type,		-- Messaggio da preimpostare nella maschera
+121        			NoteProcOut			OUT		DMT_PROCESSES.NOTE%type,			-- Note del processo/procedimento
+122        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+123        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+124        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore
+125        			) return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine e il progressivo è generato, altrimenti 0
+126        
+127        	/****		Funzione per ottenere la lista dei soggetti esterni associati ad un dato processo/procedimento	*****/
+128        	/****		Dei soggetti la lista riporta solo i dati fondamentali							*****/
+129        	function TrovaSoggEsterniProc (
+130        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+131        																-- (obblig). Codice identificativo del token di connessione
+132        			IdProcessIn			IN		DMT_PROCESSES.ID_PROCESS%type,		-- Id. del processo/procedimento di cui mostrare i soggetti esterni
+133        																-- può non essere indicato quando la lista viene richiamata durante l'esecuzione dell'attività di gestione dei soggetti esterni
+134        			TsVldIn			IN		VARCHAR2 default TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS'),
+135        																-- Stringa con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) a cui deve essere valida la relazione dei soggetti da estrarre con il processo/procedimento. Se non valorizzato si intende che si debbano estrarre soggetti la cui relazione con il processo/procedimento è valida a qualsiasi data
+136        			------------- inizio argomenti standard di tutte le funzioni che devono restituire una lista --------------
+137        			ColOrderByIO		IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso. Se l'ordinamento è per più colonne queste vanno separate con "," (es: 1; 1,2).
+138        																-- Valori ammessi (ovvero colonne per cui si può ordinare): 2, 3, 5
+139        																-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+140        																-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+141        			FlgDescOrderByIO  	IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+142        																-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+143        			FlgSenzaPaginazioneIn 	IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+144        			NroPaginaIO      		IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+145           			BachSizeIO			IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+146        																-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+147        			OverFlowLimitIn		IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+148        			FlgSenzaTotIn		IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+149        			NroTotRecOut		OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+150             			NroRecInPaginaOut 	OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+151        			------------- fine argomenti standard di tutte le funzioni che devono restituire una lista --------------
+152        			ListaXMLOut			OUT		CLOB,							-- Lista dei soggetti esterni del processo/procedimento (XML conforme a schema LISTA_STD.xsd)
+153        																-- Ogni soggetto è un tag Riga che può contenere le seguenti colonne:
+154        																-- 1:  Identificativo del record (univoco in tutta la banca dati)
+155        																-- 2:  N.ro posizione del soggetto tra i soggetti esterni del processo/procedimento
+156        																-- 3:  Ruolo del soggetto nel processo/procedimento
+157        																-- 4:  Dettagli della relazione del soggetto con il processo
+158        																-- 5:  Denominazione/cognome e nome del soggetto
+159        																-- 6:  Cognome del soggetto (se persona fisica)
+160        																-- 7:	 Nome del soggetto (se persona fisica)
+161        																-- 8:  Indicatore di persona fisica (1) o giuridica (0)
+162        																-- 9:  Codice fiscale del soggetto
+163        																-- 10:  Partita IVA del soggetto
+164        																-- 11:  Data di nascita/istituzione del soggetto (nel formato del parametro di conf. FMT_STD_DATA)
+165        																-- 12: (valori M/F/NULL) Sesso del soggetto (se persona fisica): M = Maschio, F = Femmina
+166        																-- 13: Codice ISTAT del comune (italiano) di nascita/istituzione del soggetto
+167        																-- 14: Nome del comune italiano di nascita/istituzione del soggetto
+168        																-- 15: Codice ISTAT dello stato di nascita/istituzione del soggetto
+169        																-- 16: Nome dello stato di nascita/istituzione del soggetto
+170        																-- 17: Codice ISTAT dello stato di cittadinanza del soggetto
+171        																-- 18: Nome dello stato di cittadinanza del soggetto
+172        																-- 19: Identificativo con cui il soggetto è registrato in rubrica soggetti (se vi è presente)
+173        																-- 20: Data e ora di inizio validità della relazione del soggetto con il processo/procedimento (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+174        																-- 21: Data e ora di fine validità della relazione del soggetto con il processo/procedimento (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+175        																-- 22: Timestamp di creazione del soggetto di processo/procedimento (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+176        																-- 23: Descrizione dell'utente di creazione del soggetto di processo/procedimento
+177        																-- 24: Timestamp di ultima modifica del soggetto di processo/procedimento (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+178        																-- 25: Descrizione dell'utente di ultima modifica del soggetto di processo/procedimento
+179        																-- 26: (valori 1/0) Indicatore di soggetto di processo riservato dal sistema e non modificabile da applicativo
+180        																-- 27: Codice identificativo toponomastico dell'indirizzo a cui inviare corrispondenza al soggetto (se censito nella toponomastica del sistema)
+181        																-- 28: Indirizzo (senza civico) a cui inviare corrispondenza al soggetto (alternativo o ridondante rispetto al campo precedente). Non contiene il tipo toponimo se questo è in colonna 58
+182        																-- 29: Civico (senza appendici che sono in colonna 59) dell'indirizzo a cui inviare corrispondenza al soggetto.
+183        																-- 30: Interno dell'indirizzo a cui inviare corrispondenza al soggetto
+184        																-- 31: Scala dell'indirizzo a cui inviare corrispondenza al soggetto
+185        																-- 32: Piano dell'indirizzo a cui inviare corrispondenza al soggetto
+186        																-- 33: CAP dell'indirizzo a cui inviare corrispondenza al soggetto
+187        																-- 34: Frazione dell'indirizzo a cui inviare corrispondenza al soggetto
+188        																-- 35: Codice ISTAT del comune italiano dell'indirizzo a cui inviare corrispondenza al soggetto
+189        																-- 36: Nome del comune italiano o della città (se estera) dell'indirizzo a cui inviare corrispondenza al soggetto
+190        																-- 37: Codice ISTAT dello stato dell'indirizzo a cui inviare corrispondenza al soggetto
+191        																-- 38: Nome dello stato dell'indirizzo a cui inviare corrispondenza al soggetto
+192        																-- 39: Codice (valori da dizionario) del tipo di indirizzo (valido) presente per il soggetto nella rubrica soggetti e che costituisce l'indirizzo a cui inviare corrispondenza al soggetto
+193        																-- 40: Riferimenti telefonici a cui contattare il soggetto
+194        																-- 41: Riferimenti fax a cui contattare il soggetto
+195        																-- 42: Indirizzo e-mail a cui contattare il soggetto
+196        																-- 43: (valori 1/0) Flag di indirizzo e-mail di Posta Elettronica Certificata
+197        																-- 44: (valori 1/0) Flag di indirizzo e-mail dichiarato all'Indice PA
+198        																-- 45: (valori 1/0) Flag di indirizzo e-mail che è Casella Istituzionale di una PA
+199        																-- 46: Note/dettagli utili sulla relazione del sogg. con il procedimento/processo (ad esempio per mettere i requisiti professionali, REC ecc)
+200        																-- 47: Targa della provincia del comune dell'indirizzo a cui inviare corrispondenza al soggetto
+201        																-- 48: Targa della provincia del comune di nascita del soggetto
+202        																-- 49: numero REC
+203        																-- 50: provincia REC
+204        																-- 51: data REC
+205        																-- 52: titolo di studio/professionale
+206        																-- 53: Periodi delle esperienze professionali (date di inizio e fine dei periodi separate da ";"; le date sono nel formato dato dala parametro di config. FMT_STD_DATA))
+207        																-- 54: (valori 1/0) Flag che indica se il soggetto ha svolto un percorso formativo professionalizzante
+208        																-- 55: Codice del soggetto in un eventuale anagrafe esterna (ACS o altro)
+209        																-- 56: Zona dell'indirizzo a cui inviare corrispondenza al soggetto
+210        																-- 57: Complemento dell'indirizzo a cui inviare corrispondenza al soggetto
+211        																-- 58: Tipo toponimo (i.e. via, piazza ecc) dell'indirizzo cui inviare corrispondenza al soggetto; se in input non è valorizzato viene ricavato dall'indirizzo in colonna 28
+212        																-- 59: Appendici (esponente, bis/ter, colore ecc) del N.ro civico dell'indirizzo a cui inviare corrispondenza al soggetto
+213        			NoteOut			OUT		VARCHAR2,						-- Note del procedimento
+214        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+215        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+216        			ErrMsgOut			OUT 		VARCHAR2)						-- Messaggio d'errore
+217        			return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+218        
+219        
+220        	/*****	Funzione da invocare quando si fa submit della form dei nominativi esterni del processo/procedimento			******/
+221        	/*****	I soggetti, in caso di successo, vengono salvati solo in cache									******/
+222        	function Submit_SoggEsterniProc (
+223        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+224        																-- (obblig). Codice identificativo del token di connessione
+225        			FlgVldSoggVsRubricaIn	IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 la funzione verifica che i soggetti passati nel clob in input esistano e siano individuabili univocamente in rubrica soggetti e altrimenti dà errore
+226        			FlgAlimentaRubricaIn	IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 indica di registrare in rubrica soggetti i soggetti passati nel clob in input che non vi sono già presenti (in base ai criteri stabiliti per il test di esistenza)
+227        			FlgCFoPIVAObblIn		IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che verrà controllato che per ciscun soggetto sia specificato almeno uno tra Codice Fiscale e Partita IVA
+228        			ListaXMLIn			IN		CLOB,							-- Lista con i dati dei soggetti esterni del processo/procedimento (XML conforme a schema LISTA_STD.xsd) (sostituiscono quelli eventualmente già presenti in DB)
+229        																-- Ogni soggetto è un tag Riga che contiene le seguenti colonne (alcune sono inutlizzate, e servono solo affinchè le colonne siano le stesse restituite in caricamento della jsp):
+230        																-- 1:  Identificativo del record, se già registrato in banca dati (univoco in tutta la banca dati)
+231        																-- 2:  <Colonna INUTILIZZATA>
+232        																-- 3:  (obblig.) Ruolo del soggetto nel processo/procedimento
+233        																-- 4:  Dettagli della relazione del soggetto con il processo
+234        																-- 5:  (obblig. se persona giuridica) Denominazione/cognome e nome del soggetto
+235        																-- 6:  Cognome del soggetto (obblig. se persona fisica)
+236        																-- 7:	 Nome del soggetto (obblig. se persona fisica)
+237        																-- 8:  Indicatore di persona fisica (1) o giuridica (0 o NULL)
+238        																-- 9:  Codice fiscale del soggetto
+239        																-- 10: Partita IVA del soggetto
+240        																-- 11: Data di nascita/istituzione del soggetto (nel formato del parametro di conf. FMT_STD_DATA)
+241        																-- 12: (valori M/F/NULL) Sesso del soggetto (se persona fisica): M = Maschio, F = Femmina
+242        																-- 13: Codice ISTAT del comune (italiano) di nascita/istituzione del soggetto (viene considerato solo se è valorizzata anche la colonna successiva)
+243        																-- 14: Nome del comune italiano di nascita/istituzione del soggetto
+244        																-- 15: Codice ISTAT dello stato di nascita/istituzione del soggetto (viene considerato solo se è valorizzata anche la colonna successiva)
+245        																-- 16: Nome dello stato di nascita/istituzione del soggetto
+246        																-- 17: Codice ISTAT dello stato di cittadinanza del soggetto (viene considerato solo se è valorizzata anche la colonna successiva)
+247        																-- 18: Nome dello stato di cittadinanza del soggetto
+248        																-- 19: Identificativo con cui il soggetto è registrato in rubrica soggetti (se vi è presente)
+249        																-- 20: Data e ora di inizio validità della relazione del soggetto con il processo/procedimento (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+250        																-- 21: Data e ora di fine validità della relazione del soggetto con il processo/procedimento (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+251        																-- 22: <Colonna INUTILIZZATA>
+252        																-- 23: <Colonna INUTILIZZATA>
+253        																-- 24: <Colonna INUTILIZZATA>
+254        																-- 25: <Colonna INUTILIZZATA>
+255        																-- 26: <Colonna INUTILIZZATA>
+256        																-- 27: Codice identificativo toponomastico dell'indirizzo a cui inviare corrispondenza al soggetto (se censito nella toponomastica del sistema; viene considerato solo se è valorizzata anche la colonna successiva)
+257        																-- 28: Indirizzo (senza civico) a cui inviare corrispondenza al soggetto (alternativo o ridondante rispetto al campo precedente)
+258        																-- 29: Civico (senza appendici che vanno in colonna 59) dell'indirizzo a cui inviare corrispondenza al soggetto
+259        																-- 30: Interno dell'indirizzo a cui inviare corrispondenza al soggetto
+260        																-- 31: Scala dell'indirizzo a cui inviare corrispondenza al soggetto
+261        																-- 32: Piano dell'indirizzo a cui inviare corrispondenza al soggetto
+262        																-- 33: CAP dell'indirizzo a cui inviare corrispondenza al soggetto
+263        																-- 34: Frazione dell'indirizzo a cui inviare corrispondenza al soggetto
+264        																-- 35: Codice ISTAT del comune italiano dell'indirizzo a cui inviare corrispondenza al soggetto (viene considerato solo se è valorizzata anche la colonna successiva)
+265        																-- 36: Nome del comune italiano o della città (se estera) dell'indirizzo a cui inviare corrispondenza al soggetto
+266        																-- 37: Codice ISTAT dello stato dell'indirizzo a cui inviare corrispondenza al soggetto (viene considerato solo se è valorizzata anche la colonna successiva)
+267        																-- 38: Nome dello stato dell'indirizzo a cui inviare corrispondenza al soggetto
+268        																-- 39: Codice (valori da dizionario) del tipo di indirizzo (valido) presente per il soggetto nella rubrica soggetti e che costituisce l'indirizzo a cui inviare corrispondenza al soggetto
+269        																-- 40: Riferimenti telefonici a cui contattare il soggetto
+270        																-- 41: Riferimenti fax a cui contattare il soggetto
+271        																-- 42: Indirizzo e-mail a cui contattare il soggetto
+272        																-- 43: (valori 1/0) Flag di indirizzo e-mail di Posta Elettronica Certificata
+273        																-- 44: (valori 1/0) Flag di indirizzo e-mail dichiarato all'Indice PA
+274        																-- 45: (valori 1/0) Flag di indirizzo e-mail che è Casella Istituzionale di una PA
+275        																-- 46: Note/dettagli utili sulla relazione del sogg. con il procedimento/processo (ad esempio per mettere i requisiti professionali, ESCLUSO REC
+276        																-- 47: <COLONNA INUTILIZZATA>
+277        																-- 48: <COLONNA INUTILIZZATA>
+278        																-- 49: numero REC
+279        																-- 50: provincia REC
+280        																-- 51: data REC
+281        																-- 52: titolo di studio/professionale
+282        																-- 53: Periodi delle esperienze professionali (date di inizio e fine dei periodi separate da ";"; le date sono nel formato dato dala parametro di config. FMT_STD_DATA))
+283        																-- 54: (valori 1/0) Flag che indica se il soggetto ha svolto un percorso formativo professionalizzante
+284        																-- 55: Codice del soggetto in un eventuale anagrafe esterna (ACS o altro)
+285        																-- 56: Zona dell'indirizzo a cui inviare corrispondenza al soggetto
+286        																-- 57: Complemento dell'indirizzo a cui inviare corrispondenza al soggetto
+287        																-- 58: Tipo toponimo (i.e. via, piazza ecc) dell'ndirizzo cui inviare corrispondenza al soggetto; se in input non è valorizzato viene ricavato dall'indirizzo in colonna 28
+288        																-- 59: Appendici (esponente, bis/ter, colore ecc) del N.ro civico dell'indirizzo a cui inviare corrispondenza al soggetto
+289        			NoteIn			IN		VARCHAR2,						-- Note del procedimento
+290        			MsgAttIn			IN		DMT_PROCESS_HISTORY.MESSAGGIO%type DEFAULT NULL,
+291        																-- Messaggio di completamento dell'attività
+292        			URLToRedirectToOut 	OUT 		VARCHAR2, 						-- Indica l'URL relativo a cui l'utente deve essere rediretto
+293        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+294        																-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+295        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+296        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+297        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+298        			ErrMsgOut			OUT 		VARCHAR2)						-- Messaggio d'errore
+299        			return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+300        
+301        	/***** funzione che trasferisce dalla cache alle tabelle definitive i dati specifici relativi ad una data attività WF che deve essere completata ******/
+302        	function SaveDatiSpecAtt(
+303        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+304        																-- (obblig). Codice identificativo del token di connessione
+305        			IdUserLavoroIn		IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+306        			IdProcessIn			IN		DMT_PROCESSES.ID_PROCESS%type,		-- (obblig.) Identificativo del processo/procedimento
+307        			ActivityNameIn		IN		DMT_PROCESS_HISTORY.ACTIVITY_NAME_WF%type,
+308        																-- (obblig.) Nome identificativo dell'attività WF
+309        			CodEsitoIn			IN		DMT_PROCESS_HISTORY.ACTIVITY_RESULT_CODE_WF%type DEFAULT NULL,
+310        																-- Codice dell'esito dell'attività (lookup_code nel caso di Oracle Workflow)
+311        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+312        																-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+313        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+314        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+315        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+316        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore
+317        			) return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+318        
+319        
+320        
+321        END DMPK_GESTORE;

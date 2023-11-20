@@ -1,0 +1,231 @@
+1        PACKAGE DMPK_FONTI AUTHID CURRENT_USER IS
+2        
+3        	/************ funzione per ricercare le fonti degli oggetti di dominio trattati nei procedimenti ************/
+4        	function TrovaFonti(
+5        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+6        																					-- (obblig). Codice identificativo del token di connessione
+7        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+8        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd).
+9        																					-- Ogni filtro è un tag "Variabile" dell'XML
+10        																					-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+11        																					-- I nomi dei filtri possibili sono:
+12        																					-- @CodTipiFonti: codici del/dei tipi di fonti da cercare (ricerca esatta case-sensitive)
+13        																					-- FlgPersFisicaSoggIntestatario: valori 1/0 per indicare se il soggetto intestatario è persona fisica (=1) o giuridica (=0)
+14        																					-- ProvCISoggIntestatario: codice dell'intestatario nel sistema di anagrafe soggetti esterno(es. repertorio soggetti in SIRA)
+15        																					-- IdSoggIntestatario: id. del soggetto intestatario nella rubrica di Auriga
+16        																					-- DenominazioneIntestatario: Filtro sulla denominazione dell'intestatario (ricerca di tipo contains)
+17        																					-- ProvCISoggDichiarante: codice del dichiarante nel sistema di anagrafe soggetti esterno(es. repertorio soggetti in SIRA)
+18        																					-- IdSoggDichiarante: id. del soggetto dichiarante nella rubrica di Auriga
+19        																					-- DenominazioneDichiarante: Filtro sulla denominazione del dichiarante (ricerca di tipo contains)
+20        																					-- @IdEntiEmitt: id. del/degli enti emittenti delle fonti da cercare
+21        																					-- NroFonte: stringa contenuta nel n.ro delle fonti da ricercare (ricerca case-insensitive in like senza forzare %)
+22        																					-- ProvCIFonte: stringa contenuta nel codice che identifica le fonti da ricercare nel sistema da cui sono state importate (ricerca case-insensitive in like senza forzare %)
+23        																					-- DataFonteDa: inizio dell'intervallo di ricerca sulla data delle fonti da cercare (in formato dato dal parametro FMT_STD_DATA)
+24        																					-- DataFonteA: fine dell'intervallo di ricerca sulla data delle fonti da cercare (in formato dato dal parametro FMT_STD_DATA)
+25        																					-- AnnoFonteDa: inizio dell'intervallo di ricerca sull'anno delle fonti da cercare
+26        																					-- AnnoFonteA: fine dell'intervallo di ricerca sull'anno delle fonti da cercare
+27        																					-- DataRegFonteDa: inizio dell'intervallo di ricerca sulla data di protocollo/registrazione delle fonti da cercare (in formato dato dal parametro FMT_STD_DATA)
+28        																					-- DataRegFonteA: fine dell'intervallo di ricerca sulla data di protocollo/registrazione delle fonti da cercare (in formato dato dal parametro FMT_STD_DATA)
+29        																					-- NroRegFonteDa: inizio dell'intervallo di ricerca sul N° di protocollo/registrazione delle fonti da cercare
+30        																					-- NroRegFonteA: fine dell'intervallo di ricerca sul N° di protocollo/registrazione delle fonti da cercare
+31        																					-- DescrizioneFonte: filtro sulla descrizione della fonte (ricerca di tipo contains)
+32        																					-- ProvCIProcObj: id. nel sistema di provenienza (es Catasti SIRA) dell'oggetto di dominio legato alle fonti da cercare (IdOST di SIRA)
+33        																					-- ProvCIProcObjCar: id. nel sistema di provenienza (es Catasti SIRA) della caratterizzazione dell'oggetto di dominio legato alle fonti da cercare (IdCCOST di SIRA)
+34        																					-- CodNaturaRelProcObj: codice del tipo di relazione che lega alla fonte ProvCIProcObj/ProvCIProcObjCar (viene considerato solo se uno di questi due filtri è valorizzato)
+35        																					-- IncludiAnnullate: se 1 vengono incluse le fonti annullate, altrimenti no
+36        		------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+37        		ColOrderByIO				IN OUT	VARCHAR2,								-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 13 + 21 e 26). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+38        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+39        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+40        		FlgDescOrderByIO  			IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+41        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+42        		FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+43        		NroPaginaIO      			IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+44        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+45        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+46        		OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+47        		FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+48        		NroTotRecOut				OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+49        		NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+50        		------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+51        		FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+52        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema.
+53        		ColToReturnIn				IN		VARCHAR2 DEFAULT NULL,					-- Stringa con i n.ri delle colonne dell'XML di output ResultOut che si vuole siano presenti.
+54        																					-- Se la stringa è vuota saranno presenti tutte le colonne.
+55        																					-- La colonna 1 sarà presente comunque.
+56        																					-- I n.ri delle varie colonne vanno separati con , o ; e se si vuole indicare un intervallo di colonne gli estremi dell'intervallo vanno separati con - (es: "1-5;7;10" significa colonne da 1 a 5 più le colonne 7 e 10)
+57        																					-- In questa stringa si possono mettere anche dei nomi (ATTR_NAME) di attributi dinamici semplici che si vuole siano restituiti nell'output; essi verranno restituiti nelle colonne da 101 a 200 del ResultOut (es: "1-5; TIPO_DETT_FONTE" significa colonne da 1 a 5 più l'attributo dinamico TIPO_DETT_FONTE che sarà restituito come colonna 101 dell'output ResultOut).
+58        		ResultOut					OUT		NOCOPY CLOB, 							-- Lista delle fonti trovate (XML conforme a schema LISTA_STD.xsd)
+59        																					-- Ogni fonte trovata è un tag Riga che può contenere le seguenti colonne:
+60        																					-- 1: ID_FONTE (PK interna)
+61        																					-- 2: Nro fonte (nro atto/dichiarazione)
+62        																					-- 3: Anno della fonte
+63        																					-- 4: Data della fonte (nel formato dato dal parametro di config. FMT_STD_DATA)
+64        																					-- 5: Codice del tipo di fonte
+65        																					-- 6: Descrizione del tipo di fonte
+66        																					-- 7: Descrizione della fonte
+67        																					-- 8: ID_UD dell'unità documentaria corrispondente alla fonte
+68        																					-- 9: Estremi di protocollo/registrazione della fonte
+69        																					-- 10: Nro di protocollo/registrazione della fonte
+70        																					-- 11: Data di protocollo/registazione della fonte (nel formato dato dal parametro di config. FMT_STD_DATA)
+71        																					-- 12: Id. dell'ente o sua specifica UO che ha prodotto la fonte
+72        																					-- 13: Denominazione dell'ente o sua specifica UO che ha prodotto la fonte
+73        																					-- 14: Id. del procedimento che ha dato origine alla fonte
+74        																					-- 15: Estremi del procedimento che ha dato origine alla fonte
+75        																					-- 16: Id. del tipo del procedimento che ha dato origine alla fonte
+76        																					-- 17: Tipo del procedimento che ha dato origine alla fonte
+77        																					-- 18: flag 1/0 che se 1 indica che l'intestatario è una persona fisica, se 0 che è una persona giuridica
+78        																					-- 19: Id. nell'anagrafica soggetti esterna (repertori nel caso di SIRA) del soggetto intestatario
+79        																					-- 20: Id. nella rubrica soggetti di Auriga del soggetto intestatario
+80        																					-- 21: Denominazione / cognome e nome del soggetto intestatario
+81        																					-- 22: Cod. fiscale del soggetto intestatario
+82        																					-- 23: Partita IVA del soggetto intestatario
+83        																					-- 24: Id. nell'anagrafica soggetti esterna (repertori nel caso di SIRA) del soggetto dichiarante
+84        																					-- 25: Id. nella rubrica soggetti di Auriga del soggetto dichiarante
+85        																					-- 26: Cognome e nome del soggetto dichiarante
+86        																					-- 27: Cod. fiscale del soggetto dichiarante
+87        																					-- 28: Note della fonte
+88        																					-- 29: Flag 1/0 di fonte valida (1) o annullata (=0)
+89        																					-- 30: URI file primario
+90        																					-- 31: mimetype file-primario
+91        																					-- 32: Nome file primario
+92        																					-- 33: Flag 1/0 che indica se il file primario è pdf o convertibile in pdf
+93        																					-- 34: Flag 1/0 che indica se il file primario è firmato digitalmente
+94        																					-- 35: Flag 1/0 che indica presenza di altri file allegati (se 1 sono presenti, se 0 no)
+95        																					-- 36: Cod. che identifica la fonte nel sistema di origine (es Catasti SIRA)
+96        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+97        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+98        		ErrMsgOut					OUT 		VARCHAR2)							-- Messaggio d'errore
+99        		return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+100        
+101        	/******** funzion che carica tutti i dati di una fonte ******/
+102        	function LoadDettFonte(
+103        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+104        																					-- (obblig). Codice identificativo del token di connessione
+105        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+106        			IdFonteIn   				IN    	VARCHAR2,				 			-- (obblig.) Identificativo della fonte
+107        			XMLDatiFonteOut				OUT		NOCOPY CLOB,						-- Dati della fonte (XML conforme a schema SezioneCache.xsd)
+108        																					-- I dati restituiti corrispondono ai seguenti tag Variabile:
+109        																					-- #TitoloGUIDettaglioFonte	Stringa da usare come titolo della finestra in cui si mostra il dettaglio fonte
+110        																					-- #FlgImportata    	valori 1/0. Se 1 è una fonte importata da altro sistema (es dai CATASTI SIRA)
+111        																					-- #ProvCIFonte		Codice che identifica la fonte nel sistema di provenienza se fonte importata (es dai Catasti SIRA)
+112        																					-- #CodTipoFonte		Codice del tipo di fonte
+113        																					-- #TipoFonte		Tipo di fonte (decodifica)
+114        																					-- #NroFonte			N° della fonte
+115        																					-- #AnnoFonte		Anno della fonte
+116        																					-- #DataFonte		Data della fonte (nel formato dato dal parametro di config. FMT_STD_DATA)
+117        																					-- #DesFonte			Descrizione della fonte
+118        																					-- #IdUD			 	ID_UD dell'unità documentaria corrispondente alla fonte
+119        																					-- #EstremiReg		Estremi di protocollo/registrazione della fonte
+120        																					-- #NroReg			Nro di protocollo/registrazione della fonte
+121        																					-- #DataReg			Data di protocollo/registazione della fonte (nel formato dato dal parametro di config. FMT_STD_DATA)
+122        																					-- #IdEnteEmittente	Id. dell'ente o sua specifica UO che ha prodotto la fonte
+123        																					-- #DesEnteEmittente Denominazione dell'ente o sua specifica UO che ha prodotto la fonte
+124        																					-- #IdProcOrig		Id. del procedimento che ha dato origine alla fonte
+125        																					-- #EstremiProcOrig	Estremi del procedimento che ha dato origine alla fonte
+126        																					-- #IdTipoProcOrig 	Id. del tipo del procedimento che ha dato origine alla fonte
+127        																					-- #TipoProcOrig	 	Tipo del procedimento che ha dato origine alla fonte
+128        																					-- #FlgPersFisIntestatario Flag 1/0 che se 1 indica che l'intestatario è una persona fisica, se 0 che è una persona giuridica
+129        																					-- #ProvCIIntestatario Id. nell'anagrafica soggetti esterna (repertori nel caso di SIRA) del soggetto intestatario
+130        																					-- #IdRubrIntestatario Id. nella rubrica soggetti di Auriga del soggetto intestatario
+131        																					-- #DenomIntestatario Denominazione / cognome e nome del soggetto intestatario
+132        																					-- #CodFiscIntestatario Cod. fiscale del soggetto intestatario
+133        																					-- #PIVAntestatario	 Partita IVA del soggetto intestatario
+134        																					-- #ProvCIDichiarante Id. nell'anagrafica soggetti esterna (repertori nel caso di SIRA) del soggetto dichiarante
+135        																					-- #IdRubrDichiarante Id. nella rubrica soggetti di Auriga del soggetto dichiarante
+136        																					-- #DenomDichiarante  Cognome e nome del soggetto dichiarante
+137        																					-- #CodFiscDichiarante Cod. fiscale del soggetto dichiarante
+138        																					-- #Note Note della fonte
+139        																					-- #FlgValida Flag 1/0 di fonte valida (1) o annullata (=0)
+140        																					-- #IdDoc						ID_DOC del documento principale
+141        																					-- #FilePrimario.URI	 		URI file primario
+142        																					-- #FilePrimario.Mimetype 	Mimetype file-primario
+143        																					-- #FilePrimario.NomeFile 	Nome file primario
+144        																					-- #FilePrimario.FlgPdfizzabile 	Flag 1/0 che indica se il file primario è pdf o convertibile in pdf
+145        																					-- #FilePrimario.FlgFirmato 		Flag 1/0 che indica se il file primario è firmato digitalmente
+146        																					-- #FilePrimario.Dimensione		Dimensione in byets del file primario
+147        																					-- #FilePrimario.Impronta
+148        																					-- #FilePrimario.AlgoritmoImpronta
+149        																					-- #FilePrimario.EncodingImpronta
+150        																					-- @#Allegati			File allegati della fonte. Ogni allegato è una riga e contiene le seguenti colonne:
+151        																					--						1: Nome file
+152        																					--						2: Mimetype
+153        																					--						3: (valori 1/0) Se 1 indica se è pdf o convertibile in pdf
+154        																					--						4: (valori 1/0) Se 1 indica se firmato digitalmente
+155        																					--						5: Dimensione in bytes
+156        																					--						6: Impronta
+157        																					--						7: Algoritmo calcolo impronta
+158        																					--						8: Encoding impronta (hex o base64)
+159        																					--					    9: ID_DOC del documento corrispondente all'allegato
+160        																					-- @#ProcDomainObjRef: lista con i dati degli oggetti di procedimento e/o dominio collegati alla fonte. Ogni oggetto è una riga con le seguenti colonne:
+161        																					-- 			 1) Id. della caratterizzazione dell'oggetto di procedimento (PK della tabella DMT_PROCESS_OBJECTS). Valorizzato solo se è un oggetto di procedimento
+162        																					-- 			 2) Id. dell'oggetto nel sistema di provenineza (IdOST se OST SIRA)
+163        																					--			 3) Id. della caratterizzazione dell'oggetto nel sistema di provenienza (IdCCOST in SIRA)
+164        																					--			 4) Cod. della natura della relazione dell'oggetto con la fonte
+165        																					--			 5) Descrizione della natura della relazione dell'oggetto con la fonte
+166        																					--			 6) Descrizione di dettaglio della relazione dell'oggetto con la fonte
+167        																					--			 7) Data di inizio validità della relazione dell'oggetto con la fonte (nel formato dato dal parametro di config. FMT_STD_DATA); se non specificata si intende da sempre
+168        																					--			 8) Data di fine validità della relazione dell'oggetto con la fonte (nel formato dato dal parametro di config. FMT_STD_DATA); se non specificata si intende per sempre
+169        																					--			 9) Flag relazione oggetto vs fonte valida (=1) o annullata (=0)
+170        																					--			 10) Id. del procedimento. Valorizzato solo se è un oggetto di procedimento
+171        																					--			 11) Tipo del procedimento. Valorizzato solo se è un oggetto di procedimento
+172        																					--			 12) Estremi del procedimento. Valorizzato solo se è un oggetto di procedimento
+173        																					--			 13) Evento del procedimento in cui è caratterizzato l'oggetto che referenzia la fonte. Valorizzato solo se è un oggetto di procedimento
+174        																					--			 14) Cod. della macro-categoria dell'oggetto (cod. natura dell'OST)
+175        																					--			 15) Macro-categoria dell'oggetto (natura dell'OST)
+176        																					--			 16) Cod. della categoria dell'oggetto (cod. categoria dell'OST)
+177        																					--			 17) Categoria dell'oggetto (categoria dell'OST)
+178        																					--			 18) Label/descrizione dell'oggetto
+179        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+180        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+181        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+182        			return PLS_INTEGER;														-- 1 in caso di successo, 0 in caso di errore
+183        
+184        	/**************** funzione per creare/modificare una fonte (creando/modificando contestualmente l'unità documentaria corrispondente)***********/
+185        	function IUFonte(
+186        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig). Codice identificativo del token di connessione
+187        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,			-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+188        			IdFonteIO				IN	OUT	DMT_FONTI.ID_FONTE%type,						-- Identificativo della fonte da modificare (in input). se in input non è valorizzato si intende che la fonte è da creare
+189        																							-- In output è l'identificativo della fonte creata/modificata
+190        			AttributiFonteXMLIn		IN		CLOB,											-- XML contenente nomi e valori degli attributi della fonte che non sono attributi dell'unità documentaria corrispondente nè del suo documento primario (conforme allo schema SezioneCache.xsd)
+191        																							-- Per tutti gli attributi vale quanto segue:
+192        																							-- 		gli attributi specificati nell'XML aggiornano i corrispondenti già presenti in DB:
+193        																							--			per gli attributi con valore semplice il valore nell'XML sostituisce quello eventualmente già presente in DB per quell'attributo; se non c'è valore significativo nell'XML significa che il valore dell'attributo in DB va rimosso
+194        																							--			per gli attributi con valore lista i valori nell'XML si aggiungono o sostituiscono quelli già presenti in DB a seconda rispettivamente che nell'XML sia presente o meno un attributo #Append_<Nome attributo>; se la lista di valori nell'XML è vuota significa che tutti i valori dell'attributo già presenti in DB vanno rimossi
+195        																							-- 		gli attributi presenti in DB per cui non c'è corrispondente nell'XML restano invariati
+196        																							-- Gli attributi ptrevisti sono:
+197        																							-- #ProvCIFonte		Codice che identifica la fonte nel sistema di provenienza se fonte importata (es dai Catasti SIRA)
+198        																							-- #CodTipoFonte	Codice del tipo di fonte
+199        																							-- #TipoFonte		Tipo di fonte (decodifica)
+200        																							-- #NroFonte		N° della fonte
+201        																							-- #AnnoFonte		Anno della fonte
+202        																							-- #DesFonte		Descrizione della fonte
+203        																							-- #IdEnteEmittente	Id. dell'ente o sua specifica UO che ha prodotto la fonte
+204        																							-- #DesEnteEmittente Denominazione dell'ente o sua specifica UO che ha prodotto la fonte
+205        																							-- #IdProcOrig		Id. del procedimento che ha dato origine alla fonte
+206        																							-- #Note 			Note della fonte
+207        																							-- #FlgValida 		Flag 1/0 di fonte valida (1) o annullata (=0)
+208        																							-- @#ProcDomainObjRef: lista con i dati degli oggetti di procedimento e/o dominio collegati alla fonte. Ogni oggetto è una riga con le seguenti colonne:
+209        																							-- 			 1) Id. della caratterizzazione dell'oggetto di procedimento (PK della tabella DMT_PROCESS_OBJECTS). Valorizzato solo se è un oggetto di procedimento
+210        																							-- 			 2) Id. dell'oggetto nel sistema di provenineza (IdOST se OST SIRA)
+211        																							--			 3) Id. della caratterizzazione dell'oggetto nel sistema di provenienza (IdCCOST in SIRA)
+212        																							--			 4) Cod. della natura della relazione dell'oggetto con la fonte
+213        																							--			 5) Descrizione della natura della relazione dell'oggetto con la fonte
+214        																							--			 6) Descrizione di dettaglio della relazione dell'oggetto con la fonte
+215        																							--			 7) Data di inizio validità della relazione dell'oggetto con la fonte (nel formato dato dal parametro di config. FMT_STD_DATA); se non specificata si intende da sempre
+216        																							--			 8) Data di fine validità della relazione dell'oggetto con la fonte (nel formato dato dal parametro di config. FMT_STD_DATA); se non specificata si intende per sempre
+217        																							--			 9) Flag relazione oggetto vs fonte valida (=1) o annullata (=0)
+218        																							-- #Append_@#ProcDomainObjRef Valore fisso 1. Indica che i valori contenuti nella lista dell'attributo precedente si aggiungono a quelli già presenti in DB per l'attributo (anzichè sostituirli, come di default)--	<Nome identificativo attributo dinamico (ATTR_NAME)>: qualsiasi attributo dinamico specificabile per una fonte (nel dominio di lavoro)
+219         			AttributiUDDocXMLIn		IN		CLOB,											-- XML contenente nomi e valori degli attributi dell'unità documentaria corrispondente alla fonte e/o del suo documento primario(conforme allo schema SezioneCache.xsd)
+220        																							-- Prevede tutti gli attributi preisti dall'omonimo argomento della dmpk_core.UpdDocUD (quando si passa in input l'ID_DOC)
+221        			IdUDOut					OUT		DMT_UNITA_DOC.ID_UD%type,						-- ID_UD dell'unità documentaria corrispondente alla fonte
+222        			IdDocOut				OUT		DMT_DOCUMENTS.ID_DOC%type,						-- ID_DOC del documento primario dell'unità documentaria corrispondente alla fonte
+223        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+224        																							-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+225        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+226        			ErrContextOut		OUT		VARCHAR2,											-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+227        			ErrCodeOut			OUT		PLS_INTEGER,										-- N.ro errore di uscita
+228        			ErrMsgOut			OUT 		VARCHAR2										-- Messaggio d'errore
+229        			) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+230        
+231        END DMPK_FONTI;

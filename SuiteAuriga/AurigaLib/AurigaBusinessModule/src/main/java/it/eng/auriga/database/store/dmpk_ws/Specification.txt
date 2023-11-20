@@ -1,0 +1,1307 @@
+1        PACKAGE Dmpk_Ws AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        
+12        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+13        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        	/***************** Funzione per creare una nuova unità documentaria (tramite Web Service)		**************/
+20        	/***************** i cui metadati sono forniti in un xml conforme allo schema NewUD.xsd		**************/
+21        	FUNCTION AddUD(
+22        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+23        															--(obblig.) Codice identificativo del token di connessione
+24        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di creazione unità documentaria (secondo schema NewUD.xsd)
+25        			DocAttachXMLOut		OUT		NOCOPY CLOB,				-- Lista con i dati per caricare (con step-version) nella repository i file associati all'unità documentaria e specificati come attach del messaggio SOAP(XML conforme a schema LISTA_STD.xsd)
+26        															-- Per ogni attach vi è un tag Riga che contiene le seguenti colonne:
+27        															-- 1: Valore fisso AV: indica il tipo di operazione da fare sul documento corrispondente all'attach
+28        															-- 2: N.ro dell'attach del messaggio SOAP che corrisponde al file da caricare nella repository
+29        															-- 3: Identificativo del documento creato in DB in corrispondenza dell'attachment
+30        															-- 4: Nome del file da caricare (quello con cui mostrarlo e dalla cui estensione si ricava il formato)
+31        															-- 5: (valori 1/0) Se 1 indica che è la versione è pubblicata, se 0 no
+32        															-- 6: (valori 1/0) Se 1 indica che è la versione deriva da scansione, se 0 no
+33        															-- 7: Codice che identifica la versione (n.ro versione alfanumerico, opzionale)
+34        															-- 8: Note della versione
+35        															-- 9: (valori 1/0) Se 1 indica che la versione deve essere sottoposta a OCR 
+36        			RegNumDaRichASistEstOut	OUT		NOCOPY CLOB,				-- Lista con gli estremi delle registrazioni/numerazioni richieste da farsi dare da sistemi esterni (XML conforme a schema LISTA_STD.xsd) o da AURIGA stesso tramite API di RegistraUnitaDoc
+37        															-- Per ogni registrazioni/numerazioni vi è un tag Riga che contiene le seguenti colonne:
+38        															-- 1: Codice che indica la categoria di registrazione/numerazione (PG = Protocollo Generale, ecc)
+39        															-- 2: Sigla che indica il registro di registrazione/numerazione
+40        															-- 3: Anno di registrazione/numerazione se diverso da quello corrente
+41        			XmlOut			OUT		NOCOPY CLOB,				-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_UD.xsd
+42        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+43        																--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+44        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,	--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+45        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+46        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+47        			ErrMsgOut			OUT 		VARCHAR2,				--Messaggio d'errore
+48        			AttachmentFileXMIn	IN		CLOB DEFAULT NULL		-- Lista XML conforme a schema ListaStd.xsd con le informazioni sui file (primario e allegati) dell'UD che devono essere già stati archiviati sullo storage definitivo
+49        																-- Se questa lista viene istanziata il versionamento dei file su DB viene fatto all'interno di questa stored senza che debbano essere fatte ulteriori chiamate e quindi DocAttachXMLOut resta vuota in output
+50        																-- Le colonne della lista sono:
+51        																-- 1: DisplayName del file (il nome originale passato dal chiamante, NON rinominato per rendere coerente l'estensione con il formato riconosciuto)
+52        																-- 2: URI del file salvato su archivio definitivo in notazione storageUtil
+53        																-- 3: Nro di attachment con cui il file appare nella request secondo schema NEWUD.xsd
+54        																--	  Nel caso di unico attachment zip che viene "spacchettato" come accade per il il SUE di ImpresaInUnGiorno il n.ro attach sarà sempre 1 per tutti i file dell'unico attachment zip
+55        																-- 7: impronta
+56        																-- 8: algoritmo calcolo impronta
+57        																-- 9: encoding di calcolo impronta: colonna
+58        																-- 10: Flg file firmato (valori 1/0)
+59        																-- 11: Mimetype
+60        																-- 12: Firmatari(se più di uno separati da “;” )
+61        																-- 13: Indicazione del tipo di firma (CAdES o PAdES)
+62        																-- 14: Info di verifica della firma 
+63        																-- 15: Data e ora delle marca se presente marca temporale valida (nel formato DD/MM/RRR HH24:MI:SS)
+64        																-- 16: Tipo di marca temporale se presente
+65        																-- 17: Informazioni di verifica della marca temporale se presente
+66        																-- 22: Data e ora della firma digitale della busta crittografica più esterna, se presente (nel formato DD/MM/RRR HH24:MI:SS)
+67        																-- 23: Flag di firma non valida alla data (valori 1/0/NULL) (la firma della busta crittografica più esterna)
+68        																-- 24: Flag di manca temporale non valida alla data (valori 1/0/NULL)
+69        			) RETURN PLS_INTEGER;								--Vale 1 se tutto è andato a buon fine, altrimenti 0
+70        
+71        
+72        	/********* funzione richiamata dopo WS di AddUD con file inviati separati su ftp: serve ad effettuare la creazione dei documenti allegati se presenti e il versionamento dei file su DB *****/
+73        	function AddFileUDConFileSeparati(
+74        			IdUDIn					IN		DMT_UNITA_DOC.ID_UD%type,
+75        																-- (obblig.) Id UD dell'unità documentaria creata con WS di AddUD con file inviati separatamente su ftp
+76        			IndiceFileIn			IN		CLOB,				-- (obblig.) XML conforme a schema FileRegistrazioneInviatiSeparati.xsd che descrive i file ricevuti separatamente dalla chiamata alla AddUD su ftp
+77        			InfoFileXMIn			IN		CLOB,				-- (obblig.) Lista XML conforme a schema FileRegistrazioneInviatiSeparati.xsd con le informazioni sui file (primario e allegati) dell'UD che devono essere già stati archiviati sullo storage definitivo
+78        																-- Ogni riga è un file. I file devono essere indicati nell'esatto ordine in cui appaiono nel XML IndiceFileIn
+79        																-- Le colonne della lista sono:
+80        																-- 1: DisplayName del file (il nome originale passato dal chiamante, NON rinominato per rendere coerente l'estensione con il formato riconosciuto)
+81        																-- 2: URI del file salvato su archivio definitivo in notazione storageUtil
+82        																-- 7: impronta
+83        																-- 8: algoritmo calcolo impronta
+84        																-- 9: encoding di calcolo impronta: colonna
+85        																-- 10: Flg file firmato (valori 1/0)
+86        																-- 11: Mimetype
+87        																-- 12: Firmatari(se più di uno separati da “;” )
+88        																-- 13: Indicazione del tipo di firma (CAdES o PAdES)
+89        																-- 14: Info di verifica della firma 
+90        																-- 15: Data e ora delle marca se presente marca temporale valida (nel formato DD/MM/RRR HH24:MI:SS)
+91        																-- 16: Tipo di marca temporale se presente
+92        																-- 17: Informazioni di verifica della marca temporale se presente
+93        																-- 22: Data e ora della firma digitale della busta crittografica più esterna, se presente (nel formato DD/MM/RRR HH24:MI:SS)
+94        																-- 23: Flag di firma non valida alla data (valori 1/0/NULL) (la firma della busta crittografica più esterna)
+95        																-- 24: Flag di manca temporale non valida alla data (valori 1/0/NULL)
+96        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		
+97        																--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+98        																--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+99        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,	
+100        																--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+101        			ErrContextOut			OUT		VARCHAR2,			-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+102        			ErrCodeOut				OUT		PLS_INTEGER,		-- N.ro errore di uscita
+103        			ErrMsgOut				OUT 	VARCHAR2			-- Messaggio d'errore
+104        			) RETURN PLS_INTEGER;								-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+105        
+106        	/********* funzione da richiamare prima della UpdUD per ottenere i file dell'UD di cui ricontrollare firme e marche prima di procedere alla UpdUD *****/
+107        	function GetFileUDToUpdXRectrl(
+108        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+109        																--(obblig.) Codice identificativo del token di connessione
+110        			XMLIn					IN		CLOB,				--(obblig.) XML in input al Web service di aggiornamento unità documentaria (secondo schema UDDaAgg.xsd)
+111        			ListaDocRectrlIn		OUT		NOCOPY CLOB,		-- Lista con gli estremi dei documenti di cui ricontrollare firme e marche
+112        																-- 1: (obbligatorio) DisplayName del file
+113        																-- 2: (valorizzaro solo se colonna 28 è vuota) URI del file in notazione storageUtil
+114        																-- 25: (obbligatorio) ID del documento di cui ri-controllare il file. -1 per indicare che è un documento nuovo
+115        																-- 26: (obbligatorio) 0 se primario, altrimenti il numero di allegato. Se è un NuovoAllegatoUD restituisco -1
+116        																-- 27: (obbligatorio) Nro di versione del file da ricontrollare. Se è un file nuovo passato in attach restituisco -1
+117        																-- 28: NroAttachmentAssociato se è un file nuovo passato in attach
+118        																-- 29: Data e ora a cui controllare la validità della firma (in formato FMT_STD_TIMESTAMP)
+119        			ErrContextOut		OUT		VARCHAR2,				--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+120        			ErrCodeOut			OUT		PLS_INTEGER,			--N.ro errore di uscita
+121        			ErrMsgOut			OUT 	VARCHAR2				--Messaggio d'errore
+122        			)RETURN PLS_INTEGER;								--Vale 1 se il recupero dei file è andato a buon fine, altrimenti 0
+123        
+124        	/***************** Funzione per aggiornare un'unità documentaria (tramite Web Service)				**************/
+125        	/***************** i metadati da aggiornare sono forniti in un xml conforme allo schema UDDaAgg.xsd		**************/
+126        	FUNCTION UpdUD(
+127        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+128        															--(obblig.) Codice identificativo del token di connessione
+129        			XMLIn				IN		CLOB,				--(obblig.) XML in input al Web service di aggiornamento unità documentaria (secondo schema UDDaAgg.xsd)
+130        			OperVsDocXMLOut		OUT		NOCOPY CLOB,		-- Lista con i dati su come aggiornare nella repository i documenti associati all'unità documentaria (XML conforme a schema LISTA_STD.xsd)
+131        															-- Per ogni operazione da fare su un documento vi è un tag Riga che contiene le seguenti colonne:
+132        															-- 1: Tipo di operazione da fare sul documento; valori possibili:
+133        															--		AV = Step-version, ovvero aggiunta di nuova versione elettronica (anche la prima)
+134        															--		MM = Modifica dei metadati del documento
+135        															--		DV = Cancellazione dell'ultima versione elettronica valida e visibile all'utente
+136        															--		DD = Cancellazione del documento
+137        															--		SV = Sostituzione di versione
+138        															--		MV = Modifica metadati di versione
+139        															-- 2: N.ro dell'attach del messaggio SOAP che corrisponde al file da caricare nella repository (valorizzato solo se il tipo di operazione è AV o SV)
+140        															-- 3: Identificativo del documento
+141        															-- 4: Nome del file della versione (valorizzato solo se il tipo di operazione è AV o SV o MV); è il nome con cui mostrarlo e dalla cui estensione si ricava il formato)
+142        															-- 5: (valori 1/0) Se 1 indica che è la versione è pubblicata, se 0 no (valorizzato solo se il tipo di operazione è AV o SV o MV)
+143        															-- 6: (valori 1/0) Se 1 indica che è la versione deriva da scansione, se 0 no (valorizzato solo se il tipo di operazione è AV o SV o MV)
+144        															-- 7: Codice che identifica la versione (n.ro versione alfanumerico, opzionale) (valorizzato solo se il tipo di operazione è AV o SV o MV)
+145        															-- 8: Note della versione (valorizzato solo se il tipo di operazione è AV o SV o MV)
+146        															-- 9: (valori 1/0) Se 1 indica che la versione deve essere sottoposta a OCR 
+147        			RegNumDaRichASistEstOut	OUT		NOCOPY CLOB,				-- Lista con gli estremi delle registrazioni/numerazioni richieste da farsi dare da sistemi esterni (XML conforme a schema LISTA_STD.xsd) o da AURIGA stesso tramite API di RegistraUnitaDoc
+148        															-- Per ogni registrazioni/numerazioni vi è un tag Riga che contiene le seguenti colonne:
+149        															-- 1: Codice che indica la categoria di registrazione/numerazione (PG = Protocollo Generale, ecc)
+150        															-- 2: Sigla che indica il registro di registrazione/numerazione
+151        															-- 3: Anno di registrazione/numerazione se diverso da quello corrente
+152        			XmlOut			OUT		NOCOPY CLOB,				-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_UD.xsd
+153        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+154        																--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+155        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+156        			ErrContextOut		OUT		VARCHAR2,				--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+157        			ErrCodeOut			OUT		PLS_INTEGER,			--N.ro errore di uscita
+158        			ErrMsgOut			OUT 	VARCHAR2,				--Messaggio d'errore
+159        			ListaDocRectrlIn	IN		CLOB DEFAULT NULL		-- Lista XML con i file primario e allegati già archiviati e ricontrollati in sede di update UD
+160        																-- Possono esserci anche file da caricare ex-novo come primario o allegati. Nel caso col 25 e 27 sono settate a -1
+161        																-- Ogni riga corrisponde ad un documento-file ricontrolato e contiene le colonne:
+162        																-- 1: DisplayName del file
+163        																-- 10: Flg file firmato (valori 1/0)
+164        																-- 23: Flag di firma non valida alla data (valori 1/0/NULL) (la firma della busta crittografica più esterna)
+165        																-- 25: (obbligatorio) ID del documento di cui ri-controllare il file. -1 per indicare che è un documento nuovo
+166        																-- 26: (obbligatorio) 0 se primario, altrimenti il numero di allegato
+167        																--		Se è un NuovoAllegatoUD con NroAttachmentAssociato valorizzato (ovvero passato in attach) settare -1
+168        																-- 27: (obbligatorio) Nro di versione del file da ricontrollare. -1 per indicare che è un file nuovo passato in attach.
+169        																-- 28: NroAttachmentAssociato in caso di file passato in attach al servizio
+170        			)RETURN PLS_INTEGER;								--Vale 1 se tutto è andato a buon fine, altrimenti 0
+171        
+172        	/***************** Funzione per estrarre un singolo file legato ad un'unità documentaria (tramite Web Service) 			**************/
+173        	/***************** gli estremi del file da estrarre sono forniti in un xml conforme allo schema FileUDToExtract.xsd		**************/
+174        	FUNCTION ExtractFileUD(
+175        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+176        															--(obblig.) Codice identificativo del token di connessione
+177        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di estrazione file di un'unità documentaria (secondo schema FileUDToExtract.xsd)
+178        			XmlOut			OUT		NOCOPY CLOB,				-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_FileUDToExtract.xsd
+179        			IdDocToExtractOut		OUT		INTEGER,					-- ID_DOC del documento di cui estrarre la versione
+180        			NroVerToExtractOut	OUT		INTEGER,					-- N.ro della versione da estrarre
+181        			FlgVerTimbrataOut		OUT     INTEGER,				-- Se 1 indica che la versione archivata è già timbrata con la segnatura di registazione
+182        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+183        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+184        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+185        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+186        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+187        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+188        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+189        
+190        	---- funzione per estrarre le info utili al rendering pdf di un documento non nativamente pdf (es. Fattura elettronica o altro file xml)
+191        	FUNCTION GetInfoRenderingPdfDoc(
+192        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+193        																--(obblig.) Codice identificativo del token di connessione
+194        			IdDocIn						IN		INTEGER,		--(obblig.) Id. del documento di cui estrarre info per rendering PDF
+195        			FlgFatturaElettronicaOut	OUT     INTEGER,		-- Se 1 indica che il documento è una fattura elettronica
+196        			NomeModelloOut				OUT     VARCHAR2,		-- Nome del modello da usare per rendering pdf. Modello di tipo freemarker
+197        			IdModelloOut				OUT     DMT_MODELLI_DOC.ID_MODELLO%type,
+198        																-- Id. del modello da usare per rendering pdf. Modello di tipo freemarker
+199        			UriModelloOut				OUT     VARCHAR2,		-- URI in notazione storageUtil del modello da usare per rendering pdf
+200        			NomeDocTypeOut				OUT     VARCHAR2,		-- Nome del tipo di documento
+201        			IdDocTypeOut				OUT     INTEGER,		-- Id. del tipo di documento
+202        			ErrContextOut		OUT		VARCHAR2,				--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+203        			ErrCodeOut			OUT		PLS_INTEGER,			--N.ro errore di uscita
+204        			ErrMsgOut			OUT 		VARCHAR2)			--Messaggio d'errore
+205        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine e se si tratta di fattura elettronica o documento che ha modello associato, altrimenti 0
+206        
+207        	/***************** Funzione per estrarre tutti i file (visibili) legati ad un'unità documentaria (tramite Web Service) 					**************/
+208        	/***************** gli estremi dell'unità doc. di cui estrarre i file sono forniti in un xml conforme allo schema EstremiXIdentificazioneUD.xsd	**************/
+209        	FUNCTION ExtractFilesUD(
+210        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+211        															--(obblig.) Codice identificativo del token di connessione
+212        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di estrazione files di un'unità documentaria (secondo schema EstremiXIdentificazioneUD.xsd)
+213        			XmlOut			OUT		NOCOPY CLOB,				-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_FilesUD.xsd
+214        			VerDocToExtractTabOut	OUT		NOCOPY CLOB,				-- Lista con gli id. dei documenti da estrarre (XML conforme a schema LISTA_STD.xsd)
+215        															-- Ogni documento è un tag Riga che contiene le seguenti colonne:
+216        															-- 1: Id. del documento
+217        															-- 2: N.ro della versione da estrarre (l'ultima valida visibile all'utente)
+218        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+219        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+220        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+221        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+222        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+223        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+224        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+225        
+226        	/***************** Funzione che a partire da un xml conforme allo schema EstremiXIdentificazioneDoc.xsd ricava il documento su cui lavorare 				******/
+227        	/***************** serve per i WS di lock, unlock e check-out. Nel caso del check-out restituisce anche i dati del documento checked-out e del file estratto 	******/
+228        	FUNCTION LockCheckOut(
+229        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+230        															--(obblig.) Codice identificativo del token di connessione
+231        			FlgTipoWSIn			IN		VARCHAR2,					--(obblig.) Tipo di Web Service che richiama la funzione. Valori ammessi:
+232        															-- L	= Lock
+233        															-- U	= Unlock
+234        															-- C	= Check-out
+235        			XMLIn				IN		CLOB,						--(obblig.) XML con tracciato conforme a schema EstremiXIdentificazioneDoc.xsd
+236        			IdDocOut			OUT		DMT_DOCUMENTS.ID_DOC%TYPE,		-- Id. del documento ricavato dall'XML in input
+237        			XMLOut			OUT		NOCOPY CLOB,				-- XML di output conforme allo schema Output_FileCheckedOut.xsd.
+238        															-- E' valorizzato solo se FlgTipoWSIn=C e in caso di esito positivo
+239        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+240        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+241        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+242        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+243        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+244        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+245        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+246        
+247        	/***************** Funzione da richiamare nel WS che fa check-in/step-version di un documento 	******/
+248        	/***************** ovvero nel WS che crea una nuova/prima versione di un documento			******/
+249        	FUNCTION CheckIn(
+250        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+251        															--(obblig.) Codice identificativo del token di connessione
+252        			XMLIn				IN		CLOB,						--(obblig.) XML con tracciato conforme a schema CheckIn.xsd
+253        			IdDocOut			OUT		DMT_DOCUMENTS.ID_DOC%TYPE,		-- Id. del documento di cui fare check-in
+254        			NroVersioneEstrattaOut	OUT		PLS_INTEGER,				-- N.ro progressivo della versione checked-out/estratta dall'utente e che lui ritiene di aggiornare;
+255        															-- valorizzandola si richiede che venga controllato che essa coincida con l'attuale ultima versione del documento
+256        															-- Dunque se è valorizzato va fatta check-in, se no step-versione
+257        			FlgVerificaFirmaFileOut	OUT		PLS_INTEGER,				-- (valori 1/0) Se 1 indica che deve essere verificata l'eventuale firma digitale del file che deve dar luogo alla nuova versione
+258        			AttributiVerXMLOut	OUT		NOCOPY CLOB,				-- XML contenente nomi e valori degli attributi della nuova versione elettronica (conforme allo schema SezioneCache.xsd)
+259        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+260        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+261        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+262        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+263        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+264        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+265        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+266        
+267        	/***************** Funzione per estrarre i metadati di un'unità documentaria  												**************/
+268        	/***************** gli estremi dell'unità doc. di cui estrarre i metadati sono forniti in un xml conforme allo schema EstremiXIdentificazioneUD.xsd	**************/
+269        	FUNCTION GetDatiUD(
+270        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+271        															--(obblig.) Codice identificativo del token di connessione
+272        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di estrazione metadati di un'unità documentaria (secondo schema EstremiXIdentificazioneUD.xsd)
+273        			XmlOut			OUT		NOCOPY CLOB,				-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_DatiUD.xsd
+274        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+275        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+276        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+277        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+278        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+279        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+280        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+281        
+282          /***************** Funzione per estrarre i metadati degli invvi e-email di un'unità documentaria                **************/
+283          /***************** In attach al servizio possono essere restituite anche mail inviate e/o loro ricevute/notifiche collegate **************/
+284          FUNCTION GetDatiInviiMailUD(
+285              CodIdConnectionTokenIn  IN    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+286                                          --(obblig.) Codice identificativo del token di connessione
+287              XMLIn       IN    CLOB,           --(obblig.) XML in input al Web service (secondo schema Request_GetDatiInviiMailUD.xsd)
+288              XmlOut        OUT   NOCOPY CLOB,        -- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Respose_GetDatiInviiMailUD.xsd
+289              ListaAttachOut    OUT   NOCOPY CLOB,        -- Lista xml con gli attach che il WS deve restituire oltre il primo con l'xml di risposta
+290                                          -- Ogni record è un'attach e contiene le colonne:
+291                                          -- 1) Nro di attach
+292                                          -- 2) URI del file da mettere in attach in notazione storageUtil
+293              FlgRollBckFullIn  IN    PLS_INTEGER DEFAULT NULL,   --(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+294                                      --ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+295              FlgAutoCommitIn   IN    PLS_INTEGER DEFAULT NULL,   --(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+296              ErrContextOut   OUT   VARCHAR2,         --Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+297              ErrCodeOut      OUT   PLS_INTEGER,        --N.ro errore di uscita
+298              ErrMsgOut     OUT     VARCHAR2)         --Messaggio d'errore
+299              RETURN PLS_INTEGER;                 --Vale 1 se tutto è andato a buon fine, altrimenti 0
+300              
+301        	/****************** Funzione per trovare l'id. di un unità documentaria a partire da un XML conforme allo schema EstremiXIdentificazioneUD.xsd	**************/
+302        	FUNCTION LeggiEstremiXIdentificazioneUD(
+303        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+304        															--(obblig.) Codice identificativo del token di connessione
+305        			XMLIn				IN		CLOB,						--(obblig.) XML conforme a schema EstremiXIdentificazioneUD.xsd)
+306        			IdUDOut			OUT		DMT_UNITA_DOC.ID_UD%TYPE,		--Identificativo dell'unità documentaria trovata a partire dall'XML
+307        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+308        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+309        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+310        			RETURN PLS_INTEGER;									--Vale 1 se dall'XML in input l'unità documentaria è stata individuata univocamente, altrimenti 0
+311        
+312        	/************ Funzione per cancellare logicamente o fisicamente una versione eletronica di documento											**********/
+313        	/************ gli estremi della versione da cancellare e del tipo di cancellazione (fisica o logica) sono forniti in un xml conforme a schema DeleteVerDoc.xsd 	**********/
+314        	FUNCTION DelVerDoc(
+315        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+316        															--(obblig.) Codice identificativo del token di connessione
+317        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di cancellazione versione (secondo schema DeleteVerDoc.xsd)
+318        			IdDocOut			OUT		DMT_DOCUMENTS.ID_DOC%TYPE,		--Identificativo del documento cui è relativa la versione da cancellare
+319        			NroProgrVerOut		OUT		PLS_INTEGER,				--N.ro progr. della versione da cancellare
+320        			FlgTipoDelOut		OUT		VARCHAR2,					--(valori F/L) Tipo di cancellazione richiesta: F = Fisica, L = Logica
+321        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+322        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+323        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+324        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+325        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+326        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+327        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+328        
+329        	/************ Funzione per cancellare logicamente o fisicamente un documento. Se il documento specificato è un primario la cancellazione da fare è dell'intera unità documentaria	**********/
+330        	/************ gli estremi del documento da cancellare e del tipo di cancellazione (fisica o logica) sono forniti in un xml conforme a schema DeleteDoc.xsd 					**********/
+331        	FUNCTION DelDoc(
+332        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+333        															--(obblig.) Codice identificativo del token di connessione
+334        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di cancellazione versione (secondo schema DeleteDoc.xsd)
+335        			FlgTipoTargetOut		OUT		VARCHAR2,					--(valori U/D) Indica cosa va cancellato: U = Unità documentaria; D = Documento
+336        			IdUDDocOut			OUT		INTEGER,					--Identificativo del documento o unità documentaria da cancellare
+337        			FlgTipoDelOut		OUT		VARCHAR2,					--(valori F/L) Tipo di cancellazione richiesta: F = Fisica, L = Logica
+338        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+339        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+340        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+341        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+342        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+343        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+344        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+345        
+346        	/************ Funzione per cancellare logicamente o fisicamente un'unità documentaria. 														**********/
+347        	/************ gli estremi dell'unità documentaria da cancellare e del tipo di cancellazione (fisica o logica) sono forniti in un xml conforme a schema DeleteUD.xsd  	**********/
+348        	FUNCTION DelUD(
+349        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+350        															--(obblig.) Codice identificativo del token di connessione
+351        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di cancellazione versione (secondo schema DeleteUD.xsd)
+352        			IdUDOut			OUT		DMT_UNITA_DOC.ID_UD%TYPE,		--Identificativo dell'unità documentaria da cancellare
+353        			FlgTipoDelOut		OUT		VARCHAR2,					--(valori F/L) Tipo di cancellazione richiesta: F = Fisica, L = Logica
+354        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+355        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+356        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+357        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+358        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+359        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+360        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+361        
+362        	/***************** Funzione per creare una nuovo folder/libreria (tramite Web Service)		**************/
+363        	/***************** i cui metadati sono forniti in un xml conforme allo schema NewFolder.xsd	**************/
+364        	FUNCTION AddFolder(
+365        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+366        															--(obblig.) Codice identificativo del token di connessione
+367        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di creazione folder (secondo schema NewFolder.xsd)
+368        			XmlOut			OUT		NOCOPY CLOB,				-- XML (secondo schema SezioneCache.xsd) con tutti gli attributi del folder da passare all'API di creazione folder
+369        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+370        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+371        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+372        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+373        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+374        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+375        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+376        
+377        
+378        	/***************** Funzione che a partire da IdFolder restituisce xml con estremi del folder				******/
+379        	FUNCTION GetEstremiFolder(
+380        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+381        																		--(obblig.) Codice identificativo del token di connessione
+382        			IdFolderIn			IN 		DMT_FOLDER.ID_FOLDER%TYPE,		-- (obblig.) Id. del folder 
+383        			XMLOut				OUT		NOCOPY CLOB,					-- XML di output conforme allo schema EstremiFolder.xsd
+384        																		-- E' valorizzato solo se FlgTipoWSIn=G e in caso di esito positivo
+385        			FlgRollBckFullIn	IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+386        																		--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+387        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+388        			ErrContextOut		OUT		VARCHAR2,						--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+389        			ErrCodeOut			OUT		PLS_INTEGER,					--N.ro errore di uscita
+390        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+391        			RETURN PLS_INTEGER;										--Vale 1 se tutto è andato a buon fine, altrimenti 0
+392        
+393        	/***************** Funzione per aggiornare i metadati di un folder/libreria (tramite Web Service)		**************/
+394        	/***************** i metadati da aggiornare sono forniti in un xml conforme allo schema FolderDaAgg.xsd	**************/
+395        	FUNCTION UpdFolder(
+396        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+397        															--(obblig.) Codice identificativo del token di connessione
+398        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di aggiornamento folder (secondo schema FolderDaAgg.xsd)
+399        			IdFolderOut			OUT		DMT_FOLDER.ID_FOLDER%TYPE,		-- Id. del folder da modificare (ricavato da XMLIn)
+400        			XmlOut			OUT		NOCOPY CLOB,				-- XML (secondo schema SezioneCache.xsd) con tutti gli attributi del folder da passare all'API di aggiornamento folder
+401        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+402        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+403        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+404        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+405        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+406        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+407        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+408        
+409        
+410        	/************ Funzione per cancellare logicamente o fisicamente un folder (anche una libreria) 													**********/
+411        	/************ gli estremi del folder da cancellare e del tipo di cancellazione (fisica o logica) sono forniti in un xml conforme a schema DeleteFolder.xsd		  	**********/
+412        	FUNCTION DelFolder(
+413        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+414        															--(obblig.) Codice identificativo del token di connessione
+415        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di cancellazione versione (secondo schema DeleteFolder.xsd)
+416        			IdFolderOut			OUT		DMT_FOLDER.ID_FOLDER%TYPE,		--Identificativo del folder da cancellare
+417        			FlgTipoDelOut		OUT		VARCHAR2,					--(valori F/L) Tipo di cancellazione richiesta: F = Fisica, L = Logica
+418        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+419        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+420        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+421        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+422        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+423        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+424        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+425        
+426        	/***************** Funzione che a partire da un xml conforme allo schema EstremiXIdentificazioneFolder.xsd ricava il folder su cui lavorare 				******/
+427        	/***************** serve per i WS di lock, unlock e GetMetadati. Nel caso del GetMetadati restituisce anche i metadati del folder					 	******/
+428        	FUNCTION LockGetDatiFolder(
+429        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+430        															--(obblig.) Codice identificativo del token di connessione
+431        			FlgTipoWSIn			IN		VARCHAR2,					--(obblig.) Tipo di Web Service che richiama la funzione. Valori ammessi:
+432        															-- L	= Lock
+433        															-- U	= Unlock
+434        															-- G	= Check-out
+435        			XMLIn				IN		CLOB,						--(obblig.) XML con tracciato conforme a schema EstremiXIdentificazioneFolder.xsd
+436        			IdFolderOut			OUT		DMT_FOLDER.ID_FOLDER%TYPE,		-- Id. del folder ricavato dall'XML in input
+437        			XMLOut			OUT		NOCOPY CLOB,				-- XML di output conforme allo schema Output_DatiFolder.xsd.
+438        															-- E' valorizzato solo se FlgTipoWSIn=G e in caso di esito positivo
+439        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+440        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+441        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+442        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+443        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+444        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+445        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+446        
+447        
+448        	/***************** Funzione per esguire una ricerca sui tipi folder tramite Web Service		**************/
+449        	/***************** L'inut deve essere conforme allo schema TrovaTipiFolder.xsd	mentre 		**************/
+450        	/***************** l'output è conforme allo schema Output_TrovaTipiFolder.xsd				**************/
+451        	FUNCTION TrovaTipiFolder(CodIdConnectionTokenIn		IN	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	-- (obblig). Codice identificativo del token di connessione
+452        							XMLIn						IN	CLOB,						-- XML contenente i dati del tipo di folder (conforme allo schema TrovaTipiFolder.xsd)
+453        							XmlOut						OUT	NOCOPY CLOB,				-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_TrovaTipiFolder.xsd
+454        							FlgRollBckFullIn			IN 	PLS_INTEGER DEFAULT NULL,	--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+455        																						--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+456        							FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+457        							ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+458        							ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+459        							ErrMsgOut			OUT 		VARCHAR2)				--Messaggio d'errore
+460        							RETURN PLS_INTEGER;
+461        
+462        
+463        	/***************** Funzione per esguire una ricerca sui tipi di documento tramite Web Service		**************/
+464        	/***************** L'inut deve essere conforme allo schema TrovaTipiDocumenti.xsd	mentre 			**************/
+465        	/***************** l'output è conforme allo schema Output_TrovaTipiDocumenti.xsd					**************/
+466        
+467        	FUNCTION TrovaTipiDocumento(CodIdConnectionTokenIn		IN	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	-- (obblig). Codice identificativo del token di connessione
+468        							XMLIn						IN	CLOB,						-- XML contenente i dati del tipo di folder (conforme allo schema TrovaTipiDocumenti.xsd)
+469        							XmlOut						OUT	NOCOPY CLOB,				-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme allo schema Output_TrovaTipiDocumenti.xsd
+470        							FlgRollBckFullIn			IN 	PLS_INTEGER DEFAULT NULL,	--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+471        																						--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+472        							FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+473        							ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+474        							ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+475        							ErrMsgOut			OUT 		VARCHAR2)				--Messaggio d'errore
+476        							RETURN PLS_INTEGER;
+477        
+478        	/***************** Funzione per creare una nuovo tipo di  documento (tramite Web Service)		**************/
+479        	/***************** i cui metadati sono forniti in un xml conforme allo schema NuovoTipoDocumento.xsd	**************/
+480        	FUNCTION AddTipoDoc(
+481        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+482        															--(obblig.) Codice identificativo del token di connessione
+483        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di creazione tipo documento(secondo schema uovoTipoDocumento.xsd)
+484        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+485        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+486        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+487        			IdTipoDocOut		 OUT DMT_DOC_TYPES.ID_DOC_TYPE%TYPE,
+488        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+489        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+490        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+491        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+492        
+493        	/***************** Funzione per modificare una nuovo tipo di  documento (tramite Web Service)		**************/
+494        	/***************** i cui metadati sono forniti in un xml conforme allo schema ModificaTipoDocumento.xsd	**************/
+495        	FUNCTION UpdTipoDoc(
+496        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+497        															--(obblig.) Codice identificativo del token di connessione
+498        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di creazione tipo documento(secondo schema uovoTipoDocumento.xsd)
+499        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+500        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+501        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+502        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+503        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+504        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+505        			RETURN PLS_INTEGER;								--Vale 1 se tutto è andato a buon fine, altrimenti 0
+506        
+507        
+508        	/************ Funzione per cancellare logicamente o fisicamente un tipo documento 													**********/
+509        	/************ gli estremi del tipo doc da cancellare e del tipo di cancellazione (fisica o logica) sono forniti in un xml conforme a schema DeleteTipoDocumento.xsd		  	**********/
+510        	FUNCTION DelTipoDoc(
+511        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+512        															--(obblig.) Codice identificativo del token di connessione
+513        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di cancellazione versione (secondo schema DeleteTipoDocumento.xsd)
+514        			IdTipoDocOut		OUT DMT_DOC_TYPES.ID_DOC_TYPE%TYPE,		--Identificativo del tipodocumento da cancellare
+515        			FlgTipoDelOut		OUT		VARCHAR2,					--(valori F/L) Tipo di cancellazione richiesta: F = Fisica, L = Logica
+516        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+517        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+518        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+519        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+520        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+521        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+522        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+523        
+524        
+525        
+526        
+527        	/***************** Funzione per creare una nuovo tipo di  folder/libreria (tramite Web Service)		**************/
+528        	/***************** i cui metadati sono forniti in un xml conforme allo schema NuovoTipoFolder.xsd	**************/
+529        	FUNCTION AddTipoFolder(
+530        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+531        															--(obblig.) Codice identificativo del token di connessione
+532        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di creazione folder (secondo schema NuovoTipoFolder.xsd)
+533        				FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+534        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+535        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+536        			IdTipoFolderOut		 OUT DMT_FOLDER_TYPES.ID_FOLDER_TYPE%TYPE,
+537        				ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+538        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+539        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+540        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+541        
+542        	/***************** Funzione per modificare un tipo di  folder (tramite Web Service)		**************/
+543        	/***************** i cui metadati sono forniti in un xml conforme allo schema ModificaTipoFolder.xsd	**************/
+544        	FUNCTION UpdTipoFolder(
+545        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+546        															--(obblig.) Codice identificativo del token di connessione
+547        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di creazione folder (secondo schema ModificaTipoFolder.xsd)
+548        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+549        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+550        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+551        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+552        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+553        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+554        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+555        
+556        
+557        	/************ Funzione per cancellare logicamente o fisicamente un tipo folder 													**********/
+558        	/************ gli estremi del tipo folder da cancellare e del tipo di cancellazione (fisica o logica) sono forniti in un xml conforme a schema DeleteTipoFolder.xsd		  	**********/
+559        	FUNCTION DelTipoFolder(
+560        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+561        															--(obblig.) Codice identificativo del token di connessione
+562        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di cancellazione versione (secondo schema DeleteTipoFolder.xsd)
+563        			IdTipoFolderOut		 OUT DMT_FOLDER_TYPES.ID_FOLDER_TYPE%TYPE,	--Identificativo del tipo folder da cancellare
+564        			FlgTipoDelOut		OUT		VARCHAR2,					--(valori F/L) Tipo di cancellazione richiesta: F = Fisica, L = Logica
+565        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+566        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+567        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+568        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+569        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+570        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+571        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+572        
+573        
+574        	/***************** Funzione per creare o modificare un attributo custom (tramite Web Service)												**************/
+575        	/***************** i cui metadati sono forniti in un xml conforme allo schema NewAttrCustom.xsd	nel caso di creazione, ModifyAttrCustom.xsd nel caso di modifica	**************/
+576        	function AddUpdAttrCustom(
+577        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+578        															--(obblig.) Codice identificativo del token di connessione
+579        			FlgOperazioneIn		IN		VARCHAR2,					-- (obblig). Indica se si vuole creare (ADD) o modificare (MOD) un attributo custom
+580        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di creazione o modifica attributo custom (secondo schema NewAttrCustom.xsd o ModifyAttrCustom.xsd)
+581        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+582        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+583        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+584        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+585        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+586        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+587        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+588        
+589        
+590        	/************ Funzione per cancellare logicamente o fisicamente un attributo custom																**********/
+591        	/************ gli estremi dell'attributo da cancellare e del tipo di cancellazione (fisica o logica) sono forniti in un xml conforme a schema DeleteAttrCustom.xsd		**********/
+592        	FUNCTION DelAttrCustom(
+593        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+594        															--(obblig.) Codice identificativo del token di connessione
+595        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di cancellazione versione (secondo schema DeleteAttrCustom.xsd)
+596        			AttrNameOut			OUT		DMT_ATTRIBUTES_DEF.ATTR_NAME%type,	-- Nome dell'attributo da cancellare
+597        			FlgTipoDelOut		OUT		VARCHAR2,					--(valori F/L) Tipo di cancellazione richiesta: F = Fisica, L = Logica
+598        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+599        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+600        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+601        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+602        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+603        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+604        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+605        
+606        	/***************** Funzione per creare o modificare un'applicazione esterna o sua specifica istanza (tramite Web Service)	**************/
+607        	/***************** i cui metadati sono forniti in un xml conforme allo schema IstanzaApplicazioneEsterna.xsd			**************/
+608        	function AddUpdApplicazioneEsterna(
+609        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+610        															--(obblig.) Codice identificativo del token di connessione
+611        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di creazione o modifica applicazione esterna /sua istanza(secondo schema IstanzaApplicazioneEsterna.xsd)
+612        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+613        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+614        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+615        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+616        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+617        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+618        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+619        
+620        	/************ Funzione per cancellare logicamente o fisicamente un'applicazione esterna o sua specifica istanza (tramite Web Service)													**********/
+621        	/************ gli estremi dell'applicazione esterna o sua specifica istanza da cancellare e del tipo di cancellazione (fisica o logica) sono forniti in un xml conforme a schema DeleteIstanzaApplEsterna.xsd	**********/
+622        	function DelApplicazioneEsterna(
+623        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+624        															--(obblig.) Codice identificativo del token di connessione
+625        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di cancellazione versione (secondo schema DeleteIstanzaApplEsterna.xsd)
+626        			FlgTipoDelOut		OUT		VARCHAR2,					--(valori F/L) Tipo di cancellazione richiesta: F = Fisica, L = Logica
+627        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+628        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+629        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+630        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+631        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+632        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+633        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+634        
+635        	/***************** Funzione per estrarre i metadati di un'applicazione esterna o sua specifica istanza (tramite Web Service)					************/
+636        	/************ gli estremi dell'applicazione esterna o sua specifica istanza sono forniti in un xml conforme allo schema EstremiIstanzaApplEsterna.xsd	************/
+637        	FUNCTION GetDatiApplicazioneEsterna(
+638        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+639        															--(obblig.) Codice identificativo del token di connessione
+640        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service di estrazione metadati di un'applicazione esterna/sua istanza (secondo schema EstremiIstanzaApplEsterna.xsd)
+641        			XmlOut			OUT		NOCOPY CLOB,				-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_IstanzaApplEsterna.xsd
+642        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+643        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+644        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+645        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+646        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+647        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+648        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+649        
+650        	/***************** Funzione per esguire una ricerca sulle applicazioni esterne e loro istanze tramite Web Service		**************/
+651        	/***************** L'inut deve essere conforme allo schema TrovaIstanzeApplEsterne.xsd mentre 					**************/
+652        	/***************** l'output è conforme allo schema Output_TrovaIstanzeApplEsterne.xsd						**************/
+653        	FUNCTION TrovaApplicazioneEsterne(
+654        			CodIdConnectionTokenIn	IN	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+655        															-- (obblig). Codice identificativo del token di connessione
+656        			XMLIn				IN	CLOB,							-- XML di input del WS (conforme allo schema TrovaIstanzeApplEsterne.xsd) contenente i filtri di ricerca e la modalità di estrazione
+657        			XmlOut			OUT	NOCOPY CLOB,					-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_TrovaIstanzeApplEsterne.xsd
+658        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+659        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+660        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+661        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+662        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+663        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+664        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+665        
+666        
+667        
+668        	/***************** Funzione per settare i privilegi su un oggetto tramite Web Service		**************/
+669        	/***************** L'input deve essere conforme allo schema IUPrivilegi.xsd  				**************/
+670        
+671        	FUNCTION AddUpdPrivilegi(
+672        			CodIdConnectionTokenIn	IN	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+673        															-- (obblig). Codice identificativo del token di connessione
+674        			XMLIn				IN	CLOB,							-- XML di input del WS (conforme allo schema IUPrivilegi.xsd)  
+675        			FlgRollBckFullIn	IN 		PLS_INTEGER DEFAULT NULL,	--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+676        																	--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+677        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,	--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+678        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+679        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+680        			ErrMsgOut			OUT 		VARCHAR2)				--Messaggio d'errore
+681        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+682        
+683        	/***************** Funzione per revocare i privilegi su un oggetto tramite Web Service		**************/
+684        	/***************** L'input deve essere conforme allo schema RPrivilegi.xsd mentre 			**************/
+685        	FUNCTION RevokePrivilegi(
+686        			CodIdConnectionTokenIn	IN	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+687        																	-- (obblig). Codice identificativo del token di connessione
+688        			XMLIn				IN	CLOB,							-- XML di input del WS (conforme allo schema RPrivilegi.xsd)  
+689        			FlgRollBckFullIn	IN 		PLS_INTEGER DEFAULT NULL,	--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+690        																	--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+691        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,	--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+692        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+693        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+694        			ErrMsgOut			OUT 		VARCHAR2)				--Messaggio d'errore
+695        			RETURN PLS_INTEGER ;	
+696        
+697        	/***************** Funzione per creare un nuovo utente								**************/
+698        	/***************** L'input deve essere conforme allo schema NuovoUser.xsd			**************/
+699        	FUNCTION AddUser(
+700        			CodIdConnectionTokenIn	IN	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+701        															-- (obblig). Codice identificativo del token di connessione
+702        			XMLIn				IN	CLOB,							-- XML di input del WS (conforme allo schema IUPrivilegi.xsd)  
+703        			FlgRollBckFullIn	IN 		PLS_INTEGER DEFAULT NULL,	--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+704        																	--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+705        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,	--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+706        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+707        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+708        			ErrMsgOut			OUT 		VARCHAR2)				--Messaggio d'errore
+709        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+710        
+711        	/***************** Funzione per modificare un utente								**************/
+712        	/***************** L'input deve essere conforme allo schema ModificaUser.xsd			**************/
+713        	FUNCTION ModUser(
+714        			CodIdConnectionTokenIn	IN	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+715        															-- (obblig). Codice identificativo del token di connessione
+716        			XMLIn				IN	CLOB,							-- XML di input del WS (conforme allo schema IUPrivilegi.xsd)  
+717        			FlgRollBckFullIn	IN 		PLS_INTEGER DEFAULT NULL,	--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+718        																	--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+719        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,	--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+720        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+721        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+722        			ErrMsgOut			OUT 		VARCHAR2)				--Messaggio d'errore
+723        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+724        
+725        	/***************** Funzione per cancellare un utente								**************/
+726        	/***************** L'input deve essere conforme allo schema EliminaUser.xsd			**************/
+727        	FUNCTION DelUser(
+728        			CodIdConnectionTokenIn	IN	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+729        															-- (obblig). Codice identificativo del token di connessione
+730        			XMLIn				IN	CLOB,							-- XML di input del WS (conforme allo schema IUPrivilegi.xsd)  
+731        			FlgRollBckFullIn	IN 		PLS_INTEGER DEFAULT NULL,	--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+732        																	--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+733        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,	--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+734        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+735        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+736        			ErrMsgOut			OUT 		VARCHAR2)				--Messaggio d'errore
+737        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+738        
+739        	/************* Funzione attraverso cui registrarsi come utente della community di AURIGA **************/
+740        	function RegistrazioneUtenteCommunity(
+741        			XMLIn				IN		CLOB,						-- XML di input del WS (conforme allo schema RegistrazioneNellaCommunity.xsd.xsd) contenente gli estremi dell'utente che si sta registrando
+742        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+743        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+744        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+745        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+746        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+747        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+748        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+749        
+750        	/************* Funzione utilizzata dal WS che serve ad avviare un nuovo thread di discussione in un forum **************/
+751        	function NewForumThread(
+752        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+753        															--(obblig.) Codice identificativo del token di connessione
+754        			XMLIn				IN		CLOB,						-- XML di input del WS (conforme allo schema NewForumThread.xsd.xsd) contenente i dati di avvio del thread
+755        			AttrFolderXmlOut		OUT		NOCOPY CLOB,				-- XML (conforme a schema SezioneCache.xsd) da passare in input all’API di creazione folder che viene invocata per prima all'interno del WS per creare la cartella del thread
+756        			AttrDocPrimarioXMLOut	OUT		NOCOPY CLOB,				-- XML (conforme a schema SezioneCache.xsd) da passare in input all’API di creazione documento che viene invocata per seconda all'interno del WS per creare l’unità documentaria che conterrà i dati di avvio del thread
+757        			DocAttachXMLOut		OUT		NOCOPY CLOB,				-- Lista con i dati per caricare (con step-version) nella repository i file associati all'unità documentaria di avvio thread che sono specificati come attach del messaggio SOAP(XML conforme a schema LISTA_STD.xsd)
+758        															-- Per ogni attach vi è un tag Riga che contiene le seguenti colonne:
+759        															-- 1: Indica il tipo di operazione da fare in corrispondenza dell'attach: AD = Add doc + creazione versione (per i file secondari); AV = Solo creazione versione (per il file primario)
+760        															-- 2: N.ro dell'attach del messaggio SOAP che corrisponde al file da caricare nella repository
+761        															-- 3: Nome del file da caricare (quello con cui mostrarlo e dalla cui estensione si ricava il formato)
+762        															-- 4: (valori 1/0) Se 1 indica che è richiesta la verifica della firma digitale del file, se 0 o NULL no
+763        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+764        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+765        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+766        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+767        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+768        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+769        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+770        
+771        
+772        	/************* Funzione per ottenere l'XML di output (primo attach del messaggio SOAP) del WS che serve ad avviare un nuovo thread di discussione in un forum *********/
+773        	/************* (a partire dell'id. dell'unità documentaria di avvio del thread)				 									  *********/
+774        	function ComponiOutput_ForumThread(
+775        			IdUDAvvioThreadIn		IN		DMT_UNITA_DOC.ID_UD%type,		-- (obblig.) Id. dell'unità documentaria di avvio del thread
+776        			XMLOut			OUT 		NOCOPY CLOB,				-- XML che viene restituito come primo attach del WS in caso di successo (conforme allo schema Output_ForumThread.xsd)
+777        			ErrContextOut		OUT		VARCHAR2,					-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+778        			ErrCodeOut			OUT		PLS_INTEGER,				-- N.ro errore di uscita
+779        			ErrMsgOut			OUT 		VARCHAR2)					-- Messaggio d'errore
+780        			RETURN PLS_INTEGER;									-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+781        
+782        	/***** funzione utilizzata dai web services SendRepositoryDocsByFax o SendByFax per leggere l'XML in input *********/ 
+783        	function SendByFax(
+784        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+785        															-- (obblig. solo nel caso del WS di SendRepositoryDocsByFax) Codice identificativo del token di connessione
+786        			XMLIn				IN		CLOB,						-- XML di input del WS (conforme allo schema SendRepositoryDocsByFax.xsd o SendByFax.xsd)
+787        			NroFaxDestinatarioOut	OUT		VARCHAR2,					-- N.ro fax destinatario
+788        			FaxServerAddressOut	OUT		VARCHAR2,					-- IP o nome del fax-server mittente
+789        			UsernameFaxServerOut	OUT		VARCHAR2,					-- Username con cui accedere al fax-server mittente
+790        			PasswordFaxServerOut	OUT		VARCHAR2,					-- Password con cui accedere al fax-server mittente
+791        			DocToExtractOut		OUT		NOCOPY CLOB,				-- Lista (secondo schema LISTA_STD.xsd) con gli id. dei documenti di cui inviare l'ultima versione (valorizzata solo nel caso del WS di SendRepositoryDocsByFax)
+792        															-- Ogni tag Riga contiene le colonne:
+793        															-- 1: ID_DOC del documento
+794        															-- 2: Estensione che identifica il formato del file (doc, pdf, tiff, ecc) di ultima versione
+795        			ErrContextOut		OUT		VARCHAR2,					-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+796        			ErrCodeOut			OUT		PLS_INTEGER,				-- N.ro errore di uscita
+797        			ErrMsgOut			OUT 		VARCHAR2)					-- Messaggio d'errore
+798        			RETURN PLS_INTEGER;									-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+799        
+800        
+801        	/***************** Funzione per esguire tramite Web Service una ricerca sulle richieste di trasmissione via fax già sottomesse  	**************/
+802        	/***************** L'input deve essere conforme allo schema TrovaRichTrasmissioneFax.xsd	 							**************/
+803        	/***************** l'output è conforme allo schema Output_TrovaRichTrasmissioneFax.xsd								**************/
+804        	function TrovaRichTrasmissioneFax(
+805        			CodIdConnectionTokenIn	IN	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+806        															-- (obblig). Codice identificativo del token di connessione
+807        			XMLIn				IN	CLOB,							-- XML contenente i filtri di ricerca(conforme allo schema TrovaRichTrasmissioneFax.xsd)
+808        			XmlOut			OUT	NOCOPY CLOB,					-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_TrovaRichTrasmissioneFax.xsd
+809        			FlgRollBckFullIn		IN 	PLS_INTEGER DEFAULT NULL,			--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+810        															-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+811        			FlgAutoCommitIn		IN 	PLS_INTEGER DEFAULT NULL,			--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+812        			ErrContextOut		OUT	VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+813        			ErrCodeOut			OUT	PLS_INTEGER,					-- N.ro errore di uscita
+814        			ErrMsgOut			OUT 	VARCHAR2)						-- Messaggio d'errore
+815        			RETURN PLS_INTEGER;									-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+816        
+817        	/***************** Funzione per per il Web Service di ricerca sulle repository documentale			**************/
+818        	/***************** L'input deve essere conforme allo schema TrovaDocFolder.xsd	 				**************/
+819        	/***************** l'output sono gli input da passare all'API di 	ricerca sulle repository documentale	**************/
+820        	function TrovaDocFolder(
+821        			CodIdConnectionTokenIn	IN	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+822        															-- (obblig). Codice identificativo del token di connessione
+823        			XMLIn				IN	CLOB,							-- XML in input al WS (conforme allo schema TrovaDocFolder.xsd)
+824        			FlgUDFolderOut		OUT	VARCHAR2,						-- (valori F/U/NULL): indica se la ricerca va ristretta ai soli documenti (U) o alle sole cartelle (F)
+825        			CercaInFolderOut		OUT	DMT_FOLDER.ID_FOLDER%type,			-- id. del folder in cui effettuare la ricerca. Se non specificato si cerca in tutta la repository
+826        															--	Può avere i valori "particolari":
+827        															--		-9:		si intende la ricerca nelle NEWS dell'utente di lavoro 
+828        															--		-99:		si intende la ricerca nell'area WORK dell'utente di lavoro
+829        															--		-999: 	si intende la ricerca nei preferiiti dell'utente di lavoro (solo i preferiti veri e propri, non ciò che ricade in cartelle che sono nei preferiti)
+830        															--		-9999:	si intende la ricerca negli inviati dell'utente di lavoro (solo gli inviati veri e propri, non ciò che ricade in cartelle che sono negli inviati)
+831        															--		-99999:	si intende la ricerca negli eliminati dell'utente di lavoro (solo gli eliminati veri e propri, non ciò che ricade in cartelle che sono negli eliminati)
+832        			FlgCercaInSubFolderOut	OUT	PLS_INTEGER,					-- (valori 1/0/NULL): 1 indica che la ricerca va estesa ai sub-folder del folder CercaInFolderOut 
+833        			FiltroFullTextOut		OUT	VARCHAR2,						-- Parola o lista di parole da cercare con il motore di ricerca esterno (Lucene)
+834        			FlgTutteLeParoleOut	OUT	PLS_INTEGER,					-- (valori 1/0/NULL) Se 1 tutte le parole del filtro full-text devono essere matchate, se 0 o NULL almeno 1
+835        			AttributiXRicercaFTOut	OUT	NOCOPY CLOB,					-- XML contenente la lista degli attributi indicizzati dal motore di ricerca su quali deve ricercare il filtro full-text (conforme a schema LISTA_STD.xsd)
+836        															-- Ogni attributo corrisponde ad un tag riga con una sola colonna recante il nome dell'attributo stesso
+837        			CriteriAvanzatiOut	OUT	NOCOPY CLOB,					-- XML contenente nomi e valori dei filtri avanzati su unità documentarie e folder (conforme allo schema SezioneCache.xsd). 
+838        			CriteriPersonalizzatiOut OUT 	NOCOPY CLOB,					-- Criteri di ricerca sugli attributi custom di documenti e folder (XML conforme a schema LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+839        			ColOrderByOut		OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML di output per cui ordinare i record nell'XML stesso 
+840        			FlgDescOrderByOut  	OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+841        			FlgSenzaPaginazioneOut	OUT	PLS_INTEGER,            			-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+842        			NroPaginaOut      	OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+843           			BachSizeOut			OUT	PLS_INTEGER,					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata e se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+844        			FlgBatchSearchOut		OUT	PLS_INTEGER,					-- (valori 1/0/NULL) Se 1 significa che la ricerca è utilizzata da un processo batch, altrimenti da un processo online.
+845        															-- Serve affinchè vengano applicati i limiti di overflow per processo batch o online. 
+846        			ColToReturnOut		OUT	VARCHAR2,						-- Stringa con i n.ri delle colonne dell'XML di output che si vuole siano presenti nell'output stesso.
+847        			FlgRollBckFullIn		IN 	PLS_INTEGER DEFAULT NULL,			--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+848        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+849        			FlgAutoCommitIn		IN 	PLS_INTEGER DEFAULT NULL,			--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+850        			ErrContextOut		OUT	VARCHAR2,						--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+851        			ErrCodeOut			OUT	PLS_INTEGER,					--N.ro errore di uscita
+852        			ErrMsgOut			OUT 	VARCHAR2)						--Messaggio d'errore
+853        			RETURN PLS_INTEGER;									-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+854        
+855        	/***************** Funzione che a partire da un xml conforme allo schema EstremiXIdentificazioneDoc.xsd ricava le versioni di un documento visibili all'utente connesso		******/
+856        	FUNCTION GetListaVersioniDoc(
+857        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+858        															--(obblig.) Codice identificativo del token di connessione
+859        			XMLIn				IN		CLOB,						--(obblig.) XML con tracciato conforme a schema EstremiXIdentificazioneDoc.xsd
+860        			IdDocOut			OUT		DMT_DOCUMENTS.ID_DOC%TYPE,		-- Id. del documento ricavato dall'XML in input
+861        			XMLOut			OUT		NOCOPY CLOB,				-- XML di output conforme allo schema ListaVersioniDoc.xsd.
+862        															-- E' valorizzato solo in caso di esito positivo
+863        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+864        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+865        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+866        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+867        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+868        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+869        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+870        
+871        	/***************** Funzione per esguire una ricerca sugli utenti del sistema tramite Web Service		**************/
+872        	/***************** L'inut deve essere conforme allo schema TrovaUtenti.xsd mentre 					**************/
+873        	/***************** l'output è conforme allo schema Output_TrovaUtenti.xsd						**************/
+874        	FUNCTION TrovaUtenti(
+875        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+876        															-- (obblig). Codice identificativo del token di connessione
+877        			XMLIn				IN		CLOB,						-- XML di input del WS (conforme allo schema TrovaUtenti.xsd) contenente i filtri di ricerca e la modalità di estrazione
+878        			XmlOut			OUT		NOCOPY CLOB,				-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_TrovaUtenti.xsd
+879        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+880        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+881        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+882        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+883        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+884        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+885        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+886        
+887        
+888        	/***************** Funzione per esguire una ricerca sui gruppi (di utenti, UO, scrivanie virtuali, altri gruppi) tramite Web Service	**************/
+889        	/***************** L'inut deve essere conforme allo schema TrovaGruppi.xsd mentre 										**************/
+890        	/***************** l'output è conforme allo schema Output_TrovaGruppi.xsd											**************/
+891        	FUNCTION TrovaGruppi(
+892        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+893        															-- (obblig). Codice identificativo del token di connessione
+894        			XMLIn				IN		CLOB,						-- XML di input del WS (conforme allo schema TrovaGruppi.xsd) contenente i filtri di ricerca e la modalità di estrazione
+895        			XmlOut			OUT		NOCOPY CLOB,				-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_TrovaGruppi.xsd
+896        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+897        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+898        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+899        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+900        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+901        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+902        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+903        
+904        
+905        	/***************** Funzione utilizzata dal WS di notifica unità documentaria o folder per leggere l'XML di input ed estrarne i dati da passare all'API di notifica	**************/
+906        	/***************** L'inut deve essere conforme allo schema NotificaDocFolder.xsd  															**************/
+907        	FUNCTION NotificaDocFolder(
+908        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+909        															-- (obblig). Codice identificativo del token di connessione
+910        			XMLIn				IN		CLOB,						-- XML di input del WS (conforme allo schema NotificaDocFolder.xsd) contenente estreemi dell'UD o folder da notificare, destinatari della notifica e altri attributi della notifica
+911        			FlgTypeObjToNotifOut	OUT		VARCHAR2,					-- (valori F/U) Tipo di oggetto da notificare/condividere: F = Folder, U = Unità documentaria 
+912        			IdObjToNotifOut		OUT		INTEGER,					-- Identificativo (ID_FOLDER o ID_UD) del folder o unità documentaria da notificare/condividere
+913        			RecipientsXMLOut		OUT		NOCOPY CLOB,				-- Lista dei destinatari (xml conforme a schema LISTA_STD.xsd)
+914        															-- Ogni destinatario è un tag "Riga" con le seguenti colonne:
+915        															--						1: (obblig.) Indicatore del tipo di destinastario
+916        															--							Valori possibili:
+917        															-- 							UT 	= Utente
+918        															--							SV	= Scrivania virtuale
+919        															--							UO	= Unità organizzativa (vale a dire tutte le scrivanie virtuali ad essa afferenti)
+920        															--							G	= Gruppo
+921        															--							R	= Ruolo amministrativo contestualizzato ovvero i soggetti che hanno un certo ruolo amministrativo (eventualmente rispetto ad una certa UO o un dato livello della struttura organizzativa/tipo di UO o entrambi)
+922        															--							R@	= Soggetti interni che hanno un certo ruolo rispetto al documento / folder
+923        															--						2: Identificativo del destinatario
+924        															--							è un ID_UO di DMT_STRUTTURA_ORG se colonna 1=UO,
+925        															--							è un ID_GRUPPO di DMT_GRUPPI se colonna 1 =G
+926        															--							è un ID_USER di DMT_USERS se colonna 1 =UT
+927        															--							è un ID_SCRIVANIA di DMT_SCRIVANIE_VIRTUALI se colonna 1 =SV
+928        															--							è un ID_RUOLO_AMM di DMT_RUOLI_AMM se colonna 1 =R
+929        															--							è un COD_NATURA_REL di DMT_REL_SOGG_INT_DOC/DMT_REL_SOGG_INT_FOLDER che indica il codice del ruolo rispetto al documento / folder se colonna 1 = R@. Può avere i valori particolari: #CON_ACCESSO (= tutti coloro che hanno accesso anche in sola visualizzazione) e #CON_ACCESSO_IN_MODIFICA (= tutti coloro che hanno accesso anche in modifica dei metadati e/o file)
+930        															--						3: Denominazione/nome del destinatario (se trattasi di UO può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|"). Se colonna 1 = R@ è la descrizione del ruolo rispetto al documento / folder
+931        															--						4: Identificativo della UO cui appartiene la scrivania destinataria
+932        															--						5: Nri livello della UO destinataria o a cui appartiene la scrivania destinataria (tutti o alcuni; però se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno specificati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; sono separati dal separatore dei livelli valido per il soggetto produttore/AOO di appartenenza della UO)
+933        															--						6: Denominazione della UO cui appartiene la scrivania destinataria (può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+934        															--						7: Codice che identifica nell'applicazione esterna da cui ci si connette l'utente destinatario o quello che occupa la scrivania destinataria
+935        															--						8: Denominazione dell'utente che occupa la scrivania destinataria
+936        															--						9: (valore 1) Indica che il destinatario, se UO, sono anche tutte le sue sotto-UO
+937        															--						10: (valori interi da 1 a n) Livello della struttura organizzativa in cui si espleta il ruolo amministrativo destinatario
+938        															--						11: Se colonna 1 =R: Codice del tipo di unità organizzativa in cui si espleta il ruolo amministrativo destinatario (alternativo alla colonna 10)
+939        															--						    Se colonna 1 =UT o SV: Username (delle credenziali locali) dell'utente destinatario o che occupa la scrivania destinataria 
+940        															--						12: Se colonna 1 =R: Descrizione del tipo di unità organizzativa (es: settore, servizio, ecc) in cui si espleta il ruolo amministrativo destinatario (alternativo alla colonna 10)
+941        															--						    Se colonna 1 =UT o SV: N.ro di matricola dell'utente destinatario o che occupa la scrivania destinataria 
+942        															--						13: Identificativo della UO in cui si espleta il ruolo amministrativo destinatario o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario
+943        															--						14: Denominazione/nome della UO in cui si espleta il ruolo amministrativo destinatario o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario (può essere la denominazione semplice o preceduta da quella di tutte le UO superiori separate da "|")
+944        															--						15: Nri livello della UO in cui si espleta il ruolo amministrativo destinatario o dalla quale risalire alla/e UO del livello/tipo indicati in cui si espleta il ruolo amministrativo destinatario (tutti o alcuni; però se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno specificati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; sono separati dal separatore dei livelli valido per il soggetto produttore/AOO di appartenenza della UO)
+945        															--						16:(valore 1) Indica che il ruolo amministrativo destinatario si espleta anche nelle sotto-UO della/e UO rintracciate tramite i valori delle 3 colonne precedenti
+946        															--						17: Codice del ruolo del destinatario (valori codificati in apposita disctionary entry)
+947        															--						18: Ruolo del destinatario (valori in apposita disctionary entry)
+948        															--						19: Flag che indica la modalità di accesso da dare al destinatario sull'oggetto inviato (ovvero indica le opzioni di accesso che avrà il destinatario nell'ACL dell'oggetto dopo l'invio, salvo ne avesse già di più ampie)
+949        															--						    Valori possibili: FC = Full control; M = Modifica metadati e files/contenuti; MM = Modifica soli metadati; V = Sola visualizzazione; VM = Visualizzazione dei soli metadati (non dei files)
+950        			SenderTypeOut		OUT		VARCHAR2,					-- (valori UO/UT/SV) Indica il tipo di soggetto mittente della notifica
+951        															-- (gestito solo per unità documentaria) Valori ammessi: UO = Unità organizzativa; UT = Utente; SV = Scrivania
+952        			SenderIdOut			OUT		INTEGER,					-- (gestito solo per unità documentaria) Identificativo (ID_UO o ID_USER o ID_SCRIVANIA) del soggetto mittente della notifica	
+953        			CodMotivoNotifOut		OUT		VARCHAR2,					-- Codice del motivo della notifica (valori codificati in apposita dictionary entry)
+954        			MotivoNotifOut		OUT		VARCHAR2,					-- Modivo della notifica (valori da apposita dictionary entry)
+955        			MessaggioNotifOut		OUT		VARCHAR2,					-- Messaggio della notifica
+956        			LivelloPrioritaOut	OUT		INTEGER,					-- Livello di priorità della notifica 
+957        			RichConfermaPresaVisOut OUT		PLS_INTEGER,				-- (valori 1/0) Se 1 significa che si richiede di avere una notifica alla prima visione dell'unità doc./folder da parte di un destinatario
+958        			FlgEmailNotifPresaVisOut	OUT		PLS_INTEGER,			-- (valori 1/0) Se 1 e se RichConfermaPresaVisOut=1 indica che la notifica di avvenuta presa visione deve essere data anche via email
+959        			IndEmailNotifPresaVisOut	OUT		VARCHAR2,				-- Indirizzi email (se più d'uno separati da ; o ,) a cui inviare la mail di notifica di presa visione 
+960        															-- Se non è valorizzato e RichConfermaPresaVisOut=1 e FlgEmailNotifPresaVisOut=1 allora la notifica email di presa visione viene data all'indirizzo email del mittente della notifica originale
+961        			NotNoPresaVisEntroGGOut	OUT		PLS_INTEGER,				-- N.ro di giorni trascorsi i quali dalla decorrenza della notifica senza che il documento/folder notificato sia stato visionato dal destinatario deve esserene dato avvertimento al mittente/a qualcuno
+962        			FlgEmailNoPresaVisOut	OUT		PLS_INTEGER,				-- (valori 1/0) Se 1 e se l'input NotNoPresaVisEntroGGOut è valorizzato indica che la notifica di mancata presa visione entro il termine stabilito deve essere data anche via email
+963        			IndEmailNoPresaVisOut	OUT		VARCHAR2,					-- Indirizzi email (se più d'uno separati da ; o ,) a cui inviare la mail di notifica di mancata presa visione entro il termine NotNoPresaVisEntroGGOut.
+964        															-- Se non è valorizzato e NotNoPresaVisEntroGGOut è valorizzato e FlgEmailNoPresaVisOut=1 allora la notifica email di mancata presa visione viene data all'indirizzo email del mittente della notifica originale
+965        			TsDecorrenzaNotifOut	OUT		VARCHAR2,					-- Data e ora future da cui deve decorrere la notifica (se diversa dalla data di notifica; espressa nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+966        			FlgNotificaEmailNotifOut OUT		PLS_INTEGER,				-- (valori 1/0) Se 1 significa che ci deve essere notifica email ai destinatari (o a degli indirizzi email indicati nell'argomento IndXNotifEmailNotifIn)
+967        			IndXNotifEmailNotifOut	OUT		VARCHAR2,					-- Indirizzi email (se più d'uno separati da ; o ,) a cui notificare la notifica 
+968        			OggEmailOut			OUT		VARCHAR2,					-- (valorizzato se IndXNotifEmailNotifOut è valorizzato) Oggetto dell'email di notifica
+969        			BodyEmailOut		OUT		VARCHAR2,					-- (valorizzato se IndXNotifEmailNotifOut è valorizzato) Corpo del messaggio dell'email di notifica
+970        			FlgNotificaSMSNotifOut	OUT		PLS_INTEGER,				-- (valori 1/0) Se 1 significa che ci deve essere notifica via SMS ai destinatari (o a n.ri di cellulare indicati nell'argomento NriCellXNotifSMSNotifOut)
+971        			NriCellXNotifSMSNotifOut OUT		VARCHAR2,					-- N.ri di cellulare (se più d'uno separati da ; o ,) a cui notificare via SMS
+972        			TestoSMSOut			OUT		VARCHAR2,					-- (valorizzato se NriCellXNotifSMSNotifOut è valorizzato) Testo dell'SMS di notifica
+973        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+974        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+975        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+976        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+977        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+978        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+979        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+980        
+981        
+982        	/********** funzione utilizzata dai Web Service per aggiungere/togliere un unità documentaria o un folder dai preferiti dell'utente connesso *******/
+983        	function AddRemoveFromFavourite(
+984        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+985        															--(obblig.) Codice identificativo del token di connessione
+986        			OperationTypeIn		IN		VARCHAR2 DEFAULT 'ADD',			--(obblig.) Indica se l'operazione da fare è:
+987        															-- ADD = Aggiunta ai preferiti dell'utente
+988        															-- REMOVE = Eliminazione dai preferiti dell'utente
+989        			FlgTypeObjIn		IN		VARCHAR2,					-- (obblig.) Indica se l'oogetto da aggiungere o togliere dai preferiti è:
+990        															-- F = Folder
+991        															-- U = Unità documentaria
+992        			XMLIn				IN		CLOB,						--(obblig.) XML in input al Web service (secondo schema EstremiXIdentificazioneUD.xsd o EstemiXIdentificazioneFolder.xsd)
+993        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+994        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+995        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+996        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+997        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+998        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+999        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+1000        
+1001        	/***************** Funzione che a partire da un xml conforme allo schema EstremiXIdentificazioneUd.xsd ricava quali sono le "versioni" dei metadati dell'unità documentaria	******/
+1002        	FUNCTION GetListaVersioniDatiUD(
+1003        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+1004        															--(obblig.) Codice identificativo del token di connessione
+1005        			XMLIn				IN		CLOB,						--(obblig.) XML con tracciato conforme a schema EstremiXIdentificazioneUd.xsd
+1006        			XMLOut			OUT		NOCOPY CLOB,				-- XML di output conforme allo schema ListaVersioniDatiUD.xsd.
+1007        															-- E' valorizzato solo in caso di esito positivo
+1008        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+1009        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+1010        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+1011        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1012        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+1013        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+1014        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+1015        
+1016        	/***************** Funzione che a partire da un xml conforme allo schema GetListaNotificheUD.xsd ricava quali sono le notifiche (salvo quelle automatiche) sull'unità documentaria	******/
+1017        	FUNCTION GetListaNotificheUD(
+1018        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+1019        															--(obblig.) Codice identificativo del token di connessione
+1020        			XMLIn				IN		CLOB,						--(obblig.) XML con tracciato conforme a schema GetListaNotificheUD.xsd
+1021        			XMLOut			OUT		NOCOPY CLOB,				-- XML di output conforme allo schema ListaNotificheUD.xsd
+1022        															-- E' valorizzato solo in caso di esito positivo
+1023        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+1024        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+1025        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+1026        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1027        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+1028        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+1029        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+1030        
+1031        	/***************** Funzione che a partire da un xml conforme allo schema EstremiXIdentificazioneUd.xsd ricava quali sono i soggetti interni a cui si possono mandare osservazioni/commenti sull'unità documentaria	******/
+1032        	FUNCTION GetPossibiliDestOsservazSuUD(
+1033        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+1034        															--(obblig.) Codice identificativo del token di connessione
+1035        			XMLIn				IN		CLOB,						--(obblig.) XML con tracciato conforme a schema EstremiXIdentificazioneUd.xsd
+1036        			XMLOut			OUT		NOCOPY CLOB,				-- XML di output conforme allo schema PossbiliDestinatariOsservazioniSuUD.xsd
+1037        															-- E' valorizzato solo in caso di esito positivo
+1038        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+1039        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+1040        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+1041        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1042        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+1043        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+1044        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+1045        
+1046        
+1047        	/***************** Funzione che a partire da un xml conforme allo schema ExtractFilesInFolder.xsd sottomette nella tabella BMT_JOBS un job di estrazione file di folder ******/
+1048        	function ExtractFilesInFolder(
+1049        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+1050        															--(obblig.) Codice identificativo del token di connessione
+1051        			XMLIn				IN		CLOB,						--(obblig.) XML con tracciato conforme a schema ExtractFilesInFolder.xsd
+1052        			IdJobOut			OUT		INTEGER,					-- Id. del job creato per evadere la richiesta di estrazione file di un folder
+1053        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+1054        															--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+1055        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+1056        			ErrContextOut		OUT		VARCHAR2,					--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1057        			ErrCodeOut			OUT		PLS_INTEGER,				--N.ro errore di uscita
+1058        			ErrMsgOut			OUT 		VARCHAR2)					--Messaggio d'errore
+1059        			RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+1060        
+1061        
+1062        	/***************** Funzione per esguire una ricerca su strutture e utenti in organigramma		**************/
+1063        	/***************** L'inut deve essere conforme allo schema TrovaInOrganigramma.xsd mentre 		**************/
+1064        	/***************** l'output è conforme allo schema Output_TrovaInOrganigramma.xsd				**************/
+1065        	FUNCTION TrovaInOrganigramma(
+1066        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+1067        																			-- (obblig). Codice identificativo del token di connessione
+1068        			XMLIn				IN		CLOB,								-- XML di input del WS (conforme allo schema TrovaInOrganigramma.xsd) contenente i filtri di ricerca e la modalità di estrazione
+1069        			XmlOut				OUT		NOCOPY CLOB,						-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_TrovaInOrganigramma.xsd
+1070        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1071        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+1072        			ErrMsgOut			OUT 	VARCHAR2)							-- Messaggio d'errore
+1073        			RETURN PLS_INTEGER;												-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+1074        
+1075        	/***************** Funzione per esguire una ricerca di classificazioni in un piano di classificazione (=titolario)		**************/
+1076        	/***************** L'inut deve essere conforme allo schema TrovaClassifTitolario.xsd mentre 							**************/
+1077        	/***************** l'output è conforme allo schema Output_TrovaClassifTitolario.xsd										**************/
+1078        	FUNCTION TrovaClassifTitolario(
+1079        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+1080        																			-- (obblig). Codice identificativo del token di connessione
+1081        			XMLIn				IN		CLOB,								-- XML di input del WS (conforme allo schema TrovaClassifTitolario.xsd) contenente i filtri di ricerca e la modalità di estrazione
+1082        			XmlOut				OUT		NOCOPY CLOB,						-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_TrovaClassifTitolario.xsd
+1083        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1084        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+1085        			ErrMsgOut			OUT 	VARCHAR2)							-- Messaggio d'errore
+1086        			RETURN PLS_INTEGER;												-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+1087        
+1088        	/***************** Funzione per esguire una ricerca di documenti per SUA di ADSPMLO											**************/
+1089        	/***************** L'inut deve essere conforme allo schema RicercaDocXImportInBOGestPratiche.xsd mentre 					**************/
+1090        	/***************** l'output è conforme allo schema Output_RicercaDocXImportInBOGestPratiche.xsd								**************/
+1091        
+1092        	FUNCTION TrovaDocPraticaSUA_ADSP(
+1093        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+1094        																			-- (obblig). Codice identificativo del token di connessione
+1095        			XMLIn				IN		CLOB,								-- XML di input del WS (conforme allo schema RicercaDocXImportInBOGestPratiche.xsd) contenente i filtri di ricerca e la modalità di estrazione
+1096        			XmlOut				OUT		NOCOPY CLOB,						-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_RicercaDocXImportInBOGestPratiche.xsd
+1097        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1098        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+1099        			ErrMsgOut			OUT 	VARCHAR2)							-- Messaggio d'errore
+1100        			RETURN PLS_INTEGER;												-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+1101        
+1102        
+1103        	/***************** Funzione per ottenere le pubblicazioni all'Albo di una data tipopologia									**************/
+1104        	/***************** L'inut deve essere conforme allo schema RequestElencaPubblicazioni.xsd mentre 							**************/
+1105        	/***************** l'output è conforme allo schema ResponseElencaPubblicazioni.xsd											**************/
+1106        	FUNCTION ElencaPubblicazioni(
+1107        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+1108        																			-- (obblig). Codice identificativo del token di connessione
+1109        			XMLIn				IN		CLOB,								-- XML di input del WS (conforme allo schema RequestElencaPubblicazioni.xsd) contenente i filtri di ricerca e la modalità di estrazione
+1110        			XmlOut				OUT		NOCOPY CLOB,						-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema ResponseElencaPubblicazioni.xsd
+1111        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1112        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+1113        			ErrMsgOut			OUT 	VARCHAR2)							-- Messaggio d'errore
+1114        			RETURN PLS_INTEGER;												-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+1115        
+1116        	/***************** Funzione per esguire una ricerca sui registri di numerazione tramite Web Service			**************/
+1117        	/***************** L'inut deve essere conforme allo schema TrovaRegistriNumerazione.xsd mentre 				**************/
+1118        	/***************** l'output è conforme allo schema Output_TrovaRegistriNumerazione.xsd						**************/
+1119        	FUNCTION TrovaRegistriNumerazione(
+1120        			CodIdConnectionTokenIn	IN	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+1121        																			-- (obblig). Codice identificativo del token di connessione
+1122        			XMLIn					IN	CLOB,								-- XML di input del WS (conforme allo schema TrovaRegistriNumerazione.xsd) contenente i filtri di ricerca e la modalità di estrazione
+1123        			XmlOut					OUT	NOCOPY CLOB,						-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_TrovaRegistriNumerazione.xsd
+1124        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		--(valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+1125        																			--ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+1126        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,			--(valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+1127        			ErrContextOut		OUT		VARCHAR2,							--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1128        			ErrCodeOut			OUT		PLS_INTEGER,						--N.ro errore di uscita
+1129        			ErrMsgOut			OUT 		VARCHAR2)						--Messaggio d'errore
+1130        			RETURN PLS_INTEGER;												--Vale 1 se tutto è andato a buon fine, altrimenti 0
+1131        
+1132        
+1133        	/***************** Funzione per ricercare documenti contabili e fascicolarli nella pratica eventuale indicata				**************/
+1134        	/***************** L'inut deve essere conforme allo schema Request_GetDocumentiContabili.xsd mentre 					    **************/
+1135        	/***************** l'output è conforme allo schema Response_GetDocumentiContabili.xsd										**************/
+1136        	FUNCTION RicercaDocContabili(
+1137        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+1138        																			-- (obblig). Codice identificativo del token di connessione
+1139        			XMLIn				IN		CLOB,								-- XML di input del WS (conforme allo schema Request_GetDocumentiContabili) contenente gli estremi dei documenti contabili da ricercare
+1140        			XmlOut				OUT		NOCOPY CLOB,						-- XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Response_GetDocumentiContabili.xsd
+1141        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1142        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+1143        			ErrMsgOut			OUT 	VARCHAR2)							-- Messaggio d'errore
+1144        			RETURN PLS_INTEGER;												-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+1145        
+1146        	/***************** Funzione per esguire una ricerca di atti corrispondenti ad un dato progetto di opere pubbliche	**************/
+1147        	/***************** L'inut deve essere conforme allo schema RequestRicercaAttiPerProgettoLLPP.xsd mentre 			**************/
+1148        	/***************** l'output è conforme allo schema ResponsetRicercaAttiPerProgettoLLPP.xsd							**************/
+1149        	FUNCTION RicercaAttiPerProgettoLLPP(
+1150        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+1151        																			-- (obblig). Codice identificativo del token di connessione
+1152        			XMLIn				IN		CLOB,								-- XML di input del WS (conforme allo schema RequestRicercaAttiPerProgettoLLPP.xsd)
+1153        			XmlOut				OUT		NOCOPY CLOB,						-- XML di response SEMPRE restituito, con dati di output specifici del WS, conforme a schema ResponsetRicercaAttiPerProgettoLLPP.xsd
+1154        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1155        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+1156        			ErrMsgOut			OUT 	VARCHAR2)							-- Messaggio d'errore
+1157        			RETURN PLS_INTEGER;												-- Restituise sempre 1
+1158        
+1159        	/***************** Funzione per recuperare i dati di un atto necessari ai sistemi di acquisti				**************/
+1160        	/***************** L'inut deve essere conforme allo schema RequestGetAttoPerAcquisti.xsd mentre 			**************/
+1161        	/***************** l'output è conforme allo schema ResponseGetAttoPerAcquisti.xsd							**************/
+1162        	FUNCTION GetAttoPerAcquisti(
+1163        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+1164        																			-- (obblig). Codice identificativo del token di connessione
+1165        			XMLIn				IN		CLOB,								-- XML di input del WS (conforme allo schema RequestGetAttoPerAcquisti.xsd)
+1166        			XmlOut				OUT		NOCOPY CLOB,						-- XML di response SEMPRE restituito, con dati di output specifici del WS, conforme a schema ResponseGetAttoPerAcquisti.xsd
+1167        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1168        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+1169        			ErrMsgOut			OUT 	VARCHAR2)							-- Messaggio d'errore
+1170        			RETURN PLS_INTEGER;												-- Restituise sempre 1
+1171        
+1172        	/***************** Funzione per recuperare i dati di pubblicazione di un atto								**************/
+1173        	/***************** L'inut deve essere conforme allo schema RequestGetDatiPubblicazioneAtto.xsd mentre 		**************/
+1174        	/***************** l'output è conforme allo schema ResponseGetDatiPubblicazioneAtto.xsd						**************/
+1175        	FUNCTION GetDatiPubblicazioneAtto(
+1176        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,	
+1177        																			-- (obblig). Codice identificativo del token di connessione
+1178        			XMLIn				IN		CLOB,								-- XML di input del WS (conforme allo schema RequestGetDatiPubblicazioneAtto.xsd)
+1179        			XmlOut				OUT		NOCOPY CLOB,						-- XML di response SEMPRE restituito, con dati di output specifici del WS, conforme a schema ResponseGetDatiPubblicazioneAtto.xsd
+1180        			URIRelatePubblOut	OUT		NOCOPY CLOB,						-- Lista xml (conforme a schema ListaStd.xsd) con UTI della/e relate di pubblicazione.
+1181        																			-- Ogni relata è una riga contenente una sola colonna:
+1182        																			-- 1) URI della relata in notazione StorageUtil
+1183        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1184        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+1185        			ErrMsgOut			OUT 	VARCHAR2)							-- Messaggio d'errore
+1186        			RETURN PLS_INTEGER;												-- Restituise sempre 1
+1187        
+1188        	/****************funzione di ricerca agibilità inviata da portale ***************/
+1189        	/****************se va a buon fine effettua una protocollazione in uscita *******/
+1190        	function RicercaAgibilitaDaPortale(
+1191        			XMLRequestIn			IN		CLOB,							-- (obblig.) Tag XML ricercaAgibilitaRequest con i dati della request
+1192        			ConnTokenOut			OUT		VARCHAR2,						-- Token di connessione da usare per caricare i file di richiesta e risposta	
+1193        			IdDominioOut			OUT     INTEGER,						-- Id. del dominio in cui viene evasa la richiesta	
+1194        			IdUDRichiestaOut		OUT		INTEGER,						-- ID_UD assegnato alla richiesta protocollata
+1195        			IdDocRichiestaOut		OUT		INTEGER,						-- ID_DOC del documento primario della richiesta protocollata
+1196        			EstremiProRichOut		OUT		VARCHAR2,						-- Estremi di protocollo in entrata assegnato alla richiesta
+1197        			ListaAgibilitaOut 		OUT		NOCOPY CLOB,					-- XML con la lista dei certificati di agibilità restituiti (ogni riga ha una sola colonna)
+1198        			ListaFileOut			OUT		NOCOPY CLOB,					-- XML con la lista dei file da restituire. Ogni file-riga contiene le colonne
+1199        																				-- 1) URI in notazione storageUtil
+1200        																				-- 2) Nome con cui mostrare il file
+1201        																				-- 3) mimetype
+1202        																				-- 4) dimensione in bytes
+1203        			ModalitaFileXPortaleOut	OUT     VARCHAR2,						-- Modalità di restituzione dei file agibiltà su portale; valori possibili:
+1204        																			-- PREVIEW_PDF
+1205        																			-- DOWNLOAD_ZIP
+1206        			IdUDRispostaOut			OUT		INTEGER,						-- ID_UD assegnato alla risposta protocollata	
+1207        			IdDocRispostaOut		OUT		INTEGER,						-- ID_DOC del documento primario della risposta protocollata	
+1208        			EstremiProRispostaOut	OUT		VARCHAR2,						-- Estremi di protocollo in uscita assegnato alla risposta
+1209        			IdUtenteInvioMailOut	OUT		VARCHAR2,						-- Id. dell'utente del modulo mail da usare per la trasmissione mail della risposta
+1210        			AccountMittMailToSendOut OUT	VARCHAR2,						-- Account e-mail da cui inviare la mail con la risposta
+1211        			SubjectMailToSendOut	OUT		VARCHAR2,						-- Oggetto della mail da inviare
+1212        			BodyMailToSendOut		OUT		NOCOPY CLOB,					-- Corpo della mail da inviare (html)
+1213        			FileAllegatiMailOut		OUT		PLS_INTEGER,					-- Se 1 il/i file delle agibilità possono essere allegati alla mail, se 0 no
+1214        			IdTemplateRispostaOut	OUT		INTEGER,						-- Id del modello da usare per il pdf di risposta
+1215        			URITemplateRispostaOut	OUT		VARCHAR2,						-- URI - in notazione StorageUtil - del modello da usare per il pdf di risposta
+1216        			NomeTemplateRispostaOut	OUT		VARCHAR2,						-- Nome del modello da usare per il pdf di risposta
+1217        			TipoTemplateOut			OUT		VARCHAR2,						-- Tipo del modello (ai fini di come si iniettano i dati)
+1218        			XMLDatiXModelloOut      OUT 	NOCOPY CLOB,					-- XML SezioneCache con i dati da iniettare nel modello
+1219        			ContenutoBarcodeOut		OUT		VARCHAR2,						-- Contenuto da mettere nel barcode da appore sul file della risposta
+1220        			TestoInChiaroBarcodeOut	OUT		VARCHAR2,						-- Testo in chiaro da mettere vicino al barcode 
+1221        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1222        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+1223        			ErrMsgOut				OUT 	VARCHAR2)						-- Messaggio d'errore
+1224        			RETURN PLS_INTEGER;												-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+1225        
+1226        	/****************funzione per richiedere lo sblocco del limite di agibilità che un utente può richiedere da Portale ***************/
+1227        	function RichSbloccoLimAgibilita(
+1228        			XMLRequestIn			IN		CLOB,							-- (obblig.) Tag XML sbloccoLimiteRichiesteRequest con i dati della request di sblocco limite richieste
+1229        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1230        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+1231        			ErrMsgOut				OUT 	VARCHAR2)						-- Messaggio d'errore
+1232        			RETURN PLS_INTEGER;												-- Vale 1 se la richiesta è stata presa in carico, altrimenti 0
+1233        
+1234        
+1235        
+1236        	/****************funzione usata dal WEB SERVICE di GetDetermina che serve a recuperare dati e file di una determina (usato dal comune di Milano) ***************/
+1237        	function GetDetermina(
+1238        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+1239        															--(obblig.) Codice identificativo del token di connessione
+1240        			XMLRequestIn			IN		CLOB,			--(obblig.) XML in input al Web service di GetDetermina (secondo schema RequestGetDetermina.xsd)
+1241        			XmlResponseOut			OUT		NOCOPY CLOB,	-- XML di response del web-service di GetDetermina, restituito anche in caso di errore, conforme a schema ResponseGetDetermina.xsd
+1242        			ListaFileOut   			OUT		NOCOPY CLOB,	-- XML conforme a schema LISTA_STD.xsd con URI dei file (solo una colonna) da restituire come attachment in output al servizio (nell'ordine con cui sono restituiti qui)
+1243        															-- Per file una sola colonna
+1244        															-- 1: URI del file in notazione storageUtil
+1245        			ErrContextOut			OUT		VARCHAR2,		--Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1246        			ErrCodeOut				OUT		PLS_INTEGER,	--N.ro errore di uscita
+1247        			ErrMsgOut				OUT 	VARCHAR2)		--Messaggio d'errore
+1248        			RETURN PLS_INTEGER;								--Vale 1 se tutto è andato a buon fine, altrimenti 0
+1249        
+1250        
+1251          /***************** Funzione che a partire dai livelli ricava l'id uo in rubrica	******/
+1252          function GetIdUoInRubricaFromLivelli(IdSpAOOIn				      IN    DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,				    --(obblig.) Identificativo del soggetto produttore o AOO
+1253        			                                 NriLivelliIn		        IN		DMT_STRUTTURA_ORG.NRI_LIVELLI%TYPE,				      --(obblig.) nri livelli
+1254        			                                 IdUoInRubricaOut	     OUT		DMT_STRUTTURA_ORG.ID_UO_IN_RUBRICA%TYPE,		    -- Id. uo in rubrica
+1255        			                                 ErrContextOut		     OUT		VARCHAR2,					                              --Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1256        			                                 ErrCodeOut			       OUT		PLS_INTEGER,				                            --N.ro errore di uscita
+1257        			                                 ErrMsgOut			       OUT 		VARCHAR2)					                              --Messaggio d'errore
+1258        			                                 RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+1259        
+1260          /***************** Funzione che a partire dai livelli ricava l'id uo 	******/
+1261          function GetIdUoFromLivelli(IdSpAOOIn				      IN    DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,				    --(obblig.) Identificativo del soggetto produttore o AOO
+1262        			                        NriLivelliIn		      IN		DMT_STRUTTURA_ORG.NRI_LIVELLI%TYPE,				      --(obblig.) nri livelli
+1263        			                        IdUoOut	             OUT		DMT_STRUTTURA_ORG.ID_UO%TYPE,		                -- Id. uo
+1264        			                        ErrContextOut		     OUT		VARCHAR2,					                              --Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1265        			                        ErrCodeOut			     OUT		PLS_INTEGER,				                            --N.ro errore di uscita
+1266        			                        ErrMsgOut			       OUT 		VARCHAR2)					                              --Messaggio d'errore
+1267        			                        RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+1268        
+1269          /***************** Funzione che a partire dal prov_ci_uo ricava l'id uo in rubrica	******/
+1270          function GetIdUoInRubricaFromProvCiUo(IdSpAOOIn				      IN    DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,				    --(obblig.) Identificativo del soggetto produttore o AOO
+1271        			                                  ProvCiUoIn		        IN		DMT_STRUTTURA_ORG.PROV_CI_UO%TYPE,				      --(obblig.) prov ci uo
+1272        			                                  IdUoInRubricaOut	   OUT		DMT_STRUTTURA_ORG.ID_UO_IN_RUBRICA%TYPE,		    -- Id. uo in rubrica
+1273        			                                  ErrContextOut		     OUT		VARCHAR2,					                              --Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1274        			                                  ErrCodeOut			     OUT		PLS_INTEGER,				                            --N.ro errore di uscita
+1275        			                                  ErrMsgOut			       OUT 		VARCHAR2)					                              --Messaggio d'errore
+1276        			                                  RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+1277        
+1278          /***************** Funzione che a partire dal prov_ci_uo ricava l'id uo 	******/
+1279          function GetIdUoFromProvCiUo(IdSpAOOIn				    IN    DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,				    --(obblig.) Identificativo del soggetto produttore o AOO
+1280        			                         ProvCiUoIn		        IN		DMT_STRUTTURA_ORG.PROV_CI_UO%TYPE,				      --(obblig.) prov ci uo
+1281        			                         IdUoOut	           OUT		DMT_STRUTTURA_ORG.ID_UO%TYPE,		                -- Id. uo 
+1282        			                         ErrContextOut		   OUT		VARCHAR2,					                              --Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1283        			                         ErrCodeOut			     OUT		PLS_INTEGER,				                            --N.ro errore di uscita
+1284        			                         ErrMsgOut			     OUT 		VARCHAR2)					                              --Messaggio d'errore
+1285        			                         RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+1286        
+1287        
+1288          /***************** Funzione che a partire dall'id uo ricava l'id uo in rubrica	******/
+1289          function GetIdUoInRubricaFromIdUo(IdSpAOOIn				      IN    DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,				    --(obblig.) Identificativo del soggetto produttore o AOO
+1290        			                              IdUoIn		            IN		DMT_STRUTTURA_ORG.ID_UO%TYPE,				            --(obblig.) Id. uo
+1291        			                              IdUoInRubricaOut	   OUT		DMT_STRUTTURA_ORG.ID_UO_IN_RUBRICA%TYPE,		    -- Id. uo in rubrica
+1292        			                              ErrContextOut		     OUT		VARCHAR2,					                              --Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1293        			                              ErrCodeOut			     OUT		PLS_INTEGER,				                            --N.ro errore di uscita
+1294        			                              ErrMsgOut			       OUT 		VARCHAR2)					                              --Messaggio d'errore
+1295        			                              RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+1296        
+1297        
+1298          /***************** Funzione che a partire dal prov_ci_classificazione ricava l'id classificazione 	******/
+1299          function GetIdClassifFromProvCiClassif(IdPianoClassifIn            IN   DMT_TITOLARIO.ID_PIANO_CLASSIF%type,				  --(obblig.) Identificativo del piano di classificazione
+1300        			                                   ProvCiClassificazioneIn		 IN		DMT_TITOLARIO.PROV_CI_CLASSIFICAZIONE%TYPE,	  --(obblig.) prov ci classificazione
+1301        			                                   IdClassificazioneOut	       OUT	DMT_TITOLARIO.ID_CLASSIFICAZIONE%TYPE,		    -- Id. classificazione
+1302        			                                   ErrContextOut		           OUT	VARCHAR2,					                            -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+1303        			                                   ErrCodeOut			             OUT	PLS_INTEGER,				                          -- N.ro errore di uscita
+1304        			                                   ErrMsgOut			             OUT 	VARCHAR2)					                            -- Messaggio d'errore
+1305        			                                   RETURN PLS_INTEGER;									--Vale 1 se tutto è andato a buon fine, altrimenti 0
+1306        
+1307        END Dmpk_Ws;

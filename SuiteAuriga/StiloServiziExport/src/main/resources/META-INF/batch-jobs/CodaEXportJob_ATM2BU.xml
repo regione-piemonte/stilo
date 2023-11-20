@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<job id="codaEXportJob_ATM2BU">
+    <step id="codaEXportStep_ATM2BU" >
+        <batchlet ref="codaEXportJob_ATM2BU"/>
+    </step>
+</job>

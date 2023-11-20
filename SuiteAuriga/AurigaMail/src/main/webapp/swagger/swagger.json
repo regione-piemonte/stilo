@@ -1,0 +1,3868 @@
+{
+  "swagger" : "2.0",
+  "info" : {
+    "description" : "Espone servizi REST per le mail",
+    "version" : "v1",
+    "title" : "Servizi di AurigaMail",
+    "termsOfService" : "",
+    "contact" : {
+      "name" : "API Support",
+      "url" : "http://www.eng.it/",
+      "email" : "Ugo.PiconeChiodo@eng.it"
+    },
+    "license" : {
+      "name" : "Apache 2.0",
+      "url" : "http://www.apache.org/licenses/LICENSE-2.0"
+    }
+  },
+  "host" : "",
+  "basePath" : "/AurigaMail/rest",
+  "tags" : [ {
+    "name" : "Archiviazione"
+  }, {
+    "name" : "Assegnazione"
+  }, {
+    "name" : "Autenticazione"
+  }, {
+    "name" : "Dizionario"
+  }, {
+    "name" : "Interazione"
+  }, {
+    "name" : "Invio"
+  }, {
+    "name" : "Locking"
+  } ],
+  "paths" : {
+    "/email/actionToDo" : {
+      "post" : {
+        "tags" : [ "Interazione" ],
+        "summary" : "Imposta l'azione da fare su una mail (ImpostaAzioneDaFareSuEmail)",
+        "description" : "Al momento nessuna nota",
+        "operationId" : "setActionToDo",
+        "consumes" : [ "application/xml" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Oggetto SetActionToDoRequest",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/SetActionToDoRequest"
+          }
+        } ],
+        "responses" : {
+          "422" : {
+            "description" : "Operazione interrotta a causa di un errore gestito."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore imprevisto."
+          }
+        }
+      }
+    },
+    "/email/assignment" : {
+      "post" : {
+        "tags" : [ "Assegnazione" ],
+        "summary" : "Assegna una mail (tipicamente ricevuta) ad una UO o utente o scrivania (AssegnaEmail)",
+        "description" : "Viene elaborato solo il primo 'assegnatarioEmail' specificato nella richiesta",
+        "operationId" : "assign",
+        "consumes" : [ "application/xml" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Oggetto AssignRequest",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/AssignRequest"
+          }
+        } ],
+        "responses" : {
+          "422" : {
+            "description" : "Operazione interrotta a causa di un errore gestito."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore imprevisto."
+          }
+        }
+      }
+    },
+    "/email/assignmentCancellation" : {
+      "post" : {
+        "tags" : [ "Assegnazione" ],
+        "summary" : "Annulla l'assegnazione di una mail ad un dato soggetto (UO/utente) (AnnullaAssegnazioneEmail)",
+        "description" : "Al momento nessuna nota",
+        "operationId" : "cancelAssignment",
+        "consumes" : [ "application/xml" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Oggetto CancelAssignmentRequest",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/CancelAssignmentRequest"
+          }
+        } ],
+        "responses" : {
+          "422" : {
+            "description" : "Operazione interrotta a causa di un errore gestito."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore imprevisto."
+          }
+        }
+      }
+    },
+    "/email/closing" : {
+      "post" : {
+        "tags" : [ "Archiviazione" ],
+        "summary" : "Archivia una o pi� mail (sia ricevute che inviate) (ArchiviaEmail)",
+        "description" : "Al momento nessuna nota",
+        "operationId" : "close",
+        "consumes" : [ "application/xml" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Oggetto CloseRequest",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/CloseRequest"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/CloseResponse"
+            }
+          },
+          "422" : {
+            "description" : "Operazione interrotta a causa di un errore gestito."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore imprevisto."
+          }
+        }
+      }
+    },
+    "/email/closingCancellation" : {
+      "post" : {
+        "tags" : [ "Archiviazione" ],
+        "summary" : "Riapre, ovvero annulla l'archiviazione di una o pi� mail precedentemente archiviate (AnnullaArchiviazioneEmail)",
+        "description" : "Al momento nessuna nota",
+        "operationId" : "cancelClosing",
+        "consumes" : [ "application/xml" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Oggetto CancelClosingRequest",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/CancelClosingRequest"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/CancelClosingResponse"
+            }
+          },
+          "422" : {
+            "description" : "Operazione interrotta a causa di un errore gestito."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore imprevisto."
+          }
+        }
+      }
+    },
+    "/email/collegaRegToEmail" : {
+      "post" : {
+        "tags" : [ "Interazione" ],
+        "summary" : "Collega una registrazione (in genere di protocollo) ad una mail (CollegaRegToEmail)",
+        "description" : "Al momento nessuna nota",
+        "operationId" : "collegaRegToEmail",
+        "consumes" : [ "application/xml" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Oggetto CollegaRegToEmailRequest",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/CollegaRegToEmailRequest"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/CollegaRegToEmailRequestResponse"
+            }
+          },
+          "400" : {
+            "description" : "Operazione interrotta a causa di input non valido."
+          },
+          "403" : {
+            "description" : "Operazione non permessa."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore imprevisto."
+          }
+        }
+      }
+    },
+    "/email/dictionaryValues" : {
+      "post" : {
+        "tags" : [ "Dizionario" ],
+        "summary" : "Ottiene i valori possibili per una data voce di dizionario (TrovaValoriDizionario)",
+        "description" : "Al momento nessuna nota",
+        "operationId" : "dictionaryLookup",
+        "consumes" : [ "application/xml" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Oggetto DictionaryLookupRequest",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/DictionaryLookupRequest"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/DictionaryLookupResponse"
+            }
+          },
+          "422" : {
+            "description" : "Operazione interrotta a causa di un errore gestito."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore."
+          }
+        }
+      }
+    },
+    "/email/emailBoxes" : {
+      "post" : {
+        "tags" : [ "Interazione" ],
+        "summary" : "Recupera le caselle da cui si pu� inviare o di cui si � smistatori (TrovaCaselleEmail)",
+        "description" : "Al momento nessuna nota",
+        "operationId" : "getEmailBoxes",
+        "consumes" : [ "application/xml" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Oggetto GetEmailBoxesRequest",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/GetEmailBoxesRequest"
+          }
+        }, {
+          "name" : "token",
+          "in" : "query",
+          "description" : "Token di Autenticazione ottenibile chiamando il servizio di Login",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/GetEmailBoxesResponse"
+            }
+          },
+          "400" : {
+            "description" : "Operazione interrotta a causa di input non valido."
+          },
+          "422" : {
+            "description" : "Operazione interrotta a causa di un errore gestito."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore."
+          }
+        }
+      }
+    },
+    "/email/invioMassivo" : {
+      "post" : {
+        "tags" : [ "Invio" ],
+        "summary" : "Effettua l'invio massivo di email",
+        "description" : "L'invio effettivo viene fatto da un job",
+        "operationId" : "invioMassivo",
+        "consumes" : [ "multipart/form-data" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "name" : "file",
+          "in" : "formData",
+          "description" : "Files eventuali da allegare all'email",
+          "required" : false,
+          "type" : "array",
+          "items" : {
+            "type" : "file"
+          },
+          "collectionFormat" : "multi"
+        }, {
+          "name" : "data",
+          "in" : "formData",
+          "description" : "XML richiestaInvioMassivoEmail",
+          "required" : true,
+          "type" : "string"
+        }, {
+          "name" : "fileXlsDestinatariMail",
+          "in" : "formData",
+          "description" : "File excel",
+          "required" : false,
+          "type" : "file"
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Operazione interrotta a causa di input non valido."
+          },
+          "403" : {
+            "description" : "Operazione non permessa."
+          },
+          "422" : {
+            "description" : "Operazione interrotta a causa di un errore gestito."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore imprevisto."
+          }
+        }
+      }
+    },
+    "/email/locking" : {
+      "post" : {
+        "tags" : [ "Locking" ],
+        "summary" : "Mette un lock su una o pi� mail (sia ricevute che inviate) (LockEmail)",
+        "description" : "Al momento nessuna nota",
+        "operationId" : "lock",
+        "consumes" : [ "application/xml" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Oggetto LockRequest",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/LockRequest"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/LockResponse"
+            }
+          },
+          "422" : {
+            "description" : "Operazione interrotta a causa di un errore gestito."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore."
+          }
+        }
+      }
+    },
+    "/email/login" : {
+      "post" : {
+        "tags" : [ "Autenticazione" ],
+        "summary" : "Permette di autenticarsi nel sistema.(Login)",
+        "description" : "Nella risposta � fornito un token di autenticazione.",
+        "operationId" : "login",
+        "consumes" : [ "application/xml" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Oggetto ExternalApplicationLoginRequest",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/ExternalApplicationLoginRequest"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/ExternalApplicationLoginResponse"
+            }
+          },
+          "422" : {
+            "description" : "Operazione interrotta a causa di un errore gestito."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore imprevisto."
+          }
+        }
+      }
+    },
+    "/email/lookup" : {
+      "post" : {
+        "tags" : [ "Interazione" ],
+        "summary" : "Ricerca le mail (TrovaEmail)",
+        "description" : "Al momento nessuna nota",
+        "operationId" : "lookup",
+        "consumes" : [ "application/xml" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Oggetto LookupRequest",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/LookupRequest"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/LookupResponse"
+            }
+          },
+          "422" : {
+            "description" : "Operazione interrotta a causa di un errore gestito."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore imprevisto."
+          }
+        }
+      }
+    },
+    "/email/noAttachment/sending" : {
+      "post" : {
+        "tags" : [ "Invio" ],
+        "summary" : "SERVIZIO PER L'INVIO SENZA ALLEGATI.\nSpedisce una email senza allegati e salva le informazioni nel sistema. (SpedisciESalvaEmail)",
+        "description" : "E' il servizio REST per testare l'invio senza allegati da UI Swagger. E' anche richiamabile con un client qualsiasi. <br/>E' stato messo a disposizione principalmente per documentare l'XML con cui valorizzare il parametro 'data'.<br/>Questo servizio ha il vantaggio di essere fruibile con richieste senza 'multipart/*'.",
+        "operationId" : "sendAndSave",
+        "consumes" : [ "application/xml" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "data",
+          "description" : "XML richiestaSpedisciESalvaEmail",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/SendAndSaveNewRequest"
+          }
+        }, {
+          "name" : "token",
+          "in" : "header",
+          "description" : "Token di Autenticazione ottenibile chiamando il servizio di Login",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/SendAndSaveNewResponse"
+            }
+          },
+          "400" : {
+            "description" : "Operazione interrotta a causa di input non valido."
+          },
+          "403" : {
+            "description" : "Operazione non permessa."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore imprevisto."
+          }
+        }
+      }
+    },
+    "/email/sending" : {
+      "post" : {
+        "tags" : [ "Invio" ],
+        "summary" : "SERVIZIO ESPOSTO DI RIFERIMENTO.\nSpedisce una email con eventuali allegati e salva le informazioni nel sistema.(SpedisciESalvaEmail)",
+        "description" : "E' il servizio REST di riferimento richiamabile con un client qualsiasi.<br/><b>Per chiamare questo servizio da UI Swagger (conviene) usare il servizio equivalente su '/email/sendingSWA'.</b><br/>Il parametro 'data' deve essere valorizzato con una stringa XML la cui struttura � documentata nel servizio su '/email/noAttachment/sending'.<br/>In realt� il tipo di dato per il parametro 'data' non � 'string' bens� un 'object' istanza di SendAndSaveNewRequest.<br/>Per un servizio cos� definito, purtroppo, la libreria client Swagger non � ancora in grado di produrre un file descrittore del servizio esaustivo.<br/>Di seguito un esempio di un messaggio HTTP semplificato che questo servizio prende in carico:<br/><br/>Content-Type: multipart/form-data; boundary=Boundary_1_511262261_1369143433608<br/><br/>--Boundary_1_511262261_1369143433608<br/>Content-Disposition: form-data; name=\"data\"<br/>Content-Type: application/xml<br/><br/><br/>--Boundary_1_511262261_1369143433608<br/>Content-Disposition: form-data; name=\"file\"; filename=\"aaa.pdf\"<br/>Content-Type: application/pdf<br/><br/><br/>--Boundary_1_511262261_1369143433608<br/>Content-Disposition: form-data; name=\"file\"; filename=\"bbb.txt\"<br/>Content-Type: text/plain<br/><br/><br/>--Boundary_1_511262261_1369143433608--<br/>",
+        "operationId" : "sendAndSave",
+        "consumes" : [ "multipart/form-data" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "name" : "file",
+          "in" : "formData",
+          "description" : "Files eventuali da allegare all'email",
+          "required" : false,
+          "type" : "array",
+          "items" : {
+            "type" : "file"
+          },
+          "collectionFormat" : "multi"
+        }, {
+          "name" : "token",
+          "in" : "header",
+          "description" : "Token di Autenticazione ottenibile chiamando il servizio di Login",
+          "required" : true,
+          "type" : "string"
+        }, {
+          "name" : "data",
+          "in" : "formData",
+          "description" : "XML richiestaSpedisciESalvaEmail",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/SendAndSaveNewResponse"
+            }
+          },
+          "400" : {
+            "description" : "Operazione interrotta a causa di input non valido."
+          },
+          "403" : {
+            "description" : "Operazione non permessa."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore imprevisto."
+          }
+        }
+      }
+    },
+    "/email/sendingSWA" : {
+      "post" : {
+        "tags" : [ "Invio" ],
+        "summary" : "SERVIZIO AD USO ESCLUSIVO DI UI SWAGGER.\nSpedisce una email con eventuali allegati e salva le informazioni nel sistema. (SpedisciESalvaEmail)",
+        "description" : "E' il servizio REST per testare l'invio con allegati da UI Swagger.<br/>Il parametro 'data' deve essere valorizzato con una stringa XML la cui struttura � documentata nel servizio su '/email/noAttachment/sending'.<br/>Conviene fare copia e incolla sul campo testo relativo.",
+        "operationId" : "sendAndSave",
+        "consumes" : [ "multipart/form-data" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "name" : "token",
+          "in" : "header",
+          "description" : "Token di Autenticazione ottenibile chiamando il servizio di Login",
+          "required" : true,
+          "type" : "string"
+        }, {
+          "name" : "data",
+          "in" : "formData",
+          "description" : "XML richiestaSpedisciESalvaEmail",
+          "required" : true,
+          "type" : "string"
+        }, {
+          "name" : "file1",
+          "in" : "formData",
+          "description" : "Allegato uno",
+          "required" : false,
+          "type" : "file"
+        }, {
+          "name" : "file2",
+          "in" : "formData",
+          "description" : "Allegato due",
+          "required" : false,
+          "type" : "file"
+        }, {
+          "name" : "file3",
+          "in" : "formData",
+          "description" : "Allegato tre",
+          "required" : false,
+          "type" : "file"
+        }, {
+          "name" : "file4",
+          "in" : "formData",
+          "description" : "Allegato quattro",
+          "required" : false,
+          "type" : "file"
+        }, {
+          "name" : "file5",
+          "in" : "formData",
+          "description" : "Allegato cinque",
+          "required" : false,
+          "type" : "file"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/SendAndSaveNewResponse"
+            }
+          },
+          "400" : {
+            "description" : "Operazione interrotta a causa di input non valido."
+          },
+          "403" : {
+            "description" : "Operazione non permessa."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore imprevisto."
+          }
+        }
+      }
+    },
+    "/email/tag" : {
+      "post" : {
+        "tags" : [ "Interazione" ],
+        "summary" : "Appone tag ed eventuali note su una o pi� mail (sia ricevute che inviate) (TagEmail)",
+        "description" : "Al momento nessuna nota",
+        "operationId" : "tag",
+        "consumes" : [ "application/xml" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Oggetto TagRequest",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/TagRequest"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/TagResponse"
+            }
+          },
+          "422" : {
+            "description" : "Operazione interrotta a causa di un errore gestito."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore."
+          }
+        }
+      }
+    },
+    "/email/unlocking" : {
+      "post" : {
+        "tags" : [ "Locking" ],
+        "summary" : "Rimuove un lock su una o pi� mail (sia ricevute che inviate) (UnlockEmail)",
+        "description" : "Al momento nessuna nota",
+        "operationId" : "unlock",
+        "consumes" : [ "application/xml" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Oggetto UnlockRequest",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/UnlockRequest"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/UnlockResponse"
+            }
+          },
+          "422" : {
+            "description" : "Operazione interrotta a causa di un errore gestito."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore."
+          }
+        }
+      }
+    },
+    "/email/{emailId}" : {
+      "get" : {
+        "tags" : [ "Interazione" ],
+        "summary" : "Recupera tutti i dati di una e-mail (in entrata o in uscita) e delle sue e-mail collegate (RecuperaDettaglioEmail)",
+        "description" : "Al momento nessuna nota",
+        "operationId" : "getDetail",
+        "consumes" : [ "application/xml" ],
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "name" : "emailId",
+          "in" : "path",
+          "description" : "ID email",
+          "required" : true,
+          "type" : "string"
+        }, {
+          "name" : "token",
+          "in" : "query",
+          "description" : "Token di Autenticazione ottenibile chiamando il servizio di Login",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/GetDetailResponse"
+            }
+          },
+          "400" : {
+            "description" : "Operazione interrotta a causa di input non valido."
+          },
+          "404" : {
+            "description" : "Email specificata non trovata."
+          },
+          "422" : {
+            "description" : "Operazione interrotta a causa di un errore gestito."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore imprevisto."
+          }
+        }
+      }
+    },
+    "/email/{emailId}/attachments" : {
+      "get" : {
+        "tags" : [ "Interazione" ],
+        "summary" : "Recupera gli allegati dell'email (RecuperaAllegatiEmail)",
+        "description" : "Chiama ServiceRestStore.invoke() del core-module (nuova operazione 'getAttachmentsWithContents').",
+        "operationId" : "getAttachmentsWithContents",
+        "produces" : [ "application/xml" ],
+        "parameters" : [ {
+          "name" : "emailId",
+          "in" : "path",
+          "description" : "ID email",
+          "required" : true,
+          "type" : "string"
+        }, {
+          "name" : "flagGetContent",
+          "in" : "query",
+          "description" : "se false non recupera il contenuto",
+          "required" : false,
+          "type" : "boolean",
+          "default" : true
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/GetEmailAttachmentsResponse"
+            }
+          },
+          "400" : {
+            "description" : "Operazione interrotta a causa di input non valido."
+          },
+          "404" : {
+            "description" : "Operazione interrotta a causa di dati non trovati e/o non validi."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore imprevisto."
+          }
+        }
+      }
+    },
+    "/email/{emailId}/downloading" : {
+      "get" : {
+        "tags" : [ "Interazione" ],
+        "summary" : "Recupera il file eml della mail (DownloadEmail)",
+        "description" : "Se la mail che si richiede � una PEC inviata, il file potrebbe essere recuperato dalla ricevuta di consegna completa",
+        "operationId" : "downloadEmlFile",
+        "produces" : [ "application/octet-stream" ],
+        "parameters" : [ {
+          "name" : "emailId",
+          "in" : "path",
+          "description" : "ID dell'email",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "404" : {
+            "description" : "Operazione interrotta a causa di dati non trovati e/o non validi."
+          },
+          "500" : {
+            "description" : "Operazione interrotta a causa di un errore imprevisto."
+          }
+        }
+      }
+    }
+  },
+  "definitions" : {
+    "AssignRequest" : {
+      "type" : "object",
+      "required" : [ "idEmail" ],
+      "properties" : {
+        "token" : {
+          "type" : "string"
+        },
+        "idUtente" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "assegnatariEmail" : {
+          "$ref" : "#/definitions/ListaAssegnatariXMLAssegnaEmail"
+        },
+        "idEmail" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "richiestaAssegnazioneEmail"
+      }
+    },
+    "CancelAssignmentRequest" : {
+      "type" : "object",
+      "required" : [ "idEmail" ],
+      "properties" : {
+        "token" : {
+          "type" : "string"
+        },
+        "idUtente" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "idEmail" : {
+          "type" : "string"
+        },
+        "motivi" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "richiestaAnnullaAssegnazioneEmail"
+      }
+    },
+    "CancelClosingRequest" : {
+      "type" : "object",
+      "required" : [ "emails" ],
+      "properties" : {
+        "token" : {
+          "type" : "string"
+        },
+        "idUtente" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "emails" : {
+          "$ref" : "#/definitions/ListaIdEmail"
+        },
+        "motivi" : {
+          "type" : "string"
+        },
+        "flagRilascioLock" : {
+          "type" : "boolean"
+        }
+      },
+      "xml" : {
+        "name" : "richiestaAnnullaArchiviazioneEmail"
+      }
+    },
+    "CancelClosingResponse" : {
+      "type" : "object",
+      "properties" : {
+        "esitiAnnullaArchiviazioneEmail" : {
+          "$ref" : "#/definitions/ListaEsitiAnnullaArchiviazioneEmail"
+        }
+      },
+      "xml" : {
+        "name" : "rispostaAnnullaArchiviazioneEmail"
+      }
+    },
+    "CloseRequest" : {
+      "type" : "object",
+      "required" : [ "emails" ],
+      "properties" : {
+        "token" : {
+          "type" : "string"
+        },
+        "idUtente" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "emails" : {
+          "$ref" : "#/definitions/ListaIdEmail"
+        },
+        "motivi" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "richiestaArchiviaEmail"
+      }
+    },
+    "CloseResponse" : {
+      "type" : "object",
+      "properties" : {
+        "esitiArchiviaEmail" : {
+          "$ref" : "#/definitions/ListaEsitiArchiviaEmail"
+        }
+      },
+      "xml" : {
+        "name" : "rispostaArchiviaEmail"
+      }
+    },
+    "CollegaRegToEmailRequest" : {
+      "type" : "object",
+      "required" : [ "idEmail" ],
+      "properties" : {
+        "token" : {
+          "type" : "string"
+        },
+        "idUtente" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "idEmail" : {
+          "type" : "string"
+        },
+        "idUd" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "categoriaReg" : {
+          "type" : "string"
+        },
+        "siglaRegistro" : {
+          "type" : "string"
+        },
+        "annoReg" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "numeroReg" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "impronteAllegati" : {
+          "type" : "array",
+          "items" : {
+            "xml" : {
+              "name" : "impronteAllegati"
+            },
+            "$ref" : "#/definitions/ImprontaAllegato"
+          }
+        }
+      },
+      "xml" : {
+        "name" : "richiestaCollegaRegToEmail"
+      }
+    },
+    "CollegaRegToEmailRequestResponse" : {
+      "type" : "object",
+      "properties" : {
+        "esito" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "rispostaCollegaRegToEmail"
+      }
+    },
+    "DictionaryLookupRequest" : {
+      "type" : "object",
+      "required" : [ "voceDizionario" ],
+      "properties" : {
+        "token" : {
+          "type" : "string"
+        },
+        "idUtente" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "voceDizionario" : {
+          "type" : "string"
+        },
+        "codiceContenuto" : {
+          "type" : "string"
+        },
+        "valoreContenuto" : {
+          "type" : "string"
+        },
+        "flagPaginazione" : {
+          "type" : "boolean",
+          "default" : false
+        },
+        "pagina" : {
+          "type" : "integer",
+          "format" : "int32",
+          "default" : 1
+        },
+        "elementiPerPagina" : {
+          "type" : "integer",
+          "format" : "int32",
+          "default" : 10
+        }
+      },
+      "xml" : {
+        "name" : "richiestaTrovaValoriDizionario"
+      }
+    },
+    "DictionaryLookupResponse" : {
+      "type" : "object",
+      "properties" : {
+        "totalSize" : {
+          "type" : "integer",
+          "format" : "int32",
+          "xml" : {
+            "name" : "numeroElementi"
+          }
+        },
+        "pageSize" : {
+          "type" : "integer",
+          "format" : "int32",
+          "xml" : {
+            "name" : "numeroElementiInPagina"
+          }
+        },
+        "pageNumber" : {
+          "type" : "integer",
+          "format" : "int32",
+          "xml" : {
+            "name" : "pagina"
+          },
+          "default" : 1
+        },
+        "valoriDizionario" : {
+          "$ref" : "#/definitions/ListaListaXMLTrovaValoriDizionario"
+        },
+        "request" : {
+          "xml" : {
+            "name" : "richiestaTrovaValoriDizionario"
+          },
+          "$ref" : "#/definitions/DictionaryLookupRequest"
+        }
+      },
+      "xml" : {
+        "name" : "rispostaTrovaValoriDizionario"
+      }
+    },
+    "EmailAttachment" : {
+      "type" : "object",
+      "properties" : {
+        "messageid" : {
+          "type" : "string",
+          "xml" : {
+            "name" : "idMessaggio"
+          }
+        },
+        "filename" : {
+          "type" : "string",
+          "xml" : {
+            "name" : "nomeFile"
+          }
+        },
+        "mimetype" : {
+          "type" : "string",
+          "xml" : {
+            "name" : "tipoMIME"
+          }
+        },
+        "contentID" : {
+          "type" : "string",
+          "xml" : {
+            "name" : "idContenuto"
+          }
+        },
+        "disposition" : {
+          "type" : "string",
+          "xml" : {
+            "name" : "disposizione"
+          }
+        },
+        "size" : {
+          "type" : "integer",
+          "format" : "int64",
+          "xml" : {
+            "name" : "dimensione"
+          }
+        },
+        "contents" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "contenuto"
+          },
+          "items" : {
+            "type" : "string",
+            "format" : "byte",
+            "xml" : {
+              "name" : "contenuto"
+            }
+          }
+        },
+        "encodedHash" : {
+          "type" : "string",
+          "xml" : {
+            "name" : "hashCodificato"
+          }
+        },
+        "encoding" : {
+          "type" : "string",
+          "xml" : {
+            "name" : "codifica"
+          }
+        },
+        "algoritmo" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "allegatoEmail"
+      }
+    },
+    "EmailMessage" : {
+      "type" : "object",
+      "required" : [ "addressFrom" ],
+      "properties" : {
+        "addressFrom" : {
+          "type" : "string",
+          "example" : "nomeutente@dominio.it",
+          "xml" : {
+            "name" : "mittente"
+          },
+          "description" : "Indirizzo di posta elettronica del mittente"
+        },
+        "aliasAddressFrom" : {
+          "type" : "string",
+          "example" : "alias mittente",
+          "xml" : {
+            "name" : "aliasMittente"
+          },
+          "description" : "Nome logico che identifica il mittente"
+        },
+        "subject" : {
+          "type" : "string",
+          "example" : "breve descrizione del contenuto del messaggio",
+          "xml" : {
+            "name" : "oggetto"
+          },
+          "description" : "Dovrebbe aiutare il destinatario a capire il contenuto del messaggio"
+        },
+        "body" : {
+          "type" : "string",
+          "example" : "contenuto del messaggio",
+          "xml" : {
+            "name" : "testo"
+          },
+          "description" : "Contenuto informativo che il mittente vuol comunicare ai destinatari"
+        }
+      },
+      "description" : "Un messaggio email",
+      "xml" : {
+        "name" : "MessaggioEmail"
+      }
+    },
+    "EmailMetadataList" : {
+      "type" : "object",
+      "properties" : {
+        "intestazione" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string",
+            "enum" : [ "ID", "MESSAGE_ID", "IN_OUT", "ACCOUNT_ID", "ACCOUNT_INDIRIZZO", "CATEGORIA", "DATA_ORA_SCARICO", "DATA_ORA_INVIO", "DATA_ORA_INVIO_ENTRATA_DA_PEC", "DIMENSIONE", "EML_URI", "E_SPAM", "STATO_SE_SPAM", "STATO_SE_RICEVUTA_PEC", "STATO_CONSOLIDAMENTO_INVIATA", "ALLEGATI_NRO", "ALLEGATI_FIRMATI_NRO", "ALLEGATI_NON_FIRMATI_NRO", "E_FIRMATA", "E_AUTOASSOCIAZIONE_FALLITA", "MITTENTE_ENTRATA", "OGGETTO", "CORPO", "DESTINATARI", "DESTINATARI_A", "DESTINATARI_CC", "DESTINATARI_CCN", "AVVERTIMENTI_ENTRATA", "DETENTORE_LOCK", "E_RICHIESTA_DI_CONFERMA", "ASSEGNAZIONE_DATA_ORA", "ASSEGNATARIO", "E_RISPOSTA", "E_INOLTRATA", "STATO_PROTOCOLLAZIONE", "VERIFICA_CONTRASSEGNO", "E_NOTIFICHE_ECCEZIONE_INVIATA", "E_NOTIFICHE_CONFERMA_INVIATA", "E_NOTIFICHE_AGGIORNAMENTO_INVIATA", "LIVELLO_PRIORITA", "DESTINATARI_", "DESTINATARI_INDICATI_A", "DESTINATARI_INDICATI_CC", "DESTINATARI_INDICATI_CCN", "FOLDER", "PROTO_REG_ESTREMI", "UNITA_DOCUMENTARIE", "PROTOC_REG_ESTREMI_INTEROP_INVIATA", "ID_PARENT", "STATO", "E_COMMENTATA", "E_ASSEGNATA_PERSONALMENTE_UTENTE", "E_ASSEGNATA_UTENTE_UO", "E_NOTIFICHE_ANNULLAMENTO_REG_INVIATA", "ALLEGATI_PRESENZA", "ALLEGATI_PRESENZA_NRO", "PROTOC_REG_ESTREMI_MITT_INTEROP_RICEVUTA", "PROTOC_REG_OGGETTO_MITT_INTEROP_RICEVUTA", "TIPO", "SOTTOTIPO", "E_CERTIFICATA", "E_INTEROPERABILE", "ICONA", "STATO_LAVORAZIONE", "VERIFICA_GRADO", "VERIFICA_CONTRASSEGNO_ID", "ASSEGNAZIONE_MESSAGGIO", "AZIONE", "AZIONE_CODICE", "AZIONE_DETTAGLIO", "PROGRESSIVO", "PROGRESSIVO_DOWNLOAD_STAMPA", "PROGRESSIVO_ORDINAMENTO", "DATA_ORA_SALVATAGGIO", "NRO_GIORNI_LAVORAZIONE_APERTA", "STATO_INVIO_CODICE", "STATO_ACCETTAZIONE_CODICE", "STATO_CONSEGNA_CODICE", "STATO_INVIO", "STATO_ACCETTAZIONE", "STATO_CONSEGNA", "DATA_ORA_LOCK", "DATA_ORA_STATO_LAVORAZIONE", "ANNOTAZIONI", "E_CONFERMA_LETTURA", "TAG_APPOSTI", "DATA_ORA_CHIUSURA", "OPERATORE_CHIUSURA" ]
+          }
+        }
+      }
+    },
+    "EmailMetadataOrdering" : {
+      "type" : "object",
+      "properties" : {
+        "intestazioneColonna" : {
+          "type" : "string",
+          "enum" : [ "ID", "MESSAGE_ID", "IN_OUT", "ACCOUNT_ID", "ACCOUNT_INDIRIZZO", "CATEGORIA", "DATA_ORA_SCARICO", "DATA_ORA_INVIO", "DATA_ORA_INVIO_ENTRATA_DA_PEC", "DIMENSIONE", "EML_URI", "E_SPAM", "STATO_SE_SPAM", "STATO_SE_RICEVUTA_PEC", "STATO_CONSOLIDAMENTO_INVIATA", "ALLEGATI_NRO", "ALLEGATI_FIRMATI_NRO", "ALLEGATI_NON_FIRMATI_NRO", "E_FIRMATA", "E_AUTOASSOCIAZIONE_FALLITA", "MITTENTE_ENTRATA", "OGGETTO", "CORPO", "DESTINATARI", "DESTINATARI_A", "DESTINATARI_CC", "DESTINATARI_CCN", "AVVERTIMENTI_ENTRATA", "DETENTORE_LOCK", "E_RICHIESTA_DI_CONFERMA", "ASSEGNAZIONE_DATA_ORA", "ASSEGNATARIO", "E_RISPOSTA", "E_INOLTRATA", "STATO_PROTOCOLLAZIONE", "VERIFICA_CONTRASSEGNO", "E_NOTIFICHE_ECCEZIONE_INVIATA", "E_NOTIFICHE_CONFERMA_INVIATA", "E_NOTIFICHE_AGGIORNAMENTO_INVIATA", "LIVELLO_PRIORITA", "DESTINATARI_", "DESTINATARI_INDICATI_A", "DESTINATARI_INDICATI_CC", "DESTINATARI_INDICATI_CCN", "FOLDER", "PROTO_REG_ESTREMI", "UNITA_DOCUMENTARIE", "PROTOC_REG_ESTREMI_INTEROP_INVIATA", "ID_PARENT", "STATO", "E_COMMENTATA", "E_ASSEGNATA_PERSONALMENTE_UTENTE", "E_ASSEGNATA_UTENTE_UO", "E_NOTIFICHE_ANNULLAMENTO_REG_INVIATA", "ALLEGATI_PRESENZA", "ALLEGATI_PRESENZA_NRO", "PROTOC_REG_ESTREMI_MITT_INTEROP_RICEVUTA", "PROTOC_REG_OGGETTO_MITT_INTEROP_RICEVUTA", "TIPO", "SOTTOTIPO", "E_CERTIFICATA", "E_INTEROPERABILE", "ICONA", "STATO_LAVORAZIONE", "VERIFICA_GRADO", "VERIFICA_CONTRASSEGNO_ID", "ASSEGNAZIONE_MESSAGGIO", "AZIONE", "AZIONE_CODICE", "AZIONE_DETTAGLIO", "PROGRESSIVO", "PROGRESSIVO_DOWNLOAD_STAMPA", "PROGRESSIVO_ORDINAMENTO", "DATA_ORA_SALVATAGGIO", "NRO_GIORNI_LAVORAZIONE_APERTA", "STATO_INVIO_CODICE", "STATO_ACCETTAZIONE_CODICE", "STATO_CONSEGNA_CODICE", "STATO_INVIO", "STATO_ACCETTAZIONE", "STATO_CONSEGNA", "DATA_ORA_LOCK", "DATA_ORA_STATO_LAVORAZIONE", "ANNOTAZIONI", "E_CONFERMA_LETTURA", "TAG_APPOSTI", "DATA_ORA_CHIUSURA", "OPERATORE_CHIUSURA" ]
+        },
+        "discendente" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "EmailMetadataOrderingList" : {
+      "type" : "object",
+      "properties" : {
+        "metadato" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/EmailMetadataOrdering"
+          }
+        }
+      }
+    },
+    "EmailReferences" : {
+      "type" : "object",
+      "properties" : {
+        "destinatari" : {
+          "description" : "Indirizzi di posta elettronica dei destinatari dell'email.",
+          "$ref" : "#/definitions/RecipientsAddresses"
+        },
+        "id" : {
+          "type" : "string",
+          "example" : "5fdae2e44e4f4e99a0c90df21e35a8dc",
+          "description" : "Identificativo univoco dell'email nel sistema."
+        },
+        "reference" : {
+          "type" : "string",
+          "example" : "[FS@MAILARCHIVIATE2]/2020/4/16/1/20200416151851191203847814591582879",
+          "xml" : {
+            "name" : "riferimento"
+          },
+          "description" : "Percorso al file EML nel repository."
+        },
+        "messageId" : {
+          "type" : "string",
+          "example" : "002201d616e7$5b290640$117b12c0$@dominio.it",
+          "xml" : {
+            "name" : "idMessaggio"
+          },
+          "description" : "Identificativo del messaggio."
+        }
+      },
+      "description" : "Riferimenti all'email elaborata nel sistema.",
+      "xml" : {
+        "name" : "RiferimentiEmail"
+      }
+    },
+    "ExternalApplicationLoginRequest" : {
+      "type" : "object",
+      "required" : [ "application", "password", "username" ],
+      "properties" : {
+        "application" : {
+          "type" : "string",
+          "example" : "FATTUBI_BAN",
+          "xml" : {
+            "name" : "applicazione"
+          },
+          "description" : "Codice dell'applicazione"
+        },
+        "applicationInstance" : {
+          "type" : "string",
+          "example" : "PROD",
+          "xml" : {
+            "name" : "istanzaApplicazione"
+          },
+          "description" : "Codice dell'istanza di applicazione",
+          "enum" : [ "PROD", "TEST" ]
+        },
+        "username" : {
+          "type" : "string",
+          "example" : "FATTUBI_BAN",
+          "description" : "Username dell'utente"
+        },
+        "password" : {
+          "type" : "string",
+          "description" : "Password dell'utente"
+        }
+      },
+      "xml" : {
+        "name" : "richiestaLogin"
+      }
+    },
+    "ExternalApplicationLoginResponse" : {
+      "type" : "object",
+      "required" : [ "token" ],
+      "properties" : {
+        "token" : {
+          "type" : "string",
+          "example" : "A68795DF77842BA3E0530C941BA17F06260520200824003349569",
+          "description" : "Il token di avvenuta autenticazione"
+        },
+        "userDescription" : {
+          "type" : "string",
+          "example" : "Banca Popolare Di Ancona | Fatturazione",
+          "xml" : {
+            "name" : "descrizioneUtente"
+          },
+          "description" : "Descrizione dell'utente (autenticato)"
+        },
+        "domainId" : {
+          "type" : "integer",
+          "format" : "int64",
+          "example" : 52,
+          "xml" : {
+            "name" : "idDominio"
+          },
+          "description" : "Identificativo del dominio di autenticazione"
+        },
+        "domainDescription" : {
+          "type" : "string",
+          "xml" : {
+            "name" : "descrizioneDominio"
+          },
+          "description" : "Descrizione del dominio di autenticazione"
+        }
+      },
+      "xml" : {
+        "name" : "rispostaLogin"
+      }
+    },
+    "FileInfo" : {
+      "type" : "object",
+      "properties" : {
+        "name" : {
+          "type" : "string",
+          "example" : "nome.pdf",
+          "xml" : {
+            "name" : "Nome"
+          },
+          "description" : "Nome originale del file."
+        },
+        "size" : {
+          "type" : "string",
+          "example" : "367,12 KB",
+          "xml" : {
+            "name" : "Dimensione"
+          },
+          "description" : "Dimensione del file."
+        }
+      },
+      "description" : "Parametri essenziali di un file",
+      "xml" : {
+        "name" : "FileInfo"
+      }
+    },
+    "Firmatari" : {
+      "type" : "object",
+      "properties" : {
+        "subject" : {
+          "type" : "string"
+        },
+        "id" : {
+          "type" : "string"
+        },
+        "figlioDi" : {
+          "type" : "string"
+        },
+        "nomeFirmatario" : {
+          "type" : "string"
+        },
+        "enteCertificatore" : {
+          "type" : "string"
+        },
+        "dataFirma" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "dataScadenza" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "dataEmissione" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "statoCertificato" : {
+          "type" : "string"
+        },
+        "numeroCertificato" : {
+          "type" : "string"
+        },
+        "serialNumber" : {
+          "type" : "string"
+        },
+        "qcStatements" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
+        "keyUsages" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
+        "verificationStatus" : {
+          "type" : "string"
+        },
+        "certExpiration" : {
+          "type" : "string"
+        },
+        "crlResult" : {
+          "type" : "string"
+        },
+        "caReliability" : {
+          "type" : "string"
+        },
+        "firmaValida" : {
+          "type" : "boolean"
+        },
+        "firmaExtraAuriga" : {
+          "type" : "boolean"
+        },
+        "dataVerificaFirma" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "marca" : {
+          "$ref" : "#/definitions/Marca"
+        },
+        "controFirma" : {
+          "$ref" : "#/definitions/Firmatari"
+        },
+        "tipoFirmaQA" : {
+          "type" : "string"
+        },
+        "tipoFirma" : {
+          "type" : "string"
+        },
+        "infoFirma" : {
+          "type" : "string"
+        },
+        "titolareFirma" : {
+          "type" : "string"
+        },
+        "codiceActivityFirma" : {
+          "type" : "string"
+        },
+        "idUtenteLavoroFirma" : {
+          "type" : "string"
+        },
+        "idUtenteLoggatoFirma" : {
+          "type" : "string"
+        }
+      }
+    },
+    "GetDetailResponse" : {
+      "type" : "object",
+      "properties" : {
+        "datiEmail" : {
+          "xml" : {
+            "name" : "dettaglioEmail"
+          },
+          "$ref" : "#/definitions/SezioneCacheXMLDatiEmailRecuperaDettaglioEmail"
+        }
+      },
+      "xml" : {
+        "name" : "rispostaRecuperaDettaglioEmail"
+      }
+    },
+    "GetEmailAttachmentsResponse" : {
+      "type" : "object",
+      "properties" : {
+        "mailAttachments" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "allegatoEmail"
+          },
+          "items" : {
+            "xml" : {
+              "name" : "allegatoEmail"
+            },
+            "$ref" : "#/definitions/EmailAttachment"
+          }
+        },
+        "files" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "file"
+          },
+          "items" : {
+            "type" : "file",
+            "xml" : {
+              "name" : "file"
+            }
+          }
+        }
+      },
+      "xml" : {
+        "name" : "rispostaRecuperaAllegatiEmail"
+      }
+    },
+    "GetEmailBoxesRequest" : {
+      "type" : "object",
+      "properties" : {
+        "finalita" : {
+          "type" : "string",
+          "example" : "INVIO",
+          "description" : "Restringe l'estrazione alle solo caselle da cui si pu� inviare o di cui si � smistatori",
+          "enum" : [ "INVIO", "SMISTAMENTO" ]
+        },
+        "tipoCasella" : {
+          "type" : "string",
+          "example" : "PEC",
+          "description" : "Restringe l'estrazione alle solo caselle certificate (PEC) o ordinarie (PEO)",
+          "enum" : [ "PEC", "PEO" ]
+        },
+        "indirizzoEmail" : {
+          "type" : "string",
+          "example" : "@pec.it",
+          "description" : "Filtro sul nome account (solitamente non distingue tra maiuscole e minuscole)"
+        }
+      },
+      "description" : "Richiesta per la lista delle caselle email",
+      "xml" : {
+        "name" : "richiestaElencoCaselleEmail"
+      }
+    },
+    "GetEmailBoxesResponse" : {
+      "type" : "object",
+      "properties" : {
+        "finalita" : {
+          "type" : "string",
+          "example" : "INVIO"
+        },
+        "caselleEmail" : {
+          "$ref" : "#/definitions/ListaCaselleInvRic"
+        }
+      },
+      "description" : "Risposta con la lista delle caselle email",
+      "xml" : {
+        "name" : "rispostaElencoCaselleEmail"
+      }
+    },
+    "ImprontaAllegato" : {
+      "type" : "object",
+      "properties" : {
+        "impronta" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "improntaAllegato"
+      }
+    },
+    "InfoFirmaMarca" : {
+      "type" : "object",
+      "properties" : {
+        "bustaCrittograficaFattaDaAuriga" : {
+          "type" : "boolean"
+        },
+        "bustaCrittograficaInComplPassoIter" : {
+          "type" : "boolean"
+        },
+        "tipoBustaCrittografica" : {
+          "type" : "string"
+        },
+        "infoBustaCrittografica" : {
+          "type" : "string"
+        },
+        "firmeNonValideBustaCrittografica" : {
+          "type" : "boolean"
+        },
+        "firmeExtraAuriga" : {
+          "type" : "boolean"
+        },
+        "dataOraVerificaFirma" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "marcaTemporaleAppostaDaAuriga" : {
+          "type" : "boolean"
+        },
+        "dataOraMarcaTemporale" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "tipoMarcaTemporale" : {
+          "type" : "string"
+        },
+        "infoMarcaTemporale" : {
+          "type" : "string"
+        },
+        "marcaTemporaleNonValida" : {
+          "type" : "boolean"
+        },
+        "dataOraVerificaMarcaTemporale" : {
+          "type" : "string",
+          "format" : "date-time"
+        }
+      }
+    },
+    "ListaAssegnatariXMLAssegnaEmail" : {
+      "type" : "object",
+      "properties" : {
+        "items" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "assegnatarioEmail"
+          },
+          "items" : {
+            "xml" : {
+              "name" : "assegnatarioEmail"
+            },
+            "$ref" : "#/definitions/RigaAssegnatariXMLAssegnaEmail"
+          }
+        }
+      },
+      "xml" : {
+        "name" : "assegnatariEmail"
+      }
+    },
+    "ListaCaselleInvRic" : {
+      "type" : "object",
+      "properties" : {
+        "items" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "casellaEmail"
+          },
+          "items" : {
+            "xml" : {
+              "name" : "casellaEmail"
+            },
+            "$ref" : "#/definitions/RigaCaselleInvRic"
+          }
+        }
+      },
+      "xml" : {
+        "name" : "caselleEmail"
+      }
+    },
+    "ListaEsitiAnnullaArchiviazioneEmail" : {
+      "type" : "object",
+      "properties" : {
+        "items" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "esitoAnnullaArchiviazioneEmail"
+          },
+          "items" : {
+            "xml" : {
+              "name" : "esitoAnnullaArchiviazioneEmail"
+            },
+            "$ref" : "#/definitions/RigaEsitiAnnullaArchiviazioneEmail"
+          }
+        }
+      },
+      "xml" : {
+        "name" : "esitiAnnullaArchiviazioneEmail"
+      }
+    },
+    "ListaEsitiArchiviaEmail" : {
+      "type" : "object",
+      "properties" : {
+        "items" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "esitoArchiviaEmail"
+          },
+          "items" : {
+            "xml" : {
+              "name" : "esitoArchiviaEmail"
+            },
+            "$ref" : "#/definitions/RigaEsitiArchiviaEmail"
+          }
+        }
+      },
+      "xml" : {
+        "name" : "esitiArchiviaEmail"
+      }
+    },
+    "ListaEsitiLockEmail" : {
+      "type" : "object",
+      "properties" : {
+        "items" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "esitoLockEmail"
+          },
+          "items" : {
+            "xml" : {
+              "name" : "esitoLockEmail"
+            },
+            "$ref" : "#/definitions/RigaEsitiLockEmail"
+          }
+        }
+      },
+      "xml" : {
+        "name" : "esitiLockEmail"
+      }
+    },
+    "ListaEsitiTagEmail" : {
+      "type" : "object",
+      "properties" : {
+        "items" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "esitoTagEmail"
+          },
+          "items" : {
+            "xml" : {
+              "name" : "esitoTagEmail"
+            },
+            "$ref" : "#/definitions/RigaEsitiTagEmail"
+          }
+        }
+      },
+      "xml" : {
+        "name" : "esitiTagEmail"
+      }
+    },
+    "ListaEsitiUnlockEmail" : {
+      "type" : "object",
+      "properties" : {
+        "items" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "esitoUnlockEmail"
+          },
+          "items" : {
+            "xml" : {
+              "name" : "esitoUnlockEmail"
+            },
+            "$ref" : "#/definitions/RigaEsitiUnlockEmail"
+          }
+        }
+      },
+      "xml" : {
+        "name" : "esitiUnlockEmail"
+      }
+    },
+    "ListaIdEmail" : {
+      "type" : "object",
+      "properties" : {
+        "items" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "email"
+          },
+          "items" : {
+            "xml" : {
+              "name" : "email"
+            },
+            "$ref" : "#/definitions/RigaIdEmail"
+          }
+        }
+      },
+      "xml" : {
+        "name" : "emails"
+      }
+    },
+    "ListaListaXMLTrovaValoriDizionario" : {
+      "type" : "object",
+      "properties" : {
+        "items" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "valoreDizionario"
+          },
+          "items" : {
+            "xml" : {
+              "name" : "valoreDizionario"
+            },
+            "$ref" : "#/definitions/RigaListaXMLTrovaValoriDizionario"
+          }
+        }
+      },
+      "xml" : {
+        "name" : "valoriDizionario"
+      }
+    },
+    "ListaResultTrovaEmail" : {
+      "type" : "object",
+      "properties" : {
+        "items" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "email"
+          },
+          "items" : {
+            "xml" : {
+              "name" : "email"
+            },
+            "$ref" : "#/definitions/RigaResultTrovaEmail"
+          }
+        }
+      },
+      "xml" : {
+        "name" : "emailTrovate"
+      }
+    },
+    "ListaXMLTagTagEmail" : {
+      "type" : "object",
+      "properties" : {
+        "items" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "tagEmail"
+          },
+          "items" : {
+            "xml" : {
+              "name" : "tagEmail"
+            },
+            "$ref" : "#/definitions/RigaXMLTagTagEmail"
+          }
+        }
+      },
+      "xml" : {
+        "name" : "tagEmails"
+      }
+    },
+    "LockRequest" : {
+      "type" : "object",
+      "required" : [ "emails", "idUtenteDestinatarioLock" ],
+      "properties" : {
+        "token" : {
+          "type" : "string"
+        },
+        "idUtente" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "emails" : {
+          "$ref" : "#/definitions/ListaIdEmail"
+        },
+        "motivi" : {
+          "type" : "string"
+        },
+        "idUtenteDestinatarioLock" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "richiestaLockEmail"
+      }
+    },
+    "LockResponse" : {
+      "type" : "object",
+      "properties" : {
+        "esitiLockEmail" : {
+          "$ref" : "#/definitions/ListaEsitiLockEmail"
+        }
+      },
+      "xml" : {
+        "name" : "rispostaLockEmail"
+      }
+    },
+    "LookupRequest" : {
+      "type" : "object",
+      "required" : [ "filtro" ],
+      "properties" : {
+        "token" : {
+          "type" : "string"
+        },
+        "idUtente" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "filtro" : {
+          "xml" : {
+            "name" : "filtri"
+          },
+          "$ref" : "#/definitions/SezioneCacheFiltriTrovaEmail"
+        },
+        "colonne" : {
+          "$ref" : "#/definitions/EmailMetadataList"
+        },
+        "ordinamento" : {
+          "$ref" : "#/definitions/EmailMetadataOrderingList"
+        },
+        "flagPaginazione" : {
+          "type" : "boolean",
+          "default" : false
+        },
+        "pagina" : {
+          "type" : "integer",
+          "format" : "int32",
+          "default" : 1
+        },
+        "elementiPerPagina" : {
+          "type" : "integer",
+          "format" : "int32",
+          "default" : 10
+        }
+      },
+      "xml" : {
+        "name" : "richiestaTrovaEmail"
+      }
+    },
+    "LookupResponse" : {
+      "type" : "object",
+      "properties" : {
+        "totalSize" : {
+          "type" : "integer",
+          "format" : "int32",
+          "xml" : {
+            "name" : "numeroElementi"
+          }
+        },
+        "pageSize" : {
+          "type" : "integer",
+          "format" : "int32",
+          "xml" : {
+            "name" : "numeroElementiInPagina"
+          }
+        },
+        "pageNumber" : {
+          "type" : "integer",
+          "format" : "int32",
+          "xml" : {
+            "name" : "pagina"
+          },
+          "default" : 1
+        },
+        "emailTrovate" : {
+          "$ref" : "#/definitions/ListaResultTrovaEmail"
+        }
+      },
+      "xml" : {
+        "name" : "rispostaTrovaEmail"
+      }
+    },
+    "Marca" : {
+      "type" : "object",
+      "properties" : {
+        "tsaName" : {
+          "type" : "string"
+        },
+        "serialNumber" : {
+          "type" : "string"
+        },
+        "date" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "policy" : {
+          "type" : "string"
+        },
+        "marcaValida" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "MimeTypeFirmaBean" : {
+      "type" : "object",
+      "properties" : {
+        "firmato" : {
+          "type" : "boolean"
+        },
+        "tipoFirma" : {
+          "type" : "string"
+        },
+        "infoFirma" : {
+          "type" : "string"
+        },
+        "convertibile" : {
+          "type" : "boolean"
+        },
+        "mimetype" : {
+          "type" : "string"
+        },
+        "mimetypesContenuto" : {
+          "type" : "string"
+        },
+        "bytes" : {
+          "type" : "integer",
+          "format" : "int64"
+        },
+        "firmaValida" : {
+          "type" : "boolean"
+        },
+        "correctFileName" : {
+          "type" : "string"
+        },
+        "firmatari" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
+        "buste" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/Firmatari"
+          }
+        },
+        "impronta" : {
+          "type" : "string"
+        },
+        "improntaPdf" : {
+          "type" : "string"
+        },
+        "improntaFilePreFirma" : {
+          "type" : "string"
+        },
+        "improntaSbustato" : {
+          "type" : "string"
+        },
+        "daScansione" : {
+          "type" : "boolean"
+        },
+        "uploadError" : {
+          "type" : "boolean"
+        },
+        "openFolders" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
+        "algoritmo" : {
+          "type" : "string"
+        },
+        "encoding" : {
+          "type" : "string"
+        },
+        "idFormato" : {
+          "type" : "string"
+        },
+        "infoFirmaMarca" : {
+          "$ref" : "#/definitions/InfoFirmaMarca"
+        },
+        "pdfProtetto" : {
+          "type" : "boolean"
+        },
+        "pdfEditabile" : {
+          "type" : "boolean"
+        },
+        "pdfConCommenti" : {
+          "type" : "boolean"
+        },
+        "numPaginePdf" : {
+          "type" : "integer",
+          "format" : "int32"
+        }
+      }
+    },
+    "RecipientsAddresses" : {
+      "type" : "object",
+      "properties" : {
+        "addressesTo" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "a"
+          },
+          "description" : "Indirizzi di posta elettronica dei destinatari principali",
+          "items" : {
+            "type" : "string",
+            "xml" : {
+              "name" : "a"
+            }
+          }
+        },
+        "addressesCc" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "cc"
+          },
+          "description" : "Indirizzi di posta elettronica dei destinatari in copia conoscenza",
+          "items" : {
+            "type" : "string",
+            "xml" : {
+              "name" : "cc"
+            }
+          }
+        },
+        "addressesBcc" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "ccn"
+          },
+          "description" : "Indirizzi di posta elettronica dei destinatari in copia conoscenza nascosta",
+          "items" : {
+            "type" : "string",
+            "xml" : {
+              "name" : "ccn"
+            }
+          }
+        }
+      },
+      "description" : "Destinatari dell'email",
+      "xml" : {
+        "name" : "Destinatari"
+      }
+    },
+    "RigaAllegatoEmail" : {
+      "type" : "object",
+      "properties" : {
+        "nomeFile" : {
+          "type" : "string"
+        },
+        "mimetype" : {
+          "type" : "string"
+        },
+        "flgConvertibileInPdf" : {
+          "type" : "string"
+        },
+        "flgFirmato" : {
+          "type" : "string"
+        },
+        "bytes" : {
+          "type" : "string"
+        },
+        "impronta" : {
+          "type" : "string"
+        },
+        "algoritmo" : {
+          "type" : "string"
+        },
+        "encoding" : {
+          "type" : "string"
+        },
+        "idUD" : {
+          "type" : "string"
+        },
+        "estremiProt" : {
+          "type" : "string"
+        },
+        "displayFileName" : {
+          "type" : "string"
+        },
+        "numeroProgrAllegato" : {
+          "type" : "string"
+        },
+        "uri" : {
+          "type" : "string"
+        },
+        "infoFile" : {
+          "$ref" : "#/definitions/MimeTypeFirmaBean"
+        }
+      }
+    },
+    "RigaAssegnatariXMLAssegnaEmail" : {
+      "type" : "object",
+      "required" : [ "idAssegnatario", "tipo" ],
+      "properties" : {
+        "tipo" : {
+          "type" : "string",
+          "xml" : {
+            "name" : "tipoAssegnatario"
+          },
+          "enum" : [ "SCRIVANIA", "UTENTE", "UNITA_ORGANIZZATIVA", "GRUPPO" ]
+        },
+        "idAssegnatario" : {
+          "type" : "string"
+        },
+        "messaggio" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "assegnatarioEmail"
+      }
+    },
+    "RigaAssegnatarioEmail" : {
+      "type" : "object",
+      "properties" : {
+        "tipo" : {
+          "type" : "string"
+        },
+        "id" : {
+          "type" : "string"
+        },
+        "flgIncludiSottoUO" : {
+          "type" : "string",
+          "enum" : [ "SETTED", "NOT_SETTED", "NULL" ]
+        },
+        "flgIncludiScrivanie" : {
+          "type" : "string",
+          "enum" : [ "SETTED", "NOT_SETTED", "NULL" ]
+        }
+      }
+    },
+    "RigaCaselleInvRic" : {
+      "type" : "object",
+      "properties" : {
+        "accountId" : {
+          "type" : "string",
+          "example" : "bbb4b1e1-d070-41af-b0fd-1973f8cc0ffd",
+          "xml" : {
+            "name" : "idCasella"
+          }
+        },
+        "emailAddress" : {
+          "type" : "string",
+          "example" : "nomeutente@dominio",
+          "xml" : {
+            "name" : "indirizzoEmail"
+          }
+        },
+        "emailType" : {
+          "type" : "string",
+          "example" : "PEC",
+          "xml" : {
+            "name" : "tipoEmail"
+          }
+        }
+      },
+      "xml" : {
+        "name" : "casellaEmail"
+      }
+    },
+    "RigaDestinatarioEmail" : {
+      "type" : "object",
+      "properties" : {
+        "indirizzo" : {
+          "type" : "string"
+        },
+        "statoConsolidamento" : {
+          "type" : "string"
+        },
+        "flgNotifInteropEcc" : {
+          "type" : "string"
+        },
+        "flgNotifInteropConf" : {
+          "type" : "string"
+        },
+        "flgNotifInteropAgg" : {
+          "type" : "string"
+        },
+        "flgNotifInteropAnn" : {
+          "type" : "string"
+        },
+        "flgRicevutaLettura" : {
+          "type" : "string"
+        },
+        "estremiProt" : {
+          "type" : "string"
+        },
+        "iconaStatoConsegna" : {
+          "type" : "string"
+        },
+        "statoConsegna" : {
+          "type" : "string"
+        }
+      }
+    },
+    "RigaEmailCollegata" : {
+      "type" : "object",
+      "properties" : {
+        "flgRigaEmailVsDest" : {
+          "type" : "string"
+        },
+        "idEmail" : {
+          "type" : "string"
+        },
+        "flgIO" : {
+          "type" : "string"
+        },
+        "categoria" : {
+          "type" : "string"
+        },
+        "tipo" : {
+          "type" : "string"
+        },
+        "tsInvio" : {
+          "type" : "string"
+        },
+        "tsScarico" : {
+          "type" : "string"
+        },
+        "indirizzoMitt" : {
+          "type" : "string"
+        },
+        "cognomeNomeMitt" : {
+          "type" : "string"
+        },
+        "estremiProtMitt" : {
+          "type" : "string"
+        },
+        "tipoDest" : {
+          "type" : "string"
+        },
+        "indirizzoDest" : {
+          "type" : "string"
+        },
+        "flgNotifInteropEcc" : {
+          "type" : "string"
+        },
+        "flgNotifInteropConf" : {
+          "type" : "string"
+        },
+        "flgNotifInteropAgg" : {
+          "type" : "string"
+        },
+        "flgNotifInteropAnn" : {
+          "type" : "string"
+        },
+        "flgRicevutaLettura" : {
+          "type" : "string"
+        },
+        "estremiProtDest" : {
+          "type" : "string"
+        },
+        "sottotipo" : {
+          "type" : "string"
+        },
+        "flgPEC" : {
+          "type" : "string"
+        },
+        "flgInteroperabile" : {
+          "type" : "string"
+        },
+        "iconaMicroCategoria" : {
+          "type" : "string"
+        },
+        "statoLavorazione" : {
+          "type" : "string"
+        },
+        "idRecDizContrassegno" : {
+          "type" : "string"
+        },
+        "contrassegno" : {
+          "type" : "string"
+        },
+        "id" : {
+          "type" : "string"
+        },
+        "progrDownloadStampa" : {
+          "type" : "string"
+        },
+        "tsIns" : {
+          "type" : "string"
+        },
+        "iconaStatoInvio" : {
+          "type" : "string"
+        },
+        "statoInvio" : {
+          "type" : "string"
+        },
+        "iconaStatoAccettazione" : {
+          "type" : "string"
+        },
+        "statoAccettazione" : {
+          "type" : "string"
+        },
+        "iconaStatoConsegna" : {
+          "type" : "string"
+        },
+        "statoConsegna" : {
+          "type" : "string"
+        },
+        "iconaStatoConsegnaDestinatario" : {
+          "type" : "string"
+        },
+        "statoConsegnaDestinatario" : {
+          "type" : "string"
+        }
+      }
+    },
+    "RigaEmailPrecedente" : {
+      "type" : "object",
+      "properties" : {
+        "idEmail" : {
+          "type" : "string"
+        },
+        "descrizione" : {
+          "type" : "string"
+        }
+      }
+    },
+    "RigaEsitiAnnullaArchiviazioneEmail" : {
+      "type" : "object",
+      "properties" : {
+        "idEmail" : {
+          "type" : "string"
+        },
+        "progressivo" : {
+          "type" : "string"
+        },
+        "datiEmail" : {
+          "type" : "string"
+        },
+        "esitoOperazione" : {
+          "type" : "string"
+        },
+        "messaggio" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "esitoAnnullaArchiviazioneEmail"
+      }
+    },
+    "RigaEsitiArchiviaEmail" : {
+      "type" : "object",
+      "properties" : {
+        "idEmail" : {
+          "type" : "string"
+        },
+        "progressivo" : {
+          "type" : "string"
+        },
+        "datiEmail" : {
+          "type" : "string"
+        },
+        "esitoOperazione" : {
+          "type" : "string"
+        },
+        "messaggio" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "esitoArchiviaEmail"
+      }
+    },
+    "RigaEsitiLockEmail" : {
+      "type" : "object",
+      "properties" : {
+        "idEmail" : {
+          "type" : "string"
+        },
+        "progressivo" : {
+          "type" : "string"
+        },
+        "datiEmail" : {
+          "type" : "string"
+        },
+        "esitoOperazione" : {
+          "type" : "string"
+        },
+        "messaggio" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "esitoLockEmail"
+      }
+    },
+    "RigaEsitiTagEmail" : {
+      "type" : "object",
+      "properties" : {
+        "idEmail" : {
+          "type" : "string"
+        },
+        "progressivo" : {
+          "type" : "string"
+        },
+        "datiEmail" : {
+          "type" : "string"
+        },
+        "esitoOperazione" : {
+          "type" : "string"
+        },
+        "messaggio" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "esitoTagEmail"
+      }
+    },
+    "RigaEsitiUnlockEmail" : {
+      "type" : "object",
+      "properties" : {
+        "idEmail" : {
+          "type" : "string"
+        },
+        "progressivo" : {
+          "type" : "string"
+        },
+        "datiEmail" : {
+          "type" : "string"
+        },
+        "esitoOperazione" : {
+          "type" : "string"
+        },
+        "messaggio" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "esitoUnlockEmail"
+      }
+    },
+    "RigaEstremiDocEmail" : {
+      "type" : "object",
+      "properties" : {
+        "idUD" : {
+          "type" : "string"
+        },
+        "estremiProt" : {
+          "type" : "string"
+        }
+      }
+    },
+    "RigaIdEmail" : {
+      "type" : "object",
+      "properties" : {
+        "idEmail" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "datiEmail"
+      }
+    },
+    "RigaIdEmailInoltrata" : {
+      "type" : "object",
+      "properties" : {
+        "idMailInoltrata" : {
+          "type" : "string"
+        },
+        "flgMailStatoLavAperta" : {
+          "type" : "string"
+        }
+      }
+    },
+    "RigaItemLavorazioneEmail" : {
+      "type" : "object",
+      "properties" : {
+        "itemLavTipo" : {
+          "type" : "string"
+        },
+        "itemLavNrItem" : {
+          "type" : "string"
+        },
+        "itemLavCommento" : {
+          "type" : "string"
+        },
+        "itemLavTag" : {
+          "type" : "string"
+        },
+        "itemLavUriFile" : {
+          "type" : "string"
+        },
+        "itemLavNomeFile" : {
+          "type" : "string"
+        },
+        "itemLavDimensioneFile" : {
+          "type" : "string"
+        },
+        "itemLavMimeTypeFile" : {
+          "type" : "string"
+        },
+        "itemLavFlgFileFirmato" : {
+          "type" : "string"
+        },
+        "itemLavImprontaFile" : {
+          "type" : "string"
+        },
+        "itemLavAlgoritmoImprontaFile" : {
+          "type" : "string"
+        },
+        "itemLavAlgoritmoEncodingImprontaFile" : {
+          "type" : "string"
+        },
+        "itemLavFlgConvertibilePdf" : {
+          "type" : "string"
+        },
+        "itemLavDataOraCaricamento" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "itemLavCaricatoDa" : {
+          "type" : "string"
+        },
+        "itemLavDataOraModifica" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "itemLavModificatoDa" : {
+          "type" : "string"
+        },
+        "flgNonModCancLocked" : {
+          "type" : "boolean"
+        },
+        "flgNonModCanc" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "motivoNonModCanc" : {
+          "type" : "string"
+        },
+        "flgCommentoObbligatorioTag" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "itemLavNumProgressivo" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "itemLavIsDocPrimarioChanged" : {
+          "type" : "boolean"
+        },
+        "itemLavIdDocPrimario" : {
+          "type" : "number"
+        },
+        "itemLavIdAttachEmailPrimario" : {
+          "type" : "string"
+        },
+        "itemLavRemoteUriFile" : {
+          "type" : "boolean"
+        },
+        "itemLavFlgNoPubblPrimario" : {
+          "type" : "boolean"
+        },
+        "itemLavMimetypeVerPreFirma" : {
+          "type" : "string"
+        },
+        "itemLavUriFileVerPreFirma" : {
+          "type" : "string"
+        },
+        "itemLavNomeFileVerPreFirma" : {
+          "type" : "string"
+        },
+        "itemLavFlgConvertibilePdfVerPreFirma" : {
+          "type" : "string"
+        },
+        "itemLavTipoNota" : {
+          "type" : "string"
+        },
+        "itemLavUriFileSaved" : {
+          "type" : "string"
+        },
+        "itemLavFile" : {
+          "type" : "string"
+        },
+        "itemLavInfoFile" : {
+          "$ref" : "#/definitions/MimeTypeFirmaBean"
+        }
+      }
+    },
+    "RigaListaXMLTrovaValoriDizionario" : {
+      "type" : "object",
+      "properties" : {
+        "valore" : {
+          "type" : "string"
+        },
+        "codice" : {
+          "type" : "string"
+        },
+        "dataInizioValidita" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "dataFineValidita" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "significato" : {
+          "type" : "string"
+        },
+        "flagValoreRiservato" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "vincolo" : {
+          "type" : "string"
+        },
+        "flagValoreValido" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "flagValoreModificabile" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "flagValoreEliminabile" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "denominazioneUO" : {
+          "type" : "string"
+        },
+        "flagValoreVisibileAlleSottoUO" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "flagValoreGestibileDalleSottoUO" : {
+          "type" : "integer",
+          "format" : "int32"
+        }
+      },
+      "xml" : {
+        "name" : "valoreDizionario"
+      }
+    },
+    "RigaResultTrovaEmail" : {
+      "type" : "object",
+      "properties" : {
+        "idEmail" : {
+          "type" : "string"
+        },
+        "messageId" : {
+          "type" : "string"
+        },
+        "flgIo" : {
+          "type" : "string"
+        },
+        "idCasella" : {
+          "type" : "string"
+        },
+        "casellaRicezione" : {
+          "type" : "string"
+        },
+        "categoria" : {
+          "type" : "string"
+        },
+        "tsRicezione" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "tsInvioClient" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "tsInvio" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "dimensione" : {
+          "type" : "integer",
+          "format" : "int64"
+        },
+        "uriEmail" : {
+          "type" : "string"
+        },
+        "flgSpam" : {
+          "type" : "string"
+        },
+        "flgStatoSpam" : {
+          "type" : "string"
+        },
+        "modalitaRicevutaPec" : {
+          "type" : "string"
+        },
+        "statoConsolidamento" : {
+          "type" : "string"
+        },
+        "nroAllegati" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "nroAllegatiFirmati" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "nroAllegatiNonFirmati" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "flgEmailFirmata" : {
+          "type" : "string"
+        },
+        "flgNoAssocAuto" : {
+          "type" : "string"
+        },
+        "accountMittente" : {
+          "type" : "string"
+        },
+        "oggetto" : {
+          "type" : "string"
+        },
+        "corpo" : {
+          "type" : "string"
+        },
+        "destinatari" : {
+          "type" : "string"
+        },
+        "destinatariPrimari" : {
+          "type" : "string"
+        },
+        "destinatariCC" : {
+          "type" : "string"
+        },
+        "destinatariCCN" : {
+          "type" : "string"
+        },
+        "avvertimenti" : {
+          "type" : "string"
+        },
+        "inCaricoA" : {
+          "type" : "string"
+        },
+        "flgRichConferma" : {
+          "type" : "string"
+        },
+        "tsAssegn" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "assegnatario" : {
+          "type" : "string"
+        },
+        "flgInviataRisposta" : {
+          "type" : "string"
+        },
+        "flgInoltrata" : {
+          "type" : "string"
+        },
+        "flgStatoProt" : {
+          "type" : "string"
+        },
+        "contrassegno" : {
+          "type" : "string"
+        },
+        "flgNotifInteropEcc" : {
+          "type" : "string"
+        },
+        "flgNotifInteropConf" : {
+          "type" : "string"
+        },
+        "flgNotifInteropAgg" : {
+          "type" : "string"
+        },
+        "livPriorita" : {
+          "type" : "string"
+        },
+        "destinatariInvio" : {
+          "type" : "string"
+        },
+        "destinatariInvioInA" : {
+          "type" : "string"
+        },
+        "destinatariInvioInCc" : {
+          "type" : "string"
+        },
+        "destinatariInvioInCcn" : {
+          "type" : "string"
+        },
+        "folder" : {
+          "type" : "string"
+        },
+        "listEstremiRegProtAssociati" : {
+          "type" : "string"
+        },
+        "listIdUdProtAssociati" : {
+          "type" : "string"
+        },
+        "protocolliDestinatari" : {
+          "type" : "string"
+        },
+        "idEmailCollegata" : {
+          "type" : "string"
+        },
+        "stato" : {
+          "type" : "string"
+        },
+        "flgCommenti" : {
+          "type" : "string"
+        },
+        "flgAssegnataUtente" : {
+          "type" : "string"
+        },
+        "flgAssegnataUtenteUO" : {
+          "type" : "string"
+        },
+        "flgNotifInteropAnn" : {
+          "type" : "string"
+        },
+        "allegatiEmail" : {
+          "type" : "string"
+        },
+        "altIcona" : {
+          "type" : "string"
+        },
+        "protocolloMittente" : {
+          "type" : "string"
+        },
+        "oggettoProtocolloMittente" : {
+          "type" : "string"
+        },
+        "tipoEmail" : {
+          "type" : "string"
+        },
+        "sottotipoEmail" : {
+          "type" : "string"
+        },
+        "flgEmailCertificata" : {
+          "type" : "string"
+        },
+        "flgInteroperabile" : {
+          "type" : "string"
+        },
+        "iconaMicroCategoria" : {
+          "type" : "string"
+        },
+        "statoLavorazione" : {
+          "type" : "string"
+        },
+        "gradoUrgenzaContrassegno" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "idRecDizContrassegno" : {
+          "type" : "string"
+        },
+        "messaggioAssegnazione" : {
+          "type" : "string"
+        },
+        "azioneDaFare" : {
+          "type" : "string"
+        },
+        "codAzioneDaFare" : {
+          "type" : "string"
+        },
+        "dettaglioAzioneDaFare" : {
+          "type" : "string"
+        },
+        "id" : {
+          "type" : "string"
+        },
+        "progrDownloadStampa" : {
+          "type" : "string"
+        },
+        "progrOrdinamento" : {
+          "type" : "string"
+        },
+        "tsSalvataggioEmail" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "nroGiorniAperta" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "statoInvio" : {
+          "type" : "string"
+        },
+        "statoAccettazione" : {
+          "type" : "string"
+        },
+        "statoConsegna" : {
+          "type" : "string"
+        },
+        "descrizioneStatoInvio" : {
+          "type" : "string"
+        },
+        "descrizioneStatoAccettazione" : {
+          "type" : "string"
+        },
+        "descrizioneStatoConsegna" : {
+          "type" : "string"
+        },
+        "inCaricoDal" : {
+          "type" : "string"
+        },
+        "tsStatoLavorazione" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "annotazioni" : {
+          "type" : "string"
+        },
+        "flgRichConfermaLettura" : {
+          "type" : "string"
+        },
+        "tagApposto" : {
+          "type" : "string"
+        },
+        "tsChiusura" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "operatoreChiusura" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "email"
+      }
+    },
+    "RigaXMLTagTagEmail" : {
+      "type" : "object",
+      "properties" : {
+        "tag" : {
+          "type" : "string"
+        },
+        "note" : {
+          "type" : "string"
+        },
+        "flagInibitaModificaECancellazione" : {
+          "type" : "integer",
+          "format" : "int32",
+          "default" : 0
+        }
+      },
+      "xml" : {
+        "name" : "datiAggiuntiviEmail"
+      }
+    },
+    "SendAndSaveNewRequest" : {
+      "type" : "object",
+      "required" : [ "destinatari", "messaggioEmail" ],
+      "properties" : {
+        "messaggioEmail" : {
+          "$ref" : "#/definitions/EmailMessage"
+        },
+        "destinatari" : {
+          "description" : "Indirizzi di posta elettronica dei destinatari dell'email.",
+          "$ref" : "#/definitions/RecipientsAddresses"
+        },
+        "html" : {
+          "type" : "boolean",
+          "example" : true,
+          "xml" : {
+            "name" : "htmlFlag"
+          },
+          "description" : "Se false il testo indicato � inviato come semplice testo.",
+          "default" : true
+        },
+        "notificationReading" : {
+          "type" : "boolean",
+          "example" : false,
+          "xml" : {
+            "name" : "confermaDiLetturaFlag"
+          },
+          "description" : "Se true si richiede una conferma dell'avvenuta apertura del messaggio.",
+          "default" : false
+        },
+        "separateMailing" : {
+          "type" : "boolean",
+          "example" : false,
+          "xml" : {
+            "name" : "invioSeparatoFlag"
+          },
+          "description" : "Se true l'email viene inviata a gruppi di destinatari.",
+          "default" : false
+        }
+      },
+      "description" : "Richiesta per l'invio email",
+      "xml" : {
+        "name" : "richiestaSpedisciESalvaEmail"
+      }
+    },
+    "SendAndSaveNewResponse" : {
+      "type" : "object",
+      "properties" : {
+        "list" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "emailElaborata"
+          },
+          "description" : "Email processate nel sistema.",
+          "items" : {
+            "xml" : {
+              "name" : "emailElaborata"
+            },
+            "$ref" : "#/definitions/EmailReferences"
+          }
+        },
+        "attachments" : {
+          "type" : "array",
+          "xml" : {
+            "name" : "allegato"
+          },
+          "description" : "File allegati all'email.",
+          "items" : {
+            "xml" : {
+              "name" : "allegato"
+            },
+            "$ref" : "#/definitions/FileInfo"
+          }
+        },
+        "attachmentsSize" : {
+          "type" : "string",
+          "example" : "821,77 KB",
+          "xml" : {
+            "name" : "dimensioneAllegati"
+          },
+          "description" : "Dimensione totale di tutti i file allegati all'email."
+        },
+        "idUtenteModPec" : {
+          "type" : "string"
+        },
+        "mittentePEC" : {
+          "type" : "boolean",
+          "example" : true,
+          "xml" : {
+            "name" : "mittentePECFlag"
+          },
+          "description" : "Se true la casella di posta del mittente � PEC."
+        },
+        "notificationReading" : {
+          "type" : "boolean",
+          "example" : true,
+          "xml" : {
+            "name" : "confermaDiLetturaFlag"
+          },
+          "description" : "Se true � stata richiesta una conferma dell'avvenuta apertura del messaggio."
+        }
+      },
+      "description" : "Risposta all'invio email",
+      "xml" : {
+        "name" : "rispostaSpedisciESalvaEmail"
+      }
+    },
+    "SetActionToDoRequest" : {
+      "type" : "object",
+      "required" : [ "idEmail" ],
+      "properties" : {
+        "token" : {
+          "type" : "string"
+        },
+        "idUtente" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "idEmail" : {
+          "type" : "string"
+        },
+        "codiceAzione" : {
+          "type" : "string"
+        },
+        "dettaglioAzione" : {
+          "type" : "string"
+        },
+        "flagRilascioLock" : {
+          "type" : "boolean"
+        }
+      },
+      "xml" : {
+        "name" : "richiestaImpostaAzioneDaFareSuEmail"
+      }
+    },
+    "SezioneCacheFiltriTrovaEmail" : {
+      "type" : "object",
+      "properties" : {
+        "classificaFolder" : {
+          "type" : "string"
+        },
+        "ricercaNonRicorsiva" : {
+          "type" : "string"
+        },
+        "idCasella" : {
+          "type" : "string"
+        },
+        "indirizzoCasella" : {
+          "type" : "string"
+        },
+        "flgIO" : {
+          "type" : "string"
+        },
+        "indirizzoMittente" : {
+          "type" : "string"
+        },
+        "indirizzoDestinatario" : {
+          "type" : "string"
+        },
+        "operMittente" : {
+          "type" : "string"
+        },
+        "operDestinatario" : {
+          "type" : "string"
+        },
+        "invioDal" : {
+          "type" : "string"
+        },
+        "invioAl" : {
+          "type" : "string"
+        },
+        "ricezioneDal" : {
+          "type" : "string"
+        },
+        "ricezioneAl" : {
+          "type" : "string"
+        },
+        "oggetto" : {
+          "type" : "string"
+        },
+        "corpo" : {
+          "type" : "string"
+        },
+        "assegnazioneEffettuata" : {
+          "type" : "string"
+        },
+        "includiAssegnateAdAltri" : {
+          "type" : "string"
+        },
+        "assegnazioneDal" : {
+          "type" : "string"
+        },
+        "assegnazioneAl" : {
+          "type" : "string"
+        },
+        "idUserAssegnatario" : {
+          "type" : "string"
+        },
+        "listaUOAssegnatari" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/RigaAssegnatarioEmail"
+          }
+        },
+        "categoria" : {
+          "type" : "string"
+        },
+        "statoConsolidamento" : {
+          "type" : "string"
+        },
+        "statoProtocollazione" : {
+          "type" : "string"
+        },
+        "ricevuteConferme" : {
+          "type" : "string"
+        },
+        "ricevuteEccezioni" : {
+          "type" : "string"
+        },
+        "ricevutiAggiornamenti" : {
+          "type" : "string"
+        },
+        "ricevutiAnnullamenti" : {
+          "type" : "string"
+        },
+        "ricevutiErroriTrasmConsegna" : {
+          "type" : "string"
+        },
+        "presenzaAllegati" : {
+          "type" : "string"
+        },
+        "presenzaAvvertimenti" : {
+          "type" : "string"
+        },
+        "nroAllegatiDa" : {
+          "type" : "string"
+        },
+        "nroAllegatiA" : {
+          "type" : "string"
+        },
+        "dimensioneDa" : {
+          "type" : "string"
+        },
+        "dimensioneA" : {
+          "type" : "string"
+        },
+        "nroDestinatariDa" : {
+          "type" : "string"
+        },
+        "nroDestinatariA" : {
+          "type" : "string"
+        },
+        "dtArchiviazioneDal" : {
+          "type" : "string"
+        },
+        "dtArchiviazioneAl" : {
+          "type" : "string"
+        },
+        "idEmailRisposteA" : {
+          "type" : "string"
+        },
+        "idEmailInoltroDi" : {
+          "type" : "string"
+        },
+        "idEmailRif" : {
+          "type" : "string"
+        },
+        "codCategoriaReg" : {
+          "type" : "string"
+        },
+        "registroReg" : {
+          "type" : "string"
+        },
+        "annoRegDa" : {
+          "type" : "string"
+        },
+        "annoRegA" : {
+          "type" : "string"
+        },
+        "nroRegDa" : {
+          "type" : "string"
+        },
+        "nroRegA" : {
+          "type" : "string"
+        },
+        "dtRegDal" : {
+          "type" : "string"
+        },
+        "dtRegAl" : {
+          "type" : "string"
+        },
+        "messageId" : {
+          "type" : "string"
+        },
+        "inviataRisposta" : {
+          "type" : "string"
+        },
+        "inoltrata" : {
+          "type" : "string"
+        },
+        "cruscottoMail" : {
+          "type" : "string"
+        },
+        "statoLavorazioneUrgenza" : {
+          "type" : "string"
+        },
+        "codAzioneDaFare" : {
+          "type" : "string"
+        },
+        "progrEmailDa" : {
+          "type" : "string"
+        },
+        "progrEmailA" : {
+          "type" : "string"
+        },
+        "annoEmailDa" : {
+          "type" : "string"
+        },
+        "annoEmailA" : {
+          "type" : "string"
+        },
+        "tipoProgrEmail" : {
+          "type" : "string"
+        },
+        "flusso" : {
+          "type" : "string"
+        },
+        "inseritaDal" : {
+          "type" : "string"
+        },
+        "inseritaAl" : {
+          "type" : "string"
+        },
+        "nroGiorniStatoLavorazioneApertoDa" : {
+          "type" : "string"
+        },
+        "nroGiorniStatoLavorazioneApertoAl" : {
+          "type" : "string"
+        },
+        "statoIAC" : {
+          "type" : "string"
+        },
+        "lockedBy" : {
+          "type" : "string"
+        },
+        "idUOLavoro" : {
+          "type" : "string"
+        },
+        "movimentatoDa" : {
+          "type" : "string"
+        },
+        "movimentatiDal" : {
+          "type" : "string"
+        },
+        "movimentatiAl" : {
+          "type" : "string"
+        },
+        "lavoratoDa" : {
+          "type" : "string"
+        },
+        "lavoratiDal" : {
+          "type" : "string"
+        },
+        "lavoratiAl" : {
+          "type" : "string"
+        },
+        "itemLavorazioneNote" : {
+          "type" : "string"
+        },
+        "itemLavorazioneTag" : {
+          "type" : "string"
+        },
+        "itemLavorazioneNomeFile" : {
+          "type" : "string"
+        },
+        "operItemLavorazioneNomeFile" : {
+          "type" : "string"
+        }
+      }
+    },
+    "SezioneCacheXMLDatiEmailRecuperaDettaglioEmail" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "string"
+        },
+        "flgIO" : {
+          "type" : "string"
+        },
+        "iconaMicroCategoria" : {
+          "type" : "string"
+        },
+        "titoloGUIDettaglioEmail" : {
+          "type" : "string"
+        },
+        "flgRicNotSenzaPredecessore" : {
+          "type" : "string"
+        },
+        "messageId" : {
+          "type" : "string"
+        },
+        "casellaId" : {
+          "type" : "string"
+        },
+        "casellaAccount" : {
+          "type" : "string"
+        },
+        "casellaIsPEC" : {
+          "type" : "string"
+        },
+        "categoria" : {
+          "type" : "string"
+        },
+        "dimensione" : {
+          "type" : "number"
+        },
+        "uri" : {
+          "type" : "string"
+        },
+        "flgSpam" : {
+          "type" : "string"
+        },
+        "statoLavorazione" : {
+          "type" : "string"
+        },
+        "dataAggStatoLavorazione" : {
+          "type" : "string"
+        },
+        "orarioAggStatoLavorazione" : {
+          "type" : "string"
+        },
+        "tipo" : {
+          "type" : "string"
+        },
+        "sottotipo" : {
+          "type" : "string"
+        },
+        "flgPEC" : {
+          "type" : "string"
+        },
+        "flgInteroperabile" : {
+          "type" : "string"
+        },
+        "nroAllegati" : {
+          "type" : "number"
+        },
+        "nroAllegatiFirmati" : {
+          "type" : "number"
+        },
+        "flgEmailFirmata" : {
+          "type" : "string"
+        },
+        "flgNoAssociazioneAutomatica" : {
+          "type" : "string"
+        },
+        "accountMittente" : {
+          "type" : "string"
+        },
+        "subject" : {
+          "type" : "string"
+        },
+        "body" : {
+          "type" : "string"
+        },
+        "siglaRegistroRegMitt" : {
+          "type" : "string"
+        },
+        "numRegMitt" : {
+          "type" : "string"
+        },
+        "enteRegMitt" : {
+          "type" : "string"
+        },
+        "annoRegMitt" : {
+          "type" : "string"
+        },
+        "dtRegMitt" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "oggettoRegMitt" : {
+          "type" : "string"
+        },
+        "tsLock" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "desUtenteLock" : {
+          "type" : "string"
+        },
+        "desOperLock" : {
+          "type" : "string"
+        },
+        "flgRichConferma" : {
+          "type" : "string"
+        },
+        "flgRichConfermaLettura" : {
+          "type" : "string"
+        },
+        "tsUltimaAssegnazione" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "avvertimenti" : {
+          "type" : "string"
+        },
+        "desUOAssegnataria" : {
+          "type" : "string"
+        },
+        "dataUltimaAssegnazione" : {
+          "type" : "string"
+        },
+        "orarioUltimaAssegnazione" : {
+          "type" : "string"
+        },
+        "desUtenteAssegnatario" : {
+          "type" : "string"
+        },
+        "dataLock" : {
+          "type" : "string"
+        },
+        "orarioLock" : {
+          "type" : "string"
+        },
+        "msgUltimaAssegnazione" : {
+          "type" : "string"
+        },
+        "flgInviataRisposta" : {
+          "type" : "string"
+        },
+        "flgInoltrata" : {
+          "type" : "string"
+        },
+        "statoProtocollazione" : {
+          "type" : "string"
+        },
+        "idRecDizContrassegno" : {
+          "type" : "string"
+        },
+        "contrassegno" : {
+          "type" : "string"
+        },
+        "flgRicevutaEccezioneInterop" : {
+          "type" : "string"
+        },
+        "flgRicevutaConfermaInterop" : {
+          "type" : "string"
+        },
+        "flgRicevutoAggiornamentoInterop" : {
+          "type" : "string"
+        },
+        "flgRicevutoAnnRegInterop" : {
+          "type" : "string"
+        },
+        "tsRicezione" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "tsInvioCertificato" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "tsInvio" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "livPriorita" : {
+          "type" : "string"
+        },
+        "flgRicevutaCBS" : {
+          "type" : "string"
+        },
+        "destinatariPrincipali" : {
+          "type" : "string"
+        },
+        "listaDestinatariPrincipali" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/RigaDestinatarioEmail"
+          }
+        },
+        "destinatariCC" : {
+          "type" : "string"
+        },
+        "listaDestinatariCC" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/RigaDestinatarioEmail"
+          }
+        },
+        "listaDestinatariCCN" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/RigaDestinatarioEmail"
+          }
+        },
+        "emailPredecessoreProgrMsg" : {
+          "type" : "string"
+        },
+        "emailPredecessoreProgMsgDStampa" : {
+          "type" : "string"
+        },
+        "emailPredecessoreTsIns" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "emailPredecessoreIdEmail" : {
+          "type" : "string"
+        },
+        "emailPredecessoreMessageId" : {
+          "type" : "string"
+        },
+        "emailPredecessoreFlgIO" : {
+          "type" : "string"
+        },
+        "emailPredecessoreIconaMicroCategoria" : {
+          "type" : "string"
+        },
+        "emailPredecessoreCategoria" : {
+          "type" : "string"
+        },
+        "emailPredecessoreTsInvio" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "emailPredecessoreTsRicezione" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "emailPredecessoreCasellaAccount" : {
+          "type" : "string"
+        },
+        "emailPredecessoreSubject" : {
+          "type" : "string"
+        },
+        "emailPredecessoreAccountMittente" : {
+          "type" : "string"
+        },
+        "emailPredecessoreTipo" : {
+          "type" : "string"
+        },
+        "emailPredecessoreSottotipo" : {
+          "type" : "string"
+        },
+        "emailPredecessoreFlgPEC" : {
+          "type" : "string"
+        },
+        "emailPredecessoreFlgInteroperabile" : {
+          "type" : "string"
+        },
+        "emailPredecessoreDestinatariPrincipali" : {
+          "type" : "string"
+        },
+        "emailPredecessoreDestinatariCC" : {
+          "type" : "string"
+        },
+        "listaEmailPredecessoreEstremiDocTrasmessi" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/RigaEstremiDocEmail"
+          }
+        },
+        "listaEstremiDocTrasmessi" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/RigaEstremiDocEmail"
+          }
+        },
+        "listaEstremiDocDerivati" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/RigaEstremiDocEmail"
+          }
+        },
+        "listaAllegati" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/RigaAllegatoEmail"
+          }
+        },
+        "listaItemLavorazione" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/RigaItemLavorazioneEmail"
+          }
+        },
+        "listaEmailSuccessiveCollegate" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/RigaEmailCollegata"
+          }
+        },
+        "abilitaRispondi" : {
+          "type" : "string"
+        },
+        "abilitaRispondiATutti" : {
+          "type" : "string"
+        },
+        "abilitaInoltraEmail" : {
+          "type" : "string"
+        },
+        "abilitaInoltraContenuti" : {
+          "type" : "string"
+        },
+        "abilitaAssegna" : {
+          "type" : "string"
+        },
+        "abilitaAssociaProtocollo" : {
+          "type" : "string"
+        },
+        "abilitaArchivia" : {
+          "type" : "string"
+        },
+        "abilitaProtocolla" : {
+          "type" : "string"
+        },
+        "abilitaScaricaEmail" : {
+          "type" : "string"
+        },
+        "abilitaScaricaEmailSenzaBustaTrasporto" : {
+          "type" : "string"
+        },
+        "abilitaInoltraEmailSbustata" : {
+          "type" : "string"
+        },
+        "abilitaNotifInteropConferma" : {
+          "type" : "string"
+        },
+        "abilitaNotifInteropEccezione" : {
+          "type" : "string"
+        },
+        "abilitaNotifInteropAggiornamento" : {
+          "type" : "string"
+        },
+        "abilitaNotifInteropAnnullamento" : {
+          "type" : "string"
+        },
+        "abilitaRegIstanzaAutotutela" : {
+          "type" : "string"
+        },
+        "abilitaRegIstanzaCED" : {
+          "type" : "string"
+        },
+        "iconaStatoConsolidamento" : {
+          "type" : "string"
+        },
+        "abilitaInvia" : {
+          "type" : "string"
+        },
+        "abilitaInvioCopia" : {
+          "type" : "string"
+        },
+        "abilitaAzioneDaFare" : {
+          "type" : "string"
+        },
+        "abilitaAssociaAInvio" : {
+          "type" : "string"
+        },
+        "azioneDaFare" : {
+          "type" : "string"
+        },
+        "dettaglioAzioneDaFare" : {
+          "type" : "string"
+        },
+        "codAzioneDaFare" : {
+          "type" : "string"
+        },
+        "abilitaRiapri" : {
+          "type" : "string"
+        },
+        "progMsgDownloadStampa" : {
+          "type" : "string"
+        },
+        "tsIns" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "listaEmailPrecedentiCollegate" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/RigaEmailPrecedente"
+          }
+        },
+        "iconaStatoInvio" : {
+          "type" : "string"
+        },
+        "iconaStatoAccettazione" : {
+          "type" : "string"
+        },
+        "iconaStatoConsegna" : {
+          "type" : "string"
+        },
+        "statoInvio" : {
+          "type" : "string"
+        },
+        "statoAccettazione" : {
+          "type" : "string"
+        },
+        "statoConsegna" : {
+          "type" : "string"
+        },
+        "abilitaPresaInCarico" : {
+          "type" : "string"
+        },
+        "abilitaMessaInCarico" : {
+          "type" : "string"
+        },
+        "abilitaRilascio" : {
+          "type" : "string"
+        },
+        "abilitaAnnullamentoInvio" : {
+          "type" : "string"
+        },
+        "categoriaRegUD" : {
+          "type" : "string"
+        },
+        "siglaRegUD" : {
+          "type" : "string"
+        },
+        "annoRegUD" : {
+          "type" : "string"
+        },
+        "numRegUD" : {
+          "type" : "string"
+        },
+        "tsRegUD" : {
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "motivoEccezione" : {
+          "type" : "string"
+        },
+        "aliasAccountMittente" : {
+          "type" : "string"
+        },
+        "progrBozza" : {
+          "type" : "string"
+        },
+        "abilitaSalvaBozza" : {
+          "type" : "string"
+        },
+        "abilitaSalvaItemLav" : {
+          "type" : "string"
+        },
+        "listaIdEmailInoltrate" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/RigaIdEmailInoltrata"
+          }
+        }
+      },
+      "xml" : {
+        "name" : "dettaglioEmail"
+      }
+    },
+    "TagRequest" : {
+      "type" : "object",
+      "required" : [ "emails" ],
+      "properties" : {
+        "token" : {
+          "type" : "string"
+        },
+        "idUtente" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "emails" : {
+          "$ref" : "#/definitions/ListaIdEmail"
+        },
+        "tagEmails" : {
+          "$ref" : "#/definitions/ListaXMLTagTagEmail"
+        }
+      },
+      "xml" : {
+        "name" : "richiestaTagEmail"
+      }
+    },
+    "TagResponse" : {
+      "type" : "object",
+      "properties" : {
+        "esitiTagEmail" : {
+          "$ref" : "#/definitions/ListaEsitiTagEmail"
+        }
+      },
+      "xml" : {
+        "name" : "rispostaTagEmail"
+      }
+    },
+    "UnlockRequest" : {
+      "type" : "object",
+      "required" : [ "emails" ],
+      "properties" : {
+        "token" : {
+          "type" : "string"
+        },
+        "idUtente" : {
+          "type" : "integer",
+          "format" : "int32"
+        },
+        "emails" : {
+          "$ref" : "#/definitions/ListaIdEmail"
+        },
+        "motivi" : {
+          "type" : "string"
+        }
+      },
+      "xml" : {
+        "name" : "unlockRequest"
+      }
+    },
+    "UnlockResponse" : {
+      "type" : "object",
+      "properties" : {
+        "esitiUnlockEmail" : {
+          "$ref" : "#/definitions/ListaEsitiUnlockEmail"
+        }
+      },
+      "xml" : {
+        "name" : "rispostaUnlockEmail"
+      }
+    }
+  }
+}

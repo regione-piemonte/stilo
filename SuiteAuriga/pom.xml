@@ -1,0 +1,242 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+  	<groupId>it.eng.suiteAuriga</groupId>
+  	<artifactId>SuiteAuriga</artifactId>
+	<version>1.8.14</version>
+  	<packaging>pom</packaging>
+  	<name>SuiteAuriga</name>
+	<description>Parent POM</description>
+
+	<properties>
+		<suiteAuriga.version>${project.version}</suiteAuriga.version>
+		<maven.compiler.source>1.7</maven.compiler.source>
+		<maven.compiler.target>1.7</maven.compiler.target>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<java.version>1.7</java.version>
+
+		<!-- Definizione versioni librerie di terze parti -->
+		<spring.version>4.0.6.RELEASE</spring.version>
+		<spring-web.version>4.0.6.RELEASE</spring-web.version>
+		<reflections.version>0.9.7</reflections.version>
+		<ojdbc.artifactId>ojdbc7</ojdbc.artifactId>
+		<ojdbc.version>12.1.0.2</ojdbc.version>
+
+		<!-- Definizione repository -->
+		<!-- Da inserire url artifacotry maven in cui sono deployate le librerie -->
+		<repository.id></repository.id>
+		<repository.name></repository.name>
+		<repository.url></repository.url>
+
+		<!-- Definizione versioni dipendenze presenti sotto SuiteUtility -->
+		<aurigaSampleSendMailModule.version>1.0.2</aurigaSampleSendMailModule.version>
+		<annotationModule.version>1.0.1</annotationModule.version>
+		<coreModule.version>1.0.5</coreModule.version>
+		<sezioneCache.version>1.0.5</sezioneCache.version>
+		<ooManager.version>1.9.7</ooManager.version>
+		<fileUtility.version>1.0.1</fileUtility.version>
+		<jobManager.version>1.0.2</jobManager.version>
+		<jobManagerStiloJob.version>2.0.0</jobManagerStiloJob.version>
+		<springUtility.version>1.0.1</springUtility.version>
+		<archiveUtility.version>1.0.3</archiveUtility.version>
+		<sharePointUtility.version>1.0.1</sharePointUtility.version>
+		<contabiliaClient.version>1.0.6</contabiliaClient.version>
+		<sibClient.version>1.0.4</sibClient.version>
+		<sicraClient.version>1.0.4</sicraClient.version>
+		<siraBusiness.version>1.0.3</siraBusiness.version>
+		<timePerformance.version>1.0.1</timePerformance.version>
+		<pdfModeler.version>1.0.2</pdfModeler.version>
+		<hybridDeployer.version>1.0.10</hybridDeployer.version>
+		<hsmClient.version>1.0.8</hsmClient.version>
+		<gdprUtils.version>1.0.0</gdprUtils.version>
+		<stampaEtichetteHybridBundle.version>1.0.5</stampaEtichetteHybridBundle.version>
+		<jPedal.verion>2.1.0</jPedal.verion>
+		<scanApplet.version>1.1.7</scanApplet.version>
+		<signerAppletFile.version>1.1.2</signerAppletFile.version>
+		<signerAppletMultiFile.version>1.1.13</signerAppletMultiFile.version>
+		<stampaFileApplet.version>1.0.3</stampaFileApplet.version>
+		<signerAppletMultiSiss.version>1.1.3</signerAppletMultiSiss.version>
+		<stampaEtichettaApplet.version>1.1.2</stampaEtichettaApplet.version>
+		<printerScanner.version>1.0.7</printerScanner.version>
+		<pieChartApplet.version>1.0.8</pieChartApplet.version>
+		<wordOpener.version>1.1.2</wordOpener.version>
+		<firmaCertificatoApplet.version>1.0.7</firmaCertificatoApplet.version>
+		<selectCertificatoFirmaApplet.version>1.0.5</selectCertificatoFirmaApplet.version>
+		<signerMultiHybridBundle.version>1.0.9</signerMultiHybridBundle.version>
+		<printerScannerHybridBundle.version>1.0.3</printerScannerHybridBundle.version>
+		<stampaEtichetteHybridBundle.version>1.0.4</stampaEtichetteHybridBundle.version>
+		<wordOpenerHybridBundle.version>1.0.3</wordOpenerHybridBundle.version>
+		<scanHybridBundle.version>1.0.6</scanHybridBundle.version>
+		<pieChartHybridBundle.version>1.0.3</pieChartHybridBundle.version>
+		<selectCertificatoHybridBundle.version>1.0.5</selectCertificatoHybridBundle.version>
+		<firmaCertificatoHybridBundle.version>1.0.8</firmaCertificatoHybridBundle.version>
+		<stampaFilesHybridBundle.version>1.0.2</stampaFilesHybridBundle.version>
+		<pDFProducer.version>1.2.0</pDFProducer.version>
+		<gdprAurigaValve.version>1.0.0</gdprAurigaValve.version>
+		<log4j2Bridge.version>1.0.1</log4j2Bridge.version>
+		<clientFileoperationWS.version>1.3.2</clientFileoperationWS.version>
+		<prosaClient.version>1.0.0</prosaClient.version>
+		<ocr.version>2.0.0</ocr.version>
+		<simpleSenderMail.version>1.0.2</simpleSenderMail.version>
+		<cSITokenRetryUtility.version>1.0.0</cSITokenRetryUtility.version>
+		<actaClient.version>1.0.8</actaClient.version>
+		<toponomasticaClient.version>1.0.1</toponomasticaClient.version>
+		<opentextutilities.version>0.0.1</opentextutilities.version>
+		<portScannerHybridBundle.version>1.0.0</portScannerHybridBundle.version>
+		<pdfUtility.version>1.0.1</pdfUtility.version>
+		<amcoclient.version>1.0.0</amcoclient.version>
+	</properties>
+
+	<distributionManagement>
+		<repository>
+			<id>${repository.id}</id>
+			<name>${repository.name}</name>
+			<url>${repository.url}</url>
+		</repository>
+	</distributionManagement>
+
+	<profiles>
+		<profile>
+			<id>buildAlboPretorioWar</id>
+			<properties>
+				<config>csi</config>
+			</properties>
+			<modules>
+				<module>AurigaLib</module>
+				<module>AlboPretorio</module>
+			</modules>
+		</profile>
+		
+		<profile>
+			<id>buildAurigaBusinessWar</id>
+			<properties>
+				<config>csi</config>
+			</properties>
+			<modules>
+				<module>AurigaLib</module>
+				<module>AurigaBusiness</module>
+			</modules>
+		</profile>
+		
+		<profile>
+			<id>buildAurigaMailWar</id>
+			<properties>
+				<config>csi</config>
+			</properties>
+			<modules>
+				<module>AurigaLib</module>
+				<module>AurigaMail</module>
+			</modules>
+		</profile>
+		
+		<profile>
+			<id>buildAurigaWebWar</id>
+			<properties>
+				<config>csi</config>
+			</properties>
+			<modules>
+				<module>AurigaLib</module>
+				<module>AurigaWeb</module>
+			</modules>
+		</profile>
+		
+		<profile>
+			<id>buildStiloActaEar</id>
+			<properties>
+				<config>csi</config>
+			</properties>
+			<modules>
+				<module>StiloActaJob</module>
+				<module>StiloActaEar</module>
+			</modules>
+		</profile>
+		
+		<profile>
+			<id>buildStiloExportWar</id>
+			<properties>
+				<config>csi</config>
+			</properties>
+			<modules>
+				<module>AurigaLib</module>
+				<module>StiloJob</module>
+				<module>StiloExport</module>
+			</modules>
+		</profile>
+		
+		<profile>
+			<id>buildStiloServiziExportWar</id>
+			<properties>
+			   <config>csi</config>
+			</properties>
+			<modules>
+				<module>AurigaLib</module>
+				<module>StiloJob</module>
+				<module>StiloServiziExport</module>
+			</modules>
+		</profile>
+		
+		<profile>
+			<id>buildStiloExportMarcaWar</id>
+			<properties>
+				<config>csi</config>
+			</properties>
+			<modules>
+				<module>AurigaLib</module>
+				<module>StiloAggiungiMarcaTemporaleJob</module>
+				<module>StiloExportMarca</module>
+			</modules>
+		</profile>
+		
+		<profile>
+			<id>buildStiloExportImportDocIndexWar</id>
+			<properties>
+				<config>csi</config>
+			</properties>
+			<modules>
+				<module>AurigaLib</module>
+				<module>StiloImportJob</module>
+				<module>StiloExportImportDocIndex</module>
+			</modules>
+		</profile>
+		
+		<profile>
+			<id>buildStiloExportImportCSVBatchWar</id>
+			<properties>
+				<config>csi/cert</config>
+			</properties>
+			<modules>
+				<module>AurigaLib</module>
+				<module>StiloImportJob</module>
+				<module>StiloExportImportCSVBatch</module>
+			</modules>
+		</profile>
+		
+		<profile>
+			<id>buildStiloTrasparenzaExportWar</id>
+			<properties>
+				<config>csi</config>
+			</properties>
+			<modules>
+				<module>AurigaLib</module>
+				<module>StiloTrasparenzaJob</module>
+				<module>StiloTrasparenzaExport</module>
+			</modules>
+		</profile>
+		
+		<profile>
+			<id>buildStiloRicercaOrdinativo</id>
+			<properties>
+			   <config>csi</config>
+			</properties>
+			<modules>
+				<module>AurigaLib</module>
+				<module>SicraRicercaOrdinativoJob</module>
+				<module>StiloRicercaOrdinativo</module>
+			</modules>
+		</profile>
+		
+	</profiles>
+		
+</project>

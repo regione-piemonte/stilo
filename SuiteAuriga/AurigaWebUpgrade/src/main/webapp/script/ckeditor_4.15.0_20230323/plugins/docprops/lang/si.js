@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+docTypeOther:"අනෙකුත් ලිපිගොනු වර්ගයේ මාතෘකා",label:"ලිපිගොනු ",margin:"පිටු සීමාවන්",marginBottom:"පහල",marginLeft:"වම",marginRight:"දකුණ",marginTop:"ඉ",meta:"Meta Tags",metaAuthor:"Author",metaCopyright:"ප්‍රකාශන ",metaDescription:"ලිපිගොනු ",metaKeywords:"ලිපිගොනු පෙලගේසමේ විශේෂ වචන (කොමා වලින් වෙන්කරන ලද)",other:"අනෙකුත්",previewHtml:'\x3cp\x3eThis is some \x3cstrong\x3esample text\x3c/strong\x3e. You are using \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e.\x3c/p\x3e',title:"පෝරමයේ ගුණ/",
+txtColor:"අක්ෂර වර්ණ",xhtmlDec:"Include XHTML Declarations"});

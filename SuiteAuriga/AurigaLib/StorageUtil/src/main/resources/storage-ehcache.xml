@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ehcache     
+    name="it.eng.utility.storageutil.manager.entity.Storages">    
+    <defaultCache         
+        eternal="false"         
+        maxElementsInMemory="100"         
+        overflowToDisk="false"         
+        timeToIdleSeconds="120"         
+        timeToLiveSeconds="120">           
+    </defaultCache>    
+</ehcache>
+
+<ehcache     
+    name="it.eng.utility.storageutil.manager.entity.UtilizzatoriStorage">    
+    <defaultCache         
+        eternal="false"         
+        maxElementsInMemory="100"         
+        overflowToDisk="false"         
+        timeToIdleSeconds="120"         
+        timeToLiveSeconds="120">           
+    </defaultCache>    
+</ehcache>
+
+<ehcache     
+    name="it.eng.utility.storageutil.manager.entity.UtilizzatoriStorageH">    
+    <defaultCache         
+        eternal="false"         
+        maxElementsInMemory="100"         
+        overflowToDisk="false"         
+        timeToIdleSeconds="120"         
+        timeToLiveSeconds="120">           
+    </defaultCache>    
+</ehcache>

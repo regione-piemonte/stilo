@@ -1,0 +1,725 @@
+1        PACKAGE DMPK_TITOLARIO AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        	
+12        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+13        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        	/********** funzione per ottenere l'id. del piano di classificazione usato da un dato soggetto prod./AOO ad un dato timestamp **********/
+20        	function GetIdPianoClassifSpAOO(
+21        			IdSpAOOIn		IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,	-- (obblig) Id. del soggetto produttore o AOO per cui trovare il piano di classificazione
+22        			TsRifIn			IN		DATE DEFAULT sysdate					-- Data e ora a cui ricavare il piano di classificazione
+23        																			-- se non specificata si intende sysdate
+24        			) return DMT_PIANI_CLASSIF.ID_PIANO_CLASSIF%type;				-- Id. del piano di classificazione
+25        																			-- in caso di errore o se non c'è il piano è NULL
+26        
+27        	/************* funzione per convertire i NRI_LIVELLI di una classificazione dalla forma in cui appaiono in tabella a quella con cui vanno renderizzati nella GUI *************/
+28        	function ConvertNriLivelliTitXGUI(
+29        			NriLivelliTitInTableIn		IN		DMT_TITOLARIO.NRI_LIVELLI%type,		-- (obblig.) Campo NRI_LIVELLI della classificazione come compare in tabella
+30        			DefLivelliTitTabIn		IN		DMTO_LIV_GERARCHIA,				-- (obblig.)Definizione di quali sono i livelli del titolario cui appartiene la classificazione
+31        			SepLivelliIn			IN		VARCHAR2,						-- (obblig.)Separatore dei livelli da usare nell GUI
+32        			FlgPaddingLivTitIn 		IN		PLS_INTEGER,					-- (valori 1/0/NULL) Se 1 significa che per il livelli numerici va fatto il riempimento con 0 fino alla max lunghezza di un n.ro livello (LengthNroLivelloIn)
+33        			LengthNroLivelloIn		IN		PLS_INTEGER						-- (obblig.)Max lunghezza (come n.ro di cifre o caratterri) di ciascun n.ro livello
+34        			) return VARCHAR2;											-- N.ri livello della classificazione come devono essere renderizzati nella GUI
+35        
+36        	/******* funzione per ricercare nel titolario di classificazione ********/
+37        	function TrovaInTitolario(
+38        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+39        																	-- (obblig). Codice identificativo del token di connessione
+40        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+41        			FlgPreimpostaFiltroIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1 i filtri e l'ordinamento vengono settati secondo le impostazioni dell'utente di lavoro, altrimenti restano come passati in input
+42        			MatchByIndexerIn			IN		CLOB DEFAULT NULL,				-- Lista delle classificazioni che sono state trovate dal searcher di Lucene (XML conforme a schema LISTA_STD.xsd)
+43        																	-- Ogni oggetto di Lucene trovato è un tag Riga che contiene le seguenti colonne: 
+44        																	-- 1: identificativo dell’oggetto
+45        																	-- 2: non utilizzata
+46        																	-- 3: flag 1/0 che indica se il match dell'oggetto richiede attributi "protetti", ovvero che possono contenere dati riservati
+47        																	-- 4: score restituito da Lucene
+48        			FlgIndexerOverflowIn		IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che il searcher di Lucene ha trovato un numero di oggetti superiore ad un limite massimo consentito.
+49        																	-- Nel caso il flag valga 1 l’argomento precedente può essere vuoto o se non lo è il suo contenuto viene comunque ignorato
+50        			Flg2ndCallIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 indica che si tratta della seconda chiamata alla stored che viene fatta a seguito di una ricerca sottomessa. 
+51        																	-- Può essere 1 solo se MatchByIndexerIn contiene degli oggetti.
+52        																	-- E' un flag che serve per velocizzare la ricerca: infatti quando è 1 i filtri vengono ignorati in quanto si considera che il set restituito dall'indicizzatore sia già fatto di oggetti soddisfacenti tutti i filtri; la chiamata alla stored serve solo per verificare l'accesso agli oggetti restituiti dall'indicizzatore, ordinare ed eventualmente paginare il risultato e calcolare tutti i dati degli oggetti da restituire.
+53        			CercaInClassificazioneIO	IN OUT	DMT_TITOLARIO.ID_CLASSIFICAZIONE%type,	-- 1° filtro di ricerca: id. della classificazione in cui effettuare la ricerca. Se non specificato si cerca in tutto il titolario
+54        			FlgCercaInSubClassifIO		IN OUT	PLS_INTEGER,					-- 2° filtro di ricerca (valori 1/0/NULL): 1 indica che la ricerca va estesa alle sotto-classifiche della classificazione CercaInClassificazioneIO 
+55        																	-- ATTENZIONE: non può essere 1 se CercaInClassificazioneIO non è valorizzato 
+56        																	--		   Se CercaInClassificazioneIO non è valorizzato (ricerca in tutto il titolario) solo se il flag è 0 si intende che non si debba ricercare nelle sotto-classifiche e si mostrano solo le classifiche di 1° livello gerarchico
+57        			TsRifIn				IN		VARCHAR2 DEFAULT NULL,				-- (nel formato DD/MM/RRRR HH24:MI:SS) Definisce l'istante in cui va presa la "fotografia" del titolario in cui si vuole ricercare. 
+58        																	-- Se non valorizzato si intende che si vuole ricercare nell'attuale titolario	
+59        			CriteriAvanzatiIO			IN OUT	NOCOPY CLOB,		-- XML contenente nomi e valori dei filtri sulle classificazioni (conforme allo schema SezioneCache.xsd). 
+60        																	-- Ogni filtro è un tag "Variabile" dell'XML
+61        																	-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+62        																	-- I nomi dei filtri possibili sono:
+63        																	-- IdPianoClassificazione	Id. del piano di classificazione in cui restringere la ricerca
+64        																	--							Se non valorizzato e non ricavabile dalla classifica CercaInClassificazioneIO si intende di dover cercare nel piano in vigore - attualmente o alla data specificata in TsRifIn - per l'Ente/AOO collegato: se non si riesce a determinare il piano in cui cercare viene dato errore
+65        																	--  DesClassificazione		Stringa contenuta nella descrizione delle classifiche da cercare (ricerca case-insensitive in like senza forzare % finale)
+66        																	--  LivelloGerarchico			N.ro di livello gerarchico delle classificazioni da ricercare
+67        																	-- 	@CodLivelloClassif		Codici che identificano i livelli della classificazione. Ciscuna riga della lista può contenere una sola colonna:
+68        																	--						1: Codice che identifica la classificazione di livello gerarchico i-esimo (dove i è il n.ro di riga) tra quelle che ricadono nella stessa classificazione padre (va espresso come si vede nella GUI, ovvero romano se previsto, 0 o -- per indicare che è assente la classificazione superiore di livello i-esimo)					
+69        																	--  FlgSoloClassifAttive		(valori 1/0) Se 1 si devono ricercare solo le classificazioni attive al timestamp TsRifIn, se 0 solo quelle cessate al timestamp indicato
+70        																	--	DataInizioValiditaDa		Inizio intervallo di ricerca sulla data di inizio validità delle classificazioni (nel formato del parametro di config. FMT_STD_DATA)
+71        																	--	DataInizioValiditaA		Fine intervallo di ricerca sulla data di inizio validità delle classificazioni (nel formato del parametro di config. FMT_STD_DATA)
+72        																	--	DataFineValiditaDa		Inizio intervallo di ricerca sulla data di fine validità delle classificazioni (nel formato del parametro di config. FMT_STD_DATA)
+73        																	--	DataFineValiditaA			Fine intervallo di ricerca sulla data di fine validità delle classificazioni (nel formato del parametro di config. FMT_STD_DATA)
+74        																	-- FlgRichAbilXVisualizz	(valori 1/0/NULL): filtro di ricerca per restringere la ricerca alle sole classifiche per cui è richiesta abilitazione esplicita per visualizzare documenti e fascicoli con la data classifica (=1) o per cui non è richiesta abilitazione esplicita (=0)
+75        																	-- FlgRichAbilXGest			(valori 1/0/NULL): filtro di ricerca per restringere la ricerca alle sole classifiche per cui è richiesta abilitazione esplicita per gestire (modificare, versionare, cancellare) documenti con la data classifica (=1) o per cui non è richiesta abilitazione esplicita (=0)
+76        																	-- FlgRichAbilXAssegn		(valori 1/0/NULL): filtro di ricerca per restringere la ricerca alle sole classifiche per cui è richiesta abilitazione esplicita per assegnarle ad un documento (=1) o per cui non è richiesta abilitazione esplicita per assegnarle ad un documento (=0)
+77        																	-- FlgRichAbilXFirma		(valori 1/0/NULL): filtro di ricerca per restringere la ricerca alle sole classifiche per cui è richiesta abilitazione esplicita per firmare un documento della data classifica(=1) o per cui non è richiesta abilitazione esplicita per firmare un documento della data classifica (=0)
+78        																	-- FlgRichAbilXAperturaFasc	(valori 1/0/NULL): filtro di ricerca per restringere la ricerca alle sole classifiche per cui è richiesta abilitazione esplicita per aprirvi fascicoli (=1) o per cui non è richiesta abilitazione esplicita (=0)
+79        																	-- FlgStatoAbil				(valori 1/0/NULL): filtro di ricerca per restringere la ricerca alle sole classifiche cui l'utente/UO/scrivania/profilo ecc specificato nell'argomento IdDestAbil ha (= 1) o non ha (=0) abilitazione (con le opzioni eventualmente specificate nell'argomento OpzioniAbil)
+80        																	-- FlgTpDestAbil			(obblig. e gestito solo se FlgStatoAbil è valorizzato) Indica il tipo di chi (utente o UO ecc) deve avere o non avere abilitazione - con tutte le opzioni specificate in OpzioniAbilIn - verso le classifiche da ricercare
+81        																								-- Valori ammessi:
+82        																								--	UO	=	U.O.
+83        																								-- 	SV	=	Scrivania virtuale
+84        																								--	UT	=	Utente
+85        																								--	PR	=	Profilo
+86        																								--	GP	=	Gruppo di privilegi
+87        																	-- IdDestAbil				(obblig. e gestito solo se FlgStatoAbil è valorizzato) Identificativo (ID_UO o ID_SCRIVANIA o ID_USER o ID_PROFILO o ID_GRUPPO_PRIV) di chi deve avere o non avere abilitazione - con tutte le opzioni specificate in OpzioniAbil - verso le classifiche da ricercare
+88        																	-- OpzioniAbil				Indica la/le opzione (se più di una separate da ;) con cui IdDestAbilIn deve essere abilitato o meno (a seconda che FlgStatoAbil sia 1 o 0) alle classifiche da ricercare
+89        																								-- Opzioni possibili:
+90        																								--	M	=	a Modificare/gestire
+91        																								--	A	=	ad Assegnare
+92        																								--	AF	=	a Aprire Fascicoli
+93        																	-- IdClassificazioneToForce: Id. di un aclassificazione da mettere nel resultset anche se non soddisfa tutti gli altri filtri
+94        			CriteriPersonalizzatiIO		IN OUT 	NOCOPY CLOB,		-- Criteri di ricerca sugli attributi custom delle classificazioni (XML conforme a schema LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+95        																	-- Ogni criterio è un tag Riga che può contenere le seguenti colonne:
+96        																	--	1) Nome (ATTR_NAME) dell'attributo cui è relativo il criterio
+97        																	--	2) (obblig.) Operatore logico. Valori possibili:
+98        																	--		"uguale" (ricerca esatta) 
+99        																	--		"simile a (case-sensitive)" (ricerca case-sensitive in like)
+100        																	--		"simile a (case-insensitive)" (ricerca case-insensitive in like e che ignora i caratteri quali spazi, ., ecc)
+101        																	--		"maggiore" (se attributo numerico o data)
+102        																	--		"maggiore o uguale" (se attributo numerico o data)
+103        																	--		"minore" (se attributo numerico o data)
+104        																	--		"minore o uguale" (se attributo numerico o data)
+105        																	--		"tra" (se attributo numerico o data)
+106        																	--		"non valorizzato"
+107        																	--		"valorizzato"
+108        																	--		"spuntato" (se attributo di tipo casella di spunta)
+109        																	--		"non spuntato" (se attributo di tipo casella di spunta)
+110        																	--	3) 1° valore di confronto (obblig. e gestito solo se l'operatore non ha uno dei seguenti valori: valorizzato, non valorizzato, spuntato, non spuntato) (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+111        																	--	4) 2° valore di confronto (obblig. e gestito solo se l'operatore è "tra") (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+112        																	--	5) Label dell''attributo cui è relativo il criterio (se sotto-attributo di complesso <label del complesso> - <label del sotto-attributo>
+113        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+114        			ColOrderByIO			IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 18 + 24 + 25). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+115        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+116        																	-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+117        			FlgDescOrderByIO  		IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+118        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
+119        			FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+120        			NroPaginaIO      			IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+121           			BachSizeIO				IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+122        																	-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+123        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+124        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+125        			NroTotRecOut			OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+126             			NroRecInPaginaOut 		OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+127        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+128        			FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+129        																	-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema. 
+130        			ColToReturnIn			IN		VARCHAR2 DEFAULT NULL,				-- Stringa con i n.ri delle colonne dell'XML di output ResultOut che si vuole siano presenti.
+131        																	-- Se la stringa è vuota saranno presenti tutte le colonne.
+132        																	-- La colonna 2 sarà presente comunque.
+133        																	-- I n.ri delle varie colonne vanno separati con , o ; e se si vuole indicare un intervallo di colonne gli estremi dell'intervallo vanno separati con - (es: "1-5;7;10" significa colonne da 1 a 5 più le colonne 7 e 10)
+134        			ResultOut				OUT		NOCOPY CLOB, 					-- Lista delle classificazioni trovate (XML conforme a schema LISTA_STD.xsd)
+135        																	-- Ogni classificazione trovata è un tag Riga che può contenere le seguenti colonne: 
+136        																	-- 1:  N.ro che indica il livello gerarchico della classificazione
+137        																	-- 2:  Identificativo della classificazione
+138        																	-- 3:  Descrizione della classificazione
+139        																	-- 4:  Tipo di classificazione (titolo, classe, sottoclasse ecc)
+140        																	-- 5:  Descrizione estesa (cioè incluse le descrizioni delle classifiche superiori)
+141        																	-- 6:  Parole chiave legate alla classificazione
+142        																	-- 7:  Indice della classificazione (come va mostrato a GUI)
+143        																	-- 8:  Data di inizio validità della classificazione (nel formato dato dal parametro di config. FMT_STD_DATA) 
+144        																	-- 9:  Data di fine validità della classificazione (nel formato dato dal parametro di config. FMT_STD_DATA) 
+145        																	-- 10: Cod. che identifica la classificazione in un sistema esterno di provenienza
+146        																	-- 11: (valori 1/0) Se 1 la classificazione di documenti nella classificazione del record è inibita, se 0 no
+147        																	-- 12: (valori 1/0) Se 1 è richiesta abilitazione esplicita per visualizzare documenti e fascicoli con la data classificazione
+148        																	-- 13: (valori 1/0) Se 1 è richiesta abilitazione esplicita per gestire documenti e fascicoli con la data classificazione
+149        																	-- 14: (valori 1/0) Se 1 è richiesta abilitazione esplicita per assegnare a un documento la data classificazione
+150        																	-- 15: (valori 1/0) Se 1 è richiesta abilitazione esplicita per firmare documenti con la data classificazione
+151        																	-- 16: (valori 1/0) Se 1 è richiesta abilitazione esplicita per aprire fascicoli nella data classificazione
+152        																	-- 17: Tempo di conservazione prestabilito per gli oggetti con la data classificazione
+153        																	-- 18: Supporto di conservazione prestabilito per gli oggetti con la data classificazione
+154        																	-- 19: (1/0) Se 1 indica che il record è selezionabile per la finalità indicata in FinalitaIn, se 0 che non è selezionabile
+155        																	-- 20: Id. della classifica superiore (valorizzata solo se questa è diversa da CercaInClassificazioneIO)
+156        																	-- 21: Denominazione della classifica superiore (valorizzata solo se questa è diversa da CercaInClassificazioneIO)
+157        																	-- 22: Azioni possibili sulla classificazione. E' una stringa di 1(=consentita) o 0(=non consentita) in cui ogni posizione corrisponde ad un'azione:
+158        																	--	 1:  Creazione di un nuova sotto-classifica
+159        																	--	 2:  Modifica
+160        																	--	 3:  Cancellazione
+161        																	--	 4:  Selezione (per la finalità FinalitaIn)														
+162        																	-- 23: (1/0) Indicatore di classificazione riservata dal sistema e non modificabile/cancellabile da applicativo
+163        																	-- 24: Score del record restituito dall'indicizzatore (valori interi da 1 a 5) (valorizzato solo se effettuata ricerca full-text)
+164        																	-- 25: Nri livello della classificazione (come memorizzati in DB)
+165        																	-- 26: (1/0) Se 1 significa classifica abilitata a tutti 
+166        																	-- 27: (1/0) Flag di valida (=1) o cessata (=0)
+167        																	-- 28: (C/R) Flag di classificazione con numerazione fascicoli continua (=C) o con rinnovo annuale (=R)
+168        																	-- ATTENZIONE: Se FlgIndexerOverflowIn è pari a 1, qualora la stored non vada a sua volta in overflow, dato che il resultset trovato dalla stored dovrà essere ripassato al searcher di Lucene esso non è paginato indipendentemente dal fatto che l’apposito input lo richieda. 
+169        																	--		   Inoltre nel caso di FlgIndexerOverflowIn pari a 1 dato che dopo il nuovo passaggio per il searcher di Lucene si renderà necessaria una nuova chiamata alla stored solo le prime 2 colonne del clob sono valorizzate sicuramente
+170        			PercorsoRicercaXMLOut		OUT		NOCOPY CLOB,					-- Lista con decodifica e id. (da quella di livello più alto in giù) delle classificazioni che compongono il percorso in cui si cerca ora (ovvero CercaInClassificazioneIO).
+171        																	-- Ogni classificazione corrisponde ad un tag "Riga" con le seguenti colonne:
+172        																	-- 1: Id. della classificazione
+173        																	-- 2: Tipo e n.ro livello della classificazione
+174        			DettagliCercaInClassifOut	OUT		NOCOPY CLOB,					-- XML contenente attributi e dati della classificazione CercaInClassificazioneIO (XML conforme a schema LISTA_STD.xsd). 
+175        																	-- Ogni attributo-dato è una colonna dell'unico tag Riga presente. Gli attributi-colonne sono:
+176        																	-- 1:	Valore fisso 1
+177        																	-- 2:	Identificativo univoco del nodo dell'albero che rappresenta la classificazione:
+178        																	--    / se è l'intero titolario
+179        																	--	altrimenti ID_CLASSIFICAZIONE
+180        																	-- 3:	Descrizione della classificazione
+181        																	-- 4: Tipo del nodo dell'albero che rappresenta la classificazione (da utilizzare per l'immagine del nodo) (titolo, classe, sottoclasse ecc)
+182        																	-- 5: Dettagli sul nodo da mostrare come alt dell'immagine del nodo dell'albero che rappresenta la classificazione
+183        																	-- 6:(valori 2/1/-1/0) Indica se il nodo va mostrato esploso (=2), se è esplodibile (ha "figli" in n.ro inferiore ad un limite stabilito) ma non va esploso (=1), se ha "figli" ma non è esplodibile in quanto questi superano il limite stabilito (=-1), se non è esplodibile (=0)
+184        																	-- 7: N.ri livello della classificazione (come vanno mostrati nella GUI)
+185        																	-- 8:(valori 1/0) Se 1 indica che la classificazione è selezionabile (quando la lista viene richiamata come lista di scelta), se 0 no
+186        																	-- 9: N.ro di classifiche direttamente contenute
+187        																	-- 10: N.ro di classifiche complessivamente (anche non direttamente) contenute
+188        																	-- 11: Livello gerarchico della classificazione
+189        																	-- 12: Id. della classifica superiore
+190        																	-- 13: Denominazione della classifica superiore
+191        																	-- 14: Azioni possibili sulla classificazione. E' una stringa di 1(=consentita) o 0(=non consentita) in cui ogni posizione corrisponde ad un'azione:
+192        																	--	 1:  Creazione di un nuova sotto-classifica
+193        																	--	 2:  Modifica
+194        																	--	 3:  Cancellazione
+195        																	--	 4:  Selezione (per la finalità FinalitaIn)														
+196        																	-- 15: Data di inizio validità della classificazione (nel formato dato dal parametro di config. FMT_STD_DATA)
+197        																	-- 16: Data di fine validita della classificazione (nel formato dato dal parametro di config. FMT_STD_DATA)													
+198        																	-- 25: Flag 1/0/NULL che (se 1) indica che il numero di classifiche direttamente contenute supera il massimo consentito per esplodere la classifica come nodo dell'albero
+199        			ErrContextOut			OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+200        			ErrCodeOut				OUT		PLS_INTEGER,						-- N.ro errore di uscita
+201        			ErrMsgOut				OUT 	VARCHAR2,							-- Messaggio d'errore
+202        			FinalitaIn				IN		VARCHAR2 DEFAULT NULL,				-- Motivo per cui viene chiamata la pagina con la lista popolata attraverso questa funzione. Valori ammessi:
+203        																				-- ASSEGNAZIONE = Per selezionare la classificazione da assegnare ad un documento 
+204        																				-- APERTURA_FASC = Per selezionare la classifica in cui aprire un fascicolo
+205        																				-- RICERCA = Per selezionare le classifiche cui si è abilitati (per la trattazione)
+206        			RigaTagNameIn			IN		VARCHAR2 DEFAULT NULL,				-- (opzionale) Come rinominare il tag Riga dell'XML ResultOut di output
+207        			ColTagNameIn			IN		DMVA_STRING DEFAULT NULL)			-- (opzionale) Come rinominare i tag delle colonne in alternativa a Colonna Nro=.. nell'XML ResultOut di output
+208        			return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+209        	
+210        	/******* funzione per renderizzare il titolario o una sua porzione in una struttura ad albero 				*******/
+211        	/******* Ogni classificazione è un nodo dell'albero.			 								*******/
+212        	/******* Ogni nodo ha un identificativo univoco (l'ID_CLASSIFICAZIONE)								*******/
+213        	/******* Il root node è quello di cui si rappresenta l'alberatura sottostante: 						*******/
+214        	/********		se pari a / si intende l'intero titolario di classificazione 						*******/
+215        	function NavigaTitolarioTree(
+216        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	
+217        																	-- (obblig). Codice identificativo del token di connessione
+218        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+219        			TsRifIn				IN		VARCHAR2 DEFAULT NULL,				-- (nel formato DD/MM/RRRR HH24:MI:SS) Definisce l'istante in cui va presa la "fotografia" del titolario da rappresentare tramite l'albero. 
+220        																	-- Se non valorizzato si intende che si vuole la fotografia attuale del titolario	
+221        			FlgSoloAttiveIn			IN		PLS_INTEGER DEFAULT 1,				-- (valori 1/0/NULL) Se 1 vengono estratte solo le classificazioni valide al timestamp TsRifIn 
+222        			IdRootNodeIO			IN OUT	VARCHAR2,				-- Identificativo del nodo root: ID_CLASSIFICAZIONE preceduto dagli ID_CLASSIFICAZIONE delle evantuali classifiche superiori (separati da /)
+223        																	-- Se in input non è valorizzato si intende pari al nodo root definito nelle impostazioni personali dell'utente e se anche questo non è valorizzato si intende pari all'intero titolario (ovvero /).
+224        																	-- Valori particolari sono: 
+225        																	-- / 		= Intero titolario
+226        			IdPianoClassifIn		IN 	DMT_PIANI_CLASSIF.ID_PIANO_CLASSIF%type DEFAULT NULL,
+227        																	-- Id. del piano di classificazione di cui mostrare i nodi
+228        																	-- può non essere specificato se IdRootNodeIO è valorizzato in input e diverso da /
+229        																	-- Se non specificato e non ricavabile da IdRootNodeIO il piano che si carica è quello in vigore - attualmente o alla data specificata in TsRifIn - per l'Ente/AOO cui si è collegati (e se questo non è determinabile viene dato errore)
+230        			IdNodeToExplImplIn		IN 		VARCHAR2 DEFAULT NULL,				-- Identificativo del nodo (sottostante il root) da esplodere o chiudere 
+231        			FlgExplodeNodeIn 			IN		PLS_INTEGER DEFAULT 1,				--(valori 1/0/NULL) se 1 significa che il nodo IdNodeToExplImplIn va esploso, se 0 o NULL il nodo IdNodeToExplImplIn va chiuso
+232        			TreeXMLOut				OUT		NOCOPY CLOB,					-- Lista con i nodi dell'albero che rappresenta il titolario o una sua porzione-ramo (XML conforme a schema LISTA_STD.xsd)
+233        																	-- Ogni nodo-classifica è un tag Riga che contiene le seguenti colonne:
+234        																	-- 1:	Indica il livello del nodo (valori da 1 a n)
+235        																	-- 2:	Identificativo univoco del nodo:
+236        																	--    / se è l'intero titolario
+237        																	--	altrimenti ID_CLASSIFICAZIONE preceduto dagli ID_CLASSIFICAZIONE delle evantuali classifiche superiori (separati da /)
+238        																	-- 3:	Descrizione della classificazione
+239        																	-- 4: Tipo di nodo (da utilizzare per l'immagine del nodo) (titolo, classe, sottoclasse ecc)
+240        																	-- 5: Dettagli sul nodo da mostrare come alt dell'immagine del nodo
+241        																	-- 6:(valori 2/1/-1/0) Indica se il nodo va mostrato esploso (=2), se è esplodibile (ha "figli" in n.ro inferiore ad un limite stabilito) ma non va esploso (=1), se ha "figli" ma non è esplodibile in quanto questi superano il limite stabilito (=-1), se non è esplodibile (=0)
+242        																	-- 7: N.ri livello della classificazione (come vanno mostrati nella GUI)
+243        																	-- 8:(valori 1/0) Se 1 indica che il nodo è selezionabile (quando l'albero viene richiamato come lista di scelta), se 0 no
+244        																	-- 9: N.ro di classifiche direttamente contenute nel nodo
+245        																	-- 10: N.ro di classifiche complessivamente (anche non direttamente) contenute nel nodo
+246        																	-- 11: Livello gerarchico della classificazione
+247        																	-- 12: Id. della classifica superiore
+248        																	-- 13: Denominazione della classifica superiore
+249        																	-- 14: Azioni possibili sulla classificazione. E' una stringa di 1(=consentita) o 0(=non consentita) in cui ogni posizione corrisponde ad un'azione:
+250        																	--	 1:  Creazione di un nuova sotto-classifica
+251        																	--	 2:  Modifica
+252        																	--	 3:  Cancellazione
+253        																	--	 4:  Selezione (per la finalità FinalitaIn)	
+254        																	-- 15: (1/0) Flag di valida (=1) o cessata (=0)
+255        			PercorsoRootNodeXMLOut		OUT		NOCOPY CLOB,		-- Lista con nomi e id. (da quella di livello più alto in giù) dei nodi che portano all'attuale root-node (lui incluso).
+256        																	-- Ogni nodo corrisponde ad un tag "Riga" con le seguenti colonne:
+257        																	-- 1: Id. del nodo
+258        																	-- 2: Nome del nodo
+259        																	-- 3: Id. della classifica che il nodo rappresenta
+260        																	-- 4: (valori 1/0) Se 1 è un nodo non esplodibile perchè ha troppi nodi figli
+261        			DettagliRootNodeOut		OUT		NOCOPY CLOB,			-- XML contenente attributi e dati del root node da mostrare nel dettaglio sopra l'albero (XML conforme a schema LISTA_STD.xsd). 
+262        																	-- viene restituito SOLO se il parametro compatibilty_level<=2
+263        																	-- Ogni attributo-dato è una colonna dell'unico tag Riga presente. Gli attributi-colonne sono:
+264        																	-- 1:	Valore fisso 1
+265        																	-- 2:	Identificativo univoco del nodo:
+266        																	--    / se è l'intero titolario
+267        																	--	altrimenti ID_CLASSIFICAZIONE preceduto dagli ID_CLASSIFICAZIONE delle evantuali classifiche superiori (separati da /)
+268        																	-- 3:	Descrizione della classificazione
+269        																	-- 4: Tipo di nodo (da utilizzare per l'immagine del nodo) (titolo, classe, sottoclasse ecc)
+270        																	-- 5: Dettagli sul nodo da mostrare come alt dell'immagine del nodo
+271        																	-- 6:(valori 2/1/-1/0) Indica se il nodo va mostrato esploso (=2), se è esplodibile (ha "figli" in n.ro inferiore ad un limite stabilito) ma non va esploso (=1), se ha "figli" ma non è esplodibile in quanto questi superano il limite stabilito (=-1), se non è esplodibile (=0)
+272        																	-- 7: N.ri livello della classificazione (come vanno mostrati nella GUI)
+273        																	-- 8:(valori 1/0) Se 1 indica che il nodo è selezionabile (quando l'albero viene richiamato come lista di scelta), se 0 no
+274        																	-- 9: N.ro di classifiche direttamente contenute nel nodo
+275        																	-- 10: N.ro di classifiche complessivamente (anche non direttamente) contenute nel nodo
+276        																	-- 11: Livello gerarchico della classificazione
+277        																	-- 12: Id. della classifica superiore
+278        																	-- 13: Denominazione della classifica superiore
+279        																	-- 14: Azioni possibili sulla UO / relazione utente-UO. E' una stringa di 1(=consentita) o 0(=non consentita) in cui ogni posizione corrisponde ad un'azione:
+280        																	--	 1:  Creazione di un nuova sotto-classifica
+281        																	--	 2:  Modifica
+282        																	--	 3:  Cancellazione
+283        																	--	 4:  Selezione (per la finalità FinalitaIn)	
+284        																	-- 15: Data di inizio validità della classificazione (nel formato dato dal parametro di config. FMT_STD_DATA)
+285        																	-- 16: Data di fine validita della classificazione (nel formato dato dal parametro di config. FMT_STD_DATA)													
+286        																	-- 25: Flag 1/0 che (se 1) indica che il numero di oggetti contenuti supera il massimo consentito per esplodere il nodo
+287        			ErrContextOut			OUT		VARCHAR2,				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+288        			ErrCodeOut				OUT		PLS_INTEGER,			-- N.ro errore di uscita
+289        			ErrMsgOut				OUT 		VARCHAR2,			-- Messaggio d'errore
+290        			FinalitaIn				IN		VARCHAR2 DEFAULT NULL,	-- Motivo per cui viene chiamata la pagina con l'albero popolato attraverso questa funzione. Valori ammessi:
+291        																	-- ASSEGNAZIONE = Per selezionare la classificazione da assegnare ad un documento 
+292        																	-- APERTURA_FASC = Per selezionare la classifica in cui aprire un fascicolo
+293        																	-- RICERCA = Per selezionare le classifiche cui si è abilitati (per la trattazione)
+294        			FlgNoDatiRootNodeIn			IN	PLS_INTEGER DEFAULT NULL
+295        																	-- (valori 1/0/NULL) Se 1 indica che non serve che siano calcolati e restituiti in output PercorsoRootNodeXMLOut e DettagliRootNodeOut
+296        			)
+297        			return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+298        		
+299        	/******* funzione per renderizzare i nodo figli di un nodo dell'albero del titolario (i.e. una classificazione)	*******/
+300        	function ExplodeTreeNode(
+301        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	
+302        																	-- (obblig). Codice identificativo del token di connessione
+303        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	
+304        																	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+305        			TsRifIn				IN		VARCHAR2 DEFAULT NULL,				-- (nel formato DD/MM/RRRR HH24:MI:SS) Definisce l'istante in cui va presa la "fotografia" del titolario da rappresentare tramite l'albero. 
+306        																	-- Se non valorizzato si intende che si vuole la fotografia attuale del titolario	
+307        			FlgSoloAttiveIn			IN		PLS_INTEGER DEFAULT 1,				-- (valori 1/0/NULL) Se 1 vengono estratte solo le classificazioni valide al timestamp TsRifIn 
+308        			IdPianoClassifIn		IN		DMT_PIANI_CLASSIF.ID_PIANO_CLASSIF%type,
+309        																	-- (obblig.) Identificativo del piano di classificazione cui appartiene il nodo da esplodere
+310        			IdNodeToExplodeIn		IN 		VARCHAR2 DEFAULT NULL,	-- (obblig.) Identificativo del nodo da esplodere
+311        			TreeXMLOut				OUT		NOCOPY CLOB,			-- Lista con i nodi figli della classifica da esplodere (XML conforme a schema LISTA_STD.xsd)
+312        																	-- Ogni nodo-classifica è un tag Riga che contiene le seguenti colonne:
+313        																	-- 1:	Indica il livello del nodo (valori da 1 a n)
+314        																	-- 2:	Identificativo univoco del nodo:
+315        																	--    / se è l'intero titolario
+316        																	--	altrimenti ID_CLASSIFICAZIONE preceduto dagli ID_CLASSIFICAZIONE delle evantuali classifiche superiori (separati da /)
+317        																	-- 3: Descrizione della classificazione
+318        																	-- 4: Tipo di nodo (da utilizzare per l'immagine del nodo) (titolo, classe, sottoclasse ecc)
+319        																	-- 5: Dettagli sul nodo da mostrare come alt dell'immagine del nodo
+320        																	-- 6:(valori 2/1/-1/0) Indica se il nodo va mostrato esploso (=2), se è esplodibile (ha "figli" in n.ro inferiore ad un limite stabilito) ma non va esploso (=1), se ha "figli" ma non è esplodibile in quanto questi superano il limite stabilito (=-1), se non è esplodibile (=0)
+321        																	-- 7: N.ri livello della classificazione (come vanno mostrati nella GUI)
+322        																	-- 8:(valori 1/0) Se 1 indica che il nodo è selezionabile (quando l'albero viene richiamato come lista di scelta), se 0 no
+323        																	-- 9: N.ro di classifiche direttamente contenute nel nodo
+324        																	-- 10: N.ro di classifiche complessivamente (anche non direttamente) contenute nel nodo
+325        																	-- 11: Livello gerarchico della classificazione
+326        																	-- 12: Id. della classifica superiore
+327        																	-- 13: Denominazione della classifica superiore
+328        																	-- 14: Azioni possibili sulla classificazione. E' una stringa di 1(=consentita) o 0(=non consentita) in cui ogni posizione corrisponde ad un'azione:
+329        																	--	 1:  Creazione di un nuova sotto-classifica
+330        																	--	 2:  Modifica
+331        																	--	 3:  Cancellazione
+332        																	--	 4:  Selezione (per la finalità FinalitaIn)														
+333        																	-- 15: (1/0) Flag di valida (=1) o cessata (=0)
+334        			ErrContextOut			OUT		VARCHAR2,				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+335        			ErrCodeOut				OUT		PLS_INTEGER,			-- N.ro errore di uscita
+336        			ErrMsgOut				OUT 		VARCHAR2,			-- Messaggio d'errore
+337        			FinalitaIn				IN		VARCHAR2 DEFAULT NULL	-- Motivo per cui viene chiamata la pagina con l'albero popolato attraverso questa funzione. Valori ammessi:
+338        																	-- ASSEGNAZIONE = Per selezionare la classificazione da assegnare ad un documento 
+339        																	-- APERTURA_FASC = Per selezionare la classifica in cui aprire un fascicolo
+340        																	-- RICERCA = Per selezionare le classifiche cui si è abilitati (per la trattazione)
+341        			) return PLS_INTEGER;									-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+342        	
+343        	/****** funzione per ottenere l'ID_NODO del nodo che rappresenta una certa classifica nell'albero che rappresenta il piano di classificazione cui la classifica appartiene	****/
+344        	function GetIdNodo (
+345        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	
+346        																			-- (obblig). Codice identificativo del token di connessione
+347        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	
+348        																			-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+349        			IdClassificazioneIn 	IN		DMT_TITOLARIO.ID_CLASSIFICAZIONE%type,
+350        																			-- (obblig.) Id. della classificazione per cui ricavare l'ID_NODO
+351        			IdNodoOut				OUT		VARCHAR2,						-- Id. nodo corrispondente alla classifica
+352        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+353        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+354        			ErrMsgOut				OUT 	VARCHAR2						-- Messaggio d'errore
+355        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+356        			
+357        	/******	funzione per sapere se i contenuti di un certo folder/classifica (quelli "direttamente" innestati nel folder) si possono listare tutti, 	*****/
+358        	/*****	senza effettuare prima una ricerca, nella lista a destra della finestra di "esplora risorse" con cui si esplora il titolario				*****/
+359        	/****** folder particolari: IdClassificazioneIn = NULL => "folder" dell'intero piano di classificazione il cui ID è IdPianoClassifIn in input		*****/
+360        	function TestShowFolderContentAllowed(
+361        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	
+362        																			-- (obblig). Codice identificativo del token di connessione
+363        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	
+364        																			-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+365        			IdClassificazioneIn 	IN		DMT_TITOLARIO.ID_CLASSIFICAZIONE%type,
+366        																			-- ID_CLASSIFICAZIONE del folder/classifica
+367        																			-- se NON è valorizzato si intende l'intero piano di classificazione che ha come Id. il valore specificato in IdPianoClassifIn
+368        			FlgShowContentAllowedOut OUT	PLS_INTEGER,					-- (valori 1/0) Se 1 significa che per il folder/classifica IdClassificazioneIn si possono mostrare come lista i contenuti
+369        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+370        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+371        			ErrMsgOut				OUT 	VARCHAR2,						-- Messaggio d'errore
+372        			IdPianoClassifIn		IN 	DMT_PIANI_CLASSIF.ID_PIANO_CLASSIF%type DEFAULT NULL,
+373        																			-- Id. del piano di classificazione cui appartiene la classifica/folder
+374        																			-- va specificato se IdClassificazioneIn non è valorizzato
+375        																			-- Se IdClassificazioneIn non specificato e IdPianoClassifIn nemmeno si intende che il folder su cui fare la verifica è il piano in vigore - attualmente o alla data specificata in TsRifIn - per l'Ente/AOO cui si è collegati (e se questo non è determinabile viene dato errore)
+376        			TsRifIn					IN		VARCHAR2 DEFAULT NULL,			-- (nel formato DD/MM/RRRR HH24:MI:SS) Definisce l'istante in cui va presa la "fotografia" del titolario su cui effettuare la verifica
+377        																			-- Se non valorizzato si intende la situazione attuale del titolario	
+378        			FlgSoloAttiveIn			IN		PLS_INTEGER DEFAULT 1,			-- (valori 1/0/NULL) Se 1 per la verifica vengono conteggiate solo le classificazioni valide al timestamp TsRifIn 
+379        			FinalitaIn				IN		VARCHAR2 DEFAULT NULL			-- Motivo per cui si stanno navigando/ricercando le classifiche. Valori ammessi:
+380        																			-- ASSEGNAZIONE = Per selezionare la classificazione da assegnare ad un documento 
+381        																			-- APERTURA_FASC = Per selezionare la classifica in cui aprire un fascicolo
+382        																			-- RICERCA = Per selezionare le classifiche cui si è abilitati (per la trattazione)
+383        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+384        	
+385        	/****** funzione per ottenere i dati - come xml- dei livelli di un percorso che corrisponde ad una certa classifica (il cui ID è fornito in input)	****/
+386        	/****** se l'ID in input, IdClassificazioneIn, è NULL si intende l'intero piano di classificazione il cui ID è IdPianoClassifIn in input			*****/
+387        	function GetLivPathExClassif(
+388        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	
+389        																			-- (obblig). Codice identificativo del token di connessione
+390        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	
+391        																			-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+392        			IdClassificazioneIn 	IN		DMT_TITOLARIO.ID_CLASSIFICAZIONE%type,		
+393        																			-- ID_CLASSIFICAZIONE della classificazione di cui determinare i livelli del percorso corrispondente
+394        			PercorsoXMLOut			OUT	NOCOPY CLOB,						-- Lista con i dati dei livelli del percorso corrispondente al folder 
+395        																			-- Ogni cartella/folder nel percorso corrisponde ad un tag "Riga" con le seguenti colonne:
+396        																			-- 1: Id. classificazione corrispondente al livello
+397        																			-- 2: Nome
+398        																			-- 3: (valori 1/0) Se 1 nell'albero del titolario il folder è un nodo di cui NON si possono mostrare tutti contenuti
+399        			FlgShowContentAllowedOut OUT	PLS_INTEGER,					-- (valori 1/0) Se 1 significa che per il folder IdClassificazioneIn si possono mostrare come lista i contenuti
+400        																			-- concide sempre con la colonna 3 dell'ultima riga di PercorsoXMLOut	 
+401        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+402        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+403        			ErrMsgOut				OUT 	VARCHAR2,						-- Messaggio d'errore
+404        			IdPianoClassifIn		IN 	DMT_PIANI_CLASSIF.ID_PIANO_CLASSIF%type DEFAULT NULL,
+405        																			-- Id. del piano di classificazione cui appartiene la classifica/folder
+406        																			-- va specificato se IdClassificazioneIn non è valorizzato
+407        																			-- Se IdClassificazioneIn non specificato e IdPianoClassifIn nemmeno si intende che il folder su cui fare la verifica è il piano in vigore - attualmente o alla data specificata in TsRifIn - per l'Ente/AOO cui si è collegati (e se questo non è determinabile viene dato errore)
+408        			TsRifIn					IN		VARCHAR2 DEFAULT NULL,			-- (nel formato DD/MM/RRRR HH24:MI:SS) Definisce l'istante in cui va presa la "fotografia" del titolario 
+409        																			-- Se non valorizzato si intende la situazione attuale del titolario	
+410        																			-- serve per determinare la colonna 3 dei livelli del percorso restituiti in PercorsoXMLOut
+411        			FlgSoloAttiveIn			IN		PLS_INTEGER DEFAULT 1,			-- (valori 1/0/NULL) Se 1 per determinare la colonna 3 dei livelli del percorso restituiti in PercorsoXMLOut vengono conteggiate solo le classificazioni valide al timestamp TsRifIn																
+412        			FinalitaIn				IN		VARCHAR2 DEFAULT NULL			-- Motivo per cui si stanno navigando/ricercando le classifiche. Valori ammessi:
+413        																			-- ASSEGNAZIONE = Per selezionare la classificazione da assegnare ad un documento 
+414        																			-- APERTURA_FASC = Per selezionare la classifica in cui aprire un fascicolo
+415        																			-- RICERCA = Per selezionare le classifiche cui si è abilitati (per la trattazione)
+416        																			-- serve per determinare la colonna 3 dei livelli del percorso restituiti in PercorsoXMLOut
+417        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+418        	
+419        	procedure AggiornaClassifInibita(
+420        			IdPianoClassifIn		IN		DMT_PIANI_CLASSIF.ID_PIANO_CLASSIF%type DEFAULT NULL);	
+421        																			-- Id. del piano di classificazione di cui aggiornare i flg_classif_inibita
+422        																			-- se non valorizzato vengono aggiornati tutti i piani
+423        
+424        	---- funzione per ricercare i piani di classificazione
+425        	---- se si è collegati al dominio trasversale a tutti i produttori (tipo dominio = 1) 
+426        	---- mostra tutti i piani dei vari produttori
+427        	---- se si è collegati al dominio di un ente con più AOO
+428        	---- mostra tutti i piani delle varie AOO dell'ente
+429        	---- altrimenti mostra solo i piani associati al dato produttore/AOO cui si è collegati
+430        	function TrovaPianiClassif (
+431        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+432        																					-- (obblig). Codice identificativo del token di connessione
+433        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+434        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca (conforme allo schema SezioneCache.xsd). 
+435        																					-- Ogni filtro è un tag "Variabile" dell'XML
+436        																					-- I nomi dei filtri possibili sono:
+437        																					-- IdDomini: ID_SP_AOO del soggetto produttore/AOO cui devono essere associati i piani da trovare (direttamente o per il tramite della classe del soggetto produttore/AOO)
+438        																					-- si possono specificare più domini separandoli con , o ;
+439        																					-- IdClassiDomini: ID della classe di soggetto produttore/AOO cui devono essere associati i piani
+440        																					-- si possono specificare più classi separandole con , o ;
+441        																					-- AdozioneDal: estremo inferiore della data di adozione espressa nel formato dato dal parametro di config. FMT_STD_DATA
+442        																					-- AdozioneAl: estremo superiore della data di adozione espressa nel formato dato dal parametro di config. FMT_STD_DATA
+443        																					-- DismissioneDal: estremo inferiore della data di dismissione espressa nel formato dato dal parametro di config. FMT_STD_DATA
+444        																					-- DismissioneAl: estremo superiore della data di dismission espressa nel formato dato dal parametro di config. FMT_STD_DATA
+445        																					-- Stati: valori possibili: attivo; da_attivare; dismesso 
+446        																					-- si può specificare più stati separandoli con , o ;
+447        		------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+448        		ColOrderByIO				IN OUT	VARCHAR2,								-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 8). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+449        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+450        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+451        		FlgDescOrderByIO  			IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+452        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
+453        		FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+454        		NroPaginaIO      			IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+455        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+456        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+457        		OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+458        		FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+459        		NroTotRecOut				OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+460        		NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+461        		------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+462        		FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+463        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema. 
+464        		ColToReturnIn				IN		VARCHAR2 DEFAULT NULL,					-- Stringa con i n.ri delle colonne dell'XML di output ResultOut che si vuole siano presenti.
+465        																					-- Se la stringa è vuota saranno presenti tutte le colonne.
+466        																					-- La colonna 1 sarà presente comunque.
+467        																					-- I n.ri delle varie colonne vanno separati con , o ; e se si vuole indicare un intervallo di colonne gli estremi dell'intervallo vanno separati con - (es: "1-5;7;10" significa colonne da 1 a 5 più le colonne 7 e 10)
+468        		ResultOut					OUT		NOCOPY CLOB, 							-- Lista dei piani trovati (XML conforme a schema LISTA_STD.xsd)
+469        																					-- Ogni piano trovatoa è un tag Riga che può contenere le seguenti colonne: 
+470        																					-- 1:  ID (PK interna)
+471        																					-- 2:  Id. del soggetto produttore/AOO o classe di soggetti produttori/AOO cui è associato il piano  
+472        																					-- 3:  Denominazione/descrizione del soggetto produttore/AOO o classe di soggetti produttori/AOO cui è associato il piano
+473        																					-- 4:  Stato (valori: attivo; da_attivare; dismesso)
+474        																					-- 5:  Data di attivazione (nel formato dato dal parametro di config. FMT_STD_DATA)
+475        																					-- 6:  Data di dismissione (nel formato dato dal parametro di config. FMT_STD_DATA)
+476        																					-- 7:  Note
+477        																					-- 8:  Cod. di provenienza (su sistema esterno che gestisce i piani)
+478        																					-- 9:  Nro di livelli definiti nel piano 
+479        																					-- 10: Nomi e metriche dei livelli definiti nel piano
+480        																					-- 11: Data e ora di inserimento (nel formato dato dal parametro di configurazione FMT_STD_TIMESTAMP)
+481        																					-- 12: Utente di inserimento (decodifica)
+482        																					-- 13: Data e ora di ultimo aggiornamento (nel formato dato dal parametro di configurazione FMT_STD_TIMESTAMP)
+483        		ErrContextOut				OUT		VARCHAR2,								-- 14: Utente di ultimo aggiornamento (decodifica)
+484        																					-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+485        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+486        		ErrMsgOut					OUT 		VARCHAR2)							-- Messaggio d'errore
+487        		return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+488        	
+489        	---- funzione per creare o modificare un piano di classificazione
+490        	function IUPianoClassif(
+491        		CodIdConnectionTokenIn	IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+492        																						-- (obblig). Codice identificativo del token di connessione
+493        		IdUserLavoroIn			IN			DMT_USERS.ID_USER%type DEFAULT NULL,		-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+494        		IdPianoClassifIO		IN OUT		DMT_PIANI_CLASSIF.ID_PIANO_CLASSIF%type ,	-- Id. del piano da modificare. Se NULL si intende che il piano è da creare ex-novo
+495        																						-- in output, salvo in caso di errore, è sempre valorizzato
+496        		DtAdozioneIn			IN			VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+497        																						-- (obblig.)Data di adozione del piano (nel formato dato dal parametro di conf. FMT_STD_DATA).
+498        		DtDismissioneIn			IN			VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+499        																						-- Data di dismissione del piano (nel formato dato dal parametro di conf. FMT_STD_DATA).
+500        		NoteIn					IN			DMT_PIANI_CLASSIF.NOTE%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+501        																						-- Note
+502        		ProvCIPianoIn			IN			DMT_PIANI_CLASSIF.PROV_CI_PIANO%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+503        																						-- Codice identificativo del piano nel sistema preposto a gestire i piani (se diverso da Auriga)																				
+504        		FlgModLivelliPianoIn	IN			VARCHAR2 DEFAULT 'I',						-- (valori I/C) Indica se i livelli del piano indicati nell'argomento successivo sono forniti in modo incrementale (=I) (solo quelle da inserire/cancellare) oppure completo (=C), vale a dire che dovranno soppiantare tutti quelli già associati al piano
+505        		XMLLivelliPianoIn		IN			CLOB,										-- Lista con i dati dei livelli definiti nel piano				
+506        																						-- Ogni livello è un tag "Riga" che può contenere le seguenti colonne:
+507        																						-- 1: (obblig) Cardinalità del livello (nri da 1 in su)
+508        																						-- 2: (obblig salvo se livello da eiminare, ovvero se colonna 5 = 1)Nome delle classifiche del dato livello
+509        																						-- 3: (valori 1/0/NULL) Se 1 i codici delle classifiche di quel livello sono n.ri interi, altrimenti sono alfanumerici
+510        																						-- 4: (valori 1/0/NULL) Se 1 i codici delle classifiche di quel livello sono rappresentati come n.ri romani
+511        																						-- 5: (valori 1/0/NULL) Se 1 significa che è un livello già salvato da eliminare
+512        		FlgIgnoreWarningIn 		IN 			PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+513        		FlgRollBckFullIn		IN 			PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+514        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+515        		FlgAutoCommitIn			IN 			PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+516        		WarningMsgOut			OUT			VARCHAR2,									-- Messaggio di warning (valorizzato solo se non c'è errore)
+517        		ErrContextOut			OUT			VARCHAR2,									-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+518        		ErrCodeOut				OUT			PLS_INTEGER,								-- N.ro errore di uscita
+519        		ErrMsgOut				OUT 		VARCHAR2									-- Messaggio d'errore
+520        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+521        
+522        	---- funzione per eliminare un piano di classificazione (solo se ancora non utilizzato)
+523        	function DPianoClassif(
+524        		CodIdConnectionTokenIn	IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+525        																						-- (obblig). Codice identificativo del token di connessione
+526        		IdUserLavoroIn			IN			DMT_USERS.ID_USER%type DEFAULT NULL,		-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+527        		IdPianoClassifIn		IN 			DMT_PIANI_CLASSIF.ID_PIANO_CLASSIF%type ,	-- (obblig.) Id. del piano da eliminare
+528        		MotiviIn				IN			DMT_ACTIVITIES.NOTE%type,					-- Motivi della cancellazione
+529        		FlgIgnoreWarningIn 		IN 			PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+530        		FlgRollBckFullIn		IN 			PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+531        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+532        		FlgAutoCommitIn			IN 			PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+533        		WarningMsgOut			OUT			VARCHAR2,									-- Messaggio di warning (valorizzato solo se non c'è errore)
+534        		ErrContextOut			OUT			VARCHAR2,									-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+535        		ErrCodeOut				OUT			PLS_INTEGER,								-- N.ro errore di uscita
+536        		ErrMsgOut				OUT 		VARCHAR2									-- Messaggio d'errore
+537        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+538        
+539        	---- funzione per caricare i dati di un piano di classificazione
+540        	function LoadDettPianoClassif(
+541        		CodIdConnectionTokenIn	IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+542        																						-- (obblig). Codice identificativo del token di connessione
+543        		IdUserLavoroIn			IN			DMT_USERS.ID_USER%type DEFAULT NULL,		-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+544        		IdPianoClassifIn		IN 			DMT_PIANI_CLASSIF.ID_PIANO_CLASSIF%type ,	-- (obblig.) Id. del piano di cui caricare i dati
+545        		DtAdozioneOut			OUT			VARCHAR2,									-- Data di adozione del piano (nel formato dato dal parametro di conf. FMT_STD_DATA).
+546        		DtDismissioneOut		OUT			VARCHAR2,									-- Data di dismissione del piano (nel formato dato dal parametro di conf. FMT_STD_DATA).
+547        		NoteOut					OUT			DMT_PIANI_CLASSIF.NOTE%type,				-- Note
+548        		ProvCIPianoOut			OUT			DMT_PIANI_CLASSIF.PROV_CI_PIANO%type,		-- Codice identificativo del piano nel sistema preposto a gestire i piani (se diverso da Auriga)																				
+549        		XMLLivelliPianoOut		OUT NOCOPY	CLOB,										-- Lista con i dati dei livelli definiti nel piano				
+550        																						-- Ogni livello è un tag "Riga" con le seguenti colonne:
+551        																						-- 1: Cardinalità del livello (nri da 1 in su)
+552        																						-- 2: Nome delle classifiche del dato livello
+553        																						-- 3: (valori 1/0) Se 1 i codici delle classifiche di quel livello sono n.ri interi, altrimenti sono alfanumerici
+554        																						-- 4: (valori 1/0) Se 1 i codici delle classifiche di quel livello sono rappresentati come n.ri romani
+555        		ErrContextOut			OUT			VARCHAR2,									-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+556        		ErrCodeOut				OUT			PLS_INTEGER,								-- N.ro errore di uscita
+557        		ErrMsgOut				OUT 		VARCHAR2									-- Messaggio d'errore
+558        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine , altrimenti 0 (in caso di errore)
+559        		
+560        	---- funzione per creare nell'archivio di un soggetto produttore/AOO tutti i folder relativi al piano di classificazione e classifiche in esso contenute
+561        	function CreaFolderPianoClassif(
+562        		IdPianoClassifIn		IN 			DMT_PIANI_CLASSIF.ID_PIANO_CLASSIF%type,	-- (obblig.) Id. del piano
+563        		IdSpAOOIn				IN 			DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,		-- (obblig.) Id. del soggetto produttore/AOO
+564        		FlgRollBckFullIn		IN 			PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+565        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+566        		FlgAutoCommitIn			IN 			PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+567        		ErrContextOut			OUT			VARCHAR2,									-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+568        		ErrCodeOut				OUT			PLS_INTEGER,								-- N.ro errore di uscita
+569        		ErrMsgOut				OUT 		VARCHAR2									-- Messaggio d'errore
+570        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0 (in caso di errore)
+571        
+572        	---  funzione per creare o modificare una classifica 
+573        	function IUClassifica(
+574        		CodIdConnectionTokenIn	IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+575        																						-- (obblig). Codice identificativo del token di connessione
+576        		IdUserLavoroIn			IN			DMT_USERS.ID_USER%type DEFAULT NULL,		-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+577        		IdPianoClassifIn		IN			DMT_PIANI_CLASSIF.ID_PIANO_CLASSIF%type ,	-- Id. del piano in cui inserire la classifica. 
+578        																						-- Deve essere obbligatoriamente valorizzato in caso di inserimento
+579        																						-- Viene invece ignorato in caso di modifica
+580        		IdClassificazioneIO		IN	OUT		DMT_TITOLARIO.ID_CLASSIFICAZIONE%type,		-- Id. della classifica da modificare. Se NULL si intende che la classifica è da creare ex-novo
+581        																						-- in output, salvo in caso di errore, è sempre valorizzato
+582        		IdClassificazioneSupIn	IN			DMT_TITOLARIO.ID_CLASSIFICAZIONE%type DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+583        																						-- Id.della classifica superiore. Se non valorizzato (e non lo è neppure NriLivelliClassifSupIn) significa che è una classifica di primo livello
+584        		NriLivelliClassifSupIn	IN			VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+585        																						-- N.ri livelli della classifica superiore. Se non valorizzato (e non lo è neppure IdClassificazioneSupIn) significa che è una classifica di primo livello
+586        																						-- I nri vanno indicati così come appaiono nella GUI e con il separatore previsto nella GUI per i livelli di classifica
+587        		NroLivelloIn			IN 			VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+588        																						-- (obblig.) N.ro livello (come appare nella GUI, ovvero romano se previsto) che identifica la classifica tra quelle dello stesso livello gerarchico (sottostanti la stessa IdClassificazioneSupIn se specificata)
+589        		DesClassificazioneIn	IN			DMT_TITOLARIO.DES_CLASSIFICAZIONE%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+590        																						-- (obblig.) Descrizione della classificazione 
+591        		DtInizioVldIn			IN			VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+592        																						-- (obblig.)Data di inizio validità (nel formato dato dal parametro di conf. FMT_STD_DATA).
+593        		DtFineVldIn				IN			VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+594        																						-- Data di fine validità (nel formato dato dal parametro di conf. FMT_STD_DATA).
+595        		ParoleChiaveIn			IN			DMT_TITOLARIO.PAROLE_CHIAVE%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+596        																						-- Parole chiave associate alla classificazione 
+597        		NroPosizioneIn			IN			DMT_TITOLARIO.NRO_POSIZIONE%type DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+598        																						-- N.ro che serve a stabilire la posizione della classifica nel piano (per avere un ordinamento alternativo a quello dato dai livelli)
+599        		CodSupportoConservIn	IN			VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+600        																						-- Codice (censito in dizionario) che identifica il supporto su cui generalmente è conservata la documentazione della data classifica (cartaceo, digitale ecc) 
+601        		DesSupportoConservIn	IN			VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+602        																						-- Nome del supporto (censito in dizionario) su cui generalmente è conservata la documentazione della data classifica (cartaceo, digitale ecc) 
+603        		FlgConservPermanenteIn	IN			PLS_INTEGER	DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+604        																						-- (valori 1/0/NULL) Se 1 significa che in generale la documentazione della data classifica deve essere conservata per tempo illimitato
+605        		PeriodoConservazioneIn	IN			PLS_INTEGER	DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+606        																						-- Periodo - espresso in anni - per cui conservare la documentazione della data classifica (salvo eccezioni)
+607        		FlgNumContinuaIn		IN			PLS_INTEGER	DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+608        																						-- (valori 1/0/NULL) Se 1 significa che la numerazione dei fascicoli della data classifica non è a rinnovo annuale ma prosegue di anno in anno
+609        		FlgFolderizzaXAnnoIn	IN			PLS_INTEGER	DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+610        																						-- (valori 1/0/NULL) Se 1 significa che i fascicoli con la data classifica vengono folderizzati in automatico per anno (un folder per anno all'interno di quello che corrisponde alla classifica)
+611        		FlgRichAbilXVisIn		IN			PLS_INTEGER	DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+612        																						-- (valori 1/0/NULL) Se 1 significa che serve un'abilitazione esplicita alla classificazione per poter visualizzare la documentazione ad essa afferente
+613        		FlgRichAbilXGestIn		IN			PLS_INTEGER	DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+614        																						-- (valori 1/0/NULL) Se 1 significa che serve un'abilitazione esplicita alla classificazione per poter lavorare la documentazione ad essa afferente
+615        		FlgRichAbilXFirmaIn		IN			PLS_INTEGER	DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+616        																						-- (valori 1/0/NULL) Se 1 significa che serve un'abilitazione esplicita alla classificazione per poter firmare la documentazione ad essa afferente
+617        		FlgRichAbilXAssegnIn	IN			PLS_INTEGER	DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+618        																						-- (valori 1/0/NULL) Se 1 significa che serve un'abilitazione esplicita alla classificazione per potervi classificare dei documenti 
+619        		FlgRichAbilXAperFascIn	IN			PLS_INTEGER	DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+620        																						-- (valori 1/0/NULL) Se 1 significa che serve un'abilitazione esplicita alla classificazione per potervi aprire dei fascicoli 
+621        		FlgClassifInibitaIn		IN			PLS_INTEGER	DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+622        																						-- (valori 1/0/NULL) Se 1 significa che non è consentito classificare documentazione e aprire fascicoli direttamente nella classifica (solo in sue sotto-voci) 
+623        		ProvCIClassifIn			IN			DMT_TITOLARIO.PROV_CI_CLASSIFICAZIONE%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+624        																						-- Codice identificativo del piano nel sistema preposto a gestire i piani (se diverso da Auriga)																				
+625        		FlgModTemplateXFascIn	IN			VARCHAR2 DEFAULT 'I',						-- (valori I/C) Indica se i template di nome fascicolo della data classifica indicati nell'argomento successivo sono forniti in modo incrementale (=I) (solo quelle da inserire/cancellare) oppure completo (=C), vale a dire che dovranno soppiantare tutti quelli già associati alla classifica
+626        		XMLTemplateXFascIn		IN			CLOB,										-- Lista con i template di nome fascicolo della data classifica				
+627        																						-- Ogni template è un tag "Riga" che può contenere le seguenti colonne:
+628        																						-- 1: (obblig) Template
+629        																						-- 2: (valori 1/0/NULL) Se 1 significa che è un template già salvato da eliminare
+630        		RowidOut				OUT			VARCHAR2,									-- Rowid del record della classifica
+631        		AttributiAddIn			IN			CLOB DEFAULT NULL,							-- XML contenente nomi e valori degli attributi dinamici da aggiornare (conforme allo schema SezioneCache.xsd) 
+632        																						-- Gli attributi già presenti in DB e per i quali non c'è corrispondente nell'XML restano invariati
+633        																						-- Per tutti gli attributi vale quanto segue:
+634        																						-- Un attributo da settare è un tag "Variabile" dell'XML il cui tag "Nome" contiene il nome identificativo dell'attributo (ATTR_NAME di DMT_ATTRIBUTES_DEF)
+635        																						-- Un attributo da settare è una variabile con tag "ValoreSemplice" se è un attributo a singolo valore e non strutturato (cioè con tipo diverso da COMPLEX)
+636        																						-- altrimenti è una variabile con tag "Lista" che ha un'unica colonna con "Nro" pari a 1 se l'attributo non è strutturato, che ha invece tante colonne quanti gli attributi componenti (ordinate in base al loro NRO_ORD_IN_SUP) se l'attributo è complesso 
+637        																						-- Nel caso di variabili con tag "Lista" i valori specificati nell'XML si aggiungono o sostituiscono quelli già presenti in DB a seconda che nell'XML sia presente o meno una variabile con tag "Nome" pari a #Append_<Nome attributo> e tag "ValoreSemplice" pari a 1  
+638        																						-- In particolare se non sono specificati valori nell'XML (tag Lista vuoto) e se i valori non sono da aggiungere significa che tutti i valori dell'attributo già presenti in DB vanno rimossi
+639        		FlgStoricizzaDatiIn		IN			PLS_INTEGER DEFAULT NULL,					-- (valori 1/0) Se 1 i dati variati veranno storicizzati
+640        		TsVariazioneDatiIn		IN			VARCHAR2 DEFAULT NULL,						-- (gestito solo se FlgStoricizzaDatiIn=1) Timestamp a cui risale la variazione dei dati (nel formato dato dal parametro di configurazione FMT_STD_TIMESTAMP).
+641        																						-- Se non valorizzato e se FlgStoricizzaDatiIn si intende che la variazione decorra da data e ora corrente
+642        		MotiviVariazioneIn		IN			VARCHAR2 DEFAULT NULL,						-- Motivo della variazione dei dati
+643        		FlgDatiDaStoricizzareOut	OUT		PLS_INTEGER,								-- (valori 1/NULL) Se FlgStoricizzaDatiIn non è valorizzato e se si sono modificati dati che è previsto storicizzare viene restituito pari a 1
+644        		FlgIgnoreWarningIn 		IN 			PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+645        		FlgRollBckFullIn		IN 			PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+646        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+647        		FlgAutoCommitIn			IN 			PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+648        		WarningMsgOut			OUT			VARCHAR2,									-- Messaggio di warning (valorizzato solo se non c'è errore)
+649        		ErrContextOut			OUT			VARCHAR2,									-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+650        		ErrCodeOut				OUT			PLS_INTEGER,								-- N.ro errore di uscita
+651        		ErrMsgOut				OUT 		VARCHAR2									-- Messaggio d'errore
+652        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+653        
+654        	---- funzione per eliminare fisicamente una classificazione (solo se ancora non utilizzata)
+655        	function DClassifica(
+656        		CodIdConnectionTokenIn	IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+657        																						-- (obblig). Codice identificativo del token di connessione
+658        		IdUserLavoroIn			IN			DMT_USERS.ID_USER%type DEFAULT NULL,		-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+659        		IdClassificazioneIn		IN 			DMT_TITOLARIO.ID_CLASSIFICAZIONE%type ,		-- (obblig.) Id. della classificazione da eliminare
+660        		MotiviIn				IN			DMT_ACTIVITIES.NOTE%type,					-- Motivi della cancellazione
+661        		FlgIgnoreWarningIn 		IN 			PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+662        		FlgRollBckFullIn		IN 			PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+663        																						-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+664        		FlgAutoCommitIn			IN 			PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+665        		WarningMsgOut			OUT			VARCHAR2,									-- Messaggio di warning (valorizzato solo se non c'è errore)
+666        		ErrContextOut			OUT			VARCHAR2,									-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+667        		ErrCodeOut				OUT			PLS_INTEGER,								-- N.ro errore di uscita
+668        		ErrMsgOut				OUT 		VARCHAR2									-- Messaggio d'errore
+669        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+670        
+671        	
+672        	---- funzione per caricare i dati di una classificazione
+673        	function LoadDettClassifica(
+674        		CodIdConnectionTokenIn	IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+675        																						-- (obblig). Codice identificativo del token di connessione
+676        		IdUserLavoroIn			IN			DMT_USERS.ID_USER%type DEFAULT NULL,		-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+677        		IdClassificazioneIn		IN 			DMT_TITOLARIO.ID_CLASSIFICAZIONE%type ,		-- (obblig.) Id. della classificazione di cui caricare i dati
+678        		IdPianoClassifOut		OUT			DMT_PIANI_CLASSIF.ID_PIANO_CLASSIF%type ,	-- Id. del piano di appartenenza 
+679        		IdClassificazioneSupOut	OUT			DMT_TITOLARIO.ID_CLASSIFICAZIONE%type,		-- Id.della classifica superiore. Se non valorizzato significa che è una classifica di primo livello
+680        		NriLivelliClassifSupOut	OUT			VARCHAR2,									-- N.ri livelli della classifica superiore. Se non valorizzato significa che è una classifica di primo livello
+681        																						-- I nri sono indicati così come appaiono nella GUI e con il separatore previsto nella GUI per i livelli di classifica
+682        		NroLivelloOut			OUT 		VARCHAR2,									-- N.ro livello (come appare nella GUI, ovvero romano se previsto) che identifica la classifica tra quelle dello stesso livello gerarchico (sottostanti la stessa IdClassificazioneSupOut se presente)
+683        		DesClassificazioneOut	OUT			DMT_TITOLARIO.DES_CLASSIFICAZIONE%type,		-- Descrizione della classificazione 
+684        		DtInizioVldOut			OUT			VARCHAR2,									-- Data di inizio validità (nel formato dato dal parametro di conf. FMT_STD_DATA).
+685        		DtFineVldOut			OUT			VARCHAR2,									-- Data di fine validità (nel formato dato dal parametro di conf. FMT_STD_DATA).
+686        		ParoleChiaveOut			OUT			DMT_TITOLARIO.PAROLE_CHIAVE%type,			-- Parole chiave associate alla classificazione 
+687        		NroPosizioneOut			OUT			DMT_TITOLARIO.NRO_POSIZIONE%type,			-- N.ro che serve a stabilire la posizione della classifica nel piano (per avere un ordinamento alternativo a quello dato dai livelli)
+688        		CodSupportoConservOut	OUT			VARCHAR2,									-- Codice (censito in dizionario) che identifica il supporto su cui generalmente è conservata la documentazione della data classifica (cartaceo, digitale ecc) 
+689        		DesSupportoConservOut	OUT			VARCHAR2,									-- Nome del supporto (censito in dizionario) su cui generalmente è conservata la documentazione della data classifica (cartaceo, digitale ecc) 
+690        		FlgConservPermanenteOut	OUT			PLS_INTEGER,								-- (valori 1/0) Se 1 significa che in generale la documentazione della data classifica deve essere conservata per tempo illimitato
+691        		PeriodoConservazionOut	OUT			PLS_INTEGER,								-- Periodo - espresso in anni - per cui conservare la documentazione della data classifica (salvo eccezioni)
+692        		FlgNumContinuaOut		OUT			PLS_INTEGER,								-- (valori 1/0) Se 1 significa che la numerazione dei fascicoli della data classifica non è a rinnovo annuale ma prosegue di anno in anno
+693        		FlgFolderizzaXAnnoOut	OUT			PLS_INTEGER,								-- (valori 1/0) Se 1 significa che i fascicoli con la data classifica vengono folderizzati in automatico per anno (un folder per anno all'interno di quello che corrisponde alla classifica)
+694        		FlgRichAbilXVisOut		OUT			PLS_INTEGER,								-- (valori 1/0) Se 1 significa che serve un'abilitazione esplicita alla classificazione per poter visualizzare la documentazione ad essa afferente
+695        		FlgRichAbilXGestOut		OUT			PLS_INTEGER,								-- (valori 1/0) Se 1 significa che serve un'abilitazione esplicita alla classificazione per poter lavorare la documentazione ad essa afferente
+696        		FlgRichAbilXFirmaOut	OUT			PLS_INTEGER,								-- (valori 1/0) Se 1 significa che serve un'abilitazione esplicita alla classificazione per poter firmare la documentazione ad essa afferente
+697        		FlgRichAbilXAssegnOut	OUT			PLS_INTEGER,								-- (valori 1/0) Se 1 significa che serve un'abilitazione esplicita alla classificazione per potervi classificare dei documenti 
+698        		FlgRichAbilXAperFascOut	OUT			PLS_INTEGER,								-- (valori 1/0) Se 1 significa che serve un'abilitazione esplicita alla classificazione per potervi aprire dei fascicoli 
+699        		FlgClassifInibitaOut	OUT			PLS_INTEGER,								-- (valori 1/0) Se 1 significa che non è consentito classificare documentazione e aprire fascicoli direttamente nella classifica (solo in sue sotto-voci) 
+700        		ProvCIClassifOut		OUT			DMT_TITOLARIO.PROV_CI_CLASSIFICAZIONE%type,	-- Codice identificativo del piano nel sistema preposto a gestire i piani (se diverso da Auriga)																				
+701        		XMLTemplateXFascOut		OUT			NOCOPY CLOB,								-- Lista con i template di nome fascicolo della data classifica				
+702        																						-- Ogni template è un tag "Riga" che contiene le seguenti colonne:
+703        																						-- 1: Template
+704        		RowidOut				OUT			VARCHAR2,									-- Rowid del record della classifica
+705        		AttributiAddOut			OUT			NOCOPY CLOB,								-- Lista degli eventuali ulteriori attributi con cui caratterizzare la classifica (XML conforme a schema LISTA_STD.xsd)
+706        																						-- Ogni attributo è un tag "Riga" che contiene le seguenti colonne:
+707        																						-- 1: N.ro (valori da 1 a n) del riquadro (fieldset) in cui mostrare l'attributo
+708        																						-- 2: Nome identificativo dell'attributo (ATTR_NAME)
+709        																						-- 3: Label del campo con cui rappresentare l'attributo 
+710        																						-- 4: Tipo di attributo. Valori: DATE, DATETIME, TEXT, TEXT-AREA, CHECK, INTEGER, EURO, DECIMAL, COMBO-BOX, LISTA
+711        																						-- 5: N.ro massimo di caratteri/cifre
+712        																						-- 6: Larghezza del campo con cui rappresentare l'attributo (size)
+713        																						-- 7: Valore dell'attributo
+714        																						-- 8: Label del riquadro (fieldset) in cui mostrare l'attributo
+715        																						-- 9: (valori 1/0) 1 indica che l'attributo è obbligatorio, 0 che è facoltativo
+716        																						-- 10: Altezza (in nro righe) del campo con cui rappresentare l'attributo (se TEXT-AREA)
+717        																						-- 11:(valori 1/0) 1 indica se l'attributo è modificabile, 0 che è in sola visualizzazione   
+718        		FlgMostraAltriAttrOut	OUT			PLS_INTEGER,								-- (valori 1/0) Se 1 nella GUI vanno mostrati gli attributi addizionali (ce ne sono di visibile all'utente), se 0 no
+719        		ErrContextOut			OUT			VARCHAR2,									-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+720        		ErrCodeOut				OUT			PLS_INTEGER,								-- N.ro errore di uscita
+721        		ErrMsgOut				OUT 		VARCHAR2									-- Messaggio d'errore
+722        		) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine , altrimenti 0 (in caso di errore)
+723        
+724        	
+725        END DMPK_TITOLARIO;

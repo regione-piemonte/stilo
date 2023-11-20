@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:complexType name="NumerazioneType">
+		<xs:sequence>
+			<xs:element name="SiglaRegistro" type="xs:string"/>
+			<xs:element name="Anno" type="xs:gYear"/>
+			<xs:element name="Nro" type="xs:positiveInteger"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="RequestGetAttoPerAcquisti" type="NumerazioneType">
+		<xs:annotation>
+			<xs:documentation>Root element della request per recuperare i dati di un atto necessari al sistema acquisti: prevede gli estremi di numerazione definitiva dell'atto adottato</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+</xs:schema>

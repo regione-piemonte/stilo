@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<!-- Bean di configurazione per i parametri globali da usare nel modulo -->
+	<bean id="moduleConfig" class="it.eng.utility.module.config.ModuleConfig">
+		<property name="idDbStorage" value="MailArchive.ven"></property>
+	</bean>
+	
+	<bean id="Storage" class="it.eng.utility.storageutil.StorageConfig"/>
+	
+	<bean id="StorageSetter" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetObject">
+			<ref local="Storage" />
+		</property>
+		<property name="targetMethod">
+			<value>configureWithOtherDatabase</value>
+		</property>
+		<property name="arguments">
+			<list value-type="java.lang.String">
+				<value>/hibernate-storage.cfg.xml</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="storageService" class="it.eng.utility.storageutil.impl.StorageServiceImpl" 
+	      factory-method="newInstance" depends-on="StorageSetter">
+        <constructor-arg>
+            <bean class="it.eng.aurigamailbusiness.sender.storage.GenericStorageInfoImpl">
+                 <constructor-arg value="#{moduleConfig.idDbStorage}"/>
+            </bean>
+        </constructor-arg>
+    </bean>
+    	
+	<!-- <bean id="RestBusinessAfter" class="it.eng.aurigamail.config.AurigaMailBusinessRestBusinessAfter"/> -->
+
+	<bean id="messageSource"
+		class="org.springframework.context.support.ResourceBundleMessageSource">
+		<property name="basename" value="messages" />
+		<property name="useCodeAsDefaultMessage" value="true" />
+	</bean>
+	<!-- Utilizzato per accedere al contesto Spring -->
+	<bean id="coreAppContext" class="it.eng.core.config.SpringCoreContextProvider"></bean>
+
+	<bean id="luceneindex" class="it.eng.gd.lucenemanager.config.LuceneIndexConfig">
+		<property name="path"
+			value="" />
+		<property name="categoryPath">
+			<util:map>
+				<entry key="REP_DOC" value="" />
+				<entry key="DEF_CTX_CL" value="" />
+				<entry key="DEF_CTX_SO" value="" />
+				<entry key="EMAIL" value="/usr/local/appl/auriga/lucene/index/EMAIL" />
+				<entry key="RUBRICA" value="" />
+			</util:map>
+		</property>
+	</bean>
+
+	<bean id="storCen" class="it.eng.aurigamailbusiness.sender.storage.StorageCenter">
+	</bean>
+
+	<bean id="fileUtilities" class="it.eng.aurigamailbusiness.fileoperation.FileUtilities">
+		<property name="wsEndpoint"
+			value="http://localhost:8080/FileOperationWar/business/soap/fileop?wsdl"></property>
+	</bean>
+
+	<bean id="sendUtils"
+		class="it.eng.aurigamailbusiness.database.utility.send.SendUtils">
+		<property name="fileUtils" ref="fileUtilities"></property>
+		<property name="storage" ref="storCen"></property>
+		<property name="breaker" ref="mailBreaker"></property>
+	</bean>
+
+	<bean id="mailVerifier" class="it.eng.aurigamailbusiness.utility.mail.MailVerifier">
+	</bean>
+
+	<bean id="mailBreaker" class="it.eng.aurigamailbusiness.utility.MailBreaker">
+		<property name="verifier" ref="mailVerifier"></property>
+	</bean>
+
+	<bean id="LuceneSearch" class="it.eng.aurigamailbusiness.database.utility.LuceneSearch">
+		<property name="service" ref="luceneService" />
+	</bean>
+
+	<bean id="versionesegnatura" class="it.eng.aurigamailbusiness.config.SegnaturaConfig">
+		<property name="versione" value="old" />
+	</bean>
+
+	<bean id="daoTEmailMgo" class="it.eng.aurigamailbusiness.database.dao.DaoTEmailMgo">
+	</bean>
+
+	<bean id="daoTRubricaEmail" class="it.eng.aurigamailbusiness.database.dao.DaoTRubricaEmail">
+	</bean>
+
+	<bean id="daoTRelEmailFolder"
+		class="it.eng.aurigamailbusiness.database.dao.DaoTRelEmailFolder">
+	</bean>
+
+	<bean id="daoTAttachEmailMgo"
+		class="it.eng.aurigamailbusiness.database.dao.DaoTAttachEmailMgo">
+	</bean>
+
+	<bean id="daoTDestinatariEmailMgo"
+		class="it.eng.aurigamailbusiness.database.dao.DaoTDestinatariEmailMgo">
+	</bean>
+
+	<bean id="daoTRelEmailMgo" class="it.eng.aurigamailbusiness.database.dao.DaoTRelEmailMgo">
+	</bean>
+
+	<bean id="daoTRegEstVsEmail"
+		class="it.eng.aurigamailbusiness.database.dao.DaoTRegEstVsEmail">
+	</bean>
+
+	<bean id="daoTRegProtVsEmail"
+		class="it.eng.aurigamailbusiness.database.dao.DaoTRegProtVsEmail">
+	</bean>
+
+	<bean id="daoTParameters" class="it.eng.aurigamailbusiness.database.dao.DaoTParameters">
+	</bean>
+
+	<bean id="daoMailbox" class="it.eng.aurigamailbusiness.database.dao.DaoMailbox">
+	</bean>
+
+	<bean id="daoMailboxAccount"
+		class="it.eng.aurigamailbusiness.database.dao.DaoMailboxAccount">
+	</bean>
+
+	<bean id="daoMailboxAccountConfig"
+		class="it.eng.aurigamailbusiness.database.dao.DaoMailboxAccountConfig">
+	</bean>
+
+	<bean id="daoTAnagFruitoriCaselle"
+		class="it.eng.aurigamailbusiness.database.dao.DaoTAnagFruitoriCaselle">
+	</bean>
+
+	<bean id="daoTApplicazioniModPec"
+		class="it.eng.aurigamailbusiness.database.dao.DaoTApplicazioniModPec">
+	</bean>
+
+	<bean id="daoTEmailVsUtenti"
+		class="it.eng.aurigamailbusiness.database.dao.DaoTEmailVsUtenti">
+	</bean>
+
+	<bean id="daoTFolderCaselle"
+		class="it.eng.aurigamailbusiness.database.dao.DaoTFolderCaselle">
+	</bean>
+
+	<bean id="daoTValDizionario"
+		class="it.eng.aurigamailbusiness.database.dao.DaoTValDizionario">
+	</bean>
+
+	<bean id="daoTRelCaselleFruitori"
+		class="it.eng.aurigamailbusiness.database.dao.DaoTRelCaselleFruitori">
+	</bean>
+
+	<bean id="daoTAssegnEmail" class="it.eng.aurigamailbusiness.database.dao.DaoTAssegnEmail">
+	</bean>
+
+	<bean id="daoTMembriMailingList"
+		class="it.eng.aurigamailbusiness.database.dao.DaoTMembriMailingList">
+	</bean>
+
+	<bean id="daoTUtentiModPec" class="it.eng.aurigamailbusiness.database.dao.DaoTUtentiModPec">
+	</bean>
+
+	<bean id="interoperabilityUtils"
+		class="it.eng.aurigamailbusiness.database.utility.send.InteroperabilityUtils">
+	</bean>
+
+	<!--bean id="luceneWriter" class="it.eng.aurigamailbusiness.database.utility.LuceneWriter">
+		<property name="luceneWriter" ref="luceneIndexWriter"></property>
+	</bean> -->
+
+	<bean id="mailSenderService"
+		class="it.eng.aurigamailbusiness.database.dao.MailSenderService">
+		<property name="processor" ref="mailProcessorService"></property>
+		<property name="storage" ref="storCen"></property>
+	</bean>
+
+	<bean id="mailProcessorService"
+		class="it.eng.aurigamailbusiness.database.dao.MailProcessorService">
+	</bean>
+
+	<!-- BEAN LUCENE MANAGER -->
+
+	<bean id="jobUtils" class="it.eng.gd.lucenemanager.util.JobUtils">
+		<property name="wsEndpoint"
+			value="http://localhost:8080/FileOperationWar/business/soap/fileop?wsdl" />
+	</bean>
+
+	<bean id="luceneService" class="it.eng.gd.lucenemanager.service.LuceneService">
+		<property name="reader" ref="luceneReader" />
+		<property name="writer" ref="luceneIndexWriter" />
+	</bean>
+
+	<bean id="luceneIndexWriter" class="it.eng.gd.lucenemanager.LuceneIndexWriter">
+		<property name="storCen" ref="storageCenter" />
+		<property name="daoMimeType" ref="daoMimetype" />
+		<property name="utils" ref="jobUtils" />
+		<property name="luceneReader" ref="luceneReader" />
+		<property name="dirManager" ref="directoryManager" />
+	</bean>
+
+	<bean id="luceneReader" class="it.eng.gd.lucenemanager.LuceneIndexReader">
+		<property name="dirManager" ref="directoryManager" />
+	</bean>
+
+	<bean id="luceneIndexDbConfigurator" class="it.eng.gd.lucenemanager.config.LuceneIndexDbConfig">
+		<property name="nomeTabella" value="T_INDEX" />
+		<property name="categoryPath">
+			<util:map>
+				<entry key="REP_DOC" value="T_LUCENE_REPDOC" />
+				<entry key="DEF_CTX_CL" value="T_LUCENE_DEFCTXCLX" />
+				<entry key="DEF_CTX_SO" value="T_LUCENE_DEFCTXSO" />
+				<entry key="EMAIL" value="T_LUCENE_EMAIL" />
+				<entry key="RUBRICA" value="T_LUCENE_RUBRICA" />
+			</util:map>
+		</property>
+	</bean>
+
+	<bean id="dbConfig" class="it.eng.gd.lucenemanager.config.DbConfig">
+		<property name="type" value="oracle" />
+		<property name="serverName" value="161.27.146.10" />
+		<property name="portNumber" value="1611" />
+		<property name="databaseName" value="edorax11" />
+		<property name="username" value="auri_owner_2" />
+		<property name="password" value="auri_owner_2" />
+	</bean>
+
+	<bean id="writerDestination" class="it.eng.gd.lucenemanager.config.WriterDestinationConfig">
+		<property name="destination" value="db" />
+	</bean>
+
+	<bean id="directoryManager" class="it.eng.gd.lucenemanager.util.DirectoryManager" />
+
+	<bean id="storageCenter" class="it.eng.gd.lucenemanager.storage.StorageCenter">
+	</bean>
+
+	<bean id="daoMimetype" class="it.eng.gd.lucenemanager.dao.DaoTMimeTypeFmtDig">
+	</bean>
+
+	<bean id="AurigaBusinessConfigurator" class="it.eng.config.AurigaBusinessClientConfig"
+		factory-method="getInstance">
+		<property name="url" value="http://localhost:8080/AurigaBusiness"></property>
+		<property name="businesstype" value="REST"></property>
+	</bean>
+	
+	<!-- bean di configurazione dell'invio mail -->
+	<bean id="DebugInvioBean" class="it.eng.aurigamailbusiness.config.DebugInvioBean">
+		<!-- se true abilita invio mail, se false verrà effettuato solo il salvataggio e l'eventuale invio sarà effettuato dal job di re-invio, se attivo -->
+		<property name="invia" value="true"></property>
+		<!-- se true permette di includere il mittente nei destinatari, viceversa lo rimuove -->
+		<property name="abilitaInvioMittente" value="true"></property>
+	</bean>
+</beans>

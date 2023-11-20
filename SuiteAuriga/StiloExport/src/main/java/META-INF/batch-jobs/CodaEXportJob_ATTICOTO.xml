@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<job id="codaEXportJob_ATTICOTO">
+    <step id="codaEXportStep_ATTICOTO" >
+        <batchlet ref="codaEXportJob_ATTICOTO"/>
+    </step>
+</job>

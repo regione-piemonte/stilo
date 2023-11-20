@@ -1,0 +1,2 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+marginTop:"위",meta:"메타 데이터",metaAuthor:"작성자",metaCopyright:"저작권",metaDescription:"문서 설명",metaKeywords:"문서 핵심어 (쉼표로 구분)",other:"기타...",previewHtml:'\x3cp\x3e이것은 \x3cstrong\x3e예문\x3c/strong\x3e입니다. 여러분은 지금 \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e를 사용하고 있습니다.\x3c/p\x3e',title:"문서 속성",txtColor:"글자 색상",xhtmlDec:"XHTML 문서 정의 포함"});

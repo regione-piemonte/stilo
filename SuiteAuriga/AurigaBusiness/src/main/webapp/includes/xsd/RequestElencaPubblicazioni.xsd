@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2023 sp1 (x64) (http://www.altova.com) by Valentina Martinucci (Municipia SpA) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:complexType name="OggDiTabDiSistemaType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un oggetto censito in una tabella di sistema del sistema documentale</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="CodId" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Identificativo del dato di sistema nella banca dati del sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Decodifica_Nome" type="xs:string"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="PaginazioneType">
+		<xs:sequence>
+			<xs:element name="NroPagina" type="xs:positiveInteger" default="1" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>E' il numero della pagina da estrarre. Se non valorizzato si intende pari a 1</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroRecordInPagina" type="xs:positiveInteger" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Indica la dimensione (n.ro di record) della pagina da estrarre. Se non indicata viene settata pari ad una dimensione di default</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="RequestElencaPubblicazioni">
+		<xs:annotation>
+			<xs:documentation>Root element del servizio per avere l'elenco delle pubblicazioni di una data tipologia</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="TipoAtto" type="OggDiTabDiSistemaType">
+					<xs:annotation>
+						<xs:documentation>Tipo di atti pubblicati da ricercare. Cerca anche le sotto-tipologie di quella indicata</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="PubblVariateDal" type="xs:dateTime" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se il tag è valorizzato vengono ricercate solo le pubblicazioni effettuate o aggiornate dopo la data e ora qui indicate</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="PubblTerminate" type="xs:boolean" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se true vengono ricercate anche le pubblicazioni terminate, altrimenti solo quelle in corso</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="EstrazionePaginata" type="PaginazioneType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se presente il tag, allora l'estrazione è paginata, ovvero ogni chiamata al Web Service permette di estrarre un set-pagina di record che soddisfano i filtri.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

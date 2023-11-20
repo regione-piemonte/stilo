@@ -1,0 +1,294 @@
+1        PACKAGE DMPK_FOLDER_TYPES AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        
+12        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+13        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        
+20        	/**** Funzione per ricercare i tipi di folder, ovvero i tipi di nodi dell'archivio ****/
+21        	FUNCTION TrovaFolderTypes(
+22        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+23        																	-- (obblig). Codice identificativo del token di connessione
+24        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+25        			FlgPreimpostaFiltroIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1 i filtri e l'ordinamento vengono settati secondo le impostazioni dell'utente di lavoro, altrimenti restano come passati in input
+26        			--------------- inizio filtri di ricerca-------------------
+27        			IdFolderTypeIO			IN OUT	DMT_FOLDER_TYPES.ID_FOLDER_TYPE%type,	-- 1° filtro di ricerca: id. del tipo di folder da ricercare
+28        			NomeIO				IN OUT	DMT_FOLDER_TYPES.NOME_FOLDER_TYPE%type, 	-- 2° filtro di ricerca: stringa contenuta nel nome del tipo di folder (ricerca case-insensitive in like)
+29        			IdFolderTypeGenIO			IN OUT	DMT_FOLDER_TYPES.ID_FOLDER_TYPE%type,	-- 3° filtro di ricerca: id. del tipo di folder più generale in cui ricade. Viene considerato e gestito solo se è valorizzato l'argomento successivo. Se i due non sono congruenti l'id. viene ignorato
+30        			NomeFolderTypeGenIO		IN OUT	DMT_FOLDER_TYPES.NOME_FOLDER_TYPE%type, 	-- 4° filtro di ricerca: Nome del tipo di folder più generale in cui ricade (ricerca case-insensitive in like)
+31        			CIProvFolderTypeIO		IN OUT	DMT_FOLDER_TYPES.PROV_CI_FOLDER_TYPE%TYPE,-- 5° filtro di ricerca: Codice identificativo del tipo di folder nel sistema di provenienza: ricerca esatta case-sensitive  
+32        			PeriodoDiConservazioneDaIO	IN OUT	PLS_INTEGER,					-- 6° filtro di ricerca: restringe la ricerca ai soli tipi che devono essere conservati almeno per il n.ro di anni specificato in questo argomento
+33        			CodSupportoConservIO		IN OUT	DMT_FOLDER_TYPES.COD_SUPPORTO_CONSERV%type,	-- 7° filtro di ricerca: Codice del supporto fisico di conservazione (carta, disco ottico, microfilm ecc) per i documenti del dato tipo. Valori codificati in apposita dictionary entry. Ricerca esatta case-sensitive
+34        			FlgDaScansionareIO		IN OUT	PLS_INTEGER,					-- 8° filtro di ricerca: serve a restringere la ricerca ai tipi per cui è prevista la scansione (1) o per i quali non è prevista (0)
+35        			IdClassificazioneIO		IN OUT	DMT_TITOLARIO.ID_CLASSIFICAZIONE%type,	-- 9° filtro di ricerca: Identificativo della classificazione in cui ricadono i tipi folder da ricercare (vengono ricercati anche i tipi che ricadono in sotto-classifiche)
+36        																	-- Viene considerato e gestito solo se è valorizzato uno dei 2 argomenti successivi; se non congruenti con questi l'id. viene ignorato
+37        			LivelliClassificazioneIO	IN OUT	VARCHAR2,						-- 10° filtro di ricerca: Stringa con i n.ri livello della classificazione in cui ricadono i tipi folder da ricercare (vengono ricercati anche i tipi che ricadono in sotto-classifiche)
+38        																	-- 	(se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno indicati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; vanno separati dal separatore dei livelli di classificazione valido nel dominio di lavoro)
+39        			DesClassificazioneIO		IN OUT	VARCHAR2,						-- 11° filtro di ricerca: Denominazione della classificazione in cui ricadono i tipi folder da ricercare (ricerca case insensitive in like)(vengono ricercati anche i tipi folder che ricadono in sotto-classifiche). Può essere quella semplice o la concatenazione con separatore "|" delle denominazioni delle classifiche superiori + quella della classifica
+40        			FlgConFolderizzAutoIO		IN OUT	PLS_INTEGER,					-- (valori 1/0/NULL) 12° filtro di ricerca: se 1 indica che si devono estrarre solo i tipi che prevedono una folderizzazione automatica, se 0 solo quelli che non la prevedono
+41        			CodApplicazioneIO			IN OUT	VARCHAR2,						-- 13° filtro di ricerca: Codice dell'applicazione che si occupa dei tipi di folder da ricercare. Se valorizzata pari a #BY_CONN_TKN e si è connessi da un'applicazione esterna si ricercano solo i tipi di folder di cui si occupa quell'applicazione
+42        			CodIstApplicazioneIO		IN OUT	VARCHAR2,						-- 14° filtro di ricerca: Codice dell'istanza di applicazione che si occupa dei tipi di folder da ricercare. Se valorizzata pari a #BY_CONN_TKN e si è connessi da un'applicazione esterna si ricercano solo i tipi di folder di cui si occupa l'istanza di applicazione esterna da cui si è connessi
+43        			FlgInclAnnullatiIO		IN OUT	INTEGER,						-- (valori 1/0/NULL) 15° filtro di ricerca: se 1 vengono estratti anche i tipi di folder logicamente annullati, altrimenti no	
+44        			AltriCriteriIO			IN OUT 	NOCOPY CLOB,					-- Altri criteri di ricerca sugli attributi addizionali dei tipi folder (XML conforme a schema LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+45        																	-- Ogni criterio è un tag Riga che può contenere le seguenti colonne:
+46        																	--	1) Nome (ATTR_NAME) dell'attributo cui è relativo il criterio
+47        																	--	2) (obblig.) Operatore logico. Valori possibili:
+48        																	--		"uguale" (ricerca esatta) 
+49        																	--		"simile a (case-sensitive)" (ricerca case-sensitive in like)
+50        																	--		"simile a (case-insensitive)" (ricerca case-insensitive in like e che ignora i caratteri quali spazi, ., ecc)
+51        																	--		"maggiore" (se attributo numerico o data)
+52        																	--		"maggiore o uguale" (se attributo numerico o data)
+53        																	--		"minore" (se attributo numerico o data)
+54        																	--		"minore o uguale" (se attributo numerico o data)
+55        																	--		"tra" (se attributo numerico o data)
+56        																	--		"non valorizzato"
+57        																	--		"valorizzato"
+58        																	--		"spuntato" (se attributo di tipo casella di spunta)
+59        																	--		"non spuntato" (se attributo di tipo casella di spunta)
+60        																	--	3) 1° valore di confronto (obblig. e gestito solo se l'operatore non ha uno dei seguenti valori: valorizzato, non valorizzato, spuntato, non spuntato) (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+61        																	--	4) 2° valore di confronto (obblig. e gestito solo se l'operatore è "tra") (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+62        																	--	5) Label dell''attributo cui è relativo il criterio (se sotto-attributo di complesso <label del complesso> - <label del sotto-attributo>
+63        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+64        			ColOrderByIO			IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 8). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+65        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+66        																	-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+67        			FlgDescOrderByIO  		IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+68        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
+69        			FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+70        			NroPaginaIO      			IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+71           			BachSizeIO				IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+72        																	-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+73        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+74        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+75        			NroTotRecOut			OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+76             		NroRecInPaginaOut 		OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+77        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+78        			ListaXMLOut				OUT		NOCOPY CLOB,					-- Lista dei tipi di folder trovati (XML conforme a schema LISTA_Stf.xsd)
+79        																	-- Ogni tipo di folder è un tag Riga che può contenere le seguenti colonne: 
+80        																	-- 1:  Identificativo del tipo di folder
+81        																	-- 2:  Nome del tipo di folder
+82        																	-- 3:  Nome del tipo di folder più generale in cui ricade
+83        																	-- 4:  Identificativo del tipo di folder più generale in cui ricade
+84        																	-- 5:  Livelli e descrizione dell'eventuale classificazione in cui ricadono tutti i folder del dato tipo
+85        																	-- 6: (valori 1/0) Se 1 indica che è richiesta la scansione dei folder del dato tipo in caso siano originariamente cartacei
+86        																	-- 7: Periodo di conservazione ("Illimitato" o espresso come n.ro di anni) dei folder del dato tipo
+87        																	-- 8: Descrizione del supporto di conservazione previsto per i folder del dato tipo
+88        																	-- 9: Folder di appartenenza dato in automatico ai folder del dato tipo (le parti variabili sono indicate in brackets)
+89        																	-- 10: Annotazioni sul tipo di folder
+90        																	-- 11: Flag di annullamento logico (valori 1/0)
+91        																	-- 12: Motivi dell'annullamento logico
+92        																	-- 13: Cod. identificativo del tipo di folder nel sistema di provenienza
+93        																	-- 14: Flag che indica che il tipo di folder è trattato dall'applicazione CodApplicazioneIO ed eventuale istanza CodIstApplicazioneIO
+94        																	-- 15: Descrizione dell'applicazione (ed eventuale istanza) che si occupa del tipo di folder
+95        																	-- 16: Timestamp di creazione del tipo di folder (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+96        																	-- 17: Descrizione dell'utente di creazione del tipo di folder 
+97        																	-- 18: Timestamp di ultima modifica dei dati del tipo di folder (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+98        																	-- 19: Descrizione dell'utente di ultima modifica dei dati del tipo di folder 																						
+99        																	-- 20: (valori 1/0) Indicatore di tipo di folder riservato dal sistema e non modificabile da applicativo
+100        																	-- 21: (valori 1/0): se 1 è richiesta abilitazione esplicita per visualizzare folder del dato tipo  
+101        																	-- 22: (valori 1/0): se 1 è richiesta abilitazione esplicita per gestire (modificare, cancellare) folder del dato tipo  
+102        																	-- 23: (valori 1/0): se 1 è richiesta abilitazione esplicita per assegnare il dato tipo ad un folder 
+103        			FlgAbilInsOut	 		OUT 		PLS_INTEGER ,            			-- (valori 1/0) Se 1 si ha abilitazione a inserimento di tipo di folder
+104        			FlgAbilUpdOut 			OUT 		PLS_INTEGER ,            			-- (valori 1/0) Se 1 si ha abilitazione a modifica di tipo di folder
+105        			FlgAbilDelOut 			OUT 		PLS_INTEGER,            			-- (valori 1/0) Se 1 si ha abilitazione a cancellazione di tipo di folder
+106        			FlgMostraAltriAttrOut		OUT		PLS_INTEGER,					-- (valori 1/0) Se 1 nella GUI vanno mostrati gli attributi addizionali per un nuovo di tipo di folder (ce ne sono di visibile all'utente), se 0 no
+107        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+108        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+109        			ErrMsgOut				OUT 		VARCHAR2,						-- Messaggio d'errore
+110        			FlgRichAbilXVisualizzIn		IN		PLS_INTEGER default NULL,			-- (valori 1/0/NULL): filtro di ricerca per restringere la ricerca ai soli tipi per cui è richiesta abilitazione esplicita per visualizzare folder del dato tipo (=1) o per cui non è richiesta abilitazione esplicita per visualizzare folder del dato tipo (=0) 
+111        			FlgRichAbilXGestIn		IN		PLS_INTEGER default NULL,			-- (valori 1/0/NULL): filtro di ricerca per restringere la ricerca ai soli tipi per cui è richiesta abilitazione esplicita per gestire (modificare, cancellare) folder del dato tipo (=1) o per cui non è richiesta abilitazione esplicita per gestire folder del dato tipo (=0) 
+112        			FlgRichAbilXAssegnIn		IN		PLS_INTEGER default NULL,			-- (valori 1/0/NULL): filtro di ricerca per restringere la ricerca ai soli tipi per cui è richiesta abilitazione esplicita per assegnarli ad un folder (=1) o per cui non è richiesta abilitazione esplicita per assegnarli ad un folder (=0) 
+113        			FlgStatoAbilIn			IN		PLS_INTEGER default NULL,			-- (valori 1/0/NULL): filtro di ricerca per restringere la ricerca ai soli tipi cui l'utente/UO/scrivania/profilo ecc specificato nell'argomento IdDestAbilIn ha (= 1) o non ha (=0) abilitazione (con le opzioni eventualmente specificate nell'argomento OpzioniAbilIn)
+114        			FlgTpDestAbilIn			IN		VARCHAR2 default NULL,				-- (obblig. e gestito solo se FlgStatoAbilIn è valorizzato) Indica il tipo di chi (utente o UO ecc) deve avere o non avere abilitazione - con tutte le opzioni specificate in OpzioniAbilIn - verso i tipi da ricercare
+115        																	-- Valori ammessi: 
+116        																	--	UO	=	U.O. 
+117        																	-- 	SV	=	Scrivania virtuale
+118        																	--	UT	=	Utente
+119        																	--	PR	=	Profilo
+120        																	--	GP	=	Gruppo di privilegi
+121        			IdDestAbilIn			IN		INTEGER default NULL,				-- (obblig. e gestito solo se FlgStatoAbilIn è valorizzato) Identificativo (ID_UO o ID_SCRIVANIA o ID_USER o ID_PROFILO o ID_GRUPPO_PRIV) di chi deve avere o non avere abilitazione - con tutte le opzioni specificate in OpzioniAbilIn - verso i tipi da ricercare
+122        			OpzioniAbilIn			IN		VARCHAR2 DEFAULT NULL,				-- Indica la/le opzione (se più di una separate da ;) con cui IdDestAbilIn deve essere abilitato o meno (a seconda che FlgStatoAbilIn sia 1 o 0) ai tipi da ricercare
+123        																	-- Opzioni possibili:
+124        																	--	M	=	a Modificare/gestire
+125        																	--	A	=	ad Assegnare 
+126        			NomeTagRigaIn			IN		VARCHAR2 default null,				--se valorizzato è il nome del tag riga che deve avere l'xml in output
+127        			NomeTagColonnaIn			IN		DMVA_STRING default null   			--se valorizzatorappresenta i nomi dei tag colonne dell'xml di output
+128        			)return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+129        
+130        	/***** Funzione per inserire o aggiornare un tipo di folder *****/
+131        	function IUFolderType(	
+132        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+133        																	-- (obblig). Codice identificativo del token di connessione
+134        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+135        			IdFolderTypeIO   			IN OUT   	DMT_FOLDER_TYPES.ID_FOLDER_TYPE%type, 	-- Identificativo del tipo di folder da modificare. Se non valorizzato il tipo di folder è da inserire ex-novo
+136        																	-- In output, salvo in caso di errore, è sempre valorizzato	
+137        			NomeIn				IN		DMT_FOLDER_TYPES.NOME_FOLDER_TYPE%TYPE DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+138        																	-- (obblig.) Nome del tipo di FOLDER
+139        			IdFolderTypeGenIn			IN		DMT_FOLDER_TYPES.ID_FOLDER_TYPE_GEN%TYPE DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+140        																	-- Identificativo del tipo di folder in cui ricade (viene considerato solo se è valorizzato anche l'argomento successivo)
+141        			NomeFolderTypeGenIn		IN		DMT_FOLDER_TYPES.NOME_FOLDER_TYPE%TYPE DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+142        																	-- Nome del tipo di folder in cui ricade
+143        			FlgDaScansionareIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+144        																	-- (valori 1/0/NULL) Indica se per i folder del dato tipo è prevista la scansione (1) o meno
+145        			FlgConservPermIn			IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+146        																	-- (valori 1/0/NULL) 1 indica che i folder del dato tipo vanno conservati per tempo illimitato
+147        			PeriodoConservIn			IN		DMT_FOLDER_TYPES.PERIODO_CONSERV%type DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+148        																	-- Periodo minimo di conservazione (espresso in anni) dei folder del dato tipo.
+149        			CodSupportoConservIn		IN		DMT_FOLDER_TYPES.COD_SUPPORTO_CONSERV%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+150        																	-- Codice del supporto di conservazione dei folder del dato tipo (valori da dizionario)
+151        			IdClassificazioneIn		IN		DMT_FOLDER_TYPES.ID_CLASSIFICAZIONE%type DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+152        																	-- Id. della classificazione dei folder del dato tipo.
+153        																	-- Viene considerato solo se almeno uno dei due argomenti successivi è valorizzato
+154        			LivelliClassificazioneIn	IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+155        																	-- Stringa con i n.ri livello della classificazione dei folder del dato tipo (tutti o solo alcuni; però se si specifica un livello è obbligatorio indicare tutti i livelli superiori; vanno indicati come appaiono nella GUI, ovvero romani se previsto, 0 o -- se nulli; vanno separati dal separatore dei livelli di classificazione valido per il soggetto produttore/AOO)
+156        			DesClassificazioneIn		IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+157        																	-- Descrizione della classificazione dei folder del dato tipo (o suo inizio; ricerca case insensitive in like).
+158        			AnnotazioniIn			IN		DMT_FOLDER_TYPES.NOTE%TYPE DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+159        																	-- Annotazioni sul tipo
+160        			FlgRichAbilXVisualizzIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+161        																	-- (valori 1/0/NULL): se 1 è richiesta abilitazione esplicita per visualizzare folder del dato tipo  
+162        			FlgRichAbilXGestIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+163        																	-- (valori 1/0/NULL): se 1 è richiesta abilitazione esplicita per gestire (modificare, cancellare) folder del dato tipo  
+164        			FlgRichAbilXAssegnIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+165        																	-- (valori 1/0/NULL): se 1 è richiesta abilitazione esplicita per assegnare il dato tipo ad un folder 
+166        			CIProvFolderTypeIn		IN 		DMT_FOLDER_TYPES.PROV_CI_FOLDER_TYPE%TYPE DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+167        																	-- Codice identificativo del tipo di folder nel sistema di provenienza   
+168        			FlgLockedIn				IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+169        																	-- (valori 1/0/NULL) Indicatore di tipo di folder riservato dal sistema e non modificabile/cancellabile da GUI
+170        			FlgModAttrAddXFolderDelTipoIn	IN		VARCHAR2 DEFAULT 'I',				-- (valori I/C) Indica se gli attributi addizionali previsti per i folder del dato tipo e indicati nell'argomento successivo sono forniti in modo incrementale (=I) (solo quelli da inserire/modificare/cancellare) oppure completo (=C), vale a dire che dovranno soppiantare tutti quelli già specificati (e relativi al dominio di lavoro) in caso di tipo di folder da aggiornare
+171        			XMLAttrAddXFolderDelTipoIn	IN		CLOB DEFAULT NULL,				-- Lista con gli attributi addizionali previsti per i folder del dato tipo (XML conforme a schema LISTA_STD.xsd)					
+172        																	-- Ogni relazione tipo folder-attributo è tag "Riga" che può contenere le seguenti colonne:
+173        																	-- 1: Identificativo (ROWID) con cui la relazione è già stata registrata in banca dati
+174        																	-- 2: Nome identificativo dell'attributo (internal name)
+175        																	-- 3: Label con cui viene mostrato l'attributo nella GUI
+176        																	-- 4: (valori 1/0) Indicatore di obbligatorietà dell'attributo
+177        																	-- 5: Massimo numero di valori possibili per l'attributo 
+178        																	-- 6: Data di inizio validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità decorre da sempre.
+179        																	-- 7: Data di fine validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità è illimitata.
+180        																	-- 8: N.ro (valori da 1 a n) che indica la posizione dell'attributo tra tutti quelli associati
+181        																	-- 9: (valori 1/0/NULL) Flag di relazione da eliminare
+182        																	-- 10: (flag 1/0) Indica se l'attributo va nel primo TAB della GUI
+183        																	-- 11: Codice del TAB in cui mostrare l'attributo
+184        																	-- 12: Label del TAB in cui mostrare l'attributo
+185        			AttributiAddIn			IN		CLOB DEFAULT NULL,		-- XML contenente nomi e valori degli attributi dinamici da aggiornare (conforme allo schema SezioneCache.xsd) 
+186        																	-- Gli attributi già presenti in DB e per i quali non c'è corrispondente nell'XML restano invariati
+187        																	-- Per tutti gli attributi vale quanto segue:
+188        																	-- Un attributo da settare è un tag "Variabile" dell'XML il cui tag "Nome" contiene il nome identificativo dell'attributo (ATTR_NAME di DMT_ATTRIBUTES_DEF)
+189        																	-- Un attributo da settare è una variabile con tag "ValoreSemplice" se è un attributo a singolo valore e non strutturato (cioè con tipo diverso da COMPLEX)
+190        																	-- altrimenti è una variabile con tag "Lista" che ha un'unica colonna con "Nro" pari a 1 se l'attributo non è strutturato, che ha invece tante colonne quanti gli attributi componenti (ordinate in base al loro NRO_ORD_IN_SUP) se l'attributo è complesso 
+191        																	-- Nel caso di variabili con tag "Lista" i valori specificati nell'XML si aggiungono o sostituiscono quelli già presenti in DB a seconda che nell'XML sia presente o meno una variabile con tag "Nome" pari a #Append_<Nome attributo> e tag "ValoreSemplice" pari a 1  
+192        																	-- In particolare se non sono specificati valori nell'XML (tag Lista vuoto) e se i valori non sono da aggiungere significa che tutti i valori dell'attributo già presenti in DB vanno rimossi
+193        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+194        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+195        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+196        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+197        			WarningMsgOut			OUT		VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+198        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+199        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+200        			ErrMsgOut				OUT 		VARCHAR2,						-- Messaggio d'errore
+201        			TemplateNomeIn   		IN  DMT_FOLDER_TYPES.TEMPLATE_NOME_FOLDER%type DEFAULT NULL,	-- Template secondo cui comporre il nome dei folder del dato tipo (le variabili da sostituire sono tra $)
+202        			TemplateTimbroIn  		IN  DMT_FOLDER_TYPES.TEMPLATE_TIMBRO_FOLDER%type DEFAULT NULL,	-- Template secondo cui comporre il timbro da apporre sui folder del dato tipo (le variabili da sostituire sono tra $)
+203        			TemplateCodeIn   		IN  DMT_FOLDER_TYPES.TEMPLATE_CODE_FOLDER%type DEFAULT NULL,		-- Template secondo cui comporre il codice identificativo (secondario) dei folder del dato tipo (le variabili da sostituire sono tra $)
+204        			IdProcessTypeIn          IN    	DMT_PROCESS_TYPES.ID_PROCESS_TYPE%type DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+205        																		--Identificativo del tipo di processo/procedimento collegato al tipo folder
+206                    NomeProcessTypeIn        IN    	DMT_PROCESS_TYPES.NOME_PROCESS_TYPE%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD')
+207        																		-- Nome del tipo di processo/procedimento collegato al tipo folder
+208                    ) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+209        
+210        	/*** Funzione di eliminazione di un tipo di folder								***/	
+211        	/*** Si può specificare se l'eliminazione deve essere fisica o solo logica (annullamento)		***/
+212        	/*** Se non lo si specifica il sistema fa quella fisica se possibile, se no quella logica		***/
+213        	function DFolderType(
+214        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+215        																	-- (obblig). Codice identificativo del token di connessione
+216        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+217        			IdFolderTypeIn   			IN 		DMT_FOLDER_TYPES.ID_FOLDER_TYPE%TYPE,		-- (obblig.)Identificativo del tipo di folder	
+218        			FlgCancFisicaIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL): Se 1 si richiede la cancellazione fisica; se 0 l'annullamento logico; se non è valorizzato quella possibile delle 2. 		
+219        			MotiviIn				IN		DMT_FOLDER_TYPES.MOTIVI_ANN%type,		-- Motivi della cancellazione/annullamento
+220        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+221        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+222        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+223        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+224        			WarningMsgOut			OUT		VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+225        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+226        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+227        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+228        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+229        
+230        	/**** Funzione per ottenere tutti i dati di dettaglio di un tipo di folder tranne la folderizzazione automatica *****/
+231        	function LoadDettFolderType(
+232        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+233        																	-- (obblig). Codice identificativo del token di connessione
+234        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+235        			IdFolderTypeIO   			IN OUT   	DMT_FOLDER_TYPES.ID_FOLDER_TYPE%type, 	-- (obblig) Identificativo del tipo di folder di cui caricare il dettaglio
+236        			NomeOut				OUT		DMT_FOLDER_TYPES.NOME_FOLDER_TYPE%TYPE,	-- Nome del tipo di folder
+237        			IdFolderTypeGenOut		OUT		DMT_FOLDER_TYPES.ID_FOLDER_TYPE_GEN%TYPE,	-- Identificativo del tipo di folder in cui ricade
+238        			NomeFolderTypeGenOut		OUT		DMT_FOLDER_TYPES.NOME_FOLDER_TYPE%TYPE,	-- Nome del tipo di folder in cui ricade
+239        			FlgDaScansionareOut		OUT		PLS_INTEGER,					-- (valori 1/0) Indica se per i folder del dato tipo è prevista la scansione (1) o meno
+240        			FlgConservPermOut			OUT		PLS_INTEGER,					-- (valori 1/0) 1 indica che i folder del dato tipo vanno conservati per tempo illimitato
+241        			PeriodoConservOut			OUT		DMT_FOLDER_TYPES.PERIODO_CONSERV%type,	-- Periodo minimo di conservazione (espresso in anni) dei folder del dato tipo.
+242        			CodSupportoConservOut		OUT		DMT_FOLDER_TYPES.COD_SUPPORTO_CONSERV%type,
+243        																	-- Codice del supporto di conservazione dei folder del dato tipo (valori da dizionario)
+244        			IdClassificazioneOut		OUT		DMT_FOLDER_TYPES.ID_CLASSIFICAZIONE%type,	-- Id. della classificazione dei folder del dato tipo.
+245        			LivelliClassificazioneOut	OUT		VARCHAR2,						-- Stringa con i n.ri livello della classificazione dei folder del dato tipo (sono separati dal separatore dei livelli di classificazione valido per il soggetto produttore/AOO)
+246        			DesClassificazioneOut		OUT		VARCHAR2,						-- Descrizione della classificazione dei folder del dato tipo
+247        			AnnotazioniOut			OUT		DMT_FOLDER_TYPES.NOTE%TYPE,			-- Annotazioni sul tipo
+248        			FlgRichAbilXVisualizzOut	OUT		PLS_INTEGER,					-- (valori 1/0): se 1 è richiesta abilitazione esplicita per visualizzare folder del dato tipo  
+249        			FlgRichAbilXGestOut		OUT		PLS_INTEGER,					-- (valori 1/0): se 1 è richiesta abilitazione esplicita per gestire (modificare, cancellare) folder del dato tipo  
+250        			FlgRichAbilXAssegnOut		OUT		PLS_INTEGER,					-- (valori 1/0): se 1 è richiesta abilitazione esplicita per assegnare il dato tipo ad un folder 
+251        			CIProvFolderTypeOut		OUT 		DMT_FOLDER_TYPES.PROV_CI_FOLDER_TYPE%TYPE,-- Codice identificativo del tipo di folder nel sistema di provenienza   
+252        			TemplateNomeOut   		OUT  DMT_FOLDER_TYPES.TEMPLATE_NOME_FOLDER%type,	-- Template secondo cui comporre il nome dei folder del dato tipo (le variabili da sostituire sono tra $)
+253        			TemplateTimbroOut  		OUT  DMT_FOLDER_TYPES.TEMPLATE_TIMBRO_FOLDER%type,	-- Template secondo cui comporre il timbro da apporre sui folder del dato tipo (le variabili da sostituire sono tra $)
+254        			TemplateCodeOut   		OUT  DMT_FOLDER_TYPES.TEMPLATE_CODE_FOLDER%type,	-- Template secondo cui comporre il codice identificativo (secondario) dei folder del dato tipo (le variabili da sostituire sono tra $)
+255        			IdProcessTypeOut        OUT    	DMT_PROCESS_TYPES.ID_PROCESS_TYPE%type,
+256        																						--Identificativo del tipo di processo/procedimento collegato al tipo folder
+257                    NomeProcessTypeOut      OUT    	DMT_PROCESS_TYPES.NOME_PROCESS_TYPE%type,
+258        																			-- Nome del tipo di processo/procedimento collegato al tipo folder
+259                    FlgLockedOut			OUT		PLS_INTEGER,					-- (valori 1/0) Indicatore di tipo di folder riservato dal sistema e non modificabile/cancellabile da GUI
+260        			RowidOut				OUT		VARCHAR2,						-- Rowid del record del tipo di folder
+261        			XMLAttrAddXFolderDelTipoOut	OUT		NOCOPY CLOB,					-- Lista con gli attributi addizionali previsti per i folder del dato tipo (XML conforme a schema LISTA_STD.xsd)					
+262        																	-- Ogni relazione tipo folder-attributo è tag "Riga" che contiene le seguenti colonne:
+263        																	-- 1: Identificativo (ROWID) con cui la relazione è già stata registrata in banca dati
+264        																	-- 2: Nome identificativo dell'attributo (internal name)
+265        																	-- 3: Label con cui viene mostrato l'attributo nella GUI
+266        																	-- 4: (valori 1/0) Indicatore di obbligatorietà dell'attributo
+267        																	-- 5: Massimo numero di valori possibili per l'attributo 
+268        																	-- 6: Data di inizio validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità decorre da sempre.
+269        																	-- 7: Data di fine validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità è illimitata.
+270        																	-- 8: N.ro (valori da 1 a n) che indica la posizione dell'attributo tra tutti quelli associati
+271        																	-- 10: (flag 1/0) Indica se l'attributo va nel primo TAB della GUI
+272        																	-- 11: Codice del TAB in cui mostrare l'attributo
+273        																	-- 12: Label del TAB in cui mostrare l'attributo
+274        			AttributiAddOut			OUT		NOCOPY CLOB,			-- Lista degli eventuali ulteriori attributi con cui caratterizzare il tipo folder (XML conforme a schema LISTA_STD.xsd)
+275        																	-- Ogni attributo è un tag "Riga" che contiene le seguenti colonne:
+276        																	-- 1: N.ro (valori da 1 a n) del riquadro (fieldset) in cui mostrare l'attributo
+277        																	-- 2: Nome identificativo dell'attributo (ATTR_NAME)
+278        																	-- 3: Label del campo con cui rappresentare l'attributo 
+279        																	-- 4: Tipo di attributo. Valori: DATE, DATETIME, TEXT, TEXT-AREA, CHECK, INTEGER, EURO, DECIMAL, COMBO-BOX, LISTA
+280        																	-- 5: N.ro massimo di caratteri/cifre
+281        																	-- 6: Larghezza del campo con cui rappresentare l'attributo (size)
+282        																	-- 7: Valore dell'attributo
+283        																	-- 8: Label del riquadro (fieldset) in cui mostrare l'attributo
+284        																	-- 9: (valori 1/0) 1 indica che l'attributo è obbligatorio, 0 che è facoltativo
+285        																	-- 10: Altezza (in nro righe) del campo con cui rappresentare l'attributo (se TEXT-AREA)
+286        																	-- 11:(valori 1/0) 1 indica se l'attributo è modificabile, 0 che è in sola visualizzazione   
+287        			BachSizeOut				OUT		PLS_INTEGER,					-- Indica il massimo n.ro di record per ogni pagina da mostrare nelle liste restituite in output
+288        			FlgMostraAltriAttrOut		OUT		PLS_INTEGER,					-- (valori 1/0) Se 1 nella GUI vanno mostrati gli attributi addizionali (ce ne sono di visibile all'utente), se 0 no
+289        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+290        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+291        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+292        			return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+293        
+294        END DMPK_FOLDER_TYPES;

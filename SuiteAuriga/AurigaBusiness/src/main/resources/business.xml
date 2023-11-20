@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<import resource="document.xml" />
+	<import resource="jaxwsservices.xml" />
+	
+	<bean id="clientContabiliaRicerche" class="it.eng.utility.client.contabilia.ricerche.ClientSpringContabiliaRicerche" factory-method="getClient" />
+	<bean id="clientContabiliaDocumenti" class="it.eng.utility.client.contabilia.documenti.ClientSpringContabiliaDocumenti" factory-method="getClient" />
+	
+	<bean id="GenericPropertyConfigurator" class="it.eng.utility.ui.module.layout.shared.bean.GenericConfigBean">
+		<property name="callFileOpWithStream" value="false" />
+	</bean>
+	
+	<bean id="RestBusinessConfig" class="it.eng.core.service.client.config.RestBusinessConfig">
+		<property name="connectionTimeout" value="120000"></property>
+		<property name="readTimeout" value="120000"></property>
+		<property name="errorMessage" value="Impossibile evadere la richiesta nel tempo stabilito. Riprovare più tardi"></property>
+	</bean>
+	
+	<bean id="Storage" class="it.eng.utility.storageutil.StorageConfig">
+    </bean>
+	
+	<bean id="StorageSetter"
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetObject">
+			<ref local="Storage" />
+		</property>
+		<property name="targetMethod">
+			<value>configureWithWebServices</value>
+		</property>
+		<property name="arguments">
+			<list value-type="java.lang.String">
+				<value>C:\\temp</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="SessionFileConfigurator" class="it.eng.auriga.module.config.SessionFileConfigurator">
+		<property name="sessions">
+			<util:list value-type="it.eng.auriga.module.config.SessionFile">
+				<bean class="it.eng.auriga.module.config.SessionFile" id="COLL_MAURIZIANO">
+					<property name="fileName" value="hibernate-auriga_vicenza.cfg.xml"></property>
+					<property name="sessionName" value="COLL_MAURIZIANO"></property>
+				</bean>
+			</util:list>
+		</property>
+	</bean>
+	
+	<bean id="ActivitiSessionFileConfigurator" class="it.eng.dm.engine.manage.ActivitiSessionFileConfigurator">
+		<property name="sessions">
+			<util:list value-type="it.eng.auriga.module.config.SessionFile">
+				<bean class="it.eng.auriga.module.config.SessionFile" id="ACTIVITI_COLL_MAURIZIANO">
+					<property name="fileName" value="activiti.cfg.xml"></property>
+					<property name="sessionName" value="COLL_MAURIZIANO"></property>
+				</bean>
+			</util:list>
+		</property>
+	</bean>
+
+	<bean id="messageSource"
+		class="org.springframework.context.support.ResourceBundleMessageSource">
+		<property name="basename" value="messages" />
+		<property name="useCodeAsDefaultMessage" value="true" />
+	</bean>
+	<!-- Utilizzato per accedere al contesto Spring -->
+	<bean id="coreAppContext" class="it.eng.core.config.SpringCoreContextProvider"></bean>
+
+	<!-- Bean di configurazione per i parametri globali da usare nel modulo -->
+	<bean id="moduleConfig" class="it.eng.auriga.module.config.ModuleConfig">
+
+		<property name="storages">
+			<util:map key-type="java.lang.String" value-type="java.lang.String">
+				<entry key="DEFAULT" value="AURIGADOCUMENT@1"></entry>
+				<entry key="TEMP" value="AURIGATEMP@1"></entry>
+				<entry key="1" value="AURIGADOCUMENT@1"></entry>
+			</util:map>
+		</property>
+	</bean>
+
+	<bean id="VersionHandler" class="it.eng.auriga.repository2.versionhandler.synchronous.SynchronousVersionHandler" lazy-init="true">
+		<property name="luceneHandler" ref="LuceneHandler" />
+	</bean>
+
+	<bean id="LuceneHandler" class="it.eng.auriga.repository2.lucene.LuceneHandler"  lazy-init="true">
+		<property name="defaultRepositoryRoot" value="/dgdoc/data02/repository/lucene/"/>
+		<property name="defaultContextRoot" value="/dgdoc/data02/repository/lucene/CTX_DEF/"/>
+    		<property name="destination" value="file" />
+		<property name="handlerProperties">
+			<props>
+				<!-- overflow limit per la ricerca -->
+				<prop key="OVERFLOW_LIMIT">2000</prop>
+				<!-- match tra le categorie e i path di lucene -->
+				<prop key="REP_DOC">/dgdoc/data02/repository/lucene/index/REP_DOC</prop>
+				<prop key="DEF_CTX_CL">/dgdoc/data02/repository/lucene/index/DEF_CTX_CL</prop>
+				<prop key="DEF_CTX_SO">/dgdoc/data02/repository/lucene/index/DEF_CTX_SO</prop>
+				<prop key="EMAIL">/dgdoc/data02/repository/lucene/index/EMAIL</prop>
+				<prop key="RUBRICA">/dgdoc/data02/repository/lucene/index/RUBRICA</prop>
+				<!-- indica il path su cui ricercare gli attributi indicizzati per REP_DOC -->
+				<prop key="RETRIEVE_INDEX_REP_DOC">/dgdoc/data02/repository/lucene/index/REP_DOC/AURI_OWNER_2_21</prop>
+			</props>
+		</property>
+	</bean>
+
+	<bean id="dbConfig" class="it.eng.gd.lucenemanager.config.DbConfig">
+		<property name="type" value="oracle" />
+		<property name="serverName" value="161.27.146.14" />
+		<property name="portNumber" value="1611" />
+		<property name="databaseName" value="edorax11" />
+		<property name="username" value="auri_owner_2" />
+		<property name="password" value="auri_owner_2" />
+	</bean>
+
+	<bean id="BusinessConfigurator" class="it.eng.core.service.client.config.Configuration"
+		factory-method="getInstance">
+		<property name="url" value="http://161.27.146.14:8080/AurigaBusinessSVIL"></property>
+		<property name="businesstype" value="REST"></property>
+	</bean>
+
+	<bean id="MailConfigurator" class="it.eng.config.AurigaMailBusinessClientConfig"
+		factory-method="getInstance">
+		<property name="url" value="http://161.27.146.14:8080/AurigaMailSVIL"></property>
+	</bean>
+	
+	<bean id="pgWebUtil" class="it.eng.document.pgweb.PGWebUtil">
+		<property name="utenteProtocollazione" value="AURIGATEST"/>
+		<property name="dominioProtocolloazione" value="AURIGA"/>
+		<property name="passwordProtocolloazione" value="12345678"/>
+		<property name="wsUrlMovimento" value="http://10.63.4.91/pg@web.webserviceSOAP/services.asmx?op=Set_Movimento"/>
+		<property name="wsUrlDocumento" value="http://10.63.4.91/pg@web.webserviceSOAP/services.asmx?op=Set_PG_Documento"/>
+		<property name="idStruttCom" value="827"></property>
+	</bean>
+	
+	<bean id="ConfiguredAccount" class="it.eng.simplesendermail.service.bean.ConfiguredAccount">
+		<property name="accounts">
+			<util:map key-type="java.lang.String"
+				value-type="it.eng.simplesendermail.service.bean.SmtpSenderBean">
+				<entry key="helpdesk" value-ref="helpDeskAccount"></entry>
+				<entry key="pec" value-ref="pecAccount"></entry>
+			</util:map>
+		</property>
+	</bean>
+
+	<bean id="helpDeskAccount" class="it.eng.simplesendermail.service.bean.SmtpSenderBean">
+		<property name="isPec" value="false"></property>
+		<property name="usernameAccount" value=""></property>
+		<property name="usernamePassword" value=""></property>
+		<property name="auth" value="false"></property>
+		<property name="loginDisable" value="false"></property>
+		<property name="smtpEndpoint" value="localhost"></property>
+		<property name="smtpPort" value="25"></property>
+		<property name="socketFactoryClass" value=""></property>
+		<property name="socketFactoryFallback" value="true"></property>
+		<property name="sslEnabled" value="false"></property>
+	</bean>
+	
+	<bean id="pecAccount" class="it.eng.simplesendermail.service.bean.SmtpSenderBean">
+		<property name="isPec" value="true"></property>
+		<property name="usernameAccount" value="test4@postacert.regione.emilia-romagna.it"></property>
+		<property name="usernamePassword" value="test4password"></property>
+		<property name="auth" value="true"></property>
+		<property name="loginDisable" value="false"></property>
+		<property name="smtpEndpoint" value="95.110.240.38"></property>
+		<property name="smtpPort" value="465"></property>
+		<property name="socketFactoryClass" value="javax.net.ssl.SSLSocketFactory"></property>
+		<property name="socketFactoryFallback" value="false"></property>
+		<property name="sslEnabled" value="true"></property>
+	</bean>
+	
+	<bean id = "GestioneEsportazioneAsincronaListeBean" class="it.eng.document.configuration.GestioneEsportazioneAsincronaListeBean">
+		<property name="corePoolSize" value="5"/>
+		<property name="maximumPoolSize" value="10"/>
+		<property name="keepAliveTime" value="1000"/>
+		<property name="workQueueSize" value="100"/>
+		<property name="dateFormat" value="yyyy-MM-dd"/>
+	</bean>
+	
+	<bean id = "EsportazioneDocumentiFormatoZipBean" class="it.eng.document.configuration.EsportazioneDocumentiFormatoZipBean">
+		<property name="corePoolSize" value="10"/>
+		<property name="maximumPoolSize" value="100"/>
+		<property name="keepAliveTime" value="1000"/>
+		<property name="workQueueSize" value="1000"/>
+		<property name="tempPath" value="C:\\temp"/>
+	</bean>
+	
+	<bean id = "PrenotazioneAppuntamentoConfigBean" class="it.eng.document.configuration.PrenotazioneAppuntamentoConfigBean">
+		<property name="codIdConnectionToken" value="#RESERVED_WS"/>
+		<property name="schema" value="COLL_MAURIZIANO"/>
+	</bean>
+	
+	<bean id="defaultConfigBean" class="it.eng.document.configuration.DefaultConfigBean">
+		<property name="codIdConnectionToken" value="#RESERVED_2" />
+		<!-- <property name="idDominio" value="2"/> -->
+		<property name="schema" value="COLL_MAURIZIANO" />
+	</bean>
+	
+	<bean id = "AggiornaAnagrafeClassiDocConfigBean" class="it.eng.document.configuration.AggiornaAnagrafeClassiDocConfigBean">
+		<property name="defaultSchema" value="COLL_MAURIZIANO"/>
+	</bean>
+	
+	<bean id="TemplateStorageImpl" class="it.eng.auriga.compiler.impl.TemplateStorageAurigaBusinessImpl">
+	</bean>
+	
+		<bean id="AlboPretorioTimbroWSConfigBean" class="it.eng.document.configuration.AlboPretorioTimbroWSConfigBean">
+		<property name="opzioniTimbro" ref="OpzioniTimbroAlbo" />
+	</bean>
+	
+	<bean id="OpzioniTimbroAlbo" class="it.eng.utility.ui.module.layout.shared.bean.OpzioniCopertinaTimbroBean">
+		<property name="timeout" value="60000" />
+		<property name="codifica" value="BARCODE_PDF_417" />
+		<property name="rotazioneTimbro" value="VERTICALE" />
+		<property name="posizioneTimbro" value="BASSO_SN" />
+		<property name="posizioneIntestazione" value="INLINEA" />
+		<property name="paginaTimbro" ref="PaginaTimbroAutoDocRegBean" />
+		<property name="righeMultiple" value="true" />
+	</bean>
+	
+	<!-- VALORI: PRIMA,ULTIMA,TUTTE -->
+	<bean id="PaginaTimbroAutoDocRegBean" class="it.eng.fileOperation.clientws.PaginaTimbro">
+		<property name="tipoPagina" value="TUTTE" />
+	</bean>
+	
+	<!-- Bean di configurazione per timbro Amministrazione Trasparente  -->
+	<bean id="AmministrazioneTrasparenteTimbroWSConfigBean" class="it.eng.document.function.bean.amministrazionetrasparente.AmministrazioneTrasparenteTimbroWSConfigBean">
+		<property name="opzioniTimbro" ref="OpzioniTimbroAmministrazioneTrasparente" />
+	</bean>
+	
+	<bean id="OpzioniTimbroAmministrazioneTrasparente" class="it.eng.utility.ui.module.layout.shared.bean.OpzioniCopertinaTimbroBean">
+		<property name="timeout" value="60000" />
+		<property name="codifica" value="BARCODE_PDF_417" />
+		<property name="rotazioneTimbro" value="VERTICALE" />
+		<property name="posizioneTimbro" value="BASSO_SN" />
+		<property name="posizioneIntestazione" value="INLINEA" />
+		<property name="paginaTimbro" ref="PaginaTimbroAutoDocRegBeanAmministrazioneTrasparente" />
+		<property name="righeMultiple" value="true" />
+	</bean>
+	
+	<!-- VALORI: PRIMA,ULTIMA,TUTTE -->
+	<bean id="PaginaTimbroAutoDocRegBeanAmministrazioneTrasparente" class="it.eng.fileOperation.clientws.PaginaTimbro">
+		<property name="tipoPagina" value="TUTTE" />
+	</bean>
+	
+</beans>

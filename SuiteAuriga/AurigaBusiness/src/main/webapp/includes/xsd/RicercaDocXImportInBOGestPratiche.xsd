@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:simpleType name="NroLivelloGerarchiaType">
+		<xs:annotation>
+			<xs:documentation>Nro di un livello di una struttura gerarchica come la struttura organizzativa o il titolario di classificazione: 1 è il livello più alto (ad esempio il settore o il titolo), 2 il successivo (ad esempio il servizio o la classe) e così via</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="10"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="CodLivelloGerarchiaType">
+		<xs:restriction base="xs:string"/>
+	</xs:simpleType>
+	<xs:complexType name="LivelloGerarchiaType">
+		<xs:attribute name="Nro" type="NroLivelloGerarchiaType" use="required">
+			<xs:annotation>
+				<xs:documentation>N.ro d'ordine del livello</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="Codice" type="CodLivelloGerarchiaType" use="required">
+			<xs:annotation>
+				<xs:documentation>Codice identificativo del livello</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="UOType">
+		<xs:annotation>
+			<xs:documentation>Indica una UO attraverso il suo identificativo o attarverso i suoi livelli o attraverso la sua denominazione. <!-- Ad esempio il "Servizio 10 del Settore 2" si può indicare come <my_element>  
+	<LivelloUO Nro=1 Cod=2> </LivelloUO>
+	<LivelloUO Nro=2 Cod=10> </LivelloUO>
+<my_element> -->
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="IdUO" type="xs:integer" minOccurs="0"/>
+			<xs:element name="LivelloUO" type="LivelloGerarchiaType" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="DenominazioneUO" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Può essere la denominazione semplice della UO o quest'ultima preceduta dalle denominazioni delle UO di livello superiore (separate da " | "). Es:  "Ufficio Rilasci" o "Settore Edilizia | Ufficio Rilasci"</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="PaginazioneType">
+		<xs:sequence>
+			<xs:element name="NroPagina" type="xs:positiveInteger" default="1" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>E' il numero della pagina da estrarre. Se non valorizzato si intende pari a 1</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroRecordInPagina" type="xs:positiveInteger" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Indica la dimensione (n.ro di record) della pagina da estrarre. Se non indicata viene settata pari ad una dimensione di default</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="OggDiTabDiSistemaType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un oggetto censito in una tabella di sistema del sistema documentale</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="CodId" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Identificativo del dato di sistema nella banca dati del sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Decodifica_Nome" type="xs:string"/>
+			<xs:element name="CodProvenienza"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:element name="Ricerca">
+		<xs:annotation>
+			<xs:documentation>Root element</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="CFOperatore">
+					<xs:annotation>
+						<xs:documentation>Cod. fiscale dell'operatore per cui si effettua la ricerca</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:length value="16"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="CodIDTipoProcedimento" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Codice che identifica il tipo di procedimento in SUA</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Filtro">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="TipiDoc" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Tipo/i dei documenti da ricercare</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="TipoDoc" type="OggDiTabDiSistemaType" maxOccurs="unbounded"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="DataRegistrazioneDa" type="xs:date" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Inizio intervallo di ricerca su data di protocollazione/registrazione</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="DataRegistrazionA" type="xs:date" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Fine intervallo di ricerca su data di protocollazione/registrazione</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="NroRegistrazioneDa" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Inizio intervallo di ricerca su numero di protocollo/repertorio</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:positiveInteger">
+										<xs:minInclusive value="1"/>
+										<xs:maxInclusive value="9999999"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="NroRegistrazioneA" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Fine intervallo di ricerca su numero di protocollo/repertorio</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:positiveInteger">
+										<xs:minInclusive value="1"/>
+										<xs:maxInclusive value="9999999"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="TipoRegistrazione" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Tipo di registrazione. Valori : PG = Protocollo Generale, R = Repertorio, A = Altro tipo di numerazione</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="PG"/>
+										<xs:enumeration value="R"/>
+										<xs:enumeration value="A"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="SiglaRegistrazione" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Sigla del repertorio di numerazione</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:maxLength value="30"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="Mittente" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Cognome e nome /ragione sociale del mittente dei documenti da ricercare (anche parziale )</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:maxLength value="500"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="Oggetto" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Parole contenute nell'oggetto dei documenti da ricercare</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:maxLength value="1000"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="EstrazionePaginata" type="PaginazioneType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se presente il tag, allora l'estrazione e' paginata, ovvero ogni chiamata al Web Service permette di estrarre un set-pagina di record che soddisfano i filtri.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

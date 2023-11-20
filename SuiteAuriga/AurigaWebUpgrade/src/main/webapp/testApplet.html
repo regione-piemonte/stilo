@@ -1,0 +1,63 @@
+<html>
+<head>
+<script type="text/javascript">
+function getHost(){
+var s = window.location.href;
+    // Pull off any hash.
+ var i = s.indexOf('#');
+  if (i != -1)
+      s = s.substring(0, i);
+
+    // Pull off any query string.
+    i = s.indexOf('?');
+    if (i != -1)
+      s = s.substring(0, i);
+
+    // Rip off everything after the last slash.
+    i = s.lastIndexOf('/');
+    if (i != -1)
+      s = s.substring(0, i);
+
+    // Ensure a final slash if non-empty.
+    return s.length > 0 ? s + "/" : "";
+	}
+
+function endUpload(valori){
+	var res = valori.split("#");
+	document.getElementById('riposta').innerHTML="Ho ricevuto il file " + res[0] + " memorizzato sul server in " + res[1] + " con id attuale " + res[2];
+}
+</script>
+ <script
+      src="https://www.java.com/js/deployJava.js"></script>
+    <script>
+        var attributes = { code:'it.eng.client.applet.SmartCardApplet',
+            archive:'testApplet/SignerAppletMulti.jar',
+            width:370, height:510 };
+			var host = getHost();
+			var testUrl = host + "springdispatcher/TestUploadServlet/";
+			var directUrl0 = host + "testApplet/file.txt";
+			var outputUrl = host + "springdispatcher/UploadMultiSignerApplet/";
+        var parameters = {testUrl: testUrl,
+            readOnly: 'false',
+fileInputProvider: 'it.eng.client.applet.fileProvider.DirectUrlFilesListInputProvider',
+directUrl0: directUrl0,
+filename0: 'file.txt',
+idFile0: '0',
+numFiles: '1',
+fileOutputProvider: 'it.eng.client.applet.fileProvider.AurigaProxyFileOutputProvider',
+'envelope.defaultType': 'CAdES_BES',
+'envelope.options': 'CAdES_BES',
+outputUrl: outputUrl,
+callBack: 'endUpload',	
+'fileOperation.wsEndpoint': 'http://aurigaweb.eng.it:8080/FileopWarClear/business/soap/crypto?wsdl',
+
+'signer.verifySignWS': 'http://aurigaweb.eng.it:8080/FileopWarClear/business/soap/fileop',
+'signer.certcheck.wsendpoint': 'http://aurigaweb.eng.it:8080/FileopWarClear/business/soap/crypto?wsdl'};
+        deployJava.runApplet(attributes, parameters, '1.7');
+    </script>
+</head>
+<body>
+
+<p id="riposta" ></p>
+</body>
+</html>

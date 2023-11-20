@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- edited with XMLSpy v2015 rel. 3 (http://www.altova.com) by Valentina Martinucci (Engineering Spa) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="ProcObjects">
+		<xs:annotation>
+			<xs:documentation>ROOT element</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="SezioneCache" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Variabile" minOccurs="0" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Nome" type="xs:string">
+											<xs:annotation>
+												<xs:documentation>Nome / property identificativo che identifica l'attributo rappresentato nella "Variabile"</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:choice>
+											<xs:element name="ValoreSemplice">
+												<xs:annotation>
+													<xs:documentation>Valore della variabile se di tipo semplice, ovvero stringa, data, o numero monovalore</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+													<xs:simpleContent>
+														<xs:extension base="xs:string">
+															<xs:attribute name="Vocabolario" type="xs:string">
+																<xs:annotation>
+																	<xs:documentation>Nome della classe di vocabolario da cui attinge valori l'attributo</xs:documentation>
+																</xs:annotation>
+															</xs:attribute>
+														</xs:extension>
+													</xs:simpleContent>
+												</xs:complexType>
+											</xs:element>
+											<xs:element name="Lista">
+												<xs:annotation>
+													<xs:documentation>Valore della variabile (come  lista standard di record) se di tipo complesso, ovvero multivalore e/o strutturata</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+													<xs:sequence>
+														<xs:element name="Riga" minOccurs="0" maxOccurs="unbounded">
+															<xs:annotation>
+																<xs:documentation>Record della lista di valori</xs:documentation>
+															</xs:annotation>
+															<xs:complexType>
+																<xs:sequence>
+																	<xs:element name="Colonna" maxOccurs="unbounded">
+																		<xs:annotation>
+																			<xs:documentation>Colonna/dato del record</xs:documentation>
+																		</xs:annotation>
+																		<xs:complexType mixed="true">
+																			<xs:attribute name="Nome" type="xs:string" use="required">
+																				<xs:annotation>
+																					<xs:documentation>Nome/property che identifica l'attributo rappresentato nella colonna</xs:documentation>
+																				</xs:annotation>
+																			</xs:attribute>
+																			<xs:attribute name="IdAttributo" type="xs:string">
+																				<xs:annotation>
+																					<xs:documentation>Id. univoco dell'attributo complesso rappresentato nella colonna.</xs:documentation>
+																				</xs:annotation>
+																			</xs:attribute>
+																			<xs:attribute name="Vocabolario" type="xs:string">
+																				<xs:annotation>
+																					<xs:documentation>Nome della classe di vocabolario da cui attinge valori l'attributo</xs:documentation>
+																				</xs:annotation>
+																			</xs:attribute>
+																		</xs:complexType>
+																	</xs:element>
+																</xs:sequence>
+															</xs:complexType>
+														</xs:element>
+													</xs:sequence>
+												</xs:complexType>
+											</xs:element>
+										</xs:choice>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+						<xs:attribute name="IdProcObj" type="xs:integer" use="required">
+							<xs:annotation>
+								<xs:documentation>Identificativo univoco dell'oggetto di processo</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+						<xs:attribute name="ProvCodMacroCateg" type="xs:string">
+							<xs:annotation>
+								<xs:documentation>Codice della macro-categoria dell'oggetto nel sistema di anagrafica dove va censito (la natura nel caso di OST SIRA)</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+						<xs:attribute name="ProvCodCateg" type="xs:string">
+							<xs:annotation>
+								<xs:documentation>Codice categoria dell'oggetto nel sistema di anagrafica dove va censito (la categoria nel caso di OST SIRA)</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+						<xs:attribute name="ProvCodObj" type="xs:string">
+							<xs:annotation>
+								<xs:documentation>Id. dell'oggetto nel sistema di anagrafica dove è censito (Id. OST di SIRA se OST già censito nei catasti e da aggiornare)</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+						<xs:attribute name="IdAttributo" type="xs:string">
+							<xs:annotation>
+								<xs:documentation>Id. dell'attributo complesso rappresentato dalla SezioneCache. Se non valorizzato o assente significa che la SezioneCache rappresenta gli attributi di primo livello - non innestati - dell'oggetto di processo</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="SezioneCache">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Variabile" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Nome" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>Nome identificativo della variabile nella sezione</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:choice>
+								<xs:element name="ValoreSemplice" type="xs:string">
+									<xs:annotation>
+										<xs:documentation>Valore della variabile se di tipo semplice, ovvero stringa, data, o numero monovalore</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+								<xs:element name="Lista">
+									<xs:annotation>
+										<xs:documentation>Valore della variabile (come  lista standard di record) se di tipo complesso, ovvero multivalore e/o strutturata</xs:documentation>
+									</xs:annotation>
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element name="Riga" minOccurs="0" maxOccurs="unbounded">
+												<xs:annotation>
+													<xs:documentation>Record della lista di valori</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+													<xs:sequence>
+														<xs:element name="Colonna" maxOccurs="unbounded">
+															<xs:annotation>
+																<xs:documentation>Colonna/dato del record</xs:documentation>
+															</xs:annotation>
+															<xs:complexType mixed="true">
+																<xs:attribute name="Nro" type="xs:positiveInteger" use="required">
+																	<xs:annotation>
+																		<xs:documentation>Identifica la colonna</xs:documentation>
+																	</xs:annotation>
+																</xs:attribute>
+															</xs:complexType>
+														</xs:element>
+													</xs:sequence>
+												</xs:complexType>
+											</xs:element>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+							</xs:choice>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

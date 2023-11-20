@@ -1,0 +1,63 @@
+1        PACKAGE dmpk_DMLSuOggetti AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Tutte le funzioni/procedure NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 							*******/
+5        
+6        	/************** Tutte le funzioni restituiscono 1 in caso di successo, altrimenti 0										*******/
+7        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+8        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+9        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+10        	/**************		   >1000 errore non grave gestito														*******/
+11        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+12        
+13        	---- record che contiene il valore da assegnare ad un attributo di un singolo elemento di un tipo user-defined
+14        	TYPE ValoreAttrObjRecType is RECORD (
+15        						STR_VALUE			VARCHAR2(4000),
+16        						NUM_VALUE			NUMBER,
+17        						DATE_VALUE			DATE
+18        						);
+19        
+20        	TYPE ValoreObjTabType IS TABLE of ValoreAttrObjRecType INDEX BY VARCHAR2(30);			-- table con i valori da assegnare agli attributi di un singolo elemento del tipo user-defined
+21        																-- l'index è il nome (in UPPERCASE) dell'attributo dell'oggetto per cui si specifica il valore
+22        																-- 		va settato a "--" nel caso di tipo user-defined che sia una collection con elemento base di tipo semplice
+23        
+24        	Type ValoriObjTabType IS TABLE of ValoreObjTabType INDEX BY BINARY_INTEGER;			-- table che contiene come valorizzare più elementi base del tipo user-defined
+25        																-- 		ha al massimo un record nel caso di tipo user-defined che non sia una collection
+26        
+27        	Type ListaStrType IS TABLE of VARCHAR2(4000) INDEX BY BINARY_INTEGER;
+28        
+29        	/***** Funzione per aggiornare una colonna di tabella che è di tipo user-defined (object o collection) ******/
+30        	function AggiornaColUserDefined(
+31        		TableNameIn			IN		VARCHAR2,							-- (obblig.) Nome della tabella a cui appartiene la colonna di tipo user-defined da aggiornare
+32        		ColumnNameIn		IN		VARCHAR2,							-- (obblig.) Nome della colonna di tipo user-defined da aggiornare
+33        		PKRecordIn			IN		VARCHAR2,							-- (obblig se RowidRecordIn non è valorizzatO) Valori delle colonne di PK del record della tabella (da usare solo se la PK non contiene colonne numeriche con decimali o date)
+34        																-- se la PK è costituita da più colonne i valori delle varie colonne vanno separati con |*|
+35        		RowidRecordIn		IN		VARCHAR2,							-- (obblig se PKRecordIn non è valorizzatO) Rowid del record della tabella
+36        		ValoriXObjColumnIn	IN		ValoriObjTabType,						-- Table con il/i valori da assegnare alla colonna di tipo user-defined
+37        		FlgAppendValuesIn		IN		PLS_INTEGER	DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 e se la colonna di tipo user-defined è una collection, i valori specificati nella table precedente si aggiungono (anzichè sostituire) quelli già presenti in DB
+38        																-- Se la colonna di tipo user-defined NON è una collection, tutta la colonna viene prima resettata a NULL e poi i suoi attributi sono aggiornati con i valori specificati nell'unico record della table precedente
+39        		ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+40        		ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+41        		ErrMsgOut			OUT 		VARCHAR2)							-- Messaggio d'errore
+42        		return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+43        
+44        	/***** Funzione per eseguire dinamicamente un'istruzione SQL o PL/SQL che non contenga placeholder nè richieda variabili di output *****/
+45        	function Execute_Immediate(
+46        		CmdStrIn			IN		VARCHAR2,							-- (obblig.) Istruzione SQL o PL/SQL da eseguire
+47        		ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+48        		ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+49        		ErrMsgOut			OUT 		VARCHAR2)							-- Messaggio d'errore
+50        		return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+51        
+52        	/***** Funzione per caricare in una PL/SQL table di stringhe (di tipo ListaStrType) il risultato di una query con un'unica selected column *****/
+53        	function FetchQuery(
+54        		QueryStrIn			IN		VARCHAR2,							-- (obblig.) Query (anche multi-record) da eseguire (deve essere una query che estrae una sola colonna di tipo stringa)
+55        		MaxNumRecIn			IN		INTEGER DEFAULT NULL,					-- Massimo numero di record restituiti dalla query da restiuire in output
+56        																-- In caso la query dia più righe non viene dato errore, solo interrotto il fetch
+57        		ResultQueryOut		OUT		ListaStrType,						-- Lista di stringhe che sono i record risultanti della query
+58        		ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+59        		ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+60        		ErrMsgOut			OUT 		VARCHAR2)							-- Messaggio d'errore
+61        		return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+62        
+63        END dmpk_DMLSuOggetti;

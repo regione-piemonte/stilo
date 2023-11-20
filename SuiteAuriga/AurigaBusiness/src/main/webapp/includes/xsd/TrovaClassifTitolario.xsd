@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:simpleType name="FlagSiNoType">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="0|1"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="NroLivelloGerarchiaType">
+		<xs:annotation>
+			<xs:documentation>Nro di un livello di una struttura gerarchica come la struttura organizzativa o il titolario di classificazione: 1 e' il livello piu' alto (ad esempio il settore o il titolo), 2 il successivo (ad esempio il servizio o la classe) e cosi' via</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="10"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="CodLivelloGerarchiaType">
+		<xs:restriction base="xs:string"/>
+	</xs:simpleType>
+	<xs:complexType name="LivelloGerarchiaType">
+		<xs:attribute name="Nro" type="NroLivelloGerarchiaType" use="required">
+			<xs:annotation>
+				<xs:documentation>N.ro d'ordine del livello</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="Codice" type="CodLivelloGerarchiaType" use="required">
+			<xs:annotation>
+				<xs:documentation>Codice identificativo del livello</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="OggDiTabDiSistemaType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un oggetto censito in una tabella di sistema del sistema di protocollo</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="CodId">
+				<xs:annotation>
+					<xs:documentation>Identificativo del dato di sistema nella banca dati</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Decodifica_Nome">
+				<xs:annotation>
+					<xs:documentation>Decodifica del dato di sistema nella banca dati</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="PaginazioneType">
+		<xs:sequence>
+			<xs:element name="NroPagina" type="xs:positiveInteger" default="1" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>E' il numero della pagina da estrarre. Se non valorizzato si intende pari a 1</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroRecordInPagina" type="xs:positiveInteger" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Indica la dimensione (n.ro di record) della pagina da estrarre. Se non indicata viene settata pari ad una dimensione di default</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="TrovaClassifTitolario">
+		<xs:annotation>
+			<xs:documentation>ROOT element dello schema. Contiene i filtri di ricerca e le modalita' di estrazione del risultato</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				
+				<xs:element name="DesClassificazione" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Stringa contenuta nella descrizione delle classifiche da cercare (ricerca case-insensitive in like senza forzare % ne' all'inizio ne' alla fine)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="1000"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="IndiceClassificazione" minOccurs="0" type="LivelloGerarchiaType">
+					<xs:annotation>
+						<xs:documentation>Codici che identificano i livelli (almeno quelli iniziali) delle classificazioni da ricercare</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="LivelloGerarchico" minOccurs="0" type="xs:integer">
+					<xs:annotation>
+						<xs:documentation>N.ro di livello gerarchico delle classificazioni da ricercare (da 1 in su)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="SoloClassifAttive" minOccurs="0" type="xs:integer" fixed="1">
+					<xs:annotation>
+						<xs:documentation>Se 1 vengono ricercate solo le classificazioni attive</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				
+				<xs:element name="EstrazionePaginata" type="PaginazioneType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se presente il tag, allora l'estrazione e' paginata, ovvero ogni chiamata al Web Service permette di estrarre un set-pagina di record che soddisfano i filtri.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

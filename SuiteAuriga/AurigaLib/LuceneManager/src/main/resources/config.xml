@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+
+	<bean id="luceneindex" class="it.eng.gd.lucenemanager.config.LuceneIndexConfig">
+		<property name="path" value="C:/luceneindex" />
+		<property name="maxdocuments" value="300" />
+		<property name="writeTimeout" value="10000" />
+		<property name="categoryPath">
+			<util:map>
+				<entry key="REP_DOC" value="\\\\172.27.1.7\\Repository\\test\\lucene\\REP_DOC" />
+				<entry key="DEF_CTX_CL"
+					value="\\\\172.27.1.7\\Repository\\test\\lucene\\DEF_CTX_CL" />
+				<entry key="DEF_CTX_SO"
+					value="\\\\172.27.1.7\\Repository\\test\\lucene\\DEF_CTX_SO" />
+				<entry key="EMAIL" value="\\\\172.27.1.7\\Repository\\test\\lucene\\EMAIL" />
+				<entry key="RUBRICA" value="\\\\172.27.1.7\\Repository\\test\\lucene\\RUBRICA" />
+				<entry key="TOPOGRAFICO" value="" />
+			</util:map>
+		</property>
+	</bean>
+
+	<bean id="luceneIndexDbConfigurator" class="it.eng.gd.lucenemanager.config.LuceneIndexDbConfig">
+		<property name="nomeTabella" value="T_INDEX" />
+		<property name="categoryPath">
+			<util:map>
+				<entry key="REP_DOC" value="T_LUCENE_REPDOC" />
+				<entry key="DEF_CTX_CL" value="T_LUCENE_DEFCTXCLX" />
+				<entry key="DEF_CTX_SO" value="T_LUCENE_DEFCTXSO" />
+				<entry key="EMAIL" value="T_LUCENE_EMAIL" />
+				<entry key="RUBRICA" value="T_LUCENE_RUBRICA" />
+				<entry key="TOPOGRAFICO" value="T_LUCENE_TOPOGRAFICO" />
+			</util:map>
+		</property>
+	</bean>
+
+	<bean id="dbConfig" class="it.eng.gd.lucenemanager.config.DbConfig">
+		<property name="type" value="oracle" />
+		<property name="serverName" value="172.27.1.139" />
+		<property name="portNumber" value="1521" />
+		<property name="databaseName" value="SVILUPPO" />
+		<property name="username" value="AURI_OWNER_1" />
+		<property name="password" value="auri_owner_1" />
+	</bean>
+
+	<bean id="writerDestination" class="it.eng.gd.lucenemanager.config.WriterDestinationConfig">
+		<property name="destination" value="db" />
+	</bean>
+
+	<bean id="directoryManager" class="it.eng.gd.lucenemanager.util.DirectoryManager" />
+
+	<bean id="jobUtils" class="it.eng.gd.lucenemanager.util.JobUtils">
+		<property name="wsEndpoint"
+			value="http://172.27.1.139:8088/FileopWar/business/soap/fileop?wsdl" />
+		<property name="daoMimeType" ref="daoMimetype" />
+	</bean>
+
+	<bean id="luceneService" class="it.eng.gd.lucenemanager.service.LuceneService">
+		<property name="reader" ref="luceneReader" />
+		<property name="writer" ref="luceneWriter" />
+	</bean>
+
+	<bean id="luceneWriter" class="it.eng.gd.lucenemanager.LuceneIndexWriter">
+		<property name="storCen" ref="storageCenter" />
+		<property name="daoMimeType" ref="daoMimetype" />
+		<property name="utils" ref="jobUtils" />
+		<property name="luceneReader" ref="luceneReader" />
+		<property name="dirManager" ref="directoryManager" />
+	</bean>
+
+	<bean id="luceneReader" class="it.eng.gd.lucenemanager.LuceneIndexReader">
+		<property name="dirManager" ref="directoryManager" />
+	</bean>
+
+	<bean id="storageCenter" class="it.eng.gd.lucenemanager.storage.StorageCenter">
+	</bean>
+
+	<bean id="daoMimetype" class="it.eng.gd.lucenemanager.dao.DaoTMimeTypeFmtDig">
+	</bean>
+
+	<bean id="pdfExtractor"
+		class="it.eng.gd.lucenemanager.document.reader.util.ExtractTextAsWordlist">
+		<property name="timeout" value="180" />
+	</bean>
+
+	<bean id="Storage" class="it.eng.utility.storageutil.StorageConfig">
+	</bean>
+	<bean id="StorageSetter"
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetObject">
+			<ref local="Storage" />
+		</property>
+		<property name="targetMethod">
+			<value>configureWithInternalDatabase</value>
+		</property>
+		<property name="arguments">
+			<list value-type="java.lang.String">
+				<value>storage.h2.db</value>
+				<value>storage-lucene.cfg.xml</value>
+			</list>
+		</property>
+	</bean>
+
+
+</beans>

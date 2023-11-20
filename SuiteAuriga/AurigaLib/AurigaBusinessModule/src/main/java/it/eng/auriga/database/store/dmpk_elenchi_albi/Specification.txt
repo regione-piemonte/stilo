@@ -1,0 +1,167 @@
+1        package DMPK_ELENCHI_ALBI AUTHID CURRENT_USER as
+2        
+3        
+4        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+5        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+6        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+7        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+8        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+9        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+10        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+11        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+12        
+13        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+14        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+15        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+16        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+17        	/**************		   >1000 errore non grave gestito														*******/
+18        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+19        
+20        	/******** funzione per inserire o aggiornare un record in un elenco/albo *******/
+21        	function IURecElencoAlbo(
+22        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig). Codice identificativo del token di connessione
+23        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,			-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+24        			IdRecElencoAlboIO		IN OUT	DMT_ELENCHI_ALBI_CONTENTS.ID_REC_ELENCO_ALBO%type,
+25        																							-- Id. del contenuto-record di elenco da aggiornare. Se non valorizzato si intende che il contenuto-record sia da creare ex-novo
+26        																							-- In output è sempre valorizzato con l'id. del record creato/aggiornao
+27        			IdElencoAlboTypeIn		IN		DMT_ELENCHI_ALBI_CONTENTS.ID_ELENCO_ALBO_TYPE%type DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+28        																							-- (obblig.) Identificativo che indica l'elenco/albo in cui inserire il record
+29        			AttributiRecXMLIn		IN		CLOB,											-- XML contenente nomi e valori degli attributi del record di elenco/albo da creare/aggiornare (conforme allo schema SezioneCache.xsd)
+30        																							-- Per tutti gli attributi vale quanto segue:
+31        																							-- 		gli attributi specificati nell'XML aggiornano i corrispondenti già presenti in DB:
+32        																							--			per gli attributi con valore semplice il valore nell'XML sostituisce quello eventualmente già presente in DB per quell'attributo; se non c'è valore significativo nell'XML significa che il valore dell'attributo in DB va rimosso
+33        																							--			per gli attributi con valore lista i valori nell'XML si aggiungono o sostituiscono quelli già presenti in DB a seconda rispettivamente che nell'XML sia presente o meno un attributo #Append_<Nome attributo>; se la lista di valori nell'XML è vuota significa che tutti i valori dell'attributo già presenti in DB vanno rimossi
+34        																							-- 		gli attributi presenti in DB per cui non c'è corrispondente nell'XML restano invariati
+35        																							-- Gli attributi del record di elenco/albo sono:
+36        																							-- 	#Descrizione 	Descrizione del record (facoltativa)
+37        																							--	#ProvCIRec      Codice identificativo del record in un eventuale sistema di provenienza
+38        																							--	<Nome identificativo attributo dinamico (ATTR_NAME)>: qualsiasi attributo dinamico specificabile per un record del dato elenco (nel dominio di lavoro)
+39         			RowidOut				OUT		VARCHAR2,										-- Rowid del record
+40        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+41        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+42        																							-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+43        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+44        			WarningMsgOut			OUT		VARCHAR2,										-- Messaggio di warning (valorizzato solo se non c'è errore)
+45        			ErrContextOut			OUT		VARCHAR2,										-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+46        			ErrCodeOut				OUT		PLS_INTEGER,									-- N.ro errore di uscita
+47        			ErrMsgOut				OUT 	VARCHAR2										-- Messaggio d'errore
+48        			) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine (senza errori nè avvertimenti), altrimenti 0
+49        
+50        	/*** Funzione di eliminazione di un record di elenco/albo										***/
+51        	/*** Si può specificare se l'eliminazione deve essere fisica o solo logica (annullamento)		***/
+52        	/*** Se non lo si specifica il sistema fa quella fisica se possibile, se no quella logica		***/
+53        	function DRecElencoAlbo(
+54        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+55        																							-- (obblig). Codice identificativo del token di connessione
+56        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,			-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+57        			IdRecElencoAlboIn		IN 		DMT_ELENCHI_ALBI_CONTENTS.ID_REC_ELENCO_ALBO%type,
+58        																							-- (obblig.) Id. del record da cancellare/annullare
+59        			FlgCancFisicaIn			IN		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL): Se 1 si richiede la cancellazione fisica; se 0 l'annullamento logico; se non è valorizzato quella possibile delle 2.
+60        			MotiviIn				IN		DMT_ELENCHI_ALBI_CONTENTS.MOTIVI_ANN%type,		-- Motivi della cancellazione/annullamento
+61        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+62        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+63        																							-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+64        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+65        			WarningMsgOut			OUT		VARCHAR2,										-- Messaggio di warning (valorizzato solo se non c'è errore)
+66        			ErrContextOut			OUT		VARCHAR2,										-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+67        			ErrCodeOut				OUT		PLS_INTEGER,									-- N.ro errore di uscita
+68        			ErrMsgOut				OUT 	VARCHAR2										-- Messaggio d'errore
+69        			) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+70        
+71        	/******* funzione per ricercare i contenuti di un elenco/albo gestito dal sistema			*****/
+72        	function TrovaContenutiElencoAlbo(
+73        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+74        																	-- (obblig). Codice identificativo del token di connessione
+75        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+76        			IdElencoAlboTypeIn			IN		DMT_ELENCHI_ALBI_TYPES.ID_ELENCO_ALBO_TYPE%type,	-- (obblig.) Identifica l'elenco/albo in cui ricercare i contenuti
+77        			MatchByIndexerIn			IN		CLOB DEFAULT NULL,				-- Lista dei record di elenco/albo trovati dal searcher di Lucene (XML conforme a schema LISTA_STD.xsd)
+78        																				-- Ogni record di elenco/albo trovato da Lucene è un tag Riga che contiene le seguenti colonne:
+79        																				-- 1: identificativo univoco del record di elenco/albo
+80        																				-- 2: colonna non utilizzata
+81        																				-- 3: flag 1/0 che indica se il match del record richiede attributi "protetti", ovvero che possono contenere dati riservati
+82        																				-- 4: score restituito da Lucene
+83        			FlgIndexerOverflowIn		IN		PLS_INTEGER DEFAULT NULL,		-- (valori 1/0/NULL) Se 1 significa che il searcher di Lucene ha trovato un numero di oggetti superiore ad un limite massimo consentito.
+84        																				-- Nel caso il flag valga 1 l¿argomento precedente può essere vuoto o se non lo è il suo contenuto viene comunque ignorato
+85        			Flg2ndCallIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 indica che si tratta della seconda chiamata alla stored che viene fatta a seguito di una ricerca sottomessa.
+86        																				-- Può essere 1 solo se MatchByIndexerIn contiene degli oggetti.
+87        																				-- E' un flag che serve per velocizzare la ricerca: infatti quando è 1 i filtri vengono ignorati in quanto si considera che il set restituito dall'indicizzatore sia già fatto di oggetti soddisfacenti tutti i filtri; la chiamata alla stored serve solo per verificare l'accesso agli oggetti restituiti dall'indicizzatore, ordinare ed eventualmente paginare il risultato e calcolare tutti i dati degli oggetti da restituire.
+88        			CriteriAvanzatiIO			IN OUT	NOCOPY CLOB,					-- XML contenente nomi e valori dei filtri sui contenuti elenco che NON sono filtri sugli attributi custom dei contenuti stessi (conforme allo schema SezioneCache.xsd).
+89        																				-- Ogni filtro è un tag "Variabile" dell'XML
+90        																				-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+91        																				-- I nomi dei filtri possibili sono:
+92        																				--  IdRec					Identificativo univoco del record da trovare (ricerca esatta)
+93        																				--	ProvCIRec				Id. del record nell'eventuale sistema di provenienza (ricerca esatta case-sensitive)
+94        																				--	DataInsDa				Inizio intervallo di ricerca sulla data di inserimento del record (nel formato del parametro di config. FMT_STD_DATA)
+95        																				--	DataInsA				Fine intervallo di ricerca sulla data di inserimento del record (nel formato del parametro di config. FMT_STD_DATA)
+96        																				--	DataUltimoAggDa			Inizio intervallo di ricerca sulla data di ultimo aggiornamento del record (nel formato del parametro di config. FMT_STD_DATA)
+97        																				--	DataUltimoAggA			Fine intervallo di ricerca sulla data di ultimo aggiornamento del record (nel formato del parametro di config. FMT_STD_DATA)
+98        																				--	@UtentiIns				Lista con una sola colonna con gli id. degli utenti che devono avere inserito in elenco i record da trovare
+99        																				--	FlgIncludiAnnullati		Se valorizzato e pari a 1 vengono iclusi i record annullati logicamente, altrimenti questi NON vengono estratti
+100        			CriteriPersonalizzatiIO		IN OUT 	NOCOPY CLOB,					-- Criteri di ricerca sugli attributi custom dei contenuti elenco/albo (XML conforme a schema LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+101        																				-- Ogni criterio è un tag Riga che può contenere le seguenti colonne:
+102        																				--	1) Nome (ATTR_NAME) dell'attributo cui è relativo il criterio
+103        																				--	2) (obblig.) Operatore logico. Valori possibili:
+104        																				--		"uguale" (ricerca esatta)
+105        																				--		"simile a (case-sensitive)" (ricerca case-sensitive in like)
+106        																				--		"simile a (case-insensitive)" (ricerca case-insensitive in like e che ignora i caratteri quali spazi, ., ecc)
+107        																				--		"maggiore" (se attributo numerico o data)
+108        																				--		"maggiore o uguale" (se attributo numerico o data)
+109        																				--		"minore" (se attributo numerico o data)
+110        																				--		"minore o uguale" (se attributo numerico o data)
+111        																				--		"tra" (se attributo numerico o data)
+112        																				--		"non valorizzato"
+113        																				--		"valorizzato"
+114        																				--		"spuntato" (se attributo di tipo casella di spunta)
+115        																				--		"non spuntato" (se attributo di tipo casella di spunta)
+116        																				--	3) 1° valore di confronto (obblig. e gestito solo se l'operatore non ha uno dei seguenti valori: valorizzato, non valorizzato, spuntato, non spuntato) (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+117        																				--	4) 2° valore di confronto (obblig. e gestito solo se l'operatore è "tra") (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+118        																				--	5) Label dell''attributo cui è relativo il criterio (se sotto-attributo di complesso <label del complesso> - <label del sotto-attributo>
+119        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+120        			ColOrderByIO			IN OUT	VARCHAR2,							-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 13). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+121        																				-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+122        			FlgDescOrderByIO  		IN OUT	VARCHAR2,							-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+123        																				-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+124        			FlgSenzaPaginazioneIn 	IN 		PLS_INTEGER DEFAULT NULL,           -- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+125        			NroPaginaIO      		IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+126           			BachSizeIO				IN OUT	PLS_INTEGER,						-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+127        																				-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+128        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+129        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+130        			NroTotRecOut			OUT		PLS_INTEGER,						-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+131             		NroRecInPaginaOut 		OUT   	PLS_INTEGER,                     	-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+132        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+133        			FlgBatchSearchIn		IN		PLS_INTEGER,						-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+134        																				-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema.
+135        			ColToReturnIn			IN		VARCHAR2 DEFAULT NULL,				-- Stringa con i n.ri delle colonne dell'XML di output ResultOut che si vuole siano presenti.
+136        																				-- Se la stringa è vuota saranno presenti tutte le colonne.
+137        																				-- Le colonne 1 e 2 sono presenti comunque.
+138        																				-- I n.ri delle varie colonne vanno separati con , o ; e se si vuole indicare un intervallo di colonne gli estremi dell'intervallo vanno separati con - (es: "1-5;7;10" significa colonne da 1 a 5 più le colonne 7 e 10)
+139        																				-- In questa stringa si possono mettere anche dei nomi (ATTR_NAME) di attributi dinamici semplici che si vuole siano restituiti nell'output; essi verranno restituiti nelle colonne da 101 a 200 del ResultOut (es: "1-5; ELENCO_ALBO_DENOM_SOGG; ELENCO_ALBO_NRO_AUT" significa colonne da 1 a 5 più gli attributi dinamici ELENCO_ALBO_DENOM_SOGG e ELENCO_ALBO_NRO_AUT che sarranno restituiti come colonne 101 e 102 dell'output ResultOut).
+140        			ResultOut				OUT		NOCOPY CLOB, 						-- Lista dei record dell'elenco/albo trovati (XML conforme a schema LISTA_STD.xsd)
+141        																				-- Ogni record trovato è un tag Riga che può contenere le seguenti colonne:
+142        																				-- 1:  Identiticativo univoco del record (ID_REC_ELENCO_ALBO)
+143        																				-- 2:  Rowid del record
+144        																				-- 3:  Identificativo del record nell'eventuale sistema di provenienza
+145        																				-- 4:  Descrizione del record (campo DESCRIZIONE di DMT_ELENCHI_ALBI_CONTENTS): può non essere valorizzato
+146        																				-- 5:  Data e ora di creazione del record (nel formato dato dal parametro di config. FMT_STD_TIMESTMP)
+147        																				-- 6:  Id. dell'utente di creazione del record
+148        																				-- 7:  Decodifica dell'utente di creazione del record
+149        																				-- 8:  Data e ora di ultimo aggiornamento del record (nel formato dato dal parametro di config. FMT_STD_TIMESTMP)
+150        																				-- 9:  Id. dell'utente di ultimo aggiornamento del record
+151        																				-- 10:  Decodifica dell'utente di ultimo aggiornamento del record
+152        																				-- 11: Score del record restituito dall'indicizzatore (valori interi da 1 a 5) (valorizzato solo se effettuata ricerca full-text)
+153        																				-- 12: Cod. dell'applicazione che ha creato il record
+154        																				-- 13: Cod. dell'istamza di applicazione che ha creato il record
+155        																				-- 14: Nome dell'applicazione (e sua eventuale istanza) che ha creato il record
+156        																				-- 15: (valoro 1/0) Se 1 il record è valido, se 0 no (è logicamente annullato)
+157        																				-- 16: Motivi dell'annullamento logico del record
+158        																				-- 17: (valori 1/0) Se 1 indica se il record è selezionabile per la finalità indicata in FinalitaIn
+159        																				-- ATTENZIONE: Se FlgIndexerOverflowIn è pari a 1, qualora la stored non vada a sua volta in overflow, dato che il resultset trovato dalla stored dovrà essere ripassato al searcher di Lucene esso non è paginato indipendentemente dal fatto che l¿apposito input lo richieda.
+160        																				--		   Inoltre nel caso di FlgIndexerOverflowIn pari a 1 dato che dopo il nuovo passaggio per il searcher di Lucene si renderà necessaria una nuova chiamata alla stored solo le colonne 1 e 2 del clob sono valorizzate sicuramente
+161        			ErrContextOut			OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+162        			ErrCodeOut				OUT		PLS_INTEGER,						-- N.ro errore di uscita
+163        			ErrMsgOut				OUT 		VARCHAR2,						-- Messaggio d'errore
+164        			FinalitaIn				IN		VARCHAR2 DEFAULT NULL				-- Motivo per cui viene chiamata la pagina popolata attraverso questa funzione
+165        			) return PLS_INTEGER;												-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+166        
+167        end DMPK_ELENCHI_ALBI;

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="IdFolder">
+		<xs:annotation>
+			<xs:documentation>Identificatvo del folder creato</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="xs:integer">
+					<xs:attribute name="AnnoApertura" type="xs:gYear">
+						<xs:annotation>
+							<xs:documentation>Anno di apertura: valorizzato se unità archivistica classificata</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="IndiceClassificazione" type="xs:string">
+						<xs:annotation>
+							<xs:documentation>Indce di classificazione: valorizzato se unità archivistica classificata</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="NroFascicolo" type="xs:positiveInteger">
+						<xs:annotation>
+							<xs:documentation>Nro progressivo fascicolo: valorizzato se unità archivistica classificata</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="NroSottoFascicolo" type="xs:positiveInteger">
+						<xs:annotation>
+							<xs:documentation>Nro progressivo sottofascicolo: valorizzato se unità archivistica classificata di tipo sotto-fascicolo o inserto</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="NroInserto" type="xs:positiveInteger">
+						<xs:annotation>
+							<xs:documentation>Nro progressivo inserto: valorizzato se unità archivistica classificata di tipo inserto</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+				</xs:extension>
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

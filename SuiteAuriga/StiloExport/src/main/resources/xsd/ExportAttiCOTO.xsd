@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="Atto">
+		<xs:annotation>
+			<xs:documentation>Root element</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="AnnoProvv" type="xs:gYear">
+					<xs:annotation>
+						<xs:documentation>Anno di numerazione definitva</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="NroProvv">
+					<xs:annotation>
+						<xs:documentation>Nro definitivo dell'atto come server ai fruitori (numero UNIVOCO con prefisso di 2 cifre numeriche che indica il tipo)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:positiveInteger">
+							<xs:minInclusive value="1"/>
+							<xs:maxInclusive value="9999999"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="CdC" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Centro di costo della struttura proponente</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Oggetto">
+					<xs:annotation>
+						<xs:documentation>Oggetto</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="500"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="CodTipo">
+					<xs:annotation>
+						<xs:documentation>E' il codice che indica il tipo atto nella notazione che vuole atti</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="DataSedutaGiunta" type="xs:dateTime" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Data discussione in Giunta</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="DataSedutaConsiglio" type="xs:date" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Data disciussione in Conisglio</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="DataEsecDelCons" type="xs:date" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Data esecutività delibera di Consiglio (anche nata come proposta di Giunta al Consiglio)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="DataInvioSegrGen" type="xs:date" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Data di inoltro alla Segreteria Generale (dopo la discussione in Giunta e in Consiglio). Dato che ora questo passaggio non c'è più coincide con la data della seduta</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="CodEsitoGiunta" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Cod. esito discussione in Giunta (con codifiche vecchio sistema atti)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="CodEsitoConsiglio" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Cod. esito discussione in consiglio (con codifiche vecchio sistema atti)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FlgIE">
+					<xs:annotation>
+						<xs:documentation>Delibera immediatamente eseguibile (se 1, se 0 no)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:int">
+							<xs:pattern value="1|0"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="DataEsecutivita" type="xs:date" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Data e ora esecutività per atti non immediatamente eseguibili che non siano delibere di conisglio</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="testo" type="Testo">
+					<xs:annotation>
+						<xs:documentation>Dati del file con il testo dell'atto</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="allegato" type="Allegato" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>dati dei file allegati all'atto</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:complexType name="Allegato">
+		<xs:annotation>
+			<xs:documentation>Dati di un file allegato all'atto</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="nomeFile">
+				<xs:annotation>
+					<xs:documentation>Nome logico del file</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="255"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="uuidFile" type="UUIDFile">
+				<xs:annotation>
+					<xs:documentation>Identificativo univoco del file sul file-system di scambio</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:simpleType name="UUIDFile">
+		<xs:annotation>
+			<xs:documentation xml:lang="it"> Il campo è composta da annonumero-MD5 (32 bit) del file riferito
+		  </xs:documentation>
+		</xs:annotation>
+	</xs:simpleType>
+	<xs:complexType name="Testo">
+		<xs:annotation>
+			<xs:documentation>File con il testo dell'atto</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="nomeFile">
+				<xs:annotation>
+					<xs:documentation>Nome logico del file</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="255"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="uuidFile" type="UUIDFile">
+				<xs:annotation>
+					<xs:documentation>Identificativo univoco del file sul file-system di scambio</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>

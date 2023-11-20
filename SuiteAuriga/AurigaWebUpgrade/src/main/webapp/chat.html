@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html ng-app="chatApp" id="ng-app">
+
+	<head>		
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, maximum-scale=1, initial-scale=1">
+		<meta name="description" content="Auriga Chat">
+		
+		<title>Auriga Chat</title>
+		
+		<!-- includes -->
+		<script src="http://cdn.sockjs.org/sockjs-0.3.min.js"></script>
+		<script src="script/angular.js"></script>
+		<script src="script/angular-route.js"></script>
+		<script src="script/angular-resource.js"></script>
+		
+		<!-- CSS -->
+		<style type="text/css">
+		* {
+			-webkit-box-sizing: border-box;
+			-moz-box-sizing: border-box;
+			box-sizing: border-box;
+		}
+		.chatContainer {
+			background: #eee;
+			border: 1px solid #aaa;
+			width: 100%;
+			height: 350px;
+			overflow: hidden;
+			position: relative;
+		}			
+		textarea.form-control {
+			background: #eee;
+			border: 1px solid #aaa;
+			height: 100%;
+			width: 100%;
+		}
+		input {
+			background: #fff;
+			border: 1px solid #aaa;
+			width: 100%;
+			font-size: 1.1em;
+			padding: 5px;
+		}	
+		.chatContainer>div {
+			position: absolute;
+			bottom: 10px;
+			left: 10px;
+		}
+		p {
+			margin: 0 0 0.4em 0;
+			padding: 0;
+		}	
+		.system {
+			color: #e44;
+		}	
+		.message {
+			color: #222;
+		}	
+		.me {
+			color: #00a;
+		}
+		
+		/* Style the list */
+		ul.tab {
+			list-style-type: none;
+			margin: 0;
+			padding: 0;
+			overflow: hidden;
+			border: 1px solid #ccc;
+			background-color: #f1f1f1;
+		}
+
+		/* Float the list items side by side */
+		ul.tab li {float: left;}
+	
+		/* Style the links inside the list items */
+		ul.tab li a {
+			display: inline-block;
+			color: black;
+			text-align: center;
+			padding: 10px 10px;
+			text-decoration: none;
+			transition: 0.3s;
+			font-size: 17px;
+		}
+	
+		/* Change background color of links on hover */
+		ul.tab li a:hover {background-color: #ddd;}
+	
+		/* Create an active/current tablink class */
+		ul.tab li a:focus, .active {background-color: #ccc;}
+	
+		/* Style the tab content */
+		.tabcontent {
+			display: none;
+			padding: 5px 10px;
+			border: 1px solid #ccc;
+			border-top: none;
+		}
+		</style>				
+		
+		<!-- service e controller -->
+		<script>						
+			var chatApp = angular.module('chatApp', [ 'ngResource' ]);
+			chatApp.controller('chatCtrl', ['$window', '$scope', '$location', '$resource', '$document', '$element',
+				function($window, $scope, $location, $resource, $document, $element) {					
+					$scope.users = [];	
+					$scope.tabs = [{title:'public', content:'aaa'}];					
+					var chatServerUrl = 'http://' + $location.host() + ':9999/chat';
+					var applicationUrl = $window.location.href;
+					applicationUrl = applicationUrl.replace('chat.html','');
+					var sock = new SockJS(chatServerUrl); 
+					var sockId = false;
+					sock.onopen = function() {
+						username.value = '';
+						$resource(applicationUrl + 'springdispatcher/chat/login').get({}, function(response) {
+							username.value = response.username;
+							sock.send(JSON.stringify({
+								type : 'login',
+								username : username.value							
+							}));
+							appendMessage('system', 'Connesso! Benvenuto nella chat di Auriga.');							
+						});						
+					};
+					sock.onmessage = function(e) {
+						var data = JSON.parse(e.data);
+						switch (data.type) {
+							case 'init':													
+								sockId = data.id;
+								$scope.users = excludeMeFromUsers(data.users);
+								$scope.$apply();
+								appendMessage('message', data.history);
+								break;		
+							case 'newUser':
+								$scope.users = excludeMeFromUsers(data.users);
+								$scope.$apply();
+								appendMessage('system', 'L\'utente ' + data.username	+ ' è entrato nella chat');
+								break;
+							case 'userLeft':
+								$scope.users = excludeMeFromUsers(data.users);		
+								$scope.$apply();
+								appendMessage('system', 'L\'utente ' + data.username	+ ' è uscito dalla chat');
+								break;							
+							case 'message':
+								if(sockId === data.id) {
+									appendMessage('me', data.username + ': ' + data.message, data.id);
+								} else {
+									appendMessage('message', data.username + ': ' + data.message);	
+								}								
+								break;												
+							case 'error':
+								alert(data.error);
+								break;					
+						}
+					}														
+					// Send message
+					$scope.sendMessage = function() {
+						if (!sockId || !message.value.length)
+							return;
+						sock.send(JSON.stringify({
+							type : 'sendMessage',
+							username : username.value,
+							message : message.value.substr(0, 128)
+						}));
+						message.value = '';
+					};		
+					// Private chat
+					$scope.privateChat = function(user) {
+						alert(user.username);
+					};
+					// Open tab
+					$scope.openTab = function(evt, tabname) {
+						 // Declare all variables
+					    var i, tabcontent, tablinks;					    
+					    // Get all elements with class="tabcontent" and hide them
+					    tabcontent = angular.element(document.querySelector(".tabcontent"));
+					    for (i = 0; i < tabcontent.length; i++) {
+					        tabcontent[i].style.display = "none";
+					    }
+					    // Get all elements with class="tablinks" and remove the class "active"
+					    tablinks =  angular.element(document.querySelector(".tablinks"));
+					    for (i = 0; i < tablinks.length; i++) {
+					        tablinks[i].className = tablinks[i].className.replace(" active", "");
+					    }
+					    // Show the current tab, and add an "active" class to the link that opened the tab
+					    $document[0].getElementById(tabname).style.display = "block";
+					    evt.currentTarget.className += " active";
+					};
+				} 
+			]);	
+			function excludeMeFromUsers(users) {				
+				var otherUsers = [];			
+				if(!username.value) {
+					return users;
+				}
+				for (var i = 0; i < users.length; i++) {
+					if(username.value != users[i].username) {
+						otherUsers.push(users[i]);
+					}					
+				}				
+				return otherUsers;
+			};
+			function appendMessage(type, message, id) {
+				if (typeof message == 'string')
+					message = [ message ];
+				for (var i = 0; i < message.length; i++) {
+					var p = document.createElement('p');
+					p.className = type;															
+					p.innerHTML = message[i].replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+					chat.appendChild(p);
+				}				
+			};
+		</script>				
+	</head>
+	
+	<body ng-controller="chatCtrl">		
+		<input id="username" type="hidden">
+		<table height="100%" width="100%">
+			<tr>
+				<td>							
+					<ul class="tab">
+					  <li><a href="#" class="tablinks" ng-click="openTab(event, 'public')">PUBBLICA</a></li>
+					  <li><a href="#" class="tablinks" ng-click="openTab(event, 'private_' + user.username)" ng-repeat="user in users">{{user.username}}</a></li>					  
+					</ul>				
+					<div id="public" class="tabcontent">
+						<div class="chatContainer">
+							<div id="chat">
+								<p class="system">Connessione in corso...</p>
+							</div>
+						</div>
+						<input id="message" type="text" placeholder="Inserire il testo del messaggio">					
+						<button type="button" ng-click="sendMessage()">Invia</button> 				
+					</div>				
+					<div ng-attr-id="{{'private_' + user.username}}" class="tabcontent" ng-repeat="user in users">
+						<div class="chatContainer">
+					  		<div>
+					  			<p class="system">Connessione in corso...</p>
+					  		</div>
+					  	</div>
+						<input id="message2" type="text" placeholder="Inserire il testo del messaggio">					
+						<button type="button" ng-click="sendMessage()">Invia</button> 				
+					</div>																				
+				</td>						
+			</tr>
+		</table>		
+	</body>
+	
+</html>

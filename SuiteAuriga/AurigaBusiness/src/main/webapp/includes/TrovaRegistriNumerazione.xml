@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+	<TrovaRegistriNumerazione>
+		  <Categoria>PG</Categoria>
+		  <IdRegistro>1234</IdRegistro>
+		  <Descrizione>str1234</Descrizione>
+		  <Sigla>str1234</Sigla>
+		  <PerTipoDoc>
+		     <CodId></CodId>
+		     <!--  <Decodifica_Nome></Decodifica_Nome>-->
+		  </PerTipoDoc>
+		  <NumerazioneConsentita>1</NumerazioneConsentita>
+		  <InclusioneCessati>1</InclusioneCessati>	 
+	</TrovaRegistriNumerazione>

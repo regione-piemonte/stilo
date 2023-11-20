@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<job id="trasparenzaJob">
+    <step id="trasparenzaStep" >
+        <batchlet ref="trasparenzaJob"/>
+    </step>
+</job>

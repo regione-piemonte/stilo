@@ -1,0 +1,207 @@
+1        PACKAGE DMPK_CORRISPETTIVI AUTHID CURRENT_USER IS
+2        
+3        
+4        
+5        /************** La funzione mi serve per estrarre i dati di quadratura dei corrispettivi  ****************/
+6        function TrovaCorrispettivi(
+7                    CodIdConnectionTokenIn       IN      DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,  -- (obblig). Codice identificativo del token di connessione
+8                    IdUserLavoroIn               IN      DMT_USERS.ID_USER%type DEFAULT NULL,            -- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+9                    MeseElabIO                   IN OUT  INTEGER,                                        -- mese per cui eseguire l'elaborazione
+10                    AnnoElabIO                   IN OUT  INTEGER,                                        -- anno per cui eseguire l'elaborazione
+11                    PtoVenditaIn                 IN      VARCHAR2,                                       -- identificativo del punto vendita
+12                    ResultOut                    OUT     NOCOPY CLOB,                                    -- Lista dei corrispettici trovati (XML conforme a schema LISTA_STD.xsd)
+13                                                                                                         -- Ogni oggetto della repository trovato è un tag Riga che può contenere le seguenti colonne:
+14                                                                                                         -- 1.       : idSoggRubrica,
+15                                                                                                         -- 2.       : idOrderSourcePuntoVendita
+16                                                                                                         -- 3.       : FlgQudratura se 1 tutto ok colore verde, se 0 ci sono errori record rosso
+17                                                                                                         -- 4...34   : 31 giorni del mese.  ciascun campo del giorno è costituito da tax_rate|*|xxxx|*|totale_amount_rate|*|yyyy
+18                                                                                                         --35...65   : 31 giorni del mese.  ciascun campo del giorno è costituito da tax_rate|*|xxxx|*|valore_amount_rate|*|yyyy|*|tax_line|*|kkkk
+19        
+20                    ErrContextOut                OUT     VARCHAR2,                                       -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+21                    ErrCodeOut                   OUT     PLS_INTEGER,                                    -- N.ro errore di uscita
+22                    ErrMsgOut                    OUT     VARCHAR2                                        -- Messaggio d'errore
+23                    ) return PLS_INTEGER;                                                                -- Vale 1 se tutto è andato a buon fine, altrimenti 0
+24        
+25        
+26        function TrovaDettaglioPuntoVendita( CodIdConnectionTokenIn     IN      DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,    -- (obblig). Codice identificativo del token di connessione
+27                                             IdUserLavoroIn             IN      DMT_USERS.ID_USER%type DEFAULT NULL,              -- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+28                                             idSoggRubricaPuntoVenditaIn IN varchar2,                                             -- Id. soggetto in rubrica del punto vendita
+29                                             idOrderSourcePuntoVenditaIn IN varchar2,                                             -- Id. Order Source del punto vendita
+30                                             PuntoVenditaXmlOut          OUT CLOB,    --XML contenente i dati del punto vendita (conforme allo schema Lista_Std.xsd)
+31                                                                                      --1. idSoggRubricaPuntoVendita
+32                                                                                      --2. idOrderSourcePuntoVendita
+33                                                                                      --3. orderSourceDescPuntoVendita
+34                                                                                      --4. descPuntoVendita
+35                                                                                      --5. indirizzoCompletoPuntoVendita
+36                                                                                      --6. notePuntoVendita
+37                                                                                      --7. provReaPuntoVendita
+38                                                                                      --8. nrReaPuntoVendita
+39                                                                                      --9. progrReaPuntoVendita
+40                                                                                      --10.comunePuntoVendita
+41                                                                                      --11.provPuntoVendita
+42                                                                                      --12.indirizzoPuntoVendita
+43                                                                                      --13.flgEccReqDimensionaliPuntoVendita
+44                                                                                      --14.flgVentCorrispPuntoVendita
+45                                            ErrContextOut               OUT     VARCHAR2,     -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+46                                            ErrCodeOut                  OUT     PLS_INTEGER,  -- N.ro errore di uscita
+47                                            ErrMsgOut                   OUT     VARCHAR2      -- Messaggio d'errore
+48                                           ) return PLS_INTEGER;
+49        
+50        function VerificaQuadraturaPuntiVendita(
+51                    CodIdConnectionTokenIn       IN      DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE, -- (obblig). Codice identificativo del token di connessione
+52                    IdUserLavoroIn               IN      DMT_USERS.ID_USER%type DEFAULT NULL,           -- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+53                    MeseElabIO                   IN OUT  INTEGER,                                       -- mese per cui eseguire l'elaborazione
+54                    AnnoElabIO                   IN OUT  INTEGER,                                       -- anno per cui eseguire l'elaborazione
+55                    EsitoQuadraturaOUT           OUT     PLS_INTEGER ,                                  -- indica se la quadratura su tutti i punti vendita è OK e quindi si puo' inviare il file ( 1 = OK, 0 = KO )
+56                    ErrContextOut                OUT     VARCHAR2,                                      -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+57                    ErrCodeOut                   OUT     PLS_INTEGER,                                   -- N.ro errore di uscita
+58                    ErrMsgOut                    OUT     VARCHAR2                                       -- Messaggio d'errore
+59                    ) return PLS_INTEGER;                                                               -- Vale 1 se tutto è andato a buon fine, altrimenti 0
+60        
+61                    
+62                    
+63        /************** La funzione mi serve per estrarre la lista dei file dei corrispettivi creati e inviati   ****************/
+64        function TrovaFileInv(CodIdConnectionTokenIn   IN    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE, -- (obblig). Codice identificativo del token di connessione
+65                              IdUserLavoroIn           IN    DMT_USERS.ID_USER%type DEFAULT NULL,    -- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+66        
+67                    --------------- inizio filtri di ricerca-------------------
+68                                    XmlFiltriRicercaIn         IN    CLOB,  -- XML contenente nomi e valori dei filtri sui doc di EGR(conforme allo schema SezioneCache.xsd). 
+69                                                                            --1.  #DataCreazioneFileDa
+70                                                                            --2.  #DataCreazioneFileA   
+71                                                                            --3.  #FlgSoloValidi         
+72                                                                            --4.  #DataInvioDa
+73                                                                            --5.  #DataInvioA
+74                                    --argomenti fissi                                        
+75                                    ColOrderByIO    IN OUT  VARCHAR2,-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 17). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+76                                                                     -- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+77                                                                      -- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+78                                    FlgDescOrderByIO    IN OUT  VARCHAR2,-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+79                                                                         -- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+80                                    FlgSenzaPaginazioneIn   IN  PLS_INTEGER DEFAULT NULL,   -- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+81                                    NroPaginaIO             IN OUT  PLS_INTEGER,            -- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+82                                    BachSizeIO              IN OUT  PLS_INTEGER,            -- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+83                                                                                            -- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+84                                    OverFlowLimitIn         IN  PLS_INTEGER DEFAULT NULL,   -- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+85                                    FlgSenzaTotIn           IN  PLS_INTEGER DEFAULT NULL,   -- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+86                                    NroTotRecOut            OUT PLS_INTEGER,   -- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+87                                    NroRecInPaginaOut       OUT PLS_INTEGER,   -- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+88                                    ------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+89                                    ListaXMLOut             OUT       NOCOPY CLOB, -- Lista delle ditte trovate (conforme allo schema LISTA_STD.xsd). )
+90                                                                            -- Ogni tipo di documento è un tag Riga che può contenere le seguenti colonne:
+91                                                                            -- 1:  id_file
+92                                                                            -- 2:  estremi_prot
+93                                                                            -- 3:  id_spedizione
+94                                                                            -- 4:  mese_rif
+95                                                                            -- 5:  anno_rif
+96                                                                            -- 6:  nome_file                                                                
+97                                                                            -- 7:  dt_ini_vld
+98                                                                            -- 8:  dt_fine_vld
+99                                                                            -- 9:  flg_annullato
+100                                                                            --10:  id_ud
+101                                                                            --11:  id_doc
+102                                                                            --12:  id_ute_ins
+103                                                                            --13:  DesUteIns
+104                                                                            --14:  dt_ins
+105                                                                            --15:  id_ute_ult_mod
+106                                                                            --16:  DesUteUltMod
+107                                                                            --17:  dt_ult_mod
+108                                                                            --18:  data_invio
+109                                                                            --19:  Tipo_invio
+110                                                                            --20:  Prot_da_rettificare
+111                                                                            --21:  Intermediario_invio
+112                                                                            --22:  FlgScartato
+113                                                                            --23:  Motivi_scarto
+114                                                                            
+115                                    ErrContextOut           OUT VARCHAR2,    -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+116                                    ErrCodeOut              OUT PLS_INTEGER, -- N.ro errore di uscita
+117                                    ErrMsgOut               OUT VARCHAR2 -- Messaggio d'errore
+118        
+119                    ) return PLS_INTEGER;                                                              -- Vale 1 se tutto è andato a buon fine, altrimenti 0
+120              
+121        /************** La funzione mi serve per creare/modificare un record inerente l'invio del file dei corrispettiv ****************/
+122        function AddUpdFileInv(
+123                    CodIdConnectionTokenIn  IN        DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,    -- (obblig). Codice identificativo del token di connessione
+124                    IdUserLavoroIn          IN        DMT_USERS.ID_USER%type DEFAULT NULL,              -- Id. dell'utente a nome di cui si inserisce la pratica. Se non valorizzato è l'utente connesso            
+125                    IdFileIO                IN OUT    varchar2,                                         -- id che identifica univocamente il record            
+126                    FlgAnnullaPrecInvioIn   IN PLS_INTEGER DEFAULT NULL,                                -- flag che indica se devono essere annulati i precedenti invii. 0 : non deve verificare se ci sono precedenti invii da annullare, 1 : deve verificare se ci sono precedenti invii da annullare
+127                    AttributiInvioXMLIn     IN        CLOB,                                             -- XML contenente nomi e valori degli attributi dell'invio (conforme allo schema SezioneCache.xsd)
+128                                          -- Gli attributi possono essere:
+129                                          --  #NomeFile
+130        																	--  #MeseRif
+131        																	--  #AnnoRif
+132        																	--  #IdUd
+133        																	--  #IdDoc
+134        																	--  #EstremiProt
+135        																	--  #IdSpedizione
+136        																	--  #DataInizioValidita  Data inizio validita' (nel formato std)
+137        																	--  #DataFineValidita    Data fine   validita' (nel formato std)
+138        																	--  #FlgAnnullato        
+139        																	--  #IdUteIns
+140        																	--  #DtIns
+141        																	--  #IdUteUltMod
+142        																	--  #DtUltMod
+143        																	--  #DataInvio
+144        																	--  #TipoInvio
+145        																	--  #ProtDaRettificare
+146        																	--  #IntermediarioInvio
+147        																	--  #FlgScartato
+148        																	--  #MotiviScarto
+149        																	
+150                    
+151                    FlgRollBckFullIn    IN  PLS_INTEGER DEFAULT NULL,   -- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+152                                                                        -- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+153                    FlgAutoCommitIn     IN  PLS_INTEGER DEFAULT NULL,   -- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+154                    IdFileOut           OUT VARCHAR2,                   -- Id del file creato/modificato
+155                    ErrContextOut       OUT VARCHAR2,                   -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+156                    ErrCodeOut          OUT PLS_INTEGER,                -- N.ro errore di uscita
+157                    ErrMsgOut           OUT VARCHAR2                    -- Messaggio d'errore
+158                    ) return PLS_INTEGER;
+159              
+160        /************** La funzione mi serve leggere un record inerente l'invio del file dei corrispettiv ****************/
+161        function LoadDettFileInv( CodIdConnectionTokenIn        IN        DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,     -- (obblig). Codice identificativo del token di connessione
+162                                  IdUserLavoroIn                IN        DMT_USERS.ID_USER%type DEFAULT NULL,               -- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+163        			                    IdFileIn                      IN        varchar2,                                          -- #IdFile (Obblig.) id che identifica univocamente il record
+164                                  XMLOut                        OUT       NOCOPY CLOB,    -- Lista degli invii trovati (conforme allo schema LISTA_STD.xsd). )
+165                                                                                          -- Ogni tipo di documento è un tag Riga che può contenere le seguenti colonne:
+166                                                                                          -- 1:  id_file
+167                                                                                          -- 2:  estremi_prot
+168                                                                                          -- 3:  id_spedizione
+169                                                                                          -- 4:  mese_rif
+170                                                                                          -- 5:  anno_rif
+171                                                                                          -- 6:  nome_file                                                                
+172                                                                                          -- 7:  dt_ini_vld
+173                                                                                          -- 8:  dt_fine_vld
+174                                                                                          -- 9:  flg_annullato
+175                                                                                          --10:  id_ud
+176                                                                                          --11:  id_doc
+177                                                                                          --12:  id_ute_ins
+178                                                                                          --13:  DesUteIns
+179                                                                                          --14:  dt_ins
+180                                                                                          --15:  id_ute_ult_mod
+181                                                                                          --16:  DesUteUltMod
+182                                                                                          --17:  dt_ult_mod
+183                                                                                          --18:  data_invio
+184                                                                                          --19:  Tipo_invio
+185                                                                                          --20:  Prot_da_rettificare
+186                                                                                          --21:  Intermediario_invio
+187                                                                                          --22:  FlgScartato
+188                                                                                          --23:  Motivi_scarto
+189        																																									                                                                                   
+190                    ErrContextOut                OUT        VARCHAR2,       -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+191                    ErrCodeOut                   OUT        PLS_INTEGER,    -- N.ro errore di uscita
+192                    ErrMsgOut                    OUT        VARCHAR2)       -- Messaggio d'errore
+193        			
+194                    return PLS_INTEGER;      
+195                    
+196        /************** La funzione mi serve per verificare quale tipo di invio deve essere effettuato (primo o correttivo) nel mese e anno di riferimento ****************/
+197        function GetTipoInvio ( CodIdConnectionTokenIn        IN        DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,     -- (obblig). Codice identificativo del token di connessione
+198                                IdUserLavoroIn                IN        DMT_USERS.ID_USER%type DEFAULT NULL,               -- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+199                                MeseElabIn                    IN        PLS_INTEGER,                                       -- mese per cui verificare lo stato dell'invio (Obblig.) 
+200                                AnnoElabIn                    IN        PLS_INTEGER,                                       -- anno per cui verificare lo stato dell'invio (Obblig.)                         
+201        						            TipoInvioOut                  OUT       VARCHAR2,                                          -- Tipo dell'invio. Puo' essere : P (primo invio) , C ( correttivo )
+202                                EstremiProtocolloOut          OUT       varchar2,                                          -- Estremi del protocollo restituito dalle agenzie delle entrate
+203                                ErrContextOut                 OUT       VARCHAR2,                                          -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+204                                ErrCodeOut                    OUT       PLS_INTEGER,                                       -- N.ro errore di uscita
+205                                ErrMsgOut                     OUT       VARCHAR2)                                          -- Messaggio d'errore			
+206                    return PLS_INTEGER;                  
+207         end ;

@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+docTitle:"Tytuł strony",docType:"Definicja typu dokumentu",docTypeOther:"Inna definicja typu dokumentu",label:"Właściwości dokumentu",margin:"Marginesy strony",marginBottom:"Dolny",marginLeft:"Lewy",marginRight:"Prawy",marginTop:"Górny",meta:"Znaczniki meta",metaAuthor:"Autor",metaCopyright:"Prawa autorskie",metaDescription:"Opis dokumentu",metaKeywords:"Słowa kluczowe dokumentu (oddzielone przecinkami)",other:"Inne",previewHtml:'\x3cp\x3eTo jest \x3cstrong\x3eprzykładowy tekst\x3c/strong\x3e. Korzystasz z programu \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e.\x3c/p\x3e',
+title:"Właściwości dokumentu",txtColor:"Kolor tekstu",xhtmlDec:"Uwzględnij deklaracje XHTML"});

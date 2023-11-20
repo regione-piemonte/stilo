@@ -1,0 +1,487 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions name="WSPrenotaAppuntamento" targetNamespace="http://prenotaappuntamento.webservices.repository2.auriga.eng.it" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:tns="http://prenotaappuntamento.webservices.repository2.auriga.eng.it" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <wsdl:types>
+    <xs:schema elementFormDefault="qualified" targetNamespace="http://prenotaappuntamento.webservices.repository2.auriga.eng.it">
+		<xs:simpleType name="ResultType">
+			<xs:restriction base="xs:string">
+				<xs:enumeration value="OK">
+					<xs:annotation>
+						<xs:documentation>Esito della richiesta: OK</xs:documentation>
+					</xs:annotation>
+				</xs:enumeration>
+				<xs:enumeration value="KO">
+					<xs:annotation>
+						<xs:documentation>Esito della richiesta: KO</xs:documentation>
+					</xs:annotation>
+				</xs:enumeration>
+			</xs:restriction>
+		</xs:simpleType>
+		<xs:simpleType name="ErrorType">
+			<xs:restriction base="xs:string">
+				<xs:enumeration value="AUR-001">
+					<xs:annotation>
+						<xs:documentation>Protocollo di richiesta inesistente</xs:documentation>
+					</xs:annotation>
+				</xs:enumeration>
+				<xs:enumeration value="AUR-002">
+					<xs:annotation>
+						<xs:documentation>Richiesta non ancora evasa dall'ufficio: appuntamento non prenotabile</xs:documentation>
+					</xs:annotation>
+				</xs:enumeration>
+				<xs:enumeration value="AUR-003">
+					<xs:annotation>
+						<xs:documentation>Richiesta con appuntamento scaduto: nuovo appuntamento non ancora prenotabile</xs:documentation>
+					</xs:annotation>
+				</xs:enumeration>
+				<xs:enumeration value="AUR-004">
+					<xs:annotation>
+						<xs:documentation>L'appuntamento da annullare non risulta</xs:documentation>
+					</xs:annotation>
+				</xs:enumeration>
+				<xs:enumeration value="AUR-005">
+					<xs:annotation>
+						<xs:documentation>Appuntamento già associato ad altra richiesta</xs:documentation>
+					</xs:annotation>
+				</xs:enumeration>
+				<xs:enumeration value="AUR-006">
+					<xs:annotation>
+						<xs:documentation>Dati mancanti e/o erroneamente valorizzati</xs:documentation>
+					</xs:annotation>
+				</xs:enumeration>
+				<xs:enumeration value="AUR-999">
+					<xs:annotation>
+						<xs:documentation>Errore generico</xs:documentation>
+					</xs:annotation>
+				</xs:enumeration>
+			</xs:restriction>
+		</xs:simpleType>
+		<xs:simpleType name="TelFaxType">
+			<xs:restriction base="xs:normalizedString">
+				<xs:pattern value="((00|\+)39\)|(00|\+)39)?(38[890]|34[7-90]|36[680]|33[3-90]|32[89])(\/|-| )?\d{7}"/>
+				<xs:pattern value="((00|\+)39\)|(00|\+)39)?([0-9]{2,3}(\/|-| )?[0-9]{6,7})"/>
+				<xs:whiteSpace value="collapse"/>
+			</xs:restriction>
+		</xs:simpleType>
+		<xs:simpleType name="EmailType">
+			<xs:restriction base="xs:string">
+				<xs:minLength value="7"/>
+				<xs:maxLength value="256"/>
+				<xs:pattern value=".+@.+[.]+.+"/>
+			</xs:restriction>
+		</xs:simpleType>
+		<xs:simpleType name="CodiceFiscaleType">
+			<xs:restriction base="xs:string">
+				<xs:pattern value="[A-Z0-9]{11,16}"/>
+			</xs:restriction>
+		</xs:simpleType>
+		<xs:simpleType name="CodiceFiscalePFType">
+			<xs:restriction base="xs:string">
+				<xs:pattern value="[A-Z0-9]{16}"/>
+			</xs:restriction>
+		</xs:simpleType>
+		<xs:element name="ResponseAggiornaRichiesta">
+			<xs:annotation>
+				<xs:documentation>Root element della response della richiesta di aggiornamento di una richiesta accesso atti</xs:documentation>
+			</xs:annotation>
+			<xs:complexType>
+				<xs:sequence minOccurs="0">
+					<xs:element minOccurs="0" name="Errore">
+						<xs:annotation>
+							<xs:documentation>Codice e messaggio di errore in caso di EsitoAggiornamento = KO</xs:documentation>
+						</xs:annotation>
+						<xs:complexType>
+							<xs:attribute name="Codice" type="tns:ErrorType" use="required">
+								<xs:annotation>
+									<xs:documentation>Codice che identifica il tipo di errore riscontrato</xs:documentation>
+								</xs:annotation>
+							</xs:attribute>
+							<xs:attribute name="Messaggio" type="xs:string" use="required">
+								<xs:annotation>
+									<xs:documentation>Messaggio con il dettaglio dell'errore riscontrato</xs:documentation>
+								</xs:annotation>
+							</xs:attribute>
+						</xs:complexType>
+					</xs:element>
+				</xs:sequence>
+				<xs:attribute name="EsitoAggiornamento" type="tns:ResultType" use="required">
+					<xs:annotation>
+						<xs:documentation>Esito della richiesta: OK = successo, KO = errore</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+			</xs:complexType>
+		</xs:element>
+		<xs:element name="RequestAggiornaRichiesta">
+			<xs:annotation>
+				<xs:documentation>Root element della richiesta di aggiornamento di una richiesta accesso atti</xs:documentation>
+			</xs:annotation>
+			<xs:complexType>
+				<xs:sequence>
+					<xs:element name="Anno" type="xs:gYear">
+						<xs:annotation>
+							<xs:documentation>Anno di protocollo della richiesta di accesso atti da aggiornare</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element name="Nro">
+						<xs:annotation>
+							<xs:documentation>Nro di protocollo della richiesta di accesso atti da aggiornare</xs:documentation>
+						</xs:annotation>
+						<xs:simpleType>
+							<xs:restriction base="xs:positiveInteger">
+								<xs:totalDigits value="7"/>
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:element>
+					<xs:element name="Appuntamento">
+						<xs:annotation>
+							<xs:documentation>Dati dell'appuntamento</xs:documentation>
+						</xs:annotation>
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="Richiedente">
+									<xs:annotation>
+										<xs:documentation>Persone fisica intestataria della richiesta di accesso atti</xs:documentation>
+									</xs:annotation>
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element name="Cognome">
+												<xs:simpleType>
+													<xs:restriction base="xs:string">
+														<xs:maxLength value="250"/>
+														<xs:minLength value="1"/>
+														<xs:whiteSpace value="collapse"/>
+													</xs:restriction>
+												</xs:simpleType>
+											</xs:element>
+											<xs:element name="Nome">
+												<xs:simpleType>
+													<xs:restriction base="xs:string">
+														<xs:minLength value="1"/>
+														<xs:maxLength value="250"/>
+														<xs:whiteSpace value="collapse"/>
+													</xs:restriction>
+												</xs:simpleType>
+											</xs:element>
+											<xs:element minOccurs="0" name="UserID">
+												<xs:annotation>
+													<xs:documentation>User ID del richiedente sul sistema di prenotazione</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+													<xs:restriction base="xs:string">
+														<xs:minLength value="1"/>
+														<xs:maxLength value="100"/>
+														<xs:whiteSpace value="collapse"/>
+													</xs:restriction>
+												</xs:simpleType>
+											</xs:element>
+											<xs:element minOccurs="0" name="CodFiscale" type="tns:CodiceFiscalePFType"/>
+											<xs:element minOccurs="0" name="Email" type="tns:EmailType"/>
+											<xs:element minOccurs="0" name="Tel" type="tns:TelFaxType"/>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+								<xs:element minOccurs="0" name="Delegante">
+									<xs:annotation>
+										<xs:documentation>Dati di colui per cui viene preso l'appuntamento (se diverso dal richiedente)</xs:documentation>
+									</xs:annotation>
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element minOccurs="0" name="Cognome_Denominazione">
+												<xs:annotation>
+													<xs:documentation>Cognome o denominazione in caso di persona giuridica</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+													<xs:restriction base="xs:string">
+														<xs:maxLength value="250"/>
+														<xs:minLength value="1"/>
+														<xs:whiteSpace value="collapse"/>
+													</xs:restriction>
+												</xs:simpleType>
+											</xs:element>
+											<xs:element minOccurs="0" name="Nome">
+												<xs:annotation>
+													<xs:documentation>Nome in caso di persona fisica</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+													<xs:restriction base="xs:string">
+														<xs:minLength value="1"/>
+														<xs:maxLength value="250"/>
+														<xs:whiteSpace value="collapse"/>
+													</xs:restriction>
+												</xs:simpleType>
+											</xs:element>
+											<xs:element minOccurs="0" name="CodFiscale" type="tns:CodiceFiscaleType">
+												<xs:annotation>
+													<xs:documentation>Codice fiscale o partita IVA</xs:documentation>
+												</xs:annotation>
+											</xs:element>
+											<xs:element minOccurs="0" name="Email" type="tns:EmailType"/>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+								<xs:element minOccurs="0" name="NominativoPresenza">
+									<xs:annotation>
+										<xs:documentation>Nominativo di chi si presenterà all'appuntamento (se diverso dal richiedente)</xs:documentation>
+									</xs:annotation>
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element name="Cognome">
+												<xs:simpleType>
+													<xs:restriction base="xs:string">
+														<xs:maxLength value="250"/>
+														<xs:minLength value="1"/>
+														<xs:whiteSpace value="collapse"/>
+													</xs:restriction>
+												</xs:simpleType>
+											</xs:element>
+											<xs:element name="Nome">
+												<xs:simpleType>
+													<xs:restriction base="xs:string">
+														<xs:minLength value="1"/>
+														<xs:maxLength value="250"/>
+														<xs:whiteSpace value="collapse"/>
+													</xs:restriction>
+												</xs:simpleType>
+											</xs:element>
+											<xs:element minOccurs="0" name="CodFiscale" type="tns:CodiceFiscalePFType"/>
+											<xs:element minOccurs="0" name="Email" type="tns:EmailType"/>
+											<xs:element minOccurs="0" name="Tel" type="tns:TelFaxType"/>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+							</xs:sequence>
+							<xs:attribute name="DaAnnullare" type="xs:boolean" use="required">
+								<xs:annotation>
+									<xs:documentation>Indca se l'appuntamento già fissato in precedenza è da annullare</xs:documentation>
+								</xs:annotation>
+							</xs:attribute>
+							<xs:attribute name="SedeAppuntamento">
+								<xs:annotation>
+									<xs:documentation>Sede dell'appuntamento.</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:minLength value="1"/>
+										<xs:maxLength value="100"/>
+										<xs:whiteSpace value="collapse"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:attribute>
+							<xs:attribute name="UID">
+								<xs:annotation>
+									<xs:documentation>Identificativo univoco dell'appuntamento su CRM.</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:minLength value="1"/>
+										<xs:maxLength value="100"/>
+										<xs:whiteSpace value="collapse"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:attribute>
+							<xs:attribute name="AppCode">
+								<xs:annotation>
+									<xs:documentation>Codice dell'appuntamento su CRM.</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:minLength value="1"/>
+										<xs:maxLength value="100"/>
+										<xs:whiteSpace value="collapse"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:attribute>
+							<xs:attribute name="DataOra" type="xs:dateTime">
+								<xs:annotation>
+									<xs:documentation>Data e ora dell'appuntamento. Obbligatorio se DaAnnullare=false</xs:documentation>
+								</xs:annotation>
+							</xs:attribute>
+						</xs:complexType>
+					</xs:element>
+				</xs:sequence>
+			</xs:complexType>
+		</xs:element>
+		<xs:element name="ResponseVerificaRichiesta">
+			<xs:annotation>
+				<xs:documentation>Root element della response della richiesta di verifica</xs:documentation>
+			</xs:annotation>
+			<xs:complexType>
+				<xs:choice>
+					<xs:element minOccurs="0" name="Errore">
+						<xs:annotation>
+							<xs:documentation>Codice e messaggio di errore in caso di EsitoVerifica = KO</xs:documentation>
+						</xs:annotation>
+						<xs:complexType>
+							<xs:attribute name="Codice" type="tns:ErrorType" use="required">
+								<xs:annotation>
+									<xs:documentation>Codice che identifica il tipo di errore riscontrato</xs:documentation>
+								</xs:annotation>
+							</xs:attribute>
+							<xs:attribute name="Messaggio" type="xs:string" use="required">
+								<xs:annotation>
+									<xs:documentation>Messaggio con il dettaglio dell'errore riscontrato</xs:documentation>
+								</xs:annotation>
+							</xs:attribute>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="DatiRichiesta">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="Oggetto">
+									<xs:annotation>
+										<xs:documentation>Oggetto della richiesta corrispondente al protocollo specificato</xs:documentation>
+									</xs:annotation>
+									<xs:simpleType>
+										<xs:restriction base="xs:string">
+											<xs:maxLength value="4000"/>
+										</xs:restriction>
+									</xs:simpleType>
+								</xs:element>
+								<xs:element name="AttiRichiesti">
+									<xs:annotation>
+										<xs:documentation>Lista con gli estremi degli atti/pratiche richiesti</xs:documentation>
+									</xs:annotation>
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element maxOccurs="unbounded" name="EstremiAtto">
+												<xs:annotation>
+													<xs:documentation>Estremi di un atto o pratica richiesto</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+													<xs:restriction base="xs:string">
+														<xs:minLength value="1"/>
+														<xs:whiteSpace value="collapse"/>
+														<xs:maxLength value="250"/>
+													</xs:restriction>
+												</xs:simpleType>
+											</xs:element>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+								<xs:element name="SediAppuntamento">
+									<xs:annotation>
+										<xs:documentation>Lista con le sedi dell'appuntamento</xs:documentation>
+									</xs:annotation>
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element maxOccurs="unbounded" name="SedeAppuntamento">
+												<xs:annotation>
+													<xs:documentation>Sede dell'appuntamento</xs:documentation>
+												</xs:annotation>
+												<xs:simpleType>
+													<xs:restriction base="xs:string">
+														<xs:minLength value="1"/>
+														<xs:whiteSpace value="collapse"/>
+														<xs:maxLength value="250"/>
+													</xs:restriction>
+												</xs:simpleType>
+											</xs:element>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+							</xs:sequence>
+							<xs:attribute name="ID" use="required">
+								<xs:annotation>
+									<xs:documentation>Identificativo univoco della richiesta corrispondente al protocollo</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:token">
+										<xs:minLength value="1"/>
+										<xs:whiteSpace value="collapse"/>
+										<xs:maxLength value="50"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:attribute>
+						</xs:complexType>
+					</xs:element>
+				</xs:choice>
+				<xs:attribute name="EsitoVerifica" type="tns:ResultType" use="required">
+					<xs:annotation>
+						<xs:documentation>Esito della richiesta: OK = successo, KO = errore</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+			</xs:complexType>
+		</xs:element>
+		<xs:element name="RequestVerificaRichiesta">
+			<xs:annotation>
+				<xs:documentation>Root element della richiesta di verifica
+						</xs:documentation>
+			</xs:annotation>
+			<xs:complexType>
+				<xs:sequence>
+					<xs:element name="Anno" type="xs:gYear">
+						<xs:annotation>
+							<xs:documentation>Anno di protocollo della richiesta</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element name="Nro">
+						<xs:annotation>
+							<xs:documentation>Nro di protocollo della richiesta</xs:documentation>
+						</xs:annotation>
+						<xs:simpleType>
+							<xs:restriction base="xs:positiveInteger">
+								<xs:totalDigits value="7"/>
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:element>
+				</xs:sequence>
+			</xs:complexType>
+		</xs:element>
+	</xs:schema>
+  </wsdl:types>
+  <wsdl:message name="VerificaRichiestaOut">
+    <wsdl:part name="parameter" element="tns:ResponseVerificaRichiesta">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="AggiornaRichiestaOut">
+    <wsdl:part name="parameter" element="tns:ResponseAggiornaRichiesta">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="VerificaRichiestaIn">
+    <wsdl:part name="parameter" element="tns:RequestVerificaRichiesta">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="AggiornaRichiestaIn">
+    <wsdl:part name="parameter" element="tns:RequestAggiornaRichiesta">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="PrenotaAppuntamentoSoap">
+    <wsdl:operation name="VerificaRichiesta">
+      <wsdl:input message="tns:VerificaRichiestaIn">
+    </wsdl:input>
+      <wsdl:output message="tns:VerificaRichiestaOut">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="AggiornaRichiesta">
+      <wsdl:input message="tns:AggiornaRichiestaIn">
+    </wsdl:input>
+      <wsdl:output message="tns:AggiornaRichiestaOut">
+    </wsdl:output>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="WSPrenotaAppuntamentoSoap" type="tns:PrenotaAppuntamentoSoap">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="VerificaRichiesta">
+      <soap:operation soapAction="http://prenotaappuntamento.webservices.repository2.auriga.eng.it/VerificaRichiesta"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="AggiornaRichiesta">
+      <soap:operation soapAction="http://prenotaappuntamento.webservices.repository2.auriga.eng.it/AggiornaRichiesta"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="WSPrenotaAppuntamento">
+    <wsdl:port name="WSPrenotaAppuntamentoSoap" binding="tns:WSPrenotaAppuntamentoSoap">
+      <soap:address location="http://prenotaappuntamento.webservices.repository2.auriga.eng.it/"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

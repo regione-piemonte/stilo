@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<job id="verificaAvanzamentoJob">
+    <step id="verificaAvanzamentoStep" >
+        <batchlet ref="verificaAvanzamentoJob"/>
+    </step>
+</job>

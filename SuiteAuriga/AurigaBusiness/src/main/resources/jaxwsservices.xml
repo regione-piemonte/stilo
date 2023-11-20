@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<bean id="BridgeSingleton" class="it.eng.auriga.repository2.jaxws.webservices.util.BridgeSingleton" lazy-init="true">
+		<property name="properties">
+			<props>
+			    <!-- uso alias schema di default -->
+				<prop key="DEFAULT">OWNER_1</prop>
+				
+				<!-- AURIGA.<ID_TIPO_AOO>:<ID_SP_AOO> -> devo fare una login interna
+				<prop key="AURIGA.3:2">OWNER_1</prop>
+				-->
+								
+				<!-- <COD_APPL>.<COD_IST_APPL> -> devo fare una login esterna 				
+				<prop key="CMMI.TEST">OWNER_1</prop>				
+				-->
+			</props>
+		</property>	
+	</bean>	
+
+	<bean id="WebServiceConfigurer" class="it.eng.auriga.repository2.jaxws.webservices.common.AurigaWebServiceConfigurer" lazy-init="true">
+		<property name="isDebugMode" value="false" />
+		<property name="tempPath" value="C:\\temp\\TestWS\\" />
+		<property name="xsdUri" value="http://localhost:8080/AurigaBusiness/includes/xsd/" />
+		
+		<!--  In questa proprieta' bisogna indicare l'XSD del ws -->
+		<property name="xsdNames">
+			<props>
+			    <prop key="it.eng.auriga.repository2.jaxws.webservices.addtipofolder.WSAddTipoFolder">NuovoTipoFolder.xsd</prop>
+			    <prop key="it.eng.auriga.repository2.jaxws.webservices.updtipofolder.WSUpdTipoFolder">ModificaTipoFolder.xsd</prop>
+			    <prop key="it.eng.auriga.repository2.jaxws.webservices.deletetipofolder.WSDeleteTipoFolder">DeleteTipoFolder.xsd</prop>			    
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.addfolder.WSAddFolder">NewFolder.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.deletefolder.WSDeleteFolder">DeleteFolder.xsd</prop>											
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.updfolder.WSUpdFolder">FolderDaAgg.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.deletedoc.WSDeleteDoc">DeleteDoc.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.deleteversion.WSDeleteVersion">DeleteVerDoc.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.addunitadoc.WSAddUd">NewUD.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.addunitadocmime.WSAddUdMime">NewUD.xsd</prop>	
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.updunitadoc.WSUpdUd">UDDaAgg.xsd</prop>		
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.delunitadoc.WSDelUd">DeleteUD.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.extractone.WSExtractOne">FileUDToExtract.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.newattrcustom.WSNewAttrCustom">NewAttrCustom.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.deleteattrcustom.WSDeleteAttrCustom">DeleteAttrCustom.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.modifyattrcustom.WSModifyAttrCustom">ModifyAttrCustom.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.updtipodoc.WSUpdTipoDoc">ModificaTipoDocumento.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.addtipodoc.WSAddTipoDoc">NuovoTipoDocumento.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.deletetipodoc.WSDeleteTipoDoc">DeleteTipoDocumento.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovatipidocumento.WSTrovaTipiDocumento">TrovaTipiDocumento.xsd</prop>	
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovatipifolder.WSTrovaTipiFolder">TrovaTipiFolder.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovadocfolder.WSTrovaDocFolder">TrovaDocFolder.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.checkin.WSCheckIn">CheckInDoc.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.checkout.WSCheckOut">EstremiXIdentificazioneDoc.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.unlock.WSUnlock">EstremiXIdentificazioneDoc.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.lock.WSLock">EstremiXIdentificazioneDoc.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.lockud.WSLockUd">EstremiXIdentificazioneUD.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.unlockud.WSUnlockUd">EstremiXIdentificazioneUD.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.lockfolder.WSLockFolder">EstremiXIdentificazioneFolder.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.unlockfolder.WSUnlockFolder">EstremiXIdentificazioneFolder.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getmetadataud.WSGetMetadataUd">EstremiXIdentificazioneUD.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getmetadatafolder.WSGetMetadataFolder">EstremiXIdentificazioneFolder.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getlistaversionidoc.WSGetListaVersioniDoc">EstremiXIdentificazioneDoc.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getlistaversionidatiud.WSGetListaVersioniDatiUd">EstremiXIdentificazioneUD.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getlistanotificheud.WSGetListaNotificheUd">EstremiXIdentificazioneUD.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.istanzaapplicazioneesterna.WSIstanzaApplicazioneEsterna">IstanzaApplicazioneEsterna.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.deleteistanzaapplesterna.WSDeleteIstanzaApplEsterna">DeleteIstanzaApplEsterna.xsd</prop>
+                <prop key="it.eng.auriga.repository2.jaxws.webservices.trovaistanzeapplesterne.WSTrovaIstanzeApplEsterne">TrovaIstanzeApplEsterne.xsd</prop>
+                <prop key="it.eng.auriga.repository2.jaxws.webservices.estremiistanzaapplesterna.WSEstremiIstanzaApplEsterna">EstremiIstanzaApplEsterna.xsd</prop>
+                <prop key="it.eng.auriga.repository2.jaxws.webservices.trovautenti.WSTrovaUtenti">TrovaUtenti.xsd</prop>
+                <prop key="it.eng.auriga.repository2.jaxws.webservices.trovagruppi.WSTrovaGruppi">TrovaGruppi.xsd</prop>
+                <prop key="it.eng.auriga.repository2.jaxws.webservices.addudtofavourite.WSAddUdToFavourite">EstremiXIdentificazioneUD.xsd</prop>
+                <prop key="it.eng.auriga.repository2.jaxws.webservices.removeudfromfavourite.WSRemoveUdFromFavourite">EstremiXIdentificazioneUD.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.addfoldertofavourite.WSAddFolderToFavourite">EstremiXIdentificazioneFolder.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.removefolderfromfavourite.WSRemoveFolderFromFavourite">EstremiXIdentificazioneFolder.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.adduser.WSAddUser">NuovoUser.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.moduser.WSModUser">ModificaUser.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.deluser.WSDelUser">EliminaUser.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.notificadocfolder.WSNotificaDocFolder">NotificaDocFolder.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.addmodprivilegi.WSAddModPrivilegi">IUPrivilegi.xsd</prop>				
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.extractmulti.WSExtractMulti">EstremiXIdentificazioneUD.xsd</prop>
+				
+				<!--  WS per SAVA : getPing,getListDocument,getPdfFile  -->  		
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.savagetping.WSSAVAGetPing">SAVAGetPing.xsd</prop>
+				
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovainorganigramma.WSTrovaInOrganigramma">TrovaInOrganigramma.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovaclassiftitolario.WSTrovaClassifTitolario">TrovaClassifTitolario.xsd</prop>
+				
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.fillmodelwithvalues.WSFillModelWithValues">FillModelWithValues.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovadocpraticaSUA.WSTrovaDocPraticaSUA">RicercaDocXImportInBOGestPratiche.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.determina.WSGetDetermina">RequestGetDetermina.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getdatipubblicazioneatto.WSGetDatiPubblicazioneAtto">RequestGetDatiPubblicazioneAtto.xsd</prop>				
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getdatipubblicazioneattoinattach.WSGetDatiPubblicazioneAttoInAttach">RequestGetDatiPubblicazioneAtto.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getattoperacquisti.WSGetAttoPerAcquisti">RequestGetAttoPerAcquisti.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.ricercaattiperprogettollpp.WSRicercaAttiPerProgettoLLPP">RequestRicercaAttiPerProgettoLLPP.xsd</prop>
+				
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.elencapubblicazioni.WSElencaPubblicazioni">RequestElencaPubblicazioni.xsd</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovaregistrinumerazione.WSTrovaRegistriNumerazione">TrovaRegistriNumerazione.xsd</prop>				
+			</props>
+		</property>	
+				
+		<!--  In questa proprieta' bisogna indicare il tag principale dell'xml di richiesta inviato al ws -->
+		<property name="xsdRootTags">
+			<props>
+			    <prop key="it.eng.auriga.repository2.jaxws.webservices.addtipofolder.WSAddTipoFolder">NuovoTipoFolder</prop>
+			    <prop key="it.eng.auriga.repository2.jaxws.webservices.updtipofolder.WSUpdTipoFolder">ModificaTipoFolder</prop>
+			    <prop key="it.eng.auriga.repository2.jaxws.webservices.deletetipofolder.WSDeleteTipoFolder">DeleteTipoFolder</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.addfolder.WSAddFolder">NewFolder</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.deletefolder.WSDeleteFolder">DeleteFolder</prop>		
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.updfolder.WSUpdFolder">FolderDaAgg</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.deletedoc.WSDeleteDoc">DeleteDoc</prop>	
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.deleteversion.WSDeleteVersion">DeleteVerDoc</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.addunitadoc.WSAddUd">NewUD</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.addunitadocmime.WSAddUdMime">NewUD</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.updunitadoc.WSUpdUd">UDDaAgg</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.delunitadoc.WSDelUd">DeleteUD</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.extractone.WSExtractOne">FileUDToExtract</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.newattrcustom.WSNewAttrCustom">NewAttrCustom</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.deleteattrcustom.WSDeleteAttrCustom">DeleteAttrCustom</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.modifyattrcustom.WSModifyAttrCustom">ModifyAttrCustom</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.updtipodoc.WSUpdTipoDoc">ModificaTipoDocumento</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.addtipodoc.WSAddTipoDoc">NuovoTipoDocumento</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.deletetipodoc.WSDeleteTipoDoc">DeleteTipoDocumento</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovatipidocumento.WSTrovaTipiDocumento">TrovaTipiDocumento</prop>	
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovatipifolder.WSTrovaTipiFolder">TrovaTipiFolder</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovadocfolder.WSTrovaDocFolder">TrovaDocFolder</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.checkin.WSCheckIn">DatiXCheckIn</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.checkout.WSCheckOut">EstremiXIdentificazioneDoc</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.unlock.WSUnlock">EstremiXIdentificazioneDoc</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.lock.WSLock">EstremiXIdentificazioneDoc</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.lockud.WSLockUd">EstremiXIdentificazioneUD</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.unlockud.WSUnlockUd">EstremiXIdentificazioneUD</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.lockfolder.WSLockFolder">EstremiXIdentificazioneFolder</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.unlockfolder.WSUnlockFolder">EstremiXIdentificazioneFolder</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getmetadataud.WSGetMetadataUd">EstremiXIdentificazioneUD</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getmetadatafolder.WSGetMetadataFolder">EstremiXIdentificazioneFolder</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getlistaversionidoc.WSGetListaVersioniDoc">EstremiXIdentificazioneDoc</prop>				
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getlistaversionidatiud.WSGetListaVersioniDatiUd">EstremiXIdentificazioneUD</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getlistanotificheud.WSGetListaNotificheUd">EstremiXIdentificazioneUD</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.istanzaapplicazioneesterna.WSIstanzaApplicazioneEsterna">IstanzaApplicazioneEsterna</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.deleteistanzaapplesterna.WSDeleteIstanzaApplEsterna">DeleteIstanzaApplEsterna</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovaistanzeapplesterne.WSTrovaIstanzeApplEsterne">TrovaIstanzeApplEsterne</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.estremiistanzaapplesterna.WSEstremiIstanzaApplEsterna">EstremiIstanzaApplEsterna</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovautenti.WSTrovaUtenti">TrovaUtenti</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovagruppi.WSTrovaGruppi">TrovaGruppi</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.addudtofavourite.WSAddUdToFavourite">EstremiXIdentificazioneUD</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.removeudfromfavourite.WSRemoveUdFromFavourite">EstremiXIdentificazioneUD</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.addfoldertofavourite.WSAddFolderToFavourite">EstremiXIdentificazioneFolder</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.removefolderfromfavourite.WSRemoveFolderFromFavourite">EstremiXIdentificazioneFolder</prop>				
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.adduser.WSAddUser">NewUser</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.moduser.WSModUser">ModifyUser</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.deluser.WSDelUser">DelUser</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.notificadocfolder.WSNotificaDocFolder">Notifica</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.addmodprivilegi.WSAddModPrivilegi">IUPrivilegi</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.extractmulti.WSExtractMulti">EstremiXIdentificazioneUD</prop>
+								
+				<!--  WS per SAVA : getPing,getListDocument,getPdfFile  -->  		
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.savagetping.WSSAVAGetPing">EstremiXIdentificazioneClient</prop>
+								
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovainorganigramma.WSTrovaInOrganigramma">TrovaInOrganigramma</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovaclassiftitolario.WSTrovaClassifTitolario">TrovaClassifTitolario</prop>
+				
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.fillmodelwithvalues.WSFillModelWithValues">FillModelWithValues</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovadocpraticaSUA.WSTrovaDocPraticaSUA">Ricerca</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.determina.WSGetDetermina">RequestGetDetermina</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getdatipubblicazioneatto.WSGetDatiPubblicazioneAtto">RequestGetDatiPubblicazioneAtto</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getdatipubblicazioneattoinattach.WSGetDatiPubblicazioneAttoInAttach">RequestGetDatiPubblicazioneAtto</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.getattoperacquisti.WSGetAttoPerAcquisti">RequestGetAttoPerAcquisti</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.ricercaattiperprogettollpp.WSRicercaAttiPerProgettoLLPP">RequestRicercaAttiPerProgettoLLPP</prop>
+				
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.elencapubblicazioni.WSElencaPubblicazioni">RequestElencaPubblicazioni</prop>
+				<prop key="it.eng.auriga.repository2.jaxws.webservices.trovaregistrinumerazione.WSTrovaRegistriNumerazione">TrovaRegistriNumerazione</prop>
+			</props>
+		</property>	
+	</bean>
+	
+	<bean id="WSAddUdConfig" class="it.eng.auriga.repository2.jaxws.webservices.addunitadoc.WSAddUdConfig">
+		<property name="useUniqueSession" value="false" />
+		<property name="visureBPMProcessDefName" value="VisuraUrbanisticaCMMI" />
+		<property name="visureTipoProcesso" value="ordinario" />
+	</bean>			
+</beans>

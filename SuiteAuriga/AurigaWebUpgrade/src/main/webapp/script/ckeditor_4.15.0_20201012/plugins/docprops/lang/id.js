@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+design:"Tampilan",docTitle:"Page Title",docType:"Document Type Heading",docTypeOther:"Other Document Type Heading",label:"Document Properties",margin:"Page Margins",marginBottom:"Bawah",marginLeft:"Kiri",marginRight:"Kanan",marginTop:"Atas",meta:"Meta Tags",metaAuthor:"Penulis",metaCopyright:"Hak Cipta",metaDescription:"Document Description",metaKeywords:"Document Indexing Keywords (comma separated)",other:"Other...",previewHtml:'\x3cp\x3eThis is some \x3cstrong\x3esample text\x3c/strong\x3e. You are using \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e.\x3c/p\x3e',
+title:"Document Properties",txtColor:"Warna Teks",xhtmlDec:"Include XHTML Declarations"});

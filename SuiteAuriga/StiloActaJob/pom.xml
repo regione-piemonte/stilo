@@ -1,0 +1,64 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+  	<parent>
+    	<groupId>it.eng.suiteAuriga</groupId>
+    	<artifactId>SuiteAuriga</artifactId>
+    	<version>1.8.14</version>
+  	</parent>
+  	<artifactId>StiloActaJob</artifactId>
+  	<packaging>pom</packaging>
+  	<name>StiloActaJob</name>
+  	<description>Progetti per job Acta</description>
+  	<profiles>
+		<profile>
+			<id>buildStiloActaEar</id>
+			<properties>
+				<config.res>csi</config.res>
+				<base.url></base.url>
+			</properties>
+			
+			<modules>
+  				<module>StiloActaUtil</module>
+        		<module>StiloActaModel</module>
+        		<module>StiloActaEjb</module>
+        		<module>StiloActaWeb</module>
+        		<module>StiloActaClient</module>
+  			</modules>
+		</profile>
+	</profiles>
+  	
+  	<properties>
+        <handler.mode.excl>jms</handler.mode.excl>
+        <handler.type>queue</handler.type>
+        <slf4j.version>1.7.25</slf4j.version>
+        <cdi.version>2.0</cdi.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>provided</scope>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.enterprise</groupId>
+            <artifactId>cdi-api</artifactId>
+            <scope>provided</scope>
+            <version>${cdi.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

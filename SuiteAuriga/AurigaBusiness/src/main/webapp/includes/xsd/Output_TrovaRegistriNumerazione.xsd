@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2023 sp1 (x64) (http://www.altova.com) by Valentina Martinucci (Municipia SpA) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:complexType name="RegistroNumerazione">
+		<xs:sequence>
+			<xs:element name="Identificativo" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Identificativo</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Descrizione" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Descrizione</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Categoria">
+				<xs:annotation>
+					<xs:documentation>Categoria del registro di registrazione / numerazione; valori ammessi PG=Protocollo Generale; PP=Protocollo Particolare; R=Repertorio; E=Registrazione d'emergenza; A=Altro</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="PG"/>
+						<xs:enumeration value="PP"/>
+						<xs:enumeration value="R"/>
+						<xs:enumeration value="E"/>
+						<xs:enumeration value="A"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="Sigla" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Sigla che identifica i numeri dati nel registro</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Stato">
+				<xs:annotation>
+					<xs:documentation>Stato del registro: aperto o chiuso</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="aperto"/>
+						<xs:enumeration value="chiuso"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="UltimoNumero" type="xs:positiveInteger" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Ultimo numero generato nel registro</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="AnnoUltimoNumero" type="xs:gYear" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Anno dell'ultimo numero generato nel registro (se registro con rinnovo annuale o periodico)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DataOraUltimoNumero" type="xs:dateTime" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Data e ora di generazione ultimo numero</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="TipoDocAmmesso" type="TipoDocumento" minOccurs="0" maxOccurs="unbounded">
+				<xs:annotation>
+					<xs:documentation>Tipologia documentale (ID e nome) che può essere registrata nel registro se ne sono ammesse solo alcune</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="TipoDocumento">
+		<xs:sequence>
+			<xs:element name="CodId" type="xs:string"/>
+			<xs:element name="Descrizione" type="xs:string"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="Lista">
+		<xs:annotation>
+			<xs:documentation>ROOT element dello schema. Lista dei regsitri di numerazione</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="RegistroNumerazione" type="RegistroNumerazione" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+			<xs:attribute name="NroTotaleRecord" use="required">
+				<xs:annotation>
+					<xs:documentation>N.ro totale di record che soddisfano i filtri di ricerca</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:integer">
+						<xs:minInclusive value="0"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<xs:attribute name="NroPagine" type="xs:integer" default="0">
+				<xs:annotation>
+					<xs:documentation>N.ro di pagine in cui sono distribuiti i record che sodisfano i filtri di ricerca (presente nel caso di estrazione pginata)</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

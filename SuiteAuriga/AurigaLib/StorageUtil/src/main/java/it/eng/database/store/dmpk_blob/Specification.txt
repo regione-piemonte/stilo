@@ -1,0 +1,68 @@
+1        package DMPK_BLOB as
+2        
+3        	function GetDocElettronico(
+4        			IdStorageIn			IN		VARCHAR2,			-- (obblig.) Identificativo dello storage in cui recuperare il blob del doc. elettronico da estrarre
+5        			IdDocElettronicoIn		IN		VARCHAR2,			-- (obblig.) Identificativo del doc. elettronico da estrarre
+6        			DocumentoOut			OUT		NOCOPY BLOB,			-- Documento elettronico
+7        			ErrContextOut			OUT		VARCHAR2,			-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+8        			ErrCodeOut				OUT		PLS_INTEGER,		-- N.ro errore di uscita
+9        			ErrMsgOut				OUT 		VARCHAR2)			-- Messaggio d'errore
+10        			return PLS_INTEGER;								-- vale 1 in caso di successo, altrimenti 0
+11        
+12        	function GetDocElettronicoForUpd(
+13        			IdStorageIn			IN		VARCHAR2,			-- (obblig.) Identificativo dello storage in cui recuperare il blob del doc. elettronico da estrarre
+14        			IdDocElettronicoIn		IN		VARCHAR2,				-- (obblig.) Identificativo del doc. elettronico da estrarre e modificare
+15        			DocumentoOut			OUT		NOCOPY BLOB,			-- Puntatore al documento elettronico da caricare
+16        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,	-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+17        															-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+18        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,	-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+19        			ErrContextOut			OUT		VARCHAR2,				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+20        			ErrCodeOut				OUT		PLS_INTEGER,			-- N.ro errore di uscita
+21        			ErrMsgOut				OUT 		VARCHAR2)				-- Messaggio d'errore
+22        			return PLS_INTEGER;									-- vale 1 in caso di successo, altrimenti 0
+23        
+24        	function PutDocElettronico(
+25        			IdStorageIn			IN		VARCHAR2,			-- (obblig.) Identificativo dello storage in cui recuperare il blob del doc. elettronico da estrarre
+26        			DocumentoIn			IN		BLOB,				-- Documento elettronico da caricare (se vuoto il documento viene solo inizializzato ad empty blob)
+27        			CIPartizioneIn			IN		VARCHAR2 DEFAULT NULL,		-- Stringa che indica la partizione in cui va messo il documento elettronico
+28        			IdDocElettronicoOut		OUT		VARCHAR2,				-- Identificativo assgnato al doc. elettronico caricato
+29        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,	-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+30        															-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+31        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,	-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+32        			ErrContextOut			OUT		VARCHAR2,				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+33        			ErrCodeOut				OUT		PLS_INTEGER,			-- N.ro errore di uscita
+34        			ErrMsgOut				OUT 		VARCHAR2)				-- Messaggio d'errore
+35        			return PLS_INTEGER;									-- vale 1 in caso di successo, altrimenti 0
+36        
+37        	function UpdDocElettronico(
+38        			IdStorageIn			IN		VARCHAR2,				-- (obblig.) Identificativo dello storage
+39        			IdDocElettronicoIn		IN		VARCHAR2,				-- (obblig.) Identificativo del doc. elettronico da aggiornare
+40        			DocumentoIn			IN		BLOB,					-- Documento elettronico da salvare su quell'IdDoc
+41        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,		-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+42        														-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+43        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,		-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+44        			ErrContextOut			OUT		VARCHAR2,				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+45        			ErrCodeOut				OUT		PLS_INTEGER,			-- N.ro errore di uscita
+46        			ErrMsgOut				OUT 		VARCHAR2)			-- Messaggio d'errore
+47        			return PLS_INTEGER;									-- vale 1 in caso di successo, altrimenti 0
+48        
+49        	function DeleteDocElettronico(
+50        			IdStorageIn			IN		VARCHAR2,			-- (obblig.) Identificativo dello storage in cui recuperare il blob del doc. elettronico da estrarre
+51        			IdDocElettronicoIn		IN		VARCHAR2,				-- (obblig) Identificativo del doc. elettronico da cancellare
+52        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,	-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+53        															-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+54        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,	-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+55        			ErrContextOut			OUT		VARCHAR2,				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+56        			ErrCodeOut				OUT		PLS_INTEGER,			-- N.ro errore di uscita
+57        			ErrMsgOut				OUT 		VARCHAR2)				-- Messaggio d'errore
+58        			return PLS_INTEGER;									-- vale 1 in caso di successo, altrimenti 0
+59        
+60        	function FindDocElettronico(
+61        			IdStorageIn			IN		VARCHAR2,			-- (obblig.) Identificativo dello storage in cui recuperare il blob del doc. elettronico da estrarre
+62        			IdDocElettronicoIO		IN OUT	VARCHAR2,				-- (obblig) Identificativo del doc. elettronico da verificare se esiste
+63        															-- In output è valorizzato solo se il documento esiste
+64        			ErrContextOut			OUT		VARCHAR2,				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+65        			ErrCodeOut				OUT		PLS_INTEGER,			-- N.ro errore di uscita
+66        			ErrMsgOut				OUT 		VARCHAR2)				-- Messaggio d'errore
+67        			return PLS_INTEGER;									-- vale se tutto OK, 0 in caso di erroreend DMPK_BLOB;
+68        end DMPK_BLOB;

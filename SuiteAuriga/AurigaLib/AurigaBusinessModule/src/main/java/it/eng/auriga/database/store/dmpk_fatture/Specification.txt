@@ -1,0 +1,293 @@
+1        PACKAGE             DMPK_FATTURE AUTHID CURRENT_USER IS
+2        
+3            /********* è il package che si occupa della definizione di tutte le entità legate alla sicurezza (tranne utenti, UO e ruoli) e della loro profilatura ********/
+4        
+5            /****************************************************        INFORMAZIONI GENERALI        *******************************************************/
+6            /************** Argomenti delle stored per il controllo della transazione:                                            *******/
+7            /************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint),                     *******/
+8            /**************                 altrimenti la rollback delle sole modifiche effettuate nella stored                        *******/
+9            /**************                 ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log            *******/
+10            /************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+11            /************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn                 *******/
+12            /************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK                                                 *******/
+13        
+14            /************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0        *******/
+15            /************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:                    *******/
+16            /************** il n.ro è: <0 se errore ORACLE non specificamente gestito                                             *******/
+17            /**************           da 1->1000 errore "grave" (SEVERE_ERROR) gestito                                            *******/
+18            /**************           >1000 errore non grave gestito                                                        *******/
+19            /************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore                            *******/
+20        
+21            /*********** funzione che a fronte del progressivo di trasmissione allo SdI di una fattura restituise ID_UD della fattura e token con cui caricare una ricevuta/notifica della fattura su Auriga******/
+22            function GetIdUDTokenAddFattura(
+23                    ProgrTrasmSdIIn            IN            VARCHAR2,                                        -- Progressivo di trasmissione allo SdI della fattura
+24                    IdUDFatturaOut            OUT            DMT_UNITA_DOC.ID_UD%type,                        -- ID_UD dell'unità documentaria della fattura
+25                    CodIdConnectionTokenOut    OUT            DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,  -- Token di connessione con cui fare la AddDoc di una ricevuta della fattura
+26                    IdDominioOut            OUT            DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,              -- Id. del dominio
+27                    NomeFileOrigOut            OUT            VARCHAR2,            								-- Nome del file originale della fattura
+28                    ErrContextOut            OUT            VARCHAR2,                                        -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+29                    ErrCodeOut                OUT            PLS_INTEGER,                                    -- N.ro errore di uscita
+30                    ErrMsgOut                OUT         	VARCHAR2,                                        -- Messaggio d'errore
+31        			IdTrasmittenteIn	 	 IN				VARCHAR2 DEFAULT NULL,							-- Identificativo dell'intermediario che ha trasmesso la fattura al SdI
+32        																									-- Se non valorizzato viene ricercata una fattura attiva senza IdTrasmittente, altrimenti una fattura passiva inviata dal dato trasmittente
+33                    AnnoFatturaIn			 IN				INTEGER DEFAULT NULL,							-- Anno della fattura (serve se fattura passiva arrivata in un lotto)
+34        			NroFatturaIn			 IN				VARCHAR2 DEFAULT NULL,							-- N° fattura (serve se fattura passiva arrivata in un lotto)
+35        			IdSdIIn					 IN				PLS_INTEGER DEFAULT NULL						-- Id. dello SdI (serve se fattura passiva)
+36        			) return PLS_INTEGER;                                                                     -- (valori 1/0) 1 = successo, 0 = errore
+37        
+38            function GetIdUDTokenAddOrdine(
+39                    ProgrTrasmSdIIn            IN            VARCHAR2,                                        -- Progressivo di trasmissione allo SdI del ordine
+40                    IdOrdineIn               IN            VARCHAR2,                                       -- ID ordine
+41                    IdTrasmittenteIn             IN            VARCHAR2,                                    -- codice nmittente
+42                    DataOrdineIn             IN            DATE,                                            -- data ordine
+43                    IdUDOrdineOut            OUT            DMT_UNITA_DOC.ID_UD%type,                        -- ID_UD dell'unità documentaria del ordine
+44                    CodIdConnectionTokenOut    OUT            DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,  -- Token di connessione con cui fare la AddDoc di una ricevuta della fattura
+45                    IdDominioOut            OUT            DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,              -- Id. del dominio
+46                    NomeFileOrigOut            OUT            VARCHAR2,                                       -- Nome del file originale della fattura
+47                    ErrContextOut            OUT            VARCHAR2,                                        -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+48                    ErrCodeOut                OUT            PLS_INTEGER,                                    -- N.ro errore di uscita
+49                    ErrMsgOut                OUT           VARCHAR2                                       -- Messaggio d'errore
+50              ) return PLS_INTEGER;                                                              -- (valori 1/0) 1 = successo, 0 = errore
+51             
+52            /*******servizio per estrarre il SIPManifest.xml delle ID_UD passate in input (tutte relative allo stesso ID_SP_AOO e stessa applicazione) *******/
+53            function GetSIPListaFatture(
+54                    ListaIdUDFattureIn        IN            CLOB,                                            -- Lista xml con gli ID_UD delle fatture e relative ricevute SdI da mandare in conservazione. Lista conforme a schema LISTA_STD.xsd con una sola colonna contenente ID_UD
+55                    SIPManifestOut            OUT            NOCOPY CLOB,                                    -- SIPManifest.xml da passare al servizio di invio in conservazione
+56                    ErrContextOut            OUT            VARCHAR2,                                        -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+57                    ErrCodeOut                OUT            PLS_INTEGER,                                    -- N.ro errore di uscita
+58                    ErrMsgOut                OUT         VARCHAR2                                        -- Messaggio d'errore
+59                    ) return PLS_INTEGER;                                                                -- (valori 1/0) 1 = successo, 0 = errore
+60        
+61        
+62        
+63          /**** Funzione per ottenere la lista delle fatture referenziate dalla vista DMT_FATTURE ****/
+64        FUNCTION ListaFatture(
+65              CodIdConnectionTokenIn      IN       DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,   -- (obblig). Codice identificativo del token di connessione
+66              TipoReportIn                IN       VARCHAR2,                                        -- 1 FILTRO DI RICERCA
+67              CodApplOwnerIn              IN       DMT_UNITA_DOC.COD_APPL_OWNER%TYPE,               -- 2 FILTRO DI RICERCA
+68              CodIstApplOwnerIn           IN       DMT_DOCUMENTS.COD_IST_APPL_OWNER%TYPE,           -- 3 FILTRO DI RICERCA
+69              ProgrTrasmSdiIn             IN       VARCHAR2,                                        -- 4 FILTRO DI RICERCA
+70              NroFatturaIn                IN       VARCHAR2,                                        -- 5 FILTRO DI RICERCA
+71              AnnoFatturaIn               IN       VARCHAR2,                                        -- 6 FILTRO DI RICERCA
+72              MeseFatturaIn               IN       VARCHAR2,                                        -- 7 FILTRO DI RICERCA
+73              
+74              ------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+75              ColOrderByIO                IN OUT   VARCHAR2,                                        -- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso. Se l'ordinamento è per più colonne queste vanno separate con "," (es: 1; 1,2)
+76                                                                                                    -- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+77                                                                                                    -- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+78              FlgDescOrderByIO            IN OUT   VARCHAR2,                                        -- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+79                                                                                                    -- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+80              FlgSenzaPaginazioneIn       IN       PLS_INTEGER DEFAULT NULL,                        -- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+81              NroPaginaIO                 IN OUT   PLS_INTEGER,                                     -- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+82              BachSizeIO                  IN OUT   PLS_INTEGER,                                     -- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+83                                                                                                    -- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+84              OverFlowLimitIn             IN      PLS_INTEGER DEFAULT NULL,                         -- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+85              FlgSenzaTotIn               IN      PLS_INTEGER DEFAULT NULL,                         -- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+86              NroTotRecOut                OUT     PLS_INTEGER,                                      -- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+87              NroRecInPaginaOut           OUT     PLS_INTEGER,                                      -- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+88                                                                                                    ------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+89              ListaXMLOut                 OUT    CLOB,                                              -- Lista dei possibili valori (XML conforme a schema LISTA_STD.xsd)
+90                                                                                                    --  Ogni valore è un tag Riga che contiene 12 colonne:
+91                                                                                                    --  1 = cod_appl_owner
+92                                                                                                    --  2 = cod_ist_appl_owner
+93                                                                                                    --  3 = id_ud
+94                                                                                                    --  4 = ID_DOC
+95                                                                                                    --  5 = PROGR_TRASM_SDI
+96                                                                                                    --  6 = NRO_FATTURA
+97                                                                                                    --  7 = IMPORTO_FATTURA
+98                                                                                                    --  8 = FATT_DENOM_DEST
+99                                                                                                    --  9 = FATT_COD_IPA_DEST
+100                                                                                                    --  10= COD_STATO_DETT
+101                                                                                                    --  11= ts_last_upd_stato
+102                                                                                                    --  12= MSG_SCARTO
+103                                                                                                    --  13= MSG_ESITO
+104                                                                                                    --  14= FLG_INVIATO_REPORT
+105                                                                                                    --  15= URI
+106                                                                                                    --  16= FLG_ANN
+107                                                                                                    --  17= FATT_LEGALCOMPANY_ODA
+108                                                                                                    --  18= FATT_LEGALADDRESS_ODA, 
+109                                                                                                    --  19= FATT_LEGALZIP_ODA, 
+110                                                                                                    --  20= FATT_LEGALCITY_ODA, 
+111                                                                                                    --  21= FATT_LEGALSTATE_ODA, 
+112                                                                                                    --  22= FATT_INVOICENUMBER_ODA, 
+113                                                                                                    --  23= FATT_NOMEPDF_ODA, 
+114                                                                                                    --  24= FATT_EMISSDATE_ODA, 
+115                                                                                                    --  25= FATT_FROMDATE_ODA,  
+116                                                                                                    --  26= FATT_TODATE_ODA, 
+117                                                                                                    --  27= FATT_TIPODOCUMENTO_ODA, 
+118                                                                                                    --  28= FATT_PAYMENTDUEDATE_ODA, 
+119                                                                                                    --  29= FATT_LEGALCODE_ODA, 
+120                                                                                                    --  30= FATT_BILLCITY_ODA, 
+121                                                                                                    --  31= FATT_BILLADDRESS_ODA, 
+122                                                                                                    --  32= FATT_BILLZIP_ODA, 
+123                                                                                                    --  33= FATT_BILLCITY_ODA, 
+124                                                                                                    --  34= FATT_BILLSTATE_ODA, 
+125                                                                                                    --  35= FATT_CID_ODA, 
+126                                                                                                    --  36= FATT_BA_ODA, 
+127                                                                                                    --  37= FATT_INVOICENUMBERABP_ODA 
+128                                                                                                    --  38= 'ITALIA'
+129                                                                                                    --  39= 'ITALIA'
+130              ErrContextOut              OUT    VARCHAR2,                                           -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+131              ErrCodeOut                 OUT    PLS_INTEGER,                                        -- N.ro errore di uscita
+132              ErrMsgOut                  OUT    VARCHAR2)                                           -- Messaggio d'errore
+133              RETURN PLS_INTEGER;                                                                   -- Vale 1 se tutto è andato a buon fine, altrimenti 0
+134        
+135          /**** Funzione per aggiornare il campo FLG_INVIATO_REPORT ****/
+136          function UpdFlgInviatoReport(
+137              CodIdConnectionTokenIn      IN      DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,   -- (obblig). Codice identificativo del token di connessione
+138              IdUserLavoroIn              IN      DMT_USERS.ID_USER%type DEFAULT NULL,             -- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+139              ListaFattureIn                  IN            CLOB,                                                                   -- Lista xml con le fatture che sono state inviate. Lista conforme a schema LISTA_STD.xsd con una sola colonna contenente :
+140                                                                                                   -- 1)  cod_appl_owner
+141                                                                                                   -- 2)  cod_ist_appl_owner
+142                                                                                                   -- 3)  id_ud
+143                                                                                                   -- 4)  id_doc
+144                                                                                                   -- 5)  PROGR_TRASM_SDI
+145                                                                                                   -- 6)  NRO_FATTURA
+146                                                                                                   -- 7)  IMPORTO_FATTURA
+147                                                                                                   -- 8)  FATT_DENOM_DES
+148                                                                                                   -- 9)  FATT_COD_IPA_DEST
+149                                                                                                   -- 10) COD_STATO_DETT
+150                                                                                                   -- 11) ts_last_upd_stato
+151                                                                                                   -- 12) MSG_SCARTO
+152                                                                                                   -- 13) MSG_ESITO
+153                                                                                                   -- 14) FLG_INVIATO_REPORT
+154                                                                                                   -- 15) URI
+155                                                                                                   -- 16) flg_ann
+156        
+157              FlgRollBckFullIn                IN           PLS_INTEGER DEFAULT NULL,                               -- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+158                                                                                                                                   -- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+159                    FlgAutoCommitIn                  IN           PLS_INTEGER DEFAULT NULL,                               -- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+160              ErrContextOut                      OUT            VARCHAR2,                                                             -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+161                    ErrCodeOut                          OUT            PLS_INTEGER,                                                       -- N.ro errore di uscita
+162                    ErrMsgOut                            OUT         VARCHAR2                                                             -- Messaggio d'errore
+163                    ) return PLS_INTEGER;                                                                                                 -- (valori 1/0) 1 = successo, 0 = errore
+164        
+165        
+166        /**** Funzione per ottenere la lista dei record della tabella T_FILE_LETTI_DA_SFTP ****/
+167           FUNCTION ListaJobCaricamentiFile(
+168                                               CodIdConnectionTokenIn           IN        DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,      -- (obblig). Codice identificativo del token di connessione
+169                                         IdUserLavoroIn                IN     DMT_USERS.ID_USER%type DEFAULT NULL,                -- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+170        
+171                                                         -- Filtri di ricerca
+172                                               TipoFileIn                        IN      T_FILE_LETTI_DA_SFTP.TIPO_FILE%TYPE,               -- Tipo file
+173                                                         EsitoIn                       IN      T_FILE_LETTI_DA_SFTP.ESITO%TYPE,                   -- Esito
+174                                           DataElaborazioneDaIn          IN      T_FILE_LETTI_DA_SFTP.TS_ELABORAZIONE%TYPE,         -- Data Elaborazione ( range DA )
+175                                           DataElaborazioneAIn           IN      T_FILE_LETTI_DA_SFTP.TS_ELABORAZIONE%TYPE,         -- Data Elaborazione ( range A  )
+176        
+177                                               ------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+178                                               ColOrderByIO                       IN OUT    VARCHAR2,                                          -- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso. Se l'ordinamento è per più colonne queste vanno separate con "," (es: 1; 1,2)
+179                                                                                                                                                    -- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+180                                                                                                                                                    -- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+181                                               FlgDescOrderByIO                 IN OUT    VARCHAR2,                                      -- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+182                                                                                                                                                     -- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+183                                                FlgSenzaPaginazioneIn            IN       PLS_INTEGER DEFAULT NULL,                -- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+184                                               NroPaginaIO                       IN OUT    PLS_INTEGER,                              -- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+185                                                BachSizeIO                           IN OUT    PLS_INTEGER,                                    -- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+186        
+187                                                                                                                                                    -- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+188                                               OverFlowLimitIn                   IN        PLS_INTEGER DEFAULT NULL,                      -- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+189                                                FlgSenzaTotIn                     IN        PLS_INTEGER DEFAULT NULL,                      -- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+190                                               NroTotRecOut                       OUT    PLS_INTEGER,                                      -- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+191                                              NroRecInPaginaOut                OUT  PLS_INTEGER,                                 -- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+192        
+193                                                ------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+194        
+195                                               ListaXMLOut                         OUT    CLOB,                                                  -- Lista dei possibili valori (XML conforme a schema LISTA_STD.xsd)
+196                                                                                                                                                    --  Ogni valore è un tag Riga che contiene 10 colonne:
+197                                                                                                                                                     --  1 = id_sp_aoo
+198                                                                                                                    --  2 = nome_file_orig
+199                                                                                                                                                     --  3 = flg_quadratura
+200                                                                                                                                                     --  4 = esito
+201                                                                                                                                                    --  5 = messaggio
+202                                                                                                                                                    --  6 = ts_elaborazione
+203                                                                                                                                                     --  7 = id_ud
+204                                                                                                                                                     --  8 = cliente
+205                                                                                                                                                     --  9 = tipo_file
+206                                                                                                                    -- 10 = des_ogg                  : descrizione oggetto della dmt_documents
+207                                                                                                                    -- 11 = esito_operazione_dett
+208        
+209                                               ErrContextOut                     OUT    VARCHAR2,                                            -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+210                                               ErrCodeOut                           OUT    PLS_INTEGER,                                      -- N.ro errore di uscita
+211                                               ErrMsgOut                           OUT     VARCHAR2)                                            -- Messaggio d'errore
+212                           RETURN PLS_INTEGER;
+213        
+214        /******* restituisce i file di una fatturaPA e/o ricevute collegate, indicata attraverso il suo ID_UD 		*********/
+215        	/******* i dati sono restituiti come XML secondo schema SezioneCache.xsd.									*********/
+216        	/******* può restituire solo i file della fattura o solo le ricevute SDICollegate							*********/
+217        	function LoadFileOrdinePA(
+218        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+219        																					-- (obblig). Codice identificativo del token di connessione
+220        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+221        			IdUDIn   					IN    	DMT_UNITA_DOC.ID_UD%type, 			-- (obblig.) Identificativo dell'unità documentaria di cui caricare il dettaglio
+222        			FlgFileFatturaIn			IN		PLS_INTEGER DEFAULT 1,				-- (valori 1/0) Se 1 sono restituiti i file del ordine (ordinePA in xml e suoi eventuali allegati)
+223        			FlgRicevuteIn				IN		PLS_INTEGER DEFAULT 1,				-- (valori 1/0) Se 1 sono restituiti i file delle ricevute inviate da SdI a fronte del ordine
+224        			FlgOrdiniIn				IN		PLS_INTEGER DEFAULT 1,				-- (valori 1/0) Se 1 sono restituiti i file degli ordini collegati a fronte dell'ordine
+225        			DatiUDXMLOut				OUT		NOCOPY CLOB,						-- Dati dei file (XML conforme a schema SezioneCache.xsd), con l'eccezione degli attributi custom che sono restituiti nell'argomento AttributiAddOut
+226        																					-- I dati restituiti corrispondono ai seguenti tag Variabile:
+227        																					-- quelli del file primario con la ordinePA:
+228        																					--  #IdDocPrimario
+229        																					--	#FilePrimario.NroLastVisibleVer
+230        																					--	#FilePrimario.NroLastVer
+231        																					--	#FilePrimario.DisplayFilename
+232        																					--	#FilePrimario.URI
+233        																					--	#FilePrimario.URI_VerNonFirmata
+234        																					--	#FilePrimario.Dimensione
+235        																					--	#FilePrimario.FlgFirmato (valori 1/0)
+236        																					--	#FilePrimario.Impronta
+237        																					--	#FilePrimario.AlgoritmoImpronta
+238        																					--	#FilePrimario.EncodingImpronta (hex o base64)
+239        																					--	#FilePrimario.Mimetype
+240        																					--	#FilePrimario.FlgConvertibilePdf (valori 1/0)
+241        																					-- @Allegati, lista con le seguenti colonne:
+242        																					--        1: ID_DOC
+243        																					--        2: Id. del tipo documento
+244        																					--        3: Nome del tipo documento
+245        																					--        4: Descrizione
+246        																					--        5: N.ro ultima versione visibile all'utente
+247        																					--        6: Nro Ultima versione valida
+248        																					--        7: Nome file
+249        																					--        8: URI
+250        																					--        9: Dimensione (in bytes)
+251        																					--        10: Flag file firmato digitalmente (valori 1/0)
+252        																					--        11: mimetype
+253        																					--        12: Flag di formato pdf o convertibile in pdf (valori 1/0)
+254        																					--        13: impronta
+255        																					--        14: Algortitmo impronta
+256        																					--        14: Encoding impronta (hex o base64)
+257        																					-- @RicevuteSdI, lista con le seguenti colonne:
+258        																					--        1: ID_DOC
+259        																					--        2: tipo di ricevuta
+260        																					--        3: data e ora della ricevuta (formato dato dal parametro FMT_STD_TIMESTAMP)
+261        																					--        4: descrizione
+262        																					--        5: nome file
+263        																					--        6: URI
+264        																					--        7: Dimensione (in bytes)
+265        																					--        8: Flag file firmato digitalmente (valori 1/0)
+266        																					--        9: Flag di formato pdf o convertibile in pdf (valori 1/0)
+267        																					--        10: mimetype
+268        																					--        11: ID_FORMATO su Auriga
+269        																					--        12: impronta
+270        																					--        13: Algortitmo impronta
+271        																					--        14: Encoding impronta (hex o base64)
+272        																					-- @Ordini, lista con le seguenti colonne:
+273        																					--        1: ID_DOC
+274        																					--        2: Id. del tipo documento
+275        																					--        3: Nome del tipo documento
+276        																					--        4: Descrizione
+277        																					--        5: N.ro ultima versione visibile all'utente
+278        																					--        6: Nro Ultima versione valida
+279        																					--        7: Nome file
+280        																					--        8: URI
+281        																					--        9: Dimensione (in bytes)
+282        																					--        10: Flag file firmato digitalmente (valori 1/0)
+283        																					--        11: mimetype
+284        																					--        12: Flag di formato pdf o convertibile in pdf (valori 1/0)
+285        																					--        13: impronta
+286        																					--        14: Algortitmo impronta
+287        																					--        14: Encoding impronta (hex o base64)          z
+288        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+289        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+290        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+291        			return PLS_INTEGER;													-- 1 in caso di successo, 0 in caso di errore
+292        	                   
+293        end DMPK_FATTURE;

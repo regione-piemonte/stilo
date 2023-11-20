@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+docTypeOther:"Iný typ záhlavia dokumentu",label:"Vlastnosti dokumentu",margin:"Okraje stránky (margins)",marginBottom:"Dolný",marginLeft:"Ľavý",marginRight:"Pravý",marginTop:"Horný",meta:"Meta značky",metaAuthor:"Autor",metaCopyright:"Autorské práva (copyright)",metaDescription:"Popis dokumentu",metaKeywords:"Indexované kľúčové slová dokumentu (oddelené čiarkou)",other:"Iný...",previewHtml:'\x3cp\x3eToto je nejaký \x3cstrong\x3eukážkový text\x3c/strong\x3e. Používate \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e.\x3c/p\x3e',
+title:"Vlastnosti dokumentu",txtColor:"Farba textu",xhtmlDec:"Vložiť deklarácie XHTML"});

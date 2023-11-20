@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+docTypeOther:"Бусад баримт бичгийн төрөл Heading",label:"Баримт бичиг шинж чанар",margin:"Хуудасны захын зай",marginBottom:"Доод тал",marginLeft:"Зүүн тал",marginRight:"Баруун тал",marginTop:"Дээд тал",meta:"Meta өгөгдөл",metaAuthor:"Зохиогч",metaCopyright:"Зохиогчийн эрх",metaDescription:"Баримт бичгийн тайлбар",metaKeywords:"Баримт бичгийн индекс түлхүүр үг (таслалаар тусгаарлагдана)",other:"\x3cother\x3e",previewHtml:'\x3cp\x3eThis is some \x3cstrong\x3esample text\x3c/strong\x3e. You are using \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e.\x3c/p\x3e',
+title:"Баримт бичиг шинж чанар",txtColor:"Фонтны өнгө",xhtmlDec:"XHTML-ийн мэдээллийг агуулах"});

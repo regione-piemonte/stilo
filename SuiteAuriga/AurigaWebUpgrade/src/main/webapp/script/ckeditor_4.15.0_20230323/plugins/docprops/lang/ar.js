@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+docTypeOther:"ترويسة نوع  صفحة أخرى",label:"خصائص الصفحة",margin:"هوامش الصفحة",marginBottom:"سفلي",marginLeft:"أيسر",marginRight:"أيمن",marginTop:"علوي",meta:"المعرّفات الرأسية",metaAuthor:"الكاتب",metaCopyright:"المالك",metaDescription:"وصف الصفحة",metaKeywords:"الكلمات الأساسية (مفصولة بفواصل)َ",other:"\x3cأخرى\x3e",previewHtml:'\x3cp\x3eهذه مجرد \x3cstrong\x3eكتابة بسيطة\x3c/strong\x3eمن أجل التمثيل. \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e.\x3c/p\x3e',title:"خصائص الصفحة",txtColor:"لون النص",
+xhtmlDec:"تضمين   إعلانات لغة XHTMLَ"});

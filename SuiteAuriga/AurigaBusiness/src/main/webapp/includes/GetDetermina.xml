@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+	<RequestGetDetermina>
+	  <IDDetermina>
+		<TipoNumerazione>D</TipoNumerazione>
+		<Anno>1992</Anno>
+		<Numero>9551</Numero>
+	  </IDDetermina>
+	  <SceltaFileRichiesti>
+    		<DispositivoAtto>false</DispositivoAtto>
+    		<VistoRegolaritaContabile>1</VistoRegolaritaContabile>
+    		<AllegatiParteIntegranteSeparati>false</AllegatiParteIntegranteSeparati>
+    		<AllegatiNonParteIntegrante>false</AllegatiNonParteIntegrante>
+  	  </SceltaFileRichiesti>
+	</RequestGetDetermina>

@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+label:"Dokumentaj Atributoj",margin:"Paĝaj Marĝenoj",marginBottom:"Malsupra",marginLeft:"Maldekstra",marginRight:"Dekstra",marginTop:"Supra",meta:"Metadatenoj",metaAuthor:"Verkinto",metaCopyright:"Kopirajto",metaDescription:"Dokumenta Priskribo",metaKeywords:"Ŝlosilvortoj de la Dokumento (apartigitaj de komoj)",other:"\x3calia\x3e",previewHtml:'\x3cp\x3eTio estas \x3cstrong\x3esampla teksto\x3c/strong\x3e. Vi estas uzanta \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e.\x3c/p\x3e',title:"Dokumentaj Atributoj",
+txtColor:"Teksta Koloro",xhtmlDec:"Inkluzivi XHTML Deklarojn"});

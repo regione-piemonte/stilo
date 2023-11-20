@@ -1,0 +1,333 @@
+<?xml version="1.0"?>
+<xs:schema xmlns="http:/www.csi.it/atm2bu/stiloatti/xmlatti" 
+xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+targetNamespace="http:/www.csi.it/atm2bu/stiloatti/xmlatti"  elementFormDefault="qualified" attributeFormDefault="unqualified">
+	
+	<xs:element name="ModificaStatoDetermina">
+		<xs:complexType>	
+			<xs:sequence>
+				<xs:element name="chiaveDetermina" type="ChiaveDetermina" />
+				<xs:element name="nuovoStato" >
+					<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="CHIUSO"/>
+					</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>	
+	</xs:element>
+		
+	<xs:element name="NuovaDetermina">
+		<xs:complexType>	
+			<xs:sequence>
+				<xs:element name="determina" type="Determina" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:complexType name="Determina">
+		<xs:sequence>
+			<xs:element name="chiaveDetermina" type="ChiaveDetermina" />
+			<xs:element name="testo" type="DetTesto" />
+			<xs:element name="allegati" type="DetAllegato" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="allegatiCartacei" type="DetAllegatoCartaceo" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="detVariate" type="DetVariata" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="delibereRiferimento" type="DeliberaRiferimento" minOccurs="0" maxOccurs="unbounded"/>
+		
+			<xs:element name="identificativo" >
+				<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:maxLength value="8"/>
+				</xs:restriction>
+				</xs:simpleType>
+			</xs:element>			
+			<xs:element name="oggetto" >
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="420"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="codiceSettore">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="24"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="numeroLegislatura">
+				<xs:simpleType>
+					<xs:restriction base="xs:int">
+						<xs:pattern value="\d{1,3}"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="dataDetermina" type="xs:date" />
+			<xs:element name="matricolaUtente" >
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="10"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			
+			<xs:element name="flagImpegnoSpesa" >
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="0"/>
+						<xs:enumeration value="A"/>
+						<xs:enumeration value="C"/>
+						<xs:enumeration value="G"/>
+						<xs:enumeration value="I"/>
+						<xs:enumeration value="M"/>
+						<xs:enumeration value="N"/>
+						<xs:enumeration value="P"/>
+						<xs:enumeration value="R"/>
+						<xs:enumeration value="X"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>	
+					
+			<xs:element name="sensibile" type="FlagNumerico" />	
+			<xs:element name="dataCancellazione" type="xs:date" minOccurs="0" />	
+			<xs:element name="dataEstrazione" type="xs:date" minOccurs="0" />		
+			<xs:element name="dataVisto" type="xs:date" minOccurs="0" />				
+			<xs:element name="flgPubblAll" type="FlagNumerico" minOccurs="0" />		
+			<xs:element name="personale" type="FlagNumerico" />		
+			<xs:element name="codPubblicazione" minOccurs="0" >
+				<xs:simpleType>
+					<xs:restriction base="xs:int">
+						<xs:enumeration value="1"/>
+						<xs:enumeration value="2"/>
+						<xs:enumeration value="3"/>
+						<xs:enumeration value="4"/>
+						<xs:enumeration value="5"/>
+						<xs:enumeration value="6"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>			
+			<xs:element name="notePubblicazione" minOccurs="0" >
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="500"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="urgenza" type="FlagNumerico" minOccurs="0" />
+			<xs:element name="dataValidazione" type="xs:date" minOccurs="0" />		
+			<xs:element name="valutazioniConcPersone" type="FlagNumerico" />
+			<xs:element name="avvenutoImpegno" type="FlagNumerico" minOccurs="0" />
+			<xs:element name="pubblicazioneNotiziario" type="FlagNumerico"/>
+			<xs:element name="referenteNotiziario" minOccurs="0" >
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="10"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>			
+			<xs:element name="noteNotiziario" minOccurs="0" >
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="500"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="modificaDiImpegno" type="FlagNumerico" minOccurs="0" />				
+			<xs:element name="impegniMultipli" type="FlagNumerico" minOccurs="0" />				
+			<xs:element name="impegnoDelegato" type="FlagNumerico" minOccurs="0" />				
+			<xs:element name="dirigenteResponsabile">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="100"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="trasparenza">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="180"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="importo" minOccurs="0" >
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="150"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	
+	<xs:complexType name="ChiaveDetermina">
+		<xs:attribute name="anno" >
+			<xs:simpleType>
+				<xs:restriction base="xs:int">
+					<xs:pattern value="\d{4}"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="numDeterm" >
+			<xs:simpleType>
+				<xs:restriction base="xs:int">
+					<xs:pattern value="\d{1,5}"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="codDir" >
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:pattern value="[\w.-]{2,10}"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+
+	</xs:complexType>	
+
+	<xs:complexType name="DetTesto">
+		<xs:sequence>
+			<xs:element name="nomeFile">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+					<xs:maxLength value="255"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="uuidFile" type="UUIDFile" />
+		</xs:sequence>
+	</xs:complexType>
+	
+	<xs:complexType name="DetAllegato">
+		<xs:sequence>
+			<xs:element name="nomeFile">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+					<xs:maxLength value="255"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="progressivo" type="xs:int" minOccurs="0"/>
+			<xs:element name="uuidFile" type="UUIDFile" />
+			<xs:element name="estensione" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="D"/>
+						<xs:enumeration value="E"/>
+						<xs:enumeration value="W"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>			
+			<xs:element name="tipo" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="0"/>
+						<xs:enumeration value="D"/>
+						<xs:enumeration value="E"/>
+						<xs:enumeration value="I"/>
+						<xs:enumeration value="P"/>
+						<xs:enumeration value="T"/>
+						<xs:enumeration value="W"/>
+						<xs:enumeration value="Z"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="pubblicaBollettino" type="FlagNumerico" />
+		</xs:sequence>
+	</xs:complexType>
+	
+	<xs:complexType name="DetAllegatoCartaceo">
+		<xs:sequence>
+			<xs:element name="numero">
+				<xs:simpleType>
+					<xs:restriction base="xs:int">
+						<xs:pattern value="\d{1,3}"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="nome">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+					<xs:maxLength value="255"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="descrizione" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+					<xs:maxLength value="500"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="pubblicaBollettino" type="FlagNumerico" />
+		</xs:sequence>
+	</xs:complexType>
+	
+	<xs:complexType name="DetVariata">
+		<xs:sequence>
+			<xs:element name="chiaveDetermVariata" type="ChiaveDetermina" />
+			<xs:element name="identificativo">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+					<xs:maxLength value="8"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>			
+			<xs:element name="codiceVariazione">
+				<xs:simpleType>
+					<xs:restriction base="xs:int">
+						<xs:enumeration value="0"/>
+						<xs:enumeration value="1"/>
+						<xs:enumeration value="2"/>
+						<xs:enumeration value="3"/>
+						<xs:enumeration value="4"/>
+						<xs:enumeration value="5"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	
+	<xs:complexType name="DeliberaRiferimento">
+		<xs:sequence>
+			<xs:element name="identificativo">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="8"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="numeroDelibera">
+				<xs:simpleType>
+					<xs:restriction base="xs:int">
+						<xs:pattern value="\d{1,5}"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="dataDelibera" type="xs:date"/>
+		</xs:sequence>
+	</xs:complexType>	
+	
+	
+	<!-- tipi elementari-->
+	<xs:simpleType name="UUIDFile" >
+		<xs:annotation>
+		  <xs:documentation xml:lang="it">
+		  Il campo è composta da annoDeremina-numeroDetermina-codiceDirezione-MD5 (32 bit) del file riferito
+		  </xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+						<xs:maxLength value="255"/>
+		</xs:restriction>
+	</xs:simpleType>
+	
+	<xs:simpleType name="FlagNumerico">
+		<xs:restriction base="xs:int">
+			<xs:enumeration value="0"/>
+			<xs:enumeration value="1"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+</xs:schema>
+
+

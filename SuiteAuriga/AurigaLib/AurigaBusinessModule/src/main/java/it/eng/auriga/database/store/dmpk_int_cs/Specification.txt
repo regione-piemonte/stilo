@@ -1,0 +1,519 @@
+1        PACKAGE             DMPK_INT_CS AUTHID CURRENT_USER IS
+2        
+3        	/*******servizio per estrarre il SIPManifest.xml delle ID_UD passate in input (tutte relative allo stesso ID_SP_AOO e stessa applicazione) *******/
+4            function GetSIPListaUD(
+5                    ListaIdUDIn       		 IN            CLOB,                                             -- Lista xml con gli ID_UD delle unità documentarie da mandare in conservazione. Lista conforme a schema LISTA_STD.xsd con una sola colonna contenente ID_UD
+6                    SIPManifestOut            OUT            NOCOPY CLOB,                                    -- SIPManifest.xml da passare al servizio di invio in conservazione
+7                    ErrContextOut            OUT            VARCHAR2,                                        -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+8                    ErrCodeOut                OUT            PLS_INTEGER,                                    -- N.ro errore di uscita
+9                    ErrMsgOut                OUT         VARCHAR2                                        	 -- Messaggio d'errore
+10                    ) return PLS_INTEGER;                                                                	 -- (valori 1/0) 1 = successo, 0 = errore
+11        
+12        	------ funzione per ottenere dall'apposita coda il prossimo lotto di item da inviare in conservazione 
+13        	------ restituisce: 1) i dati di versatore e conservatore necessari a preparare e inviare il Pacchetto di Versamento (PdV) 
+14        	------				2) gli estremi degli Item da mettere nel PdV
+15        	------ la funzione riserva automaticamente gli item restituiti al thread chiamante
+16        	function GetItemXPdV(
+17        			IdEntryPointVersOut			OUT			DMT_ANAG_ENTRYPOINT_VS_CONSERV.ID_ENTRYPOINT_VERS%type,
+18        			IdSpAOOOut					OUT			DMT_ANAG_ENTRYPOINT_VS_CONSERV.ID_SP_AOO%type,
+19        			CodApplicazioneOut			OUT			DMT_ANAG_ENTRYPOINT_VS_CONSERV.CI_APPLICAZIONE%type,
+20        			CodIstApplicazioneOut		OUT			DMT_ANAG_ENTRYPOINT_VS_CONSERV.CI_ISTANZA_APPLICAZIONE%type,
+21        			IdSistConservazioneOut		OUT			DMT_ANAG_ENTRYPOINT_VS_CONSERV.ID_SIST_CONSERV%type,
+22        			DettEntryPointVersOut		OUT			DMT_ANAG_ENTRYPOINT_VS_CONSERV.NOTE%type,
+23        			ItemListOut					OUT	NOCOPY CLOB,												-- Lista XML (secondo schema ListaSTD.xsd) con gli item da mettere nel PdV
+24        																										-- Ogni item è un tag Riga che contiene le colonne:
+25        																										-- 1) Tipo dell'item (U = UD, D = Documento, F = Folder)
+26        																										-- 2) Id. - ID_UD, ID_DOC, ID_FOLDER - dell'item
+27        																										-- 3) Tipo di operazione da chiedere al conservatore sull'item: I = Insert, U = Update, D = Delete
+28        			NroItemOut					OUT			PLS_INTEGER,										-- N.ro di item restituiti in ItemListOut	
+29        			IdItemGroupOut				OUT			DMT_ITEM_DA_INVIARE_CONSERV.ID_GRUPPO_ITEM%type,	-- Id. provvisorio assegnato all'insieme di item restituiti in ItemListOut
+30        																										-- E' valorizzato solo se NroItemOut >0
+31        			ErrContextOut            	OUT        	VARCHAR2,                                      		-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+32                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    	-- N.ro errore di uscita
+33                    ErrMsgOut                	OUT			VARCHAR2                                        	-- Messaggio d'errore
+34                    ) return PLS_INTEGER;                                                                		-- (valori 1/0) 1 = successo, 0 = errore
+35        
+36        	---- funzione per ottenere dall'apposita coda i dati del prossimo PdV da inviare in conservazione 
+37        	------ restituisce: 1) i dati di versatore e conservatore necessari a preparare e inviare il Pacchetto di Versamento (PdV) 
+38        	------				2) XML con i dati relativi a tutto il PdV (es quelli da mettere nel file .inf di Postel)
+39        	------				3) File indice del PdV con i metadati dei documenti, già nella forma richiesta dal conservatore
+40        	------				4) XML con lista con URI dei file dei documenti da mettere nel PdV + nomi e path con cui metterli nel PdV
+41        	function PreparaPdV(
+42        			IdEntryPointVersOut			OUT			DMT_ANAG_ENTRYPOINT_VS_CONSERV.ID_ENTRYPOINT_VERS%type,
+43        			IdSpAOOOut					OUT			DMT_ANAG_ENTRYPOINT_VS_CONSERV.ID_SP_AOO%type,
+44        			CodApplicazioneOut			OUT			DMT_ANAG_ENTRYPOINT_VS_CONSERV.CI_APPLICAZIONE%type,
+45        			CodIstApplicazioneOut		OUT			DMT_ANAG_ENTRYPOINT_VS_CONSERV.CI_ISTANZA_APPLICAZIONE%type,
+46        			IdSistConservazioneOut		OUT			DMT_ANAG_ENTRYPOINT_VS_CONSERV.ID_SIST_CONSERV%type,
+47        			DettEntryPointVersOut		OUT			DMT_ANAG_ENTRYPOINT_VS_CONSERV.NOTE%type,
+48        			XMLDatiGenPdVOut			OUT			NOCOPY CLOB,										-- XML SezioneCache con i dati generali del PdV.
+49        																										-- E' valorizzato solo se NroItemOut >0
+50        																										-- Può contenere le variabili:
+51        																										-- NomeFisicoPdV
+52        																										-- IdLogicoPdV
+53        																										-- NomeLogicoPdV
+54        																										-- NomeClasseDocumentale
+55        																										-- IDVersatorePerConservatore
+56        																										-- ConserveFile.policy_id da passare al conservatore INFOCERT nel file conserve.xml
+57        																										-- ConserveFile.path da passare al conservatore INFOCERT nel file conserve.xml
+58        			XMLIndicePdVOut				OUT			NOCOPY CLOB,										-- XML indice/manifest da mettere nel PdV. E' già nella forma finale attesa dal conservatore
+59        																										-- E' valorizzato solo se NroItemOut >0
+60        			ListaFilePdVOut				OUT			NOCOPY CLOB,										-- XML ListaStd con la lista dei file da conservare, da mettere nel PdV
+61        																										-- E' valorizzato solo se NroItemOut >0
+62        																										-- Contiene le colonne:
+63        																										-- 1) URI in notazione di storageUtil
+64        																										-- 2) Nome con cui mettere il file nel PdV
+65        																										-- 3) Eventuale path con cui mettere il file nel PdV (se non va nella root dello zip corrispondente al PdV)
+66        																										-- 4) Mimetype del file
+67        																										-- 5) Impronta del file
+68        																										-- 6) Algoritmo impronta
+69        																										-- 7) Encoding impronta
+70        			NroItemOut					OUT			PLS_INTEGER,										-- N.ro di item messi nel PdV.
+71        																										-- Se è 0 significa che NON c'è PdV da creare
+72        			IdItemGroupOut				OUT			DMT_ITEM_DA_INVIARE_CONSERV.ID_GRUPPO_ITEM%type,	-- Id. provvisorio assegnato all'insieme di item restituiti in ItemListOut
+73        																										-- E' valorizzato solo se NroItemOut >0
+74        			ErrContextOut            	OUT        	VARCHAR2,                                      		-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+75                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    	-- N.ro errore di uscita
+76                    ErrMsgOut                	OUT			VARCHAR2,                                        	-- Messaggio d'errore
+77        			CodPBProduttoreIn			IN			VARCHAR2 DEFAULT NULL,								-- Se valorizzato genera i PdV relativi solo al processo banca il cui codice è qui indicato
+78                    IdSistConservazioneIn		IN			DMT_ANAG_ENTRYPOINT_VS_CONSERV.ID_SIST_CONSERV%type DEFAULT NULL
+79        																										-- Se valorizzato genera solo i PdV da mandare al conservatore indicato 
+80        			) return PLS_INTEGER;                                                                		-- (valori 1/0) 1 = successo, 0 = errore
+81        
+82        
+83        	---------funzione per ottenere i dati di un item da inserire in un pacchetto di versamento
+84        	---------i dati sono in impacchettati in forma standard, indipendente dal conservatore: 
+85        	---------è a carico del job di invio al conservatore trasformarli del formato specifico del conservatore
+86        	function GetItemDataXPdV(
+87        			TipoItemIn					IN			DMT_ITEM_DA_INVIARE_CONSERV.TIPO_ITEM%type,						-- (obblig.) Tipo dell'item (U, D, F)
+88        			IdItemIn					IN			DMT_ITEM_DA_INVIARE_CONSERV.ID_ITEM%type,						-- (obblig.) Id. dell'item
+89        			ItemDataXMLOut				OUT			NOCOPY CLOB,													-- XML conforme allo schema SezioneCache.xsd con i dati dell'item da passare al conservatore
+90        																													-- I dati sono in impacchettati in forma standard, indipendente dal conservatore: è a carico del job di invio al conservatore trasformarli del formato specifico del conservatore
+91        																													-- Le date senza ora sono formattate come xs:date, le date con ora come xs:datetime, i numeri non hanno separatore delle migliaia e hanno la , come separatore dei decimali
+92        																													-- Tra le variabili previste:
+93        																													-- IDUnivoco : id. univoco dell'item anche non parlante
+94        																													-- IDParlante : id. parlante dell'item
+95        																													-- NomeTipologia (nome del tipo di UD se item di tipo UD)
+96        																													-- NomeTipoDocPrincipale (se item di tipo UD)
+97        																													-- Intitolazione : descrizione breve dell'item
+98        																													-- RegistrazionePrincipale.Registro
+99        																													-- RegistrazionePrincipale.Anno
+100        																													-- RegistrazionePrincipale.Numero (solo il n.ro senza anno o parti alfanumeriche)
+101        																													-- RegistrazionePrincipale.Data (nel formato xs:date)
+102        																													-- RegistrazioneProtocollo.Anno
+103        																													-- RegistrazioneProtocollo.Numero (solo il n.ro senza anno o parti alfanumeriche)
+104        																													-- RegistrazioneProtocollo.Data (nel formato xs:date)
+105        																													-- RegistrazioneRUF.Anno
+106        																													-- RegistrazioneRUF.Numero (solo il n.ro senza anno o parti alfanumeriche)
+107        																													-- RegistrazioneRUF.Data (nel formato xs:date)
+108        																													-- RegistrazioneRegistroIVA.Registro
+109        																													-- RegistrazioneRegistroIVA.Anno
+110        																													-- RegistrazioneRegistroIVA.Numero (solo il n.ro senza anno o parti alfanumeriche)
+111        																													-- RegistrazioneRegistroIVA.Data (nel formato xs:date)
+112        																													-- RegistrazioneSIB.Anno (per le fatture gestite da sistemi DataManagement)
+113        																													-- RegistrazioneSIB.Numero (solo il n.ro senza anno o parti alfanumeriche) (per le fatture gestite da sistemi DataManagement)
+114        																													-- RegistrazioneSIB.Data (nel formato xs:date) (per le fatture gestite da sistemi DataManagement)
+115        																													-- RegistrazioneRepertorio.Registro
+116        																													-- RegistrazioneRepertorio.Anno
+117        																													-- RegistrazioneRepertorio.Numero (solo il n.ro senza anno o parti alfanumeriche)
+118        																													-- RegistrazioneRepertorio.Data (nel formato xs:date)
+119        																													-- RegistrazioneEmergenza.Registro
+120        																													-- RegistrazioneEmergenza.Anno
+121        																													-- RegistrazioneEmergenza.Numero (solo il n.ro senza anno o parti alfanumeriche)
+122        																													-- RegistrazioneEmergenza.Data (nel formato xs:date)
+123        																													-- DataEmissione (nel formato xs:date) (valorizzata per documenti contabli/fiscalmente rilevanti)
+124        																													-- NumeroEmissione(valorizzato per documenti contabli/fiscalmente rilevanti)
+125        																													-- DenominazioneMittente	
+126        																													-- IdFiscaleMittente		Cod. fiscale o P. IVA del mittente
+127        																													-- TipoIdFiscaleMittente	valori CF, PIVA, PIVA_CF
+128        																													-- OggettoFornitura (per documentazione quali fatture, ordini ecc)
+129        																													-- ImportoTotale	(al loro di IVA)
+130        																													-- DataScadenzaPagamento (nel formato xs:date)
+131        																													-- FlgRilevanzaIVA (valori SI/NO)
+132        																													-- CIG
+133        																													-- CUP
+134        																													-- AliquotaIvaReverseCharge
+135        																													-- IvaTotaleReverseCharge
+136        																													-- DenominazioneDestinatario	
+137        																													-- IdFiscaleDestinatario		Cod. fiscale o P. IVA del destinatario
+138        																													-- TipoIdFiscaleDestinatario	valori CF, PIVA, PIVA_CF
+139        																													-- FilePrincipale.Nome
+140        																													-- FilePrincipale.URI (nella notazione di StorageUtil)
+141        																													-- FilePrincipale.Estensione (comprensiva di estensione della busta crittografica se presente; es: xml, xml.p7m)
+142        																													-- FilePrincipale.Mimetype
+143        																													-- FilePrincipale.Dimensione (espressa in bytes)
+144        																													-- FilePrincipale.Hash 
+145        																													-- FilePrincipale.Hash.Algoritmo
+146        																													-- FilePrincipale.Hash.Encoding	(hex o base64)	
+147        																													-- @Allegati : lista dei file dei documenti allegati
+148        																													-- Ogni file di allegato è un tag Riga con le seguenti colonne:
+149        																													-- 1: Id. univoco assoluto
+150        																													-- 2: Nome della tipologia di documento
+151        																													-- 3: Nome del file
+152        																													-- 4: URI del file (nella notazione di StorageUtil)
+153        																													-- 5: Estensione del file (comprensiva di estensione della busta crittografica se presente; es: xml, xml.p7m)
+154        																													-- 6: Mimetype del file
+155        																													-- 7: Dimensione del file (espressa in bytes)
+156        																													-- 8: Hash del file
+157        																													-- 9: Algoritmo di calcolo dell'hash
+158        																													-- 10: Encoding di calcolo dell'hash (hex o base64)	                                      					
+159        																													-- @DocumentiCollegati : lista dei documenti collegati (annessi nel caso di PARER)
+160        																													-- Ogni documento collegato è un tag Riga con le seguenti colonne:
+161        																													-- 1: Id. univoco assoluto
+162        																													-- 2: Nome della tipologia di documento
+163        																													-- 3: Nome del file
+164        																													-- 4: URI del file (nella notazione di StorageUtil)
+165        																													-- 5: Estensione del file (comprensiva di estensione della busta crittografica se presente; es: xml, xml.p7m)
+166        																													-- 6: Mimetype del file
+167        																													-- 7: Dimensione del file (espressa in bytes)
+168        																													-- 8: Hash del file
+169        																													-- 9: Algoritmo di calcolo dell'hash
+170        																													-- 10: Encoding di calcolo dell'hash (hex o base64)	
+171        																													-- DATI PER REGISTRI DI PROTOCOLLO/REPERTORIO
+172        																													-- NumeroIniziale: primo numero di registrazione delle registrazioni contenute nel regsitro
+173        																													-- NumeroFinale: ultimo numero di registrazione delle registrazioni contenute nel regsitro
+174        																													-- DataInizioRegistrazioni: prima data di registrazione delle registrazioni contenute nel regsitro (formato AAAA-MM-GG)
+175        																													-- DataFineRegistrazioni: ultima data di registrazione delle registrazioni contenute nel regsitro (formato AAAA-MM-GG)
+176        																													-- Originatore: Struttura responsabile della produzione del registro
+177        																													-- Responsabile: Nominativo del responsabile della produzione del registro  
+178        																													-- Operatore: chi ha creato il registro (sistema o persona)
+179        																													-- NumeroRegistrazioni: numero di registrazioni contenute nel regsitro
+180        																													-- NumeroRegistrazioniAnnullate: numero di variazioni/annullamenti di regsistrazioni contenute nel regsitro
+181        																													-- DenominazioneApplicativo: denominazione dell'applicativo che produce il registro
+182        																													-- VersioneApplicativo: versione dell'applicativo dell'applicativo che produce il registro
+183        																													-- ProduttoreApplicativo: azienda che fornisce il software applicativo che produce il registro
+184        			ErrContextOut            	OUT        	VARCHAR2,                                      					-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+185                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    				-- N.ro errore di uscita
+186                    ErrMsgOut                	OUT			VARCHAR2                                        				-- Messaggio d'errore
+187                    ) return PLS_INTEGER;                                                                					-- (valori 1/0) 1 = successo, 0 = errore
+188        
+189        
+190        	----funzione per registrare un pacchetto di versamento in conservazione nel momento in cui è stato fisicamente creato (prima di trasmetterlo al conservatore)
+191        	function InsPdV(
+192        			IdItemGroupIn				IN			DMT_ITEM_DA_INVIARE_CONSERV.ID_GRUPPO_ITEM%type,				-- (obblig.) Id. del gruppo di item inseriti nel PdV che si deve registrare
+193        			LabelPdVIn					IN			DMT_PDV_X_CONSERV.LABEL_PDV%type,								-- (obblig.) Label assegnata al PdV dal produttore per identificare il pacchetto vs il conservatore
+194        			XMLPdVIn					IN			CLOB,															-- (obblig.) Descrittore XML (Manifest) del PdV
+195        			DimensionePdVIn				IN			INTEGER,														-- (obblig.) Dimensione in bytes del PdV
+196        			ImprontaPdVIn				IN			DMT_PDV_X_CONSERV.IMPRONTA_PDV%type DEFAULT NULL,				-- Impronta del PdV (se richiesta dal conservatore)
+197        			AlgoritmoImprontaIn			IN			DMT_PDV_X_CONSERV.ALGORITMO_IMPRONTA%type DEFAULT NULL,			-- Algoritmo per il calcolo dell'impronta del PdV 
+198        			EncodingImprontaIn			IN			DMT_PDV_X_CONSERV.ENCODING_IMPRONTA%type DEFAULT NULL,			-- Encoding - hex o base64 - per il calcolo dell'impronta del PdV 
+199        			IdPdVOut					OUT			DMT_PDV_X_CONSERV.ID_PDV%type,									-- Id. del PdV registrato
+200        			FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,										-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+201        																													-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+202        			FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,										-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+203        			ErrContextOut            	OUT        	VARCHAR2,                                      					-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+204                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    				-- N.ro errore di uscita
+205                    ErrMsgOut                	OUT			VARCHAR2,                                        				-- Messaggio d'errore
+206                    InfFilePdVIn				IN			CLOB DEFAULT NULL												-- File .inf del PdV per i conservatori (es POSTEL) per cui è previsto
+207        			) return PLS_INTEGER;                                                                					-- (valori 1/0) 1 = successo, 0 = errore
+208        
+209        	--------funzione richiamata per aggiornare lo stato di trasmissione al conservatore di un dato PdV
+210        	function UpdStatoTrasmPdV(
+211        			IdPdVIn						IN			DMT_PDV_X_CONSERV.ID_PDV%type,									-- (obblig. se LabelPdVIn non è valorizzato)Id. del PdV da aggiornare
+212        			StatoTrasmPdVIn				IN			DMT_PDV_X_CONSERV.STATO%type,									-- (obblig.) Stato da settare. Valori ammessi:
+213        																													--		in_trasmissione
+214        																													--		trasmesso
+215        																													--		trasmissione_fallita
+216        																													--		trasmissione_accettata
+217        																													--		trasmissione_respinta
+218        			ErrWarnCodeIn				IN			DMT_PDV_X_CONSERV.ERR_WARN_CODE_TRASM_PDV%type DEFAULT NULL,	-- Codice di eventuale errore/warning verificatosi nella trasmissione del PdV 
+219        			ErrWarnMsgIn				IN			DMT_PDV_X_CONSERV.ERR_WARN_MSG_TRASM_PDV%type DEFAULT NULL,		-- Messaggio di eventuale errore/warning verificatosi nella trasmissione del PdV 
+220        			RicevutaTrasmIn				IN			DMT_PDV_X_CONSERV.RICEVUTA_TRASM%type DEFAULT NULL,				-- Eventuale ricevuta di accettazione o rifiuto/errore trasmissione rilasciata dal conservatore
+221        			IdPdVConsevatoreIn			IN			DMT_PDV_X_CONSERV.ID_PDV_IN_CONSERV%type DEFAULT NULL,			-- Id. assegnato al PdV dal conservatore (da valorizzare se e quando restituito)
+222        			FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,										-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+223        																													-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+224        			FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,										-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+225        			ErrContextOut            	OUT        	VARCHAR2,                                      					-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+226                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    				-- N.ro errore di uscita
+227                    ErrMsgOut                	OUT			VARCHAR2,                                       				-- Messaggio d'errore
+228                    LabelPdVIn					IN			DMT_PDV_X_CONSERV.LABEL_PDV%type DEFAULT NULL,					-- (obblig. se IdPdVIn non è valorizzato) Label del PdV di cui aggiornare lo stato di trasmissione
+229        			TsRicezioneRicIn			IN			VARCHAR2 DEFAULT NULL											-- Data e ora di ricezione della ricevuta di trasmissione
+230        			) return PLS_INTEGER;                                                                					-- (valori 1/0) 1 = successo, 0 = errore
+231        
+232        	----funzione per registrare l'inizio di un tentativo di recuperare l'RdV di un PdV versato 
+233        	function RegInizioRecRdV(
+234        			IdPdVIn						IN			DMT_PDV_X_CONSERV.ID_PDV%type,									-- (obblig. se LabelPdVIn non è valorizzato) Id. del PdV cui è relativo l'RdV di cui si inizia il recupero
+235        			FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,										-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+236        																													-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+237        			FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,										-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+238        			ErrContextOut            	OUT        	VARCHAR2,                                      					-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+239                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    				-- N.ro errore di uscita
+240                    ErrMsgOut                	OUT			VARCHAR2,                                        				-- Messaggio d'errore
+241        			LabelPdVIn					IN			DMT_PDV_X_CONSERV.LABEL_PDV%type DEFAULT NULL					-- (obblig. se IdPdVIn non è valorizzato) Label del PdV cui è relativo l'RdV di cui si inizia il recupero
+242        			) return PLS_INTEGER;                                                                					-- (valori 1/0) 1 = successo, 0 = errore
+243        
+244        	----funzione per registrare la conclusione di un tentativo di recuperare l'RdV di un PdV versato 
+245        	function RegFineRecRdV(
+246        			IdPdVIn						IN			DMT_PDV_X_CONSERV.ID_PDV%type,									-- (obblig. se LabelPdVIn non è valorizzato) Id. del PdV cui è relativo l'RdV di cui si conclude il tentativo di recupero
+247        			EsitoVersamentoIn			IN			VARCHAR2 DEFAULT NULL,											-- Se il versamento non prevede accettazione/rifiuto parziale della docuementazione del PdV qui va indicato l'esito complessivo:
+248        																													-- valori previsti: accettato, rifiutato
+249        			XMLRdVIn					IN			CLOB,															-- XML del Rapporto di Versamento
+250        			TsGenRdVIn					IN			VARCHAR2,														-- Data e ora di generazione del RdV attestata dal conservatore (in formato DD/MM/RRRR HH24:MI:SS)
+251        			ErrWarnCodeIn				IN			DMT_PDV_X_CONSERV.ERR_WARN_CODE_REC_RDV%type DEFAULT NULL,		-- Codice di eventuale errore/warning verificatosi nel tentare di recuperare l'RdV
+252        			ErrWarnMsgIn				IN			DMT_PDV_X_CONSERV.ERR_WARN_MSG_REC_RDV%type DEFAULT NULL,		-- Messaggio di eventuale errore/warning verificatosi nel tentare di recuperare l'RdV
+253        			IdPdVConsevatoreIn			IN			DMT_PDV_X_CONSERV.ID_PDV_IN_CONSERV%type DEFAULT NULL,			-- Id. assegnato al PdV dal conservatore (da valorizzare se restituito con l'RdV)
+254        			XMLInfoItemExRdVIn			IN			CLOB,															-- Lista xml - ListaStd.xsd - con i dati degli item del PdV recuperati dal RdV
+255        																													-- Ogni tag Riga rappresenta un item e può contenere le seguenti colonne:
+256        																													-- 1: Tipo item (U, D, F)
+257        																													-- 2: Id. assegnato all'item all'interno del PdV
+258        																													-- 3: Esito dato dal conservatore: OK, KO, W (avvertimenti)
+259        																													-- 4: Id. assegnato all'item dal conservatore
+260        																													-- 5: Codice di eventuale errore/warning riscontrato dal conservatore sull'item
+261        																													--	  Se più di uno vanno separati con |*|
+262        																													-- 6: Messaggio di eventuale errore/warning riscontrato dal conservatore sull'item
+263        																													--	  Se più di uno vanno separati con |*|
+264        			FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,										-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+265        																													-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+266        			FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,										-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+267        			ErrContextOut            	OUT        	VARCHAR2,                                      					-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+268                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    				-- N.ro errore di uscita
+269                    ErrMsgOut                	OUT			VARCHAR2,                                        				-- Messaggio d'errore
+270                    LabelPdVIn					IN			DMT_PDV_X_CONSERV.LABEL_PDV%type DEFAULT NULL,					-- (obblig. se IdPdVIn non è valorizzato) Label del PdV cui è relativo l'RdV di cui si conclude il tentativo di recupero
+271        			TsRicezioneRdVIn			IN			VARCHAR2 DEFAULT NULL											-- Data e ora di ricezione del RdV
+272        			) return PLS_INTEGER;                                                                					-- (valori 1/0) 1 = successo, 0 = errore
+273        
+274        	----- funzione richiamata quando torna l'esito del conservatore sull'item
+275        	----- TipoItemIn, IdItemIn e IdPdVIn servono a identificare il record da aggiornare
+276        	function AggDatiElabItemXPdV(
+277        			TipoItemIn					IN			DMT_ITEM_DA_INVIARE_CONSERV.TIPO_ITEM%type,						-- (obblig.) Tipo dell'item (U, D, F)
+278        			IdItemIn					IN			DMT_ITEM_DA_INVIARE_CONSERV.ID_ITEM%type,						-- (obblig. se ProvIdItemIn non è valorizzato) Id. dell'item
+279        			IdPdVIn						IN			DMT_ITEM_DA_INVIARE_CONSERV.ID_PDV%type,						-- (obblig. se LabelPdVIn non è valorizzato)Id. del PdV con cui l'item è stato trasmesso al conservatore
+280        			IdItemInviatoIn				IN			DMT_ITEM_DA_INVIARE_CONSERV.ID_ITEM_INVIATO%type DEFAULT NULL,	--  Id. assegnato all'item all'interno del PdV
+281        			IdItemConservatoreIn		IN			DMT_ITEM_X_CONSERV_H.ID_ITEM_IN_CONSERV%type DEFAULT NULL, 		-- Id. assegnato all'item dal conservatore
+282        			ErrWarnCodeIn				IN			DMT_ITEM_DA_INVIARE_CONSERV.ERR_WARN_CODE%type DEFAULT NULL,	-- Codice/i di eventuale errore/warning riscontrato dal conservatore sull'item. 
+283        																													--	  Se più di uno vanno separati con |*|
+284        			ErrWarnMsgIn				IN			DMT_ITEM_DA_INVIARE_CONSERV.ERR_WARN_MSG%type DEFAULT NULL,		-- Messaggio di eventuale errore/warning riscontrato dal conservatore sull'item
+285        																													--	  Se più di uno vanno separati con |*|
+286        			EsitoConsIn					IN			DMT_ITEM_X_CONSERV_H.ESITO_INVIO_CONS%type,						-- Esito dato dal conservatore: OK, KO, W (avvertimenti)
+287        			FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,										-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+288        																													-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+289        			FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,										-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+290        			ErrContextOut            	OUT        	VARCHAR2,                                      					-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+291                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    				-- N.ro errore di uscita
+292                    ErrMsgOut                	OUT			VARCHAR2,                                        				-- Messaggio d'errore,
+293        			ProvIdItemIn				IN			VARCHAR DEFAULT NULL,											-- (obblig. se IdItemIn non è valorizzato) Id. originale dell'item sul sistema produttore (IdDocumentum nel caso GAE)
+294                    LabelPdVIn					IN			DMT_PDV_X_CONSERV.LABEL_PDV%type DEFAULT NULL					-- (obblig. se IdPdVIn non è valorizzato) Label del PdV con cui l'item è stato trasmesso al conservatore
+295        			) return PLS_INTEGER;                                                                					-- (valori 1/0) 1 = successo, 0 = errore
+296        
+297        
+298        	/***** serve ad ottenere la lista di PdV su cui effettuare le azioni di invio, recupero_ricevuta_trasmissione, recupero_rdv 	****/
+299        	/***** I PdV in lock perchè già presi in carico da un job per effettuarvi la data azione NON vengono restituiti					****/
+300        	/***** estrae i PdV fino ad un limite massimo, poi si reitera la chiamata per ottenerne altri									****/
+301        	function GetPdVXAzione(
+302        			CodAzioneIn					IN			VARCHAR2,														-- (obbligatorio) Indica l'azione da fare sui PdV da estrarre:
+303        																													-- valori ammessi: invio, recupero_ricevuta_trasmissione, recupero_rdv
+304        			IdSistConservazioneIn		IN			DMT_ANAG_ENTRYPOINT_VS_CONSERV.ID_SIST_CONSERV%type,			-- (obbligatorio) Identificativo del sistema di conservazione a cui sono da mandare o mandati i PdV da estrarre
+305        
+306        			IdEntryPointVersIn			IN			DMT_ANAG_ENTRYPOINT_VS_CONSERV.ID_ENTRYPOINT_VERS%type DEFAULT NULL,
+307        			IdSpAOOIn					IN			DMT_ANAG_ENTRYPOINT_VS_CONSERV.ID_SP_AOO%type DEFAULT NULL,
+308        			CodApplicazioneIn			IN			DMT_ANAG_ENTRYPOINT_VS_CONSERV.CI_APPLICAZIONE%type DEFAULT NULL,
+309        			CodIstApplicazioneIn		IN			DMT_ANAG_ENTRYPOINT_VS_CONSERV.CI_ISTANZA_APPLICAZIONE%type DEFAULT NULL,
+310        			PdVListOut					OUT	NOCOPY CLOB,														-- Lista XML (secondo schema ListaSTD.xsd) con i PdV su cui va effettuata l'azione in input
+311        																												-- Ogni PdV è un tag Riga che contiene le colonne:
+312        																												-- 1) Id. del PdV
+313        																												-- 2) Label PdV
+314        																												-- 3) Id. assegnato al PdV dal conservatore
+315        			NroPdVOut					OUT			PLS_INTEGER,												-- N.ro di PdV restituiti in PdVListOut	
+316        			ErrContextOut            	OUT        	VARCHAR2,                                      				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+317                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    			-- N.ro errore di uscita
+318                    ErrMsgOut                	OUT			VARCHAR2                                        			-- Messaggio d'errore
+319                    ) return PLS_INTEGER;                                                                				-- (valori 1/0) 1 = successo, 0 = errore
+320        
+321        	------- funzione per ricercare i PdV 
+322        	function TrovaPdV(	
+323        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+324        																					-- (obblig). Codice identificativo del token di connessione
+325        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+326        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd). 
+327        																					-- Ogni filtro è un tag "Variabile" dell'XML
+328        																					-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+329        																					-- I nomi dei filtri possibili sono:
+330        																					-- IdPdV				Ricerca sull'id. del PdV: ricerca case-insesitive in like senza forzare %
+331        																					-- LabelPdV				Ricerca sulla label/nome del PdV: ricerca case-insesitive in like senza forzare %
+332        																					-- Stati				Lista degli stati dei PdV da estrarre (se più di uno separati da ; o ,)Valori possibili:
+333        																					--						creato, in_trasmissione, trasmesso, trasmissione_accettata, trasmissione_respinta, elaborato, accettato, rifiutato
+334        																					-- TsUltimoAggStatoDa	Estremo inferiore - data e ora - dell'intervallo di ricerca sulla data e ora ultimo aggiornamento stato
+335        																					-- TsUltimoAggStatoA	Estremo superiore - data e ora - dell'intervallo di ricerca sulla data e ora ultimo aggiornamento stato
+336        																					-- DtGenerazioneDa		Estremo inferiore - data senza ora - dell'intervallo di ricerca sulla data di generazione del PdV  (nel formato dato dal parametro di conf. FMT_STD_DATA)
+337        																					-- DtGenerazioneA		Estremo superiore - data senza ora - dell'intervallo di ricerca sulla data di generazione del PdV  (nel formato dato dal parametro di conf. FMT_STD_DATA)
+338        																					-- CodProcessiBancaProd	(solo nel caso GAE)Codici del/degli applicativi IT produttori (se più di uno separati da ; o ,)
+339        																					-- CodiceClasse			(solo nel caso GAE) Codice della classe documentale cui devono riferirsi i PdV  (ricerca esatta)
+340        																					-- IdDocTypeClasse 		(solo nel caso GAE)ID_DOC_TYPE della classe documentale cui devono riferirsi i PdV  (ricerca esatta)
+341        																					-- CodiciSottoclassi	(solo nel caso GAE) Codice/i delle sottoclassi documentali cui devono riferirsi i PdV (ricerca esatta; se più di uno vanno separati con , o ;)
+342        																					-- IdDocTypeSottoclassi (solo nel caso GAE) ID_DOC_TYPE delle sottoclassi documentali cui devono riferirsi i PdV (ricerca esatta; se più di uno vanno separati con , o ;)
+343        																					-- NroDocPdVDa			Estremo inferiore dell'intervallo di ricerca sul N° di documenti contenuti nel PdV
+344        																					-- NroDocPdVA			Estremo superiore dell'intervallo di ricerca sul N° di documenti contenuti nel PdV
+345        																					-- VolDocPdVDa			Estremo inferiore dell'intervallo di ricerca sul volume (MB) di documenti conservati afferenti al dato PdV Tipo
+346        																					-- VolDocPdVA			Estremo superiore dell'intervallo di ricerca sul volume (MB) di documenti conservati afferenti al dato PdV Tipo
+347        																					-- CodiciErrWarnTrasm	Codice/i errore o avvertimento nella trasmissione del PdV al conservatore (se più di uno separati da , o ;)	
+348        																					-- MsgErrWarnTrasm		Stringa contenuta nel messaggio di errore o avvertimento nella trasmissione del PdV al conservatore (ricerca case-insensitive in like senza forzare %)
+349        																					-- CodiciErrWarnRecRdV	Codice/i errore o avvertimento nel recupero RdV (se più di uno separati da , o ;)	
+350        																					-- MsgErrWarnRecRdV		Stringa contenuta nel messaggio di errore o avvertimento nel recupero RdV (ricerca case-insensitive in like senza forzare %)
+351        																					-- TempoRicezRicTrasmDa	Estremo inferiore dell'intervallo di ricerca sul tempo di ritorno della ricevuta di accettazione/rifiuto trasmissione (in minuti)
+352        																					-- TempoRicezRicTrasmA	Estremo superiore dell'intervallo di ricerca sul tempo di ritorno della ricevuta di accettazione/rifiuto trasmissione (in minuti)
+353        																					-- TempoSenzaRicTrasmDa	Serve a restringere la ricerca ai PdV senza ricevuta di trasmissione.  Estremo inferiore dell'intervallo di ricerca sul tempo - in min - da cui il PdV è in attesa della ricevuta di trasmissione
+354        																					-- TempoSenzaRicTrasmA	Serve a restringere la ricerca ai PdV senza ricevuta di trasmissione.  Estremo superiore dell'intervallo di ricerca sul tempo - in min - da cui il PdV è in attesa della ricevuta di trasmissione
+355        																					-- TempoRicezioneRdVDa	Estremo inferiore dell'intervallo di ricerca sul tempo di ritorno del Rapporto di Versamento (in ore)
+356        																					-- TempoRicezioneRdVA	Estremo superiore dell'intervallo di ricerca sul tempo di ritorno del Rapporto di Versamento (in ore)
+357        																					-- TempoSenzaRdVDa		Serve a restringere la ricerca ai PdV senza Rapporto di Versamento. Estremo inferiore dell'intervallo di ricerca sul tempo - in ore - da cui il PdV è in attesa del Rapporto di Versamento
+358        																					-- TempoSenzaRdVA		Serve a restringere la ricerca ai PdV senza Rapporto di Versamento. Estremo superiore dell'intervallo di ricerca sul tempo - in ore - da cui il PdV è in attesa del Rapporto di Versamento
+359        		------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+360        		ColOrderByIO				IN OUT	VARCHAR2,								-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 31 + 36). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+361        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+362        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+363        		FlgDescOrderByIO  			IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+364        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
+365        		FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+366        		NroPaginaIO      			IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+367        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+368        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+369        		OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+370        																					-- Può assumere valori negativi con specifici significati:
+371        																					-- -1 : la stored deve solo dare il conteggio dei record (tutti, senza limitazioni), non il resultset
+372        																					-- -2 : la stored deve solo schedulare un job per effettuare poi in modalità batch l'estrazione
+373        																					-- -3 : la stored viene chiamata da un batch off-line e deve estrarre e salvare in DB, come output del batch, tutto il resultset, senza limitazioni
+374        		FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+375        		NroTotRecOut				OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+376        		NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+377        		FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+378        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema. 
+379        		------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+380        		ResultOut					OUT		NOCOPY CLOB, 							-- Lista dei PdV che sono stati trovati (XML conforme a schema LISTA_STD.xsd)
+381        																					-- Ogni PdV è un tag Riga che può contenere le seguenti colonne: 
+382        																					-- 1:  Id. interno del PdV 
+383        																					-- 2:  Nome logico del PdV (inviato al conservatore come suo identificativo)
+384        																					-- 3:  Cod. Applicazione IT produttrice
+385        																					-- 4:  (solo per GAE) Cod. classe documentale (da catalogo)
+386        																					-- 5:  (solo per GAE) Nome classe documentale (da catalogo)
+387        																					-- 6:  (solo per GAE) Cod. sottoclasse documentale (da catalogo)
+388        																					-- 7:  (solo per GAE) Nome sottoclasse documentale (da catalogo)
+389        																					-- 8:  (solo per GAE) Nome sottoclasse o classe se la sottoclasse non è presente
+390        																					-- 9:  Nome classe documentale per Conservatore
+391        																					-- 10: Nome Conservatore
+392        																					-- 11: Denominazione produttore
+393        																					-- 12: N.ro di item contenuti
+394        																					-- 13: Dimensione del pacchetto fisico (in MB)
+395        																					-- 14: Data e ora di generazione (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+396        																					-- 15: Impronta 
+397        																					-- 16: Algoritmo calcolo impronta
+398        																					-- 17: Encoding per calcolo impronta
+399        																					-- 18: Stato attuale 
+400        																					-- 19: Data e ora in cui ha assunto lo stato attuale (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+401        																					-- 20: Data e ora di invio al conservatore (attestata da ricevuta di accettazione/rifiuto trasmissione dove c'è CFT) (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+402        																					-- 21: Data e ora di recupero del RdV (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+403        																					-- 22: Data e ora di generazione del Rapporto di Versamento attestata dal conservatore (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+404        																					-- 23: Tempo per ritorno ricevuta accettazione/rifiuto trasmissione(in min)
+405        																					-- 24: Tempo per ritorno RdV (in ore)
+406        																					-- 25: Codice eventuale errore di trasmissione al conservatore
+407        																					-- 26: Messaggio eventuale errore di trasmissione al conservatore
+408        																					-- 27: N.ro di item su cui il conservatore ha rilevato errori
+409        																					-- 28: N.ro di item del pacchetto che risultano conservati (quelli per i quali è arrivato il Rapporto di Archiviazione)
+410        																					-- 29: Nro di tentativi di trasmissione al conservatore
+411        																					-- 30: Nro di tentativi di recupero RdV
+412        																					-- 31: Id assegnato al PdV dal conservatore
+413        																					-- 32: (1/0) Flag presenza file indice del PdV
+414        																					-- 33: (1/0) Flag presenza file .inf del PdV (per POSTEL)
+415        																					-- 34: (1/0) Flag presenza file di ricevuta accettazione/rifiuto trasmissione (per POSTEL)
+416        																					-- 35: (1/0) Flag presenza file RdV (per POSTEL e TELECOM)
+417        																					-- 36: Nome Applicazione IT produttrice
+418        																					-- 37: Codice eventuale errore di recupero RdV
+419        																					-- 38: Messaggio eventuale errore di recupero RdV
+420        																					-- 39: Rowid del record del PdV
+421        																					-- 40: URI del RdV se firmato e quindi salvato tramite storage Util e non come CLOB
+422        																					-- 41: Flg che indica se RdV puntato da URI in col 40 è un p7m (=1) o no (=0)
+423        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+424        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+425        		ErrMsgOut					OUT 		VARCHAR2)							-- Messaggio d'errore
+426        		return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+427        
+428        	------- funzione per ricercare gli item - documenti, schede documento e fascicoli/aggregati - contenuti in un dato PdV 
+429        	function TrovaItemPdV(	
+430        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+431        																					-- (obblig). Codice identificativo del token di connessione
+432        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+433        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd). 
+434        																					-- Ogni filtro è un tag "Variabile" dell'XML
+435        																					-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+436        																					-- I nomi dei filtri possibili sono:
+437        																					-- IdPdV				(obblig). Id del PdV di cui ricercare/listare gli item. Ricerca esatta
+438        																					-- FlgTipoItem			Tipo di item da cercare. U = Unità documentaria, D = Singolo documento, F = Fascicolo/aggregato
+439        																					-- IdItemInviatoCons	Id. con cui l'item è stato inviato al conservatore (ricerca case-insensitive in like senza forzare %)
+440        																					-- EsitoInvioCons		Esito dell'invio in conservazione degli item nel dato PdV: OK (accettato), KO (rifiutato), W (Warning)
+441        																					-- CodiciErrWarn		Codice/i di errore/avvertimento rilevati dal Conservatore sui documenti da cercare (se più di uno separati da , o ;)
+442        																					-- MsgErrWarn			Stringa contenuta nel messaggio di errore/avvertimento rilevato dal Conservatore sui documenti da cercare (ricerca case-insensitive in like senza forzare %)
+443        																					-- IdTipiItem			Id. del/i tipi - tipi doc o aggregati - degli item da cercare (se più di uno separati da , o ;)
+444        																					-- IdItemConservatore	Id. assegnato all'Item dal Conservatore (ricerca case-insensitive in like senza forzare %)
+445        		------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+446        		ColOrderByIO				IN OUT	VARCHAR2,								-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 6 e da 10 a 1). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+447        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+448        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+449        		FlgDescOrderByIO  			IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+450        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
+451        		FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+452        		NroPaginaIO      			IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+453        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+454        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+455        		OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+456        																					-- Può assumere valori negativi con specifici significati:
+457        																					-- -1 : la stored deve solo dare il conteggio dei record (tutti, senza limitazioni), non il resultset
+458        																					-- -2 : la stored deve solo schedulare un job per effettuare poi in modalità batch l'estrazione
+459        																					-- -3 : la stored viene chiamata da un batch off-line e deve estrarre e salvare in DB, come output del batch, tutto il resultset, senza limitazioni
+460        		FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+461        		NroTotRecOut				OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+462        		NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+463        		FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+464        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema. 
+465        		------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+466        		ResultOut					OUT		NOCOPY CLOB, 							-- Lista degli Item del PdV che sono stati trovati (XML conforme a schema LISTA_STD.xsd)
+467        																					-- Ogni item del PdV è un tag Riga che può contenere le seguenti colonne: 
+468        																					-- 1:  Tipo di item. U = Unità documentarie, D = Singoli documenti, F = Fascicoli/aggregati
+469        																					-- 2:  Id. interno dell'item
+470        																					-- 3:  Operazione da effettuare sull'item: I = Versamento (Insert); U = Aggiornamento (di dati e/o file) (Update); D = Cancellazione (Delete)
+471        																					-- 4:  Id. dell'item inviato al Conservatore
+472        																					-- 5:  Id. della tipologia - di documento o aggregato - dell'item
+473        																					-- 6:  Nome della tipologia - di documento o aggregato - dell'item
+474        																					-- 7:  Impronta 
+475        																					-- 8:  Algoritmo calcolo impronta
+476        																					-- 9:  Encoding per calcolo impronta
+477        																					-- 10:  Dimensione del/i file dell'item (in bytes)
+478        																					-- 11: Data entro cui l'item doveva essere inviato al sistema di conservazione (nel formato dato dal parametro di conf. FMT_STD_DATA)
+479        																					-- 12: Esito elaborazione conservatore: OK, KO, W(arning)
+480        																					-- 13: Codice/i eventuali errore rilevati dal conservatore
+481        																					-- 14: Messaggio/i eventuali errori rilevati dal conservatore
+482        																					-- 15: Id assegnato all'item dal conservatore
+483        																					-- 16: Attributi principali che identificano l'item
+484        																					-- 17: N.ro di tentativi di invio in conservazione dell'item al momento dell'invio con il dato PdV
+485        																					-- 18: Tipo dell'item precedente - U = Unità documentaria, D = Singolo documento, F = Fascicolo/aggregato - che deve essere preliminarmente inviato in conservazione
+486        																					-- 19: Id. interno dell'item precedente che deve essere preliminarmente inviato in conservazione
+487        																					-- 20: Id. della tipologia - di documento o aggregato - dell'item precedente che deve essere preliminarmente inviato in conservazione
+488        																					-- 21: Nome della tipologia - di documento o aggregato - dell'item precedente che deve essere preliminarmente inviato in conservazione
+489        																					-- 22: Attributi principali che identificano l'item precedente che deve essere preliminarmente inviato in conservazione
+490        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+491        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+492        		ErrMsgOut					OUT 		VARCHAR2)							-- Messaggio d'errore
+493        		return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+494        
+495        	/***** serve per salvare il Rapporto di Archiviazione che attesta l'avvenuta chiusura del procsso di conservazione 	****/
+496        	function SaveRdA(
+497        			IdSistConservazioneIn		IN			DMT_ANAG_ENTRYPOINT_VS_CONSERV.ID_SIST_CONSERV%type,			-- (obbligatorio) Identificativo del sistema di conservazione da cui è stato ricevuta il Rapporto di Archiviazione
+498        																													-- Valori ammessi: POSTEL
+499        			RdAIn						IN			CLOB,															-- (obbligatorio) Rapporto di Archiviazione da salvare																											
+500        			XMLDatiFileRicevutoIn		IN		CLOB,																-- XML SezioneCache con i dati del file RdA ricevuto e da archiviare. 
+501        																													-- Prevede le seguenti variabili:
+502        																													-- #NomeFile (obbligatoria): 			nome del file fisico ricevuto
+503        																													-- #PathFile (obbligatoria):				path assoluto su cui è stato ricevuto il file
+504        																													-- #DimensioneFile (obbligatoria):		dimnsione del file in bytes (senza separatori delle migliaia)
+505        																													-- #TsRicezioneFile	(obbligatoria): 	data e ora di arrivo del file sulla cartella nel formato GG/MM/AAAA HH24:MI:SS
+506        			URIFileToDeleteOut			OUT			NOCOPY CLOB,													-- Lista XML standard con gli URI (in notazione storageUtil) dei file da eliminare
+507        																													-- Ogni riga contiene una sola colonna con l'URI di un file da eliminare
+508        			FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,										-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+509        																													-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+510        			FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,										-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+511        			ErrContextOut            	OUT        	VARCHAR2,                                      					-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+512                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    				-- N.ro errore di uscita
+513                    ErrMsgOut                	OUT			VARCHAR2                                        				-- Messaggio d'errore,
+514        			) return PLS_INTEGER;                                                                					-- (valori 1/0) 1 = successo, 0 = errore
+515        
+516        	-----------procedura che aggiorna lo stato della documentazione per cui è decorso il termine di conservazione e che non è ancora scartata
+517        	procedure AggStatoDocScartabile;
+518        
+519        END DMPK_INT_CS;

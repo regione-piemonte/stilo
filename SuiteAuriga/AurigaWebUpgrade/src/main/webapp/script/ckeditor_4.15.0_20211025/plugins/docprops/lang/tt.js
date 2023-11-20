@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+docTypeOther:"Other Document Type Heading",label:"Документ үзлекләре",margin:"Page Margins",marginBottom:"Аска",marginLeft:"Сул",marginRight:"Уң як",marginTop:"Өскә",meta:"Метатег",metaAuthor:"Автор",metaCopyright:"Хокук иясе",metaDescription:"Документ тасвирламасы",metaKeywords:"Document Indexing Keywords (comma separated)",other:"Башка...",previewHtml:'\x3cp\x3eThis is some \x3cstrong\x3esample text\x3c/strong\x3e. You are using \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e.\x3c/p\x3e',
+title:"Документ үзлекләре",txtColor:"Текст төсе",xhtmlDec:"Include XHTML Declarations"});

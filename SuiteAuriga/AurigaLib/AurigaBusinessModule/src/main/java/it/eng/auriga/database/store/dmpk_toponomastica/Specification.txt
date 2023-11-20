@@ -1,0 +1,106 @@
+1        PACKAGE Dmpk_Toponomastica AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        
+12        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+13        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+14        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+15        
+16        	/************ funzione per ricercare le vie/toponimi nel viario ************/
+17        	function TrovaVie(
+18        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+19        																					-- (obblig). Codice identificativo del token di connessione
+20        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+21        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd).
+22        																					-- Ogni filtro è un tag "Variabile" dell'XML
+23        																					-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+24        																					-- I nomi dei filtri possibili sono:
+25        																					-- DesToponimo: filtro di ricerca sul toponimo
+26        																					-- OperToponimo(considerato solo se filtro precedente valorizzato) Indica l'operatore di ricerca sul filtro precedente (se diverso da contiene); valori: inizia, uguale, finisce, contiene, like
+27        																					-- FlgIncludiNonValidi (valori 1/0/NULL) Se 1 vengono estratti anche i toponimi non attivi/validi, altrimenti no
+28        		------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+29        		ColOrderByIO				IN OUT	VARCHAR2,								-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 10 + 21, 22, 23, 36, 40). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+30        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+31        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+32        		FlgDescOrderByIO  			IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+33        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+34        		FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+35        		NroPaginaIO      			IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+36        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+37        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+38        		OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+39        		FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+40        		NroTotRecOut				OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+41        		NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+42        		------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+43        		FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+44        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema.
+45        		ResultOut					OUT		NOCOPY CLOB, 							-- Lista dei toponimi trovati (XML conforme a schema LISTA_STD.xsd)
+46        																					-- Ogni toponimo trovato è un tag Riga che contiene le seguenti colonne:
+47        																					-- 1: ID del toponimo (PK interna)
+48        																					-- 2: Nome del toponimo (compreso tipo)
+49        																					-- 3: Tipo toponimo (via, piazza ecc)
+50        																					-- 4: Nome del toponimo senza tipo
+51        																					-- 5: Stato del toponimo (decodificato)
+52        																					-- 6: Codice identificativo del toponimo nel sistema esterno di gestione del viario
+53        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+54        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+55        		ErrMsgOut					OUT 		VARCHAR2)							-- Messaggio d'errore
+56        		return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+57        
+58        
+59        	/************ funzione per ricercare i civici di un toponimo del viario ************/
+60        	function TrovaCivici(
+61        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+62        																					-- (obblig). Codice identificativo del token di connessione
+63        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+64        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd).
+65        																					-- Ogni filtro è un tag "Variabile" dell'XML
+66        																					-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+67        																					-- I nomi dei filtri possibili sono:
+68        																					-- (obblig.) IdToponimo: id. del toponimo (via, piazza ecc) in cui cercare i civici
+69        																					-- NriCiviciDa : estremo inferiore dell'intervallo di ricerca sul n.ro civico
+70        																					-- NriCiviciA : estremo superiore dell'intervallo di ricerca sul n.ro civico
+71        																					-- Esponente: stringa contenuta nell'esponente/barrato del civico (ricerca case-insensitive senza forzare il %)
+72        																					-- Zona: zona dei civici (ricerca case-insensitive senza forzare il %)
+73        																					-- FlgIncludiNonValidi (valori 1/0/NULL) Se 1 vengono estratti anche i civici non attivi/validi, altrimenti no
+74        		------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+75        		ColOrderByIO				IN OUT	VARCHAR2,								-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 10 + 21, 22, 23, 36, 40). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+76        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+77        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+78        		FlgDescOrderByIO  			IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+79        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+80        		FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+81        		NroPaginaIO      			IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+82        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+83        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+84        		OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+85        		FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+86        		NroTotRecOut				OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+87        		NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+88        		------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+89        		FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+90        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema.
+91        		ResultOut					OUT		NOCOPY CLOB, 							-- Lista dei civici trovati (XML conforme a schema LISTA_STD.xsd)
+92        																					-- Ogni civico trovato è un tag Riga che contiene le seguenti colonne:
+93        																					-- 1: ID del civico (PK interna)
+94        																					-- 2: Civico completo (nro + eventuale esponente e/o barrato)
+95        																					-- 3: Nro civico (solo la parte numerica a meno di esponente e/o barrato)
+96        																					-- 4: Esponente/barrato del civico
+97        																					-- 5: Stato del civico (decodificato)
+98        																					-- 6: Codice identificativo del civico nel sistema esterno di gestione del viario
+99        																					-- 7: CAP
+100        																					-- 8: Zona
+101        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+102        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+103        		ErrMsgOut					OUT 		VARCHAR2)							-- Messaggio d'errore
+104        		return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+105        
+106        END  Dmpk_Toponomastica;

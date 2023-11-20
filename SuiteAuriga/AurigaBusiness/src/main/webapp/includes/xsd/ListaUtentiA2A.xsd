@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<!-- edited by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="Lista">
+		<xs:annotation>
+			<xs:documentation>Root element</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Utente" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Contiene i dati di un utente</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Cid" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>Identificativo univoco dell'utente</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="Cognome" type="xs:string"/>
+							<xs:element name="Nome" type="xs:string"/>
+							<xs:element name="Attivo" type="xs:boolean">
+								<xs:annotation>
+									<xs:documentation>Indica se utenza attiva o cessata</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="DataAttivazione" type="xs:date">
+								<xs:annotation>
+									<xs:documentation>Data attivazione utente su SmartPeople</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="DataCessazione" type="xs:date" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Data cessazione utente su SmartPeople</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="CodQualifica" type="xs:string" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Codice di eventuale qualifica</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="DesQualifica" type="xs:string" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Descrizione di eventuale qualifica</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="IndirizzoEmailAziendale" type="xs:string" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Indirizzo mail ezindale</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="InOrganigramma">
+								<xs:annotation>
+									<xs:documentation>Indica la/le collocazioni dell'uente nell'organigramma aziendale</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="PosizioneInOrganigramma" minOccurs="0" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>Contiene i dati del posizionamento dell'utente in un nodo dell'organigramma</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="CidNodoOrganigramma" type="xs:string">
+														<xs:annotation>
+															<xs:documentation>Codice identificativo univoco del nodo organigramma cui è agganciato l'utente</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="FlgRelazionePrimaria" type="xs:boolean" default="false" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Se true indica che è la collocazione principale dell'utente in organigramma</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="DataInizio" type="xs:date">
+														<xs:annotation>
+															<xs:documentation>Data da cui decorre la collocazione dell'utente nel nodo dell'organigramma</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="DataFine" type="xs:date" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Data fino a cui vale la collocazione dell'utente nel nodo dell'organigramma (si considera incluso il giorno qui indicato)</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="NomeBusinessUnit" type="xs:string" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Nome della Business Unit di appartenenza</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="Sede" type="xs:string" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Nome della sede geografica</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="Modalita" use="required">
+				<xs:annotation>
+					<xs:documentation>Indica la modalità di invio dei dati: completa o incrementale (solo variazioni non ancora inviatel)</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:pattern value="completa"/>
+						<xs:pattern value="incrementale"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

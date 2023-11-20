@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="ResponseModalitaInvioDati">
+		<xs:annotation>
+			<xs:documentation>Root element</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Modalita">
+					<xs:annotation>
+						<xs:documentation>Modalità di invio dei dati: completa o incrementale, ovvero solo i dati aggiunti/variati dalla data indicata in IncrementoDal</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:pattern value="completa"/>
+							<xs:pattern value="incrementale"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="IncrementoDal" type="xs:date" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Data da cui inviare ll'incremento (solo i dati variati o aggiunti dalla data qui indicata)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<!-- <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"> -->
+<title>Test ScanApplet</title>
+
+<script type="text/javascript">
+  window.onbeforeunload = confirmExit;
+  //window.onunload = confirmExit;
+
+  function confirmExit()
+  {
+    var esito =document.myapplet.showConfirmOnClose();
+    
+	if ( !esito && /Firefox[\/\s](\d+)/.test(navigator.userAgent) && new Number(RegExp.$1) >= 4) {
+        alert("Ci sono delle immagini acquisite ma non hai premuto \"Termina acquisizione\" per creare il file unione da salvare. Chiudendo perderai le immagini acquisite. Per uscire devi confermare l'operazione");
+        return "."
+    }
+	//alert(esito);
+	else if(!esito){
+		// alert('Mostro messaggio');
+    	return "Ci sono delle immagini acquisite ma non hai premuto \"Termina acquisizione\" per creare il file unione da salvare. Chiudendo perderai le immagini acquisite. Confermi l'operazione ?";
+	}
+  }
+</script>
+
+</head>
+
+<body>
+ <h1>ScanApplet</h1>
+
+ <br/>
+ <br/>
+ 
+ <applet id="myapplet" code = "it.eng.utility.scanner.twain.applet.TwainApplet.class" 
+    archive = "scanapplet-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    width = "800"
+    height = "500" >
+   <PARAM name="directUrl" value="http://192.168.11.52:8080/FileopWar/cert.pdf">
+   
+ </applet>
+   
+   
+</body>
+</html>

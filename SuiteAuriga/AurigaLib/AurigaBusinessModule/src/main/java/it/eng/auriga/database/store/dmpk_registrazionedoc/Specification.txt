@@ -1,0 +1,753 @@
+1        PACKAGE dmpk_RegistrazioneDoc AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        
+12        	/************** Tutte le funzioni restituiscono 1 in caso di successo, altrimenti 0										*******/
+13        	/************** In caso di result 0 restituiscono un n.ro, un contesto e un messaggio di errore:							*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        	/********funzione  per controllare la competezza e correttezza dei dati di un'unità documentaria per potervi effettuare una registrazione di protocollo o di altro tipo *******/
+20        	function CtrlUDXRegistrazione(
+21        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+22        																	-- (obblig). Codice identificativo del token di connessione
+23        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+24        			IdUDIn				IN		DMT_UNITA_DOC.ID_UD%type,			-- (obblig.) Id. dell'unità documentaria
+25        			CodCategoriaRegIn 		IN		VARCHAR2,						-- (obblig.) Codice della categoria di registrazione che si vuole che sia data all¿unità documentaria
+26        																	-- Valori ammessi:
+27        																	-- PG 	=	Protocollo Generale
+28        																	-- PP	=	Protocollo Particolare
+29        																	-- R	=	Repertorio
+30        																	-- A	= 	Altro
+31        			SiglaRegIn 				IN		VARCHAR2 DEFAULT NULL,				-- Sigla che indica il particolare registro in cui deve essere fatta la registrazione (obblig se la categoria è R o A)
+32        			AnnoRegIn				IN		PLS_INTEGER DEFAULT NULL,			-- Anno della registrazione da dare (da specificare solo se diverso da quello corrente) (può essere espresso con 2 o 4 cifre)
+33        			CISistemaProtocolloIn 		IN		VARCHAR2,						-- Identificativo del sistema di protocollo informatico utilizzato
+34        																	-- Valori previsti: AURIGA, E-GRAMMATA, PG@WEB
+35        			CISistemaAltreRegNumIn  	IN		VARCHAR2,						-- Identificativo del sistema che dà i servizi di registrazione diversa dal protocollo (repertorio ecc.)
+36        																	-- Valori previsti: AURIGA, E-GRAMMATA
+37        			InputXMLXExtAPIOut		OUT		NOCOPY CLOB,					-- XML da passare in input all'eventuale web service da invocare per effettuare la registrazione
+38        																	-- o XML conforme a schema SezioneCache.xsd con gli input da passare all'API da invocare per effettuare la registrazione
+39        			IdUserRegOut			OUT		DMT_USERS.ID_USER%type,				-- Id. (ID_USER) dell'utente a nome di cui si effettuerà la registrazione
+40        			UsernameUserRegOut		OUT		VARCHAR2,						-- Username dell'utente a nome di cui si effettuerà la registrazione (nel sistema che erogherà la registrazione)
+41        			PasswordUserRegOut		OUT		VARCHAR2,						-- Password dell'utente a nome di cui si effettuerà la registrazione (nel sistema che erogherà la registrazione). Valorizzata solo se il sistema di registrazione non è AURIGA
+42        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+43        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+44        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+45        			RETURN PLS_INTEGER;											-- vale 1 in caso di successo, altrimenti 0
+46        
+47        	/******* funzione per avere il n.ro di registrazione per un'unità documentaria quando il dato tipo di registrazione è gestito internamente ad AURIGA ***/
+48        	function GeneraProgressivo(
+49        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+50        																	-- (obblig). Codice identificativo del token di connessione
+51        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+52        			CodCategoriaRegIn 		IN		VARCHAR2,						-- (obblig.) Codice della categoria della registrazione
+53        																	-- Valori ammessi:
+54        																	-- PG 	=	Protocollo Generale
+55        																	-- PP	=	Protocollo Particolare
+56        																	-- R	=	Repertorio
+57        																	-- A	= 	Altro
+58        			SiglaRegIn 				IN		VARCHAR2 DEFAULT NULL,				-- Sigla che indica il particolare registro in cui deve essere fatta la registrazione (obblig se la categoria è R o A)
+59        			AnnoRegIn				IN		DMT_GEN_PROGR.ANNO%type DEFAULT NULL,	-- Anno per cui generare il progressivo: va valorizzato x i tipi di numerazioni che sono annuali, e per questi, se non specificato, si assume essere pari all'anno corrente
+60        																	-- Può avere da 1 -> 4 cifre.
+61        			ProgrGeneratoOut			OUT		DMT_GEN_PROGR.PROGR%type,			-- Progressivo generato (in caso di errore non viene valorizzato)
+62        			TsRegistrazioneOut		OUT		VARCHAR2,						-- Data e ora di registrazione (nel formato del parametro di config. FMT_STD_TIMESTAMP)
+63        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+64        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+65        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+66        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+67        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+68        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+69        			RETURN PLS_INTEGER;											-- vale 1 in caso di successo, altrimenti 0
+70        
+71        	/************ funzione per verificare si ci sono possibili duplicati di una registrazione che si sta per effettuare **********/
+72        	function VerificaRegDuplicata(
+73        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+74        																					-- (obblig). Codice identificativo del token di connessione
+75        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+76        			XMLDatiRegIn				IN 		CLOB,								-- Dati della registrazione in corso utilizzati per la verifica di duplicazione (XML conforme a schema SezioneCache.xsd)
+77        																					-- I dati utilizzati per la verifica corrispondono ai seguenti tag Variabile:
+78        																					-- #FlgTipoProv				Indica se registrazione in entrata (E), in uscita (U) o interna/tra uffici (I)
+79        																					-- #DesOgg					Oggetto
+80        																					-- #DtDocRicevuto			Data di registrazione del documento ricevuto in entrata (ad esempio la data del Protocollo mittente)(nel formato dato dal parametro di conf. FMT_STD_DATA)
+81        																					-- #AnnoDocRicevuto			Anno di registrazione del documento ricevuto in entrata (ad esempio l'anno del Protocollo mittente)
+82        																					-- #EstremiRegDocRicevuto	Estremi di registrazione del documento ricevuto in entrata (sigla registro e nro separati da / se la sigla registro è valorizzata)
+83        																					-- #RifDocRicevuto			Altri riferimenti del documento ricevuto in entrata (tipicamente cod. AOO mittente)
+84        																					-- #DtRaccomandata			Data di raccomandata (se reg. in entrata ricevuta tramite raccomandata) (nel formato dato dal parametro di conf. FMT_STD_DATA)
+85        																					-- #NroRaccomandata			Nro di raccomandata (se reg. in entrata ricevuta tramite raccomandata)
+86        																					-- #@MittentiEsterni		Lista con i dati dei mittenti (non solo esterni)
+87        																					--							Ciscuna riga della lista può contenere le seguenti colonne:
+88        																					--							1: Identificativo del soggetto nella rubrica soggetti del sistema
+89        																					--							2: <non utilizzata>
+90        																					--							3: Se valorizzato (valore fisso 1) indica che il soggetto è una persona fisica (altrimenti si intende essere una persona giuridica)
+91        																					--							4: Denominazione (se persona giuridica) o cognome (se persona fisica)
+92        																					--							5: Nome (se persona fisica)
+93        																					--							6: Codice fiscale
+94        																					-- #@DestinatariEsterni		Lista con i dati dei destinatari (non solo esterni)
+95        																					--							Ciscuna riga della lista può contenere le seguenti colonne:
+96        																					--							1: Identificativo del soggetto nella rubrica soggetti del sistema
+97        																					--							2: <non utilizzata>
+98        																					--							3: Se valorizzato (valore fisso 1) indica che il soggetto è una persona fisica (altrimenti si intende essere una persona giuridica)
+99        																					--							4: Denominazione (se persona giuridica) o cognome (se persona fisica)
+100        																					--							5: Nome (se persona fisica)
+101        																					--							6: Codice fiscale
+102        																					--							7: Id. del gruppo di soggetti esterni destinatario (se è un gruppo/lista di distribuzione)
+103        																					-- #@File					Lista con i dati dei file della registrazione
+104        																					--							Ciscuna riga della lista deve contenere le seguenti colonne:
+105        																					--							1: Nro di allegato del file. Se è il file primario va specificato 0
+106        																					--							2: Impronta del file
+107        																					--							3: Algoritmo di calcolo dell'impronta del file (SHA-1, SHA-256 ecc)
+108        																					--							4: Encoding utilizzato per il calcolo dell'impronta (hex o base64)
+109        			NroMatchTrovatiOut			OUT		PLS_INTEGER,						-- N.ro di registrazioni che sono possibili duplicati della registrazione in corso e che sono restituite in PossibiliRegDuplicateXMLOut
+110        																					-- Potrebbero non essere tutte le supera un limite max consentito (ciò viene indicato in WarningMsgOut)
+111        			PossibiliRegDuplicateXMLOut	OUT		NOCOPY CLOB,						-- Lista con le registrazioni che sono possibili duplicati della registrazione che si sta per effettuare (XML conforme a schema LISTA_STD.xsd)
+112        																					-- Ogni registrazione è un tag Riga nell'xml; i dati di ogni registrazione corrispondono ai seguenti tag Colonna:
+113        																					-- 1: Score del match con la registrazione in corso (n.ro intero)
+114        																					-- 2: Estremi di registrazione (registro, anno e n.ro)
+115        																					-- 3: Data e ora di registrazione (nel formato definito dal parametro di config. FMT_STD_TIMESTAMP)
+116        																					-- 4: (valori E/U/I) Verso della registrazione: E = Entrata, U = In uscita, I = Interna
+117        																					-- 5: Denominazione o cognome e nome del/i mittente/i (se più di uno separati da ;)
+118        																					-- 6: (valori 2/1/0) Indica se il/i mittenti della registrazione in corso rispetto a quello/i della registrazione rappresentata dal record sono tutti uguali (=2) o uguali in parte (=1) o del tutto diversi (=0). Risulta 2 anche se sono non valorizzati in entrambe le registrazioni
+119        																					-- 7: Denominazione o cognome e nome del/i destinatari (se più di uno separati da ;)
+120        																					-- 8: (valori 2/1/0) Indica se il/i destinatari della registrazione in corso rispetto a quello/i della registrazione rappresentata dal record sono tutti uguali (=2) o uguali in parte (=1) o del tutto diversi (=0). Risulta 2 anche se sono non valorizzati in entrambe le registrazioni
+121        																					-- 9: Rif. della registrazione di proveninenza (valorizzato se reg. in entrata)
+122        																					-- 10: (valori 2/0) Indica se il rif. della reg. di provenenienza della registrazione in corso è uguale (=2) o diverso (=0) da quello della registrazione rappresentata dal record. Risulta 2 anche se sono non valorizzati in entrambe le registrazioni
+123        																					-- 11: Nro della registrazione di proveninenza (valorizzato se reg. in entrata)
+124        																					-- 12: (valori 2/0) Indica se il nro della reg. di provenenienza della registrazione in corso è uguale (=2) o diverso (=0) da quello della registrazione rappresentata dal record. Risulta 2 anche se sono non valorizzati in entrambe le registrazioni
+125        																					-- 13: Data della registrazione di proveninenza (nel formato definito dal parametro di config. FMT_STD_DATA; valorizzata se reg. in entrata), o anno, se la data non è valorizzata e l'anno sì
+126        																					-- 14: (valori 2/0) Indica se la data della reg. di provenenienza della registrazione in corso è uguale (=2) o diversa (=0) da quella della registrazione rappresentata dal record. Risulta 2 anche se sono non valorizzati in entrambe le registrazioni
+127        																					-- 15: Oggetto
+128        																					-- 16: (valori 2/0) Indica se l'oggetto della registrazione in corso è uguale (=2) o diverso (=0) da quello della registrazione rappresentata dal record (uguale a meno del case e di caratteri NON significativi quali spazi, carriage return e caratteri di punteggiatura)
+129        																					-- 17: (1/0) Indica se c'è (=1) o meno (=0) file primario
+130        																					-- 18: (valori 2/0/-1) Indica se l'impronta del file primario della registrazione in corso coincide (=2) o è diversa (=0) da quella del file primario della registrazione rappresentata dal record. Risulta -1 anche se NON c'è file primario in entrambe le registrazioni
+131        																					--		Vale -1 nel caso in cui le impronte non siano comparabili perchè calcolate con algoritmi e/o encoding diversi
+132        																					-- 19: URI del file primario (valorizzato solo se il file è visibile all'utente di lavoro o se coincide con quello della reg. in corso)
+133        																					-- 20: Nome del file primario (valorizzato solo se il file è visibile all'utente di lavoro o se coincide con quello della reg. in corso)
+134        																					-- 21: (1/0) Indica se ci sono (=1) o meno (=0) file (primario e allegati)
+135        																					-- 22: (valori 2/1/0/-1) Indica se i file della registrazione in corso coincidono tutti (=2) o in parte (=1) o nessuno (=0) con quelli della registrazione rappresentata dal record. Risulta -1 anche se NON ci sono file in entrambe le registrazioni
+136        																					--		Vale -1 nel caso in cui non risultino file coincidenti e alcuni/tutti i file non siano comparabili perchè le impronte sono calcolate con algoritmi e/o encoding diversi da quelli dei file in input
+137        																					-- 23: N.ro di allegato (0 se è il primario) dei file coincidenti con quelli della registrazione in corso
+138        																					--	   Nel caso siano più di uno sono separati da ;
+139        																					-- 24: URI dei file coincidenti con quelli della registrazione in corso
+140        																					--	   Nel caso siano più di uno gli URI sono separati da ;
+141        																					-- 25: Nomi dei file coincidenti con quelli della registrazione in corso
+142        																					--	   Nel caso siano più di uno i nomi sono separati da ;
+143        																					-- 26: N.ro di raccomandata (valorizzato solo se reg. in entrata)
+144        																					-- 27: (valori 2/0) Indica se il nro di raccomandata della registrazione in corso è uguale (=2) o diverso (=0) da quello della registrazione rappresentata dal record. Risulta 2 anche se sono non valorizzati in entrambe le registrazioni
+145        																					-- 28: Data raccomandata, nel formato dato dal parametro di config. FMT_STD_DATA (valorizzata solo se reg. in entrata)
+146        																					-- 29: (valori 2/0) Indica se la data di raccomandata della registrazione in corso è uguale (=2) o diversa (=0) da quella della registrazione rappresentata dal record. Risulta 2 anche se sono non valorizzate in entrambe le registrazioni
+147        																					-- 30: ID_UD della registrazione possibile duplicato
+148        			StatoDuplicazioneOut		OUT		VARCHAR2,							-- (Valori S/N/P) Indica se la duplicazione è certa (=S) o non c'è (=N) o se ci sono registrazioni che sono possibili duplicati (=P)
+149        																					-- Valorizzato sempre e solo se la verifica va a buon fine (return 1)
+150        			WarningMsgOut				OUT		VARCHAR2,							-- Messaggio di avvertimenti (ad esempio quando il n.ro di match restituiti è solo una parte perchè supera il limite massimo consentito)
+151        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+152        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+153        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+154        			return PLS_INTEGER;														-- 1 in caso di la verifica sia riuscita, 0 in caso di errore
+155        
+156        	/*********** funzione per ottenere i dati per la stampa del registro di protocollo generale o di altro registro 																												*****/
+157        	/*********** se il registro richiesto contiene un n.ro di registrazioni superiore ad un massimo consentito la produzione del registro viene messa in schedulazione, assegnandole un identificativo di job restituito in output 	*****/
+158        	/*********** l'estrazione del registro da parte del job avviene semplicemente richiamando la funzione con l'IdJobIn già valorizzato in input																					*****/
+159        	function StampaRegistro(
+160        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+161        																					-- (obblig se IdJobIO NON è valorizzato in input). Codice identificativo del token di connessione
+162        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+163        			ParametriRegistroIn			IN		CLOB,								-- (consideraro solo se IdJobIO NON è valorizzato in input) XML contenente nomi e valori dei parametri con cui estrarre il registro (conforme allo schema SezioneCache.xsd).
+164        																					-- Ogni parametro è un tag "Variabile" dell'XML
+165        																					-- I nomi dei parametri possibili sono:
+166        																					-- CodCategoriaRegistro: (obbligatorio se IdJobIO non è valorizzato in input) codice che indica la categoria del registro (PG=Protocollo Generale, PP=Protocollo Particolare, PUBBL = Registro delle pubblicazioni ecc)
+167        																					-- SiglaRegistro: sigla del registro (obbligatorio se la categoria NON è sufficiente ad identificare il registro)
+168        																					-- AnnoRegistro: anno delle registrazioni da mettere nella stampa
+169        																					-- DataRegistrazioneDa: giorno di inizio dell'intervallo temporale delle registrazioni da mettere nella stampa (nel formato dato dal parametro di config. FMT_DTD_DATA)
+170        																					-- DataRegistrazioneA: giorno di fine (incluso) dell'intervallo temporale delle registrazioni da mettere nella stampa (nel formato dato dal parametro di config. FMT_DTD_DATA)
+171        																					-- NroRegistrazioneDa: primo n.ro dell'intervallo di nri di registrazione da mettere nella stampa
+172        																					-- NroRegistrazioneA: ultimo n.ro dell'intervallo di nri di registrazione da mettere nella stampa
+173        																					-- SchermaRiservati: (valori 1/0/NULL) Se 1 significa che per le registrazioni riservate i dati "sensibili" devono apparire schermati, ovvero con una notazione ****RISERVATO****
+174        																					-- EstraiVariazioni: (valori 1/0/NULL) Se 1 significa che devono essere estratte anche le variazioni (annullamenti dati) delle registrazioni (viene considerato solo se estrazione per data)
+175        																					-- ColToReturn: lista delle colonne da restituire nella lista delle registrazioni (sono i numeri della colonne richieste, se più di una separati da ;)
+176        			IdJobIO						IN	OUT	INTEGER,							-- Id. del job di stampa registro da eseguire (se IdJobIO è valorizzato in input) o che sarà eseguito off-line (se IdJobIO NON è valorizzato in input ed è valorizzato in output)
+177        			DatiRegistrazioniXMLOut		OUT		NOCOPY CLOB,						-- Lista XML (conforme a schema LISTA_STD.xsd) con i dati delle registrazioni da mettere nella stampa (non è valorizzato se la stampa deve avvenire poi off-line, ovvero se IdJobIO è non valorizzato in input ed è valorizzato in output)
+178        																					-- Ogni registrazione corrisponde ad un tag Riga con le seguenti colonne:
+179        																					-- 1: Data e ora della registrazione
+180        																					-- 2: N.ro della registrazione
+181        																					-- 3: Tipo della registrazione: E = Entrata, U = Uscita, I = Interna
+182        																					--		ovvero Tiplogia di atto nel caso del registro pubblicazioni
+183        																					-- 4: Utente e UO di registrazione
+184        																					-- 5: Estremi dell'eventuale registrazione di emergenza (registro, numero e data)
+185        																					-- 6: Mittente/i della registrazione
+186        																					-- 7: Destinatario/i della registrazione
+187        																					-- 8: Oggetto
+188        																					-- 9: Classifica/e o fascicolo/i
+189        																					-- 10: Impronte dei file associati: per ciascun file vi sono algoritmo e encoding di calcolo impronta e impronta separati da uno spazio; i dati dei vari file sono separati da ;
+190        																					-- 11: Assegnatario/i della registrazione
+191        																					-- 12: (flag Sì/No) Indicazione di registrazione annullata
+192        																					-- 13: Data e ora di annullamento della registrazione
+193        																					-- 14: Estremi atto di annullamento della registrazione
+194        																					-- 15: (flag Sì/No) Indicazione di registrazione con dati annullati
+195        																					-- 16: Estremi del protocollo ricevuto (se registrazione in entrata)
+196        																					-- 17: Nro allegati
+197        																					-- 18: Ufficio proponente (se registro di proposta atto/repertorio atti)
+198        																					-- 19: Stato della proposta di atto: in iter, archiviata, approvata, pubblicata (se registro di proposta atto)
+199        																					-- 20: Estremi di repertorio corrispondenti al n.ro di proposta (se registro di proposta atto)
+200        																					-- 21: Estremi di proposta corrispondenti al n.ro di repertorio (se registro di repertorio atti)
+201        																					-- 22: Estremi di protocollo generale corrispondenti (se registro diverso dal Prot. Gen.)
+202        																					--		ovvero estremi dell'atto se registro di pubblicazione
+203        																					-- 23: Periodo/i di pubblicazione (se registro di proposta atto/repertorio atti/pubblicazione)
+204        																					-- 24: Data di adozione (la data dell'ultima firma) (se registro di proposta atto/repertorio atti/pubblicazione)
+205        			DatiVarRegistrazioniXMLOut	OUT		NOCOPY CLOB,						-- Lista XML (conforme a schema LISTA_STD.xsd) con i dati delle variazioni di registrazioni da mettere nella stampa (non è valorizzato se la stampa deve avvenire poi off-line, ovvero se IdJobIO è non valorizzato in input ed è valorizzato in output)
+206        																					-- Ogni registrazione variata corrisponde ad un tag Riga. Le colonne sono le stesse della lista DatiRegistrazioniXMLOut
+207        			DatiUDStampaOut				OUT		NOCOPY CLOB,						-- Dati dell'unità documentaria che viene creata in archivio per associarvi il file del registro
+208        																					-- E' un xml conforme a schema SezioneCache
+209        																					-- Contiene le seguenti variabili:
+210        																					-- ID_UD: ID_UD dell'unità documentaria
+211        																					-- ID_DOC: ID_DOC del ddocumento principale
+212        																					-- DisplayFilename: nome da dare al file del registro
+213        			HeaderRegistroOut			OUT		VARCHAR2,							-- Testo da mettere come intestazione (header) della stampa delle registrazioni, in ogni pagina
+214        			HeaderVarRegistroOut		OUT		VARCHAR2,							-- Testo da mettere come intestazione (header) della stampa delle registrazioni variate, in ogni pagina
+215        			FooterRegistroOut			OUT		VARCHAR2,							-- Testo da mettere come footer della stampa delle registrazioni, in ogni pagina
+216        			FooterVarRegistroOut		OUT		VARCHAR2,							-- Testo da mettere come footer della stampa delle registrazioni variate, in ogni pagina
+217        			NroRegistrazioniOut			OUT		PLS_INTEGER,						-- N.ro di registrazioni riportate nella stampa
+218        																					-- valorizzato solo in caso di esito positivo e se DatiRegistrazioniXMLOut è valorizzato in output
+219                    NroVarRegistrazioniOut		OUT		PLS_INTEGER,						-- N.ro di registrazioni variate riportate nella stampa delle variazioni
+220        																					-- valorizzato solo in caso di esito positivo e se DatiVarRegistrazioniXMLOut è valorizzato in output
+221                    XMLDatiRegistroXConservOut	OUT		NOCOPY CLOB,						-- XML (conforme a Schema SezioneCache) con i dati del registro necessari alla conservazione dello stesso
+222        																					-- valorizzato solo in caso di esito positivo e se DatiRegistrazioniXMLOut è valorizzato in output
+223        			TipoReportOut       		OUT VARCHAR2,    							-- Tipo di layout del report da utilizzare. Puo' essere :
+224        																					 -- PROTOCOLLO se sono registrazioni di protocollo generale.
+225        																					 -- REPERTORIO_ATTI se sono sono registrazioni di repertori atti.
+226        																					 -- REPERTORIO se sono sono registrazioni di qualsiasi altro repertorio.
+227        																					 -- PROPOSTE_ATTO se sono sono registrazioni di proposte atti.
+228        																					 -- valorizzato solo in caso di esito positivo e se DatiRegistrazioniXMLOut è valorizzato in output
+229        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+230        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+231        			FlgAutoCommitIn				IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+232        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+233        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+234        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+235        			return PLS_INTEGER;														-- 1 in caso di richiesta registro evasa o correttamente sottomessa, 0 in caso di errore
+236        
+237        	/********  funzione per ottenere la lista - NON paginata - dei job di stampa registro pronti per generare il pdf	o ancora da inviare in conservazione	*************/
+238        	function GetJobsStampaRegProntiXGenPdf(
+239        			ListaJobXmlOut				OUT		NOCOPY CLOB,						-- XML (conforme a schema LISTA_STD.xsd) con la lista dei job. Ogni job è un tag Riga con le seguenti colonne:
+240        																					-- 1: Id. del Job
+241        																					-- 2: Header della stampa: testo da mettere come intestazione (header) della stampa, in ogni pagina
+242        																					-- 3: Footer della stampa: testo da mettere come footer della stampa, in ogni pagina
+243        																					-- 4: N.ro di "pagine" in cui è spezzato l'xml con i record del registro da stampare (escluse variazioni)
+244        																					-- 5: SCHEMA_DB: lo schema DB a cui connettersi per salvare il pdf del registro
+245        																					-- 6: Tipo di dominio - valori 2 e 3 - a cui loggarsi per salvare il pdf del registro
+246        																					-- 7: Id. del dominio - id. ente o AOO - a cui loggarsi per salvare il pdf del registro
+247        																					-- 8: Username con cui loggarsi per salvare il pdf del registro
+248        																					-- 9: ID_DOC del documento dell'archivio in cui salvare il file pdf del registro
+249        																					-- 10: Display name da dare al file
+250                                                  											-- 11: TipoReport
+251        																					-- 12: (valori 1/0) Flag di registro generato in automatico
+252        																					-- 13: Nome con cui inviare in conservazione il file del registro
+253        																					-- 14: (valori 1/0) Se 1 indica che il registro è già generato e SOLO da inviare in conservazione il file
+254        																					-- 15: URI per reperire il file del registro se già generato
+255        																					-- 16: Header della parte delle variazioni del registro
+256        																					-- 17: Footer della parte delle variazioni del registro
+257        																					-- 18: N.ro di "pagine" della parte relativa alle variazioni di registrazione
+258        																					-- 19: Id. del parametro della BMT_JOB_PARAMETERS che contiene l'xml con i deti del registro da mandare in conservazione
+259        																					-- 20: Nome da dare al file xml con i deti del registro da mandare in conservazione
+260        			NroTotRecOut				OUT		PLS_INTEGER,						-- E' il n.ro di record restituiti nella lista ListaJobXmlOut
+261        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+262        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+263        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+264        			return PLS_INTEGER;														-- 1 in caso di richiesta registro evasa o correttamente sottomessa, 0 in caso di errore
+265        
+266        	/********funzione per ottenere una "pagina" - XML - con una parte dei record da mettere nella stampa di un job di stampa registro  ******/
+267        	function GetPaginaXMLJobStampaReg(
+268        			IdJobIn						IN		INTEGER,							-- (obblig.) Identificativo del job di stampa registro
+269        			NroPaginaIn					IN		PLS_INTEGER,						-- (obblig. valori da 1 in su) N.ro di pagina XML con i dati del registro da ottenere
+270        			PaginaXMLOut				OUT		NOCOPY CLOB,						-- Pagina XML richiesta (se la funzione restituisce 1)
+271        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+272        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+273        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+274        			return PLS_INTEGER;														-- 1 in caso di richiesta registro evasa o correttamente sottomessa, 0 in caso di errore
+275        
+276        	/***** funzione richiamata una volta effettuata l'archiviazione del pdf di una stampa registro fatta come job 									******/
+277        	/***** serve ad aggiornare lo stato del job e se questo è andato a buon fine a rimuovere dal DB i parametri del job che NON servono più			******/
+278        	function AggiornaJobStampaRegistro(
+279        			IdJobIn						IN		INTEGER,							-- (obblig.) Identificativo del job di stampa registro
+280        			EsitoStampaIn				IN		VARCHAR2,							-- (obblig.) Indica se la stampa è andata a buon fine (OK) o in errore (KO)
+281        			MotiviErroreIn				IN 		VARCHAR2,							-- Messaggio/stack trace dell'errore se l'esito è KO
+282        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+283        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+284        			FlgAutoCommitIn				IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+285        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+286        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+287        			ErrMsgOut					OUT 	VARCHAR2,							-- Messaggio d'errore
+288        			FlgInvioConservazioneIn		IN		PLS_INTEGER DEFAULT NULL)			-- Se 1 significa che è avvenuto l'invio in conservazione, se 0 o NULL no
+289        			return PLS_INTEGER;														-- 1 in caso successo, 0 in caso di errore
+290        
+291        	/************** esegue l'estrazione dati per TUTTI i job di stampa registro per cui tale estrazione NON è stata ancora eseguita 			********/
+292        	/************** e se l'estrazione va a buon fine salva i dati estratti nei parametri del job, altrimenti setta ad "errore" lo stato del job	*******/
+293        	procedure EstraiDatiXJobStampeReg;
+294        
+295        	/********** procedure che serve a schedulare le stampe automatiche - giornaliere / periodiche - di stampa registro 					 ******/
+296        	/********** genera solo i registri relativi al periodo di generazione fino al giorno precedente al giorno indicato in GiornoGenRegIn ******/
+297        	procedure SchedulaJobStampaRegAuto
+298        		(GiornoGenRegIn		IN			DATE DEFAULT sysdate);		-- giorno in cui si generano i registri (relativi al periodo precedente)
+299        
+300        	/********** procedure che serve a schedulare le stampe automatiche - giornaliere / periodiche - di stampa registro 					 ******/
+301        	/********** di tutti i registri relativi al periodo indicato in input (salvo se già schedulati/generati) 							 ******/
+302        	procedure SchedulaJobStampaRegAutoDaA
+303        		(GiornoDaIn			IN			DATE,
+304        		 GiornoaAIn			IN			DATE
+305        		);
+306        	/******* funzione per ricercare le registrazioni effettuate in emergenza ed eventualmente non ancora registrate a protocollo generale ********/
+307        	function TrovaRegEmergenza(
+308        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+309        																					-- (obblig). Codice identificativo del token di connessione
+310        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+311        			FiltriXMLIn				IN 		CLOB DEFAULT NULL,						-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd).
+312        																					-- Ogni filtro è un tag "Variabile" dell'XML
+313        																					-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+314        																					-- I nomi dei filtri possibili sono:
+315        																					--	DataRegEmergenzaDal		(data senza ora) Inizio intervallo di ricerca sulla data di registrazione di emergenza (nel formato del parametro di config. FMT_STD_DATA)
+316        																					--	DataRegEmergenzaAl		(data senza ora) Fine intervallo di ricerca sulla data di registrazione di emergenza (nel formato del parametro di config. FMT_STD_DATA)
+317        																					--  @SigleRegistri			Lista delle sigle dei registri di emergenza su cui ricercare le registrazioni. Ogni sigla è una riga con una sola colonna
+318        																					--	NroRegEmergenzaDa		Inizio intervallo di ricerca sul n.ro di registrazione di emergenza
+319        																					--	NroRegEmergenzaA		Fine intervallo di ricerca sul n.ro di registrazione di emergenza
+320        																					--  RegistratiDaMe			(valori 1/NULL) Se 1 serve serve a ricercare solo le registrazioni di emergenza effettuate dall'utente collegato
+321        																					--	IncludiRegDefinitive	(valori 1/NULL) Se 1 vengono estratte anche le registrazioni di emergenza già registrate al registro di protocollo generale o definitivo, altrimenti no
+322        																					--  Mittente				ricerca case-insensitive in like sul mittente
+323        																					--	Destinatario			ricerca case-insensitive in like sul/i destinatari
+324        																					--	Oggetto					filtro di ricerca di tipo full-text (contains) sull oggetto
+325        																					--	UsernameRegEmerg		Username dell'utente che ha effettuato la registrazione di emergenza (ricerca esatta case-insensitive)
+326        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+327        			ColOrderByIO			IN OUT		VARCHAR2,							-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 13). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+328        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+329        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+330        			FlgDescOrderByIO  		IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+331        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+332        			FlgSenzaPaginazioneIn 	IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+333        			NroPaginaIO      		IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+334           			BachSizeIO				IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+335        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+336        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+337        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+338        			NroTotRecOut			OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+339             		NroRecInPaginaOut 		OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+340        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+341        			FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+342        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema.
+343        			ResultOut				OUT		NOCOPY CLOB, 							-- Lista delle registrazioni di emergenza trovate (XML conforme a schema LISTA_STD.xsd)
+344        																					-- Ogni registrazione di emergenza trovata è un tag Riga che può contenere le seguenti colonne:
+345        																					-- 1:  Id. univoco
+346        																					-- 2:  ID_UD dell'unità documentaria già creata a fronte della protocollazione/registarzione definitiva su sistema centrale
+347        																					-- 3:  Sigla del registro di emergenza
+348        																					-- 4:  Verso di registrazione: E = Entrata, U = Uscita, I = Interno
+349        																					-- 5:  Anno di registrazione di emergenza
+350        																					-- 6:  Data e ora di registrazione di emergenza (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+351        																					-- 7:  N.ro di registrazione di emergenza
+352        																					-- 8:  U.O. protocollante
+353        																					-- 9:  Utente che ha protocollato
+354        																					-- 10: Oggetto
+355        																					-- 11: Mittente
+356        																					-- 12: Data e ora di arrivo (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+357        																					-- 13: Data e ora di riversamento sul sistema centrale (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+358        																					-- 14: Destinatario/i
+359        																					-- 15: Dati del protocollo ricevuto (rif. origine, anno/data, Nro)
+360        																					-- 16: (valori 1/0) 1 se chi ha protocollato in emergenza coincide con l'utente di lavoro/loggato
+361        																					-- 17: Segnatura di emergenza
+362        																					-- 18: Segnatura registrazione definitiva
+363        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+364        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+365        			ErrMsgOut				OUT 		VARCHAR2)							-- Messaggio d'errore
+366        			return PLS_INTEGER;														-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+367        
+368        	/********* funzione richiamata per pre-compilare la maschera di registrazione "definitiva" (a protocollo generale o altro registro) di una registrazione fatta in emergenza *****/
+369        	function PreparaRegDefRegEmergenza(
+370        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+371        																							-- (obblig). Codice identificativo del token di connessione
+372        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,		-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+373        			IdRegEmergenzaIn			IN		DMT_REG_EMERGENZA.ID_REG_EMERG%type,		-- (obblig) Id. della registrazione di emergenza da registrare a protocollo generale o altro registro "definitivo"
+374        			DatiUDXMLOut				OUT		NOCOPY CLOB,								-- XML conforme a schema SezioneCache.xsd con i dati della registrazione
+375        																							-- Le variabili sono le stesse che nella dmpk_repository_gui.LoadDettUDxGUIModProt
+376        			ErrContextOut				OUT		VARCHAR2,									-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+377        			ErrCodeOut					OUT		PLS_INTEGER,								-- N.ro errore di uscita
+378        			ErrMsgOut					OUT 	VARCHAR2)									-- Messaggio d'errore
+379        			return PLS_INTEGER;																-- 1 in caso di successo, 0 in caso di errore
+380        
+381        	/******* funzione che serve ad associare ad una registrazione di emergenza l'ID_UD dell'unità documentaria 						******/
+382        	/******* a cui ha dato luogo quando si è fatta la registrazione definitiva a protocollo generale o altro registro "definitivo" ******/
+383        	function SetRegDefRegEmergenza(
+384        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+385        																							-- (obblig). Codice identificativo del token di connessione
+386        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,		-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+387        			IdRegEmergenzaIn			IN		DMT_REG_EMERGENZA.ID_REG_EMERG%type,		-- (obblig) Id. della registrazione di emergenza registrata a protocollo generale o altro registro "definitivo"
+388        			IdUDIn						IN		DMT_UNITA_DOC.ID_UD%type,					-- (obblig) ID_UD che corrisponde alla registrazione definitiva a protocollo generale o altro registro "definitivo"
+389        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+390        																							-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+391        			FlgAutoCommitIn				IN 		PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+392        			ErrContextOut				OUT		VARCHAR2,									-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+393        			ErrCodeOut					OUT		PLS_INTEGER,								-- N.ro errore di uscita
+394        			ErrMsgOut					OUT 	VARCHAR2)									-- Messaggio d'errore
+395        			return PLS_INTEGER;																-- 1 in caso di successo, 0 in caso di errore
+396        
+397        	/******* funzione per richiedere l'annullamento di una registrazione a protocollo generale o ad altro registro ********/
+398        	function RichiestaAnnReg(
+399        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+400        																					-- (obblig). Codice identificativo del token di connessione
+401        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+402        			CodCategoriaRegIn			IN		VARCHAR2,							-- (obblig.) Codice della categoria della registrazione/numerazione da annullare
+403        			SiglaRegIn					IN		VARCHAR2 DEFAULT NULL,				-- Sigla che identifica il registro della registrazione/numerazione da annullare (obblig. solo se la categoria non è sufficiente ad identificare il registro)
+404        			AnnoRegIn					IN		PLS_INTEGER,						-- (obblig.) Anno della registrazione/numerazione da annullare
+405        			NumRegIn					IN		PLS_INTEGER,						-- (obblig.) N.ro della registrazione/numerazione da annullare
+406        			MotiviAnnIn					IN 		VARCHAR2,							-- (obblig.) Motivo per cui si richiede l'annullamento
+407        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+408        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+409        			FlgAutoCommitIn				IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+410        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+411        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+412        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+413        			return PLS_INTEGER;														-- 1 in caso successo, 0 in caso di errore
+414        
+415        	/******* funzione per eliminare una richiesta di annullamento di una registrazione (possibile solo se annullamento non ancora effettuato) ********/
+416        	function EliminazioneRichAnnReg(
+417        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+418        																					-- (obblig). Codice identificativo del token di connessione
+419        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+420        			CodCategoriaRegIn			IN		VARCHAR2,							-- (obblig.) Codice della categoria della registrazione/numerazione da annullare
+421        			SiglaRegIn					IN		VARCHAR2 DEFAULT NULL,				-- Sigla che identifica il registro della registrazione/numerazione da annullare (obblig. solo se la categoria non è sufficiente ad identificare il registro)
+422        			AnnoRegIn					IN		PLS_INTEGER,						-- (obblig.) Anno della registrazione/numerazione da annullare
+423        			NumRegIn					IN		PLS_INTEGER,						-- (obblig.) N.ro della registrazione/numerazione da annullare
+424        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+425        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+426        			FlgAutoCommitIn				IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+427        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+428        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+429        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+430        			return PLS_INTEGER;														-- 1 in caso di successo, 0 in caso di errore
+431        
+432        	/****** funzione per creare o modificare un atto di autorizzazione all'annullamento di registrazione, comprensivo di agganci dell'atto con le registrazioni di cui autorizza l'annullamento *****/
+433        	function IUAttoAutAnnReg(
+434        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+435        																					-- (obblig). Codice identificativo del token di connessione
+436        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+437        			IdUDAttoIO   				IN OUT  DMT_UNITA_DOC.ID_UD%TYPE, 			-- Identificativo dell'unità documentaria che rappresenta l'atto di autorizzazione all'annullamento da modificare. Se non valorizzato in input significa che l'atto è da creare ex-novo
+438        																					-- In output, salvo in caso di errore, è sempre valorizzato
+439        			OggettoIn					IN		DMT_DOCUMENTS.DES_OGG%type  DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+440        																					-- Oggetto dell'atto
+441        			FlgAttoChiusoIn				IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+442        																					-- (valori 1/0/NULL) Se 1 significa che l'atto è perfezionato e non più modificabile, se 0 che è ancora in stesura (quindi si possono variare le registrazioni da annullare autorizzate dall'atto)
+443        			FlgRegDaAnnullareIn			IN		VARCHAR2 DEFAULT 'I',				-- (valori I/C) Indica se le registrazioni di cui autorizzare l'annullamento con l'atto, indicate nell'argomento successivo, sono fornite in modo incrementale (=I) (solo quelle da inserire/modificare/cancellare) oppure completo (=C), vale a dire che dovranno soppiantare le registrazioni già agganciate all'atto (in caso di modifica)
+444        			XMLRegDaAnnullareIn			IN		CLOB DEFAULT NULL,					-- Lista delle registrazioni di cui autorizzare l'annullamento con l'atto (XML conforme a schema LISTA_STD.xsd)
+445        																					-- Ogni registrazione da annullare è un tag Riga che può contenere le seguenti colonne:
+446        																					-- 1: Cod. categoria della registrazione
+447        																					-- 2: Sigla del registro
+448        																					-- 3: Anno della registrazione
+449        																					-- 4: Nro della registrazione
+450        																					-- 5: (obblig. se colonna 6 è NULL o 0 ) Motivi dell'annullamento della registrazione
+451        																					-- 6: (valori 1/0/NULL) Se 1 è una registrazione da annullare da togliere dall'atto
+452        																					-- 7: ID_UD della registrazione (serve solo se non ho specificato categoria, sigla, anno e n.ro: allora si prende la registrazione principale dell'UD)
+453        			SegnaturaAttoOut			OUT		VARCHAR2,							-- Segnatura/estremi assegnati all'atto
+454        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+455        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+456        			FlgAutoCommitIn				IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+457        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+458        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+459        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+460        			return PLS_INTEGER;														-- 1 in caso di successo, 0 in caso di errore
+461        
+462        	/**** Funzione per estrarre i dati di un atto di autorizzazione all'annullamento di registrazione (inclusi gli estemi delle registrazioni di cui autorizza l'annullamento) ****/
+463        	FUNCTION LoadDettAttoAutAnnReg(
+464        			CodIdConnectionTokenIn	IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+465        																					-- (obblig). Codice identificativo del token di connessione
+466        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+467        			IdUDAttoIO   			IN OUT  DMT_UNITA_DOC.ID_UD%TYPE, 				-- (obblig.)Identificativo dell'atto (ID_UD della corrispondente unità documentaria)
+468        			XMLDatiAttoOut			OUT		NOCOPY CLOB,							-- XML con i dati dell'atto e gli estremi delle registrazioni di cui autorizza l'annullamento (XML conforme a schema SezioneCache.xsd)
+469        																					-- Prevede le seguenti variabili:
+470        																					-- #DesOgg: oggetto dell'atto
+471        																					-- #FlgAttoChiuso: indica se atto chiuso (1) o ancora in preparazione (0)
+472        																					-- #RegNumIniziale.Tipo: Categoria/tipo della numerazione/registrazione iniziale del'atto. PG = Protocollo Generale, PI=Protocollo Interno, PP = Protocollo Particolare, R = Repertorio, NI = Numerazione interna (bozza); A = Altro
+473        																					-- #RegNumIniziale.Registro: Sigla del registro di numerazione/registrazione iniziale del'atto (valorizzato solo se per la categoria/tipo sono previsti più registri)
+474        																					-- #RegNumIniziale.Anno
+475        																					-- #RegNumIniziale.Nro
+476        																					-- #RegNumIniziale.TsRegistrazione (nel formato dato dal parametro di confif. FMT_STD_TIMESTAMP)
+477        																					-- #RegNumIniziale.DesUser: cognome e nome dell'utente che ha creato l'atto
+478        																					-- #RegNumFinale.Tipo: Categoria/tipo della numerazione/registrazione finale del'atto (data quando viene chiuso). PG = Protocollo Generale, PI=Protocollo Interno, PP = Protocollo Particolare, R = Repertorio, NI = Numerazione interna (bozza); A = Altro
+479        																					-- #RegNumFinale.Registro: Sigla del registro di numerazione/registrazione iniziale del'atto (valorizzato solo se per la categoria/tipo sono previsti più registri)
+480        																					-- #RegNumFinale.Anno
+481        																					-- #RegNumFinale.Nro
+482        																					-- #RegNumFinale.TsRegistrazione (nel formato dato dal parametro di confif. FMT_STD_TIMESTAMP)
+483        																					-- #RegNumFinale.DesUser: cognome e nome dell'utente che ha chiuso l'atto
+484        																					-- #@RegistrazioniAutorizzate: Lista in cui ogni registrazione il cui annullamento è autorizzato dall'atto è un tag Riga che contiene le seguenti colonne:
+485        																					-- 1: Cod. categoria della registrazione
+486        																					-- 2: Sigla del registro
+487        																					-- 3: Anno della registrazione
+488        																					-- 4: Nro della registrazione
+489        																					-- 5: Motivi dell'annullamento della registrazione
+490        																					-- 6: <non utilizzata>
+491        																					-- 7: ID_UD della registrazione
+492        																					-- 8: Data e ora della registrazione (nel formato del parametro di config. FMT_STD_TIMESTAMP)
+493        																					-- 9: Segnatura completa della registrazione
+494        																					-- 10: Data e ora di richiesta dell'annullamento (nel formato del parametro di config. FMT_STD_TIMESTAMP)
+495        																					-- 11: Utente che ha effettuato la richiesta di annullamento
+496        																					-- 12: Utente che ha effettuato la registrazione
+497        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+498        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+499        			ErrMsgOut				OUT 	VARCHAR2								-- Messaggio d'errore,
+500        			)return PLS_INTEGER;													-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+501        
+502        	/******* funzione per annullare una registrazione, previa chiusura dell'atto che ne autorizza l'annullamento ********/
+503        	function AnnullaReg(
+504        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+505        																					-- (obblig). Codice identificativo del token di connessione
+506        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+507        			CodCategoriaRegIn			IN		VARCHAR2,							-- (obblig.) Codice della categoria della registrazione/numerazione da annullare
+508        			SiglaRegIn					IN		VARCHAR2 DEFAULT NULL,				-- Sigla che identifica il registro della registrazione/numerazione da annullare (obblig. solo se la categoria non è sufficiente ad identificare il registro)
+509        			AnnoRegIn					IN		PLS_INTEGER,						-- (obblig.) Anno della registrazione/numerazione da annullare
+510        			NumRegIn					IN		PLS_INTEGER,						-- (obblig.) N.ro della registrazione/numerazione da annullare
+511        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+512        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+513        			FlgAutoCommitIn				IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+514        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+515        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+516        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+517        			return PLS_INTEGER;														-- 1 in caso di successo, 0 in caso di errore
+518        
+519        	/***** FUNZIONE per la generazione del TIMBRO DIGITALE con SEGNATURA da apporre sui documenti digitali o digitalizzati prima della loro trasmissione o stampa		*****/
+520        	/***** serve ad ottenere il contenuto del codice a barre e il testo in chiaro da apporre come timbro con segnatura di un file legato ad una scheda documento 		*****/
+521        	/***** la scheda può essere identificata attraverso l'Id univoco (IdUDIn) e/o attraverso gli estremi della registrazione/numerazione da riportare nel timbro.		*****/
+522        	/***** se gli estremi della registrazione/numerazione non sono indicati in input viene presa quella principale della scheda documento indicata attraverso IdUDIn	*****/
+523        	function GetTimbroDigReg(
+524        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+525        																					-- (obblig). Codice identificativo del token di connessione
+526        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+527        			IdUDIO						IN	OUT	DMT_UNITA_DOC.ID_UD%type,			-- Id. dell'unità documntaria per cui generare il timbro con la segnatura della registrazione/numerazione
+528        			CodCategoriaRegIn			IN		VARCHAR2 DEFAULT NULL,				-- (obblig. se IdUDIn non valorizzato) Codice della categoria della registrazione/numerazione da riportare nel timbro
+529        			SiglaRegIn					IN		VARCHAR2 DEFAULT NULL,				-- Sigla che identifica il registro della registrazione/numerazione da riportare nel timbro.
+530        			AnnoRegIn					IN		PLS_INTEGER DEFAULT NULL,			-- (obblig. se IdUDIn non valorizzato)Anno della registrazione/numerazione da riportare nel timbro
+531        			NumRegIn					IN		PLS_INTEGER DEFAULT NULL,			-- (obblig. se IdUDIn non valorizzato) N.ro della registrazione/numerazione da riportare nel timbro
+532        			NroAllegatoIn				IN		PLS_INTEGER default NULL,			-- N.ro di allegato da riportare nel timbro (da 1 in su), se il timbro deve essere apposto su un file allegato della scheda documento
+533        			ContenutoBarcodeOut			OUT		VARCHAR2,							-- Stringa da rappresentare nel codice a barre che costituisce il timbro digitale
+534        			TestoInChiaroOut			OUT		VARCHAR2,							-- Testo in chiaro da mettere accanto al timbro
+535        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+536        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+537        			ErrMsgOut					OUT 	VARCHAR2,							-- Messaggio d'errore
+538        			FinalitaIn					IN		VARCHAR2 DEFAULT NULL,				-- Finalità del timbro: se non valorizzato si intende la finalità di appore la segnatura di registrazione
+539        																					-- Valori possibili:
+540        																					--	CONFORMITA_ORIG_CARTACEO
+541        																					--  CONFORMITA_ORIG_DIGITALE
+542        																					--  CERTIFICAZIONE_FIRMA,
+543        			IdDocIn						IN		DMT_DOCUMENTS.ID_DOC%type DEFAULT NULL
+544        																					-- Id. dello specifico documento su cui apporre il timbro
+545        																					-- il valore -999 indica che non vanno presi dati specifici del primario nè di alcun allegato
+546        			) return PLS_INTEGER;													-- 1 in caso di successo, 0 in caso di errore
+547        
+548        	/***** FUNZIONE per la generazione del barcode da apporre sui documenti di una pratica identificata dagli estremi del documento capofila		*****/
+549        	/***** serve ad ottenere il contenuto del codice a barre e il testo in chiaro a corredo 														*****/
+550        	function GetBarcodeDaCapofilaPratica(
+551        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+552        																					-- (obblig). Codice identificativo del token di connessione
+553        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+554        			IdFolderIn					IN		DMT_FOLDER.ID_FOLDER%type,			-- Id. del folder corrispondenta alla pratica
+555        			SezionePraticaIn			IN		VARCHAR2 DEFAULT NULL,				-- Specifica sezione della pratica in cui va il documento
+556        			NroPosizioneIn				IN		PLS_INTEGER default NULL,			-- N.ro posizione da riportare nel timbro (da 1 in su)
+557        			ContenutoBarcodeOut			OUT		VARCHAR2,							-- Stringa da rappresentare nel codice a barre che costituisce il timbro digitale
+558        			TestoInChiaroOut			OUT		VARCHAR2,							-- Testo in chiaro da mettere accanto al timbro
+559        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+560        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+561        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+562        			return PLS_INTEGER;														-- 1 in caso di successo, 0 in caso di errore
+563        
+564        
+565        	/***** serve ad ottenere il contenuto del codice a barre e il testo in chiaro da apporre come timbro con i dati caratterizzanti di un documento o fascicolo tipizzato	*****/
+566        	function GetTimbroSpecXTipo(
+567        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+568        																					-- (obblig). Codice identificativo del token di connessione
+569        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+570        			FlgDocFolderIn				IN		VARCHAR2,							-- (obblig., valori D/F) Indica se timbro per documento (=D) o folder (=F)
+571        			IdDocFolderIn				IN		INTEGER,							-- (obblig) Id. del documento (ID_DOC) o folder/fascicolo (ID_FOLDER) per cui generare il timbro con i dati caratterizzanti di un documento o fascicolo tipizzato
+572        			ContenutoBarcodeOut			OUT		VARCHAR2,							-- Stringa da rappresentare nel codice a barre che costituisce il timbro digitale
+573        			TestoInChiaroOut			OUT		VARCHAR2,							-- Testo in chiaro da mettere accanto al timbro
+574        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+575        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+576        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+577        			return PLS_INTEGER;														-- 1 in caso di successo, 0 in caso di errore
+578        																					-- restituisce errore in caso di documento/folder non trovato o NON tipizzato
+579        
+580        	/******** funzione per ottenere i dati delle etichette da stampare per una data registrazione ***************/
+581        	function GetInfoXEtichetteReg(
+582        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+583        																					-- (obblig). Codice identificativo del token di connessione
+584        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+585        			IdUDIn						IN		DMT_UNITA_DOC.ID_UD%type,			-- Id. dell'unità documentaria per cui generare il timbro con la segnatura della registrazione/numerazione
+586        			XMLOpzioniStampaIn			IN		CLOB,								-- XML SezioneCache con le opzioni di stampa. Opzioni possibili:
+587        																					-- RicevutaXMittente (valori 1/0): se 1 tra le etichette da stampare c'è la ricevuta per esibente
+588        																					-- Primario (valori 1/0): se 1 tra le etichette da stampare c'è quella del file primario
+589        																					-- Allegati (valori 1/0): se 1 tra le etichette da stampare ci sono quelle degli allegati
+590        																					-- NotazioneCopiaOriginale (valori COPIA,ORIGINALE o vuoto)
+591        			NroEtichetteOut				OUT		PLS_INTEGER,						-- N.ro di etichette da stampare (stabilito in base alla registrazione indicata in input, parametri di sistema e preferenze utente)
+592        			XMLInfoOut					OUT		NOCOPY CLOB,						-- XML lista con i dati per le etichette da stampare
+593        																					-- Ogni riga contiene le colonne:
+594        																					-- 1) N.ro etichetta (da 1 in su)
+595        																					-- 2) N.ro allegato (se primario è vuoto)
+596        																					-- 3) Notazione: ORIGINALE/COPIA (può non essere valorizzato)
+597        																					-- 4) Flag ricevuta per esibente: valori 1/0
+598        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+599        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+600        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+601        			return PLS_INTEGER;														-- 1 in caso di successo, 0 in caso di errore
+602        
+603        
+604        	/***** FUNZIONE per la STAMPA dell'ETICHETTA con SEGNATURA da apporre sui documenti CARTACEI																		*****/
+605        	/***** serve ad ottenere il contenuto del codice a barre e il testo in chiaro da apporre come etichetta con segnatura di un file legato ad una scheda documento 	*****/
+606        	/***** la scheda può essere identificata attraverso l'Id univoco (IdUDIn) e/o attraverso gli estremi della registrazione/numerazione da riportare nell'etichetta.	*****/
+607        	/***** se gli estremi della registrazione/numerazione non sono indicati in input viene presa quella principale della scheda documento indicata attraverso IdUDIn	*****/
+608        	function GetEtichettaReg(
+609        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+610        																					-- (obblig). Codice identificativo del token di connessione
+611        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+612        			IdUDIO						IN	OUT	DMT_UNITA_DOC.ID_UD%type,			-- Id. dell'unità documntaria per cui generare il timbro con la segnatura della registrazione/numerazione
+613        			CodCategoriaRegIn			IN		VARCHAR2 DEFAULT NULL,				-- (obblig. se IdUDIn non valorizzato) Codice della categoria della registrazione/numerazione da riportare nel timbro
+614        			SiglaRegIn					IN		VARCHAR2 DEFAULT NULL,				-- Sigla che identifica il registro della registrazione/numerazione da riportare nel timbro.
+615        			AnnoRegIn					IN		PLS_INTEGER DEFAULT NULL,			-- (obblig. se IdUDIn non valorizzato)Anno della registrazione/numerazione da riportare nel timbro
+616        			NumRegIn					IN		PLS_INTEGER DEFAULT NULL,			-- (obblig. se IdUDIn non valorizzato) N.ro della registrazione/numerazione da riportare nel timbro
+617        			NroAllegatoIn				IN		PLS_INTEGER default NULL,			-- N.ro di allegato da riportare nell'etichetta (da 1 in su), se l'etichetta deve essere apposta su un file allegato della scheda documento
+618        			XMLOpzioniStampaIn			IN		CLOB,								-- XML SezioneCache con le opzioni di stampa. Opzioni possibili:
+619        																					-- RicevutaXMittente (valori 1/0)
+620        																					-- NotazioneCopiaOriginale (valori COPIA,ORIGINALE o vuoto)
+621        																					-- HideOggetto (valori 1/0)
+622        																					-- HideMittente (valori 1/0)
+623        																					-- HideDestinatario (valori 1/0)
+624        																					-- ShowAssegnatario (valori 1/0)
+625        																					-- HideBarcode (valori 1/0)
+626        																					-- NroEtichette
+627        																					-- StampaEtichettaAllegati (valori 1/0)
+628        																					-- ShowNroAllegatoInTesto (valori 1/0)
+629        																					-- ShowNroAllegatoInBarcode(valori 1/0)
+630        			ContenutoBarcodeOut			OUT		VARCHAR2,							-- Stringa da rappresentare nel codice a barre dell'etichetta
+631        			TestoInChiaroOut			OUT		VARCHAR2,							-- Testo in chiaro da mettere nell'etichetta
+632        			TestoInChiaroBarcodeOut		OUT		VARCHAR2,							-- Testo da mettere vicino al barcode
+633        			TestoInChiaro2aRegOut		OUT		VARCHAR2,							-- Testo da mettere nell'etichetta specifica della 2a registrazione (tipicamente un repertorio)
+634        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+635        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+636        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+637        			return PLS_INTEGER;														-- 1 in caso di successo, 0 in caso di errore
+638        
+639        	/***** FUNZIONE per la STAMPA dell'ETICHETTA con INDIRIZZO DEI DESTINATARI da apporre sui documenti da inviare per posta. RESTITUISCE LE ETICHETTE RELATIVE AD N UNITA' DOCUMENTARIE IN INPUT *****/
+640        	function GetEtichetteConIndDest(
+641        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+642        																					-- (obblig). Codice identificativo del token di connessione
+643        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+644        			ListaIdUDIn					IN		CLOB,								-- Lista XML (conforme a schema ListaSTD.xsd) con gli ID_UD delle unità documentarie di cui produrre la/le etichette con gli indirizzi destinatari.
+645        																					-- Ogni ID_UD è una riga e ogni riga ha solo una colonna
+646        			ListaEtichetteOut			OUT		NOCOPY CLOB,						-- Lista XML (conforme a schema ListaSTD.xsd) con una riga per ogni etichetta. Ogni riga ha solo una colonna
+647        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+648        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+649        			ErrMsgOut					OUT 	VARCHAR2,							-- Messaggio d'errore
+650        			CodMezzoTrasmIn				IN		VARCHAR2 DEFAULT NULL)				-- Codice del mezzo di trasmissione ai destinatari di cui stampare le etichette (se non specificato vengono considerai tutti i destinatari)
+651        																					-- Si possono specificare più mezzi separandoli con ;
+652        			return PLS_INTEGER;														-- 1 in caso di successo, 0 in caso di errore
+653        
+654        	/********** funzione per produrre la stampa dei destinatari di spedizione	***********/
+655        	function StampaDestinatariSped(
+656        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+657        																					-- (obblig). Codice identificativo del token di connessione
+658        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+659        			ListaIdUDIn					IN		CLOB,								-- Lista XML (conforme a schema ListaSTD.xsd) con gli ID_UD delle unità documentarie di cui produrre la/le etichette con gli indirizzi destinatari.
+660        																					-- Ogni ID_UD è una riga e ogni riga ha solo una colonna
+661        			ListaCodMezziIn				IN		CLOB,								-- Lista XML (conforme a schema ListaSTD.xsd) con i mezzi di trasmissione per cui eventualmente filtrare (vengono estrati sono i destinatari di trasmissione con il/i mezzi qui specificati)
+662        																					-- Ogni mezzo è un tag Riga in cui si possono specificare:
+663        																					-- colonna 1) cod. del mezzo
+664        																					-- colonna 2) descrizione del mezzo
+665        			Header1Out					OUT		VARCHAR2,							-- Prima parte della testata della stampa (denominazione ente/AOO)
+666        			Header2Out					OUT		VARCHAR2,							-- Titolo della stampa (es: "DISTINTA SPEDIZIONI")
+667        			Header3Out					OUT		VARCHAR2,							-- Mezzi di trasmissione da mettere nell'header della stampa
+668        			ResultOut					OUT		NOCOPY CLOB,						-- Lista XML (conforme a schema ListaSTD.xsd) con i destinatari da stampare. Ogni destinatario è una ria e contiene le colonne:
+669        			NroTotRecordOut				OUT		PLS_INTEGER,						-- 1) Nro di protocollo/registrazione
+670        																					-- 2) Sigla del registro di registrazione
+671        																					-- 3) Data di registrazione
+672        																					-- 4) Denominazione / cognome e nome del destinatario
+673        																					-- 5) Indirizzo di spedizione
+674        																					-- 6) Mezzo di trasmissione
+675        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+676        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+677        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+678        			return PLS_INTEGER;														-- 1 in caso di successo, 0 in caso di errore
+679        
+680        	---- funzione per salvare come CLOB, in DMT_DOCUMENTS.FILE_CONTENT - il contenuto di un file di testo già salvato come versione di un documento della DMT_DOCUMENTS
+681        	function SaveFileAsClob(
+682        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+683        																					-- (obblig). Codice identificativo del token di connessione
+684        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+685        			IdDocIn						IN		DMT_DOCUMENTS.ID_DOC%type,			-- Id. del documento cui corrisponde il content salvato come clob.
+686        																					-- Può non essere valorizzato se si valorizzano IdUDIn e NomeFileIn
+687        			FileContentIn				IN		CLOB,								-- Contenuto del file da salvare nel clob
+688        			FlgParseContentIn			IN 		PLS_INTEGER DEFAULT NULL,			-- Se 1 del contenuto da salvare viene fatto un parsing/processamento, altrimenti no
+689        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+690        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+691        			FlgAutoCommitIn				IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+692        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+693        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+694        			ErrMsgOut					OUT 	VARCHAR2,							-- Messaggio d'errore
+695        			IdUDIn						IN		INTEGER DEFAULT NULL,				-- ID_UD dell'unità documentaria cui appartiene il documento. Da valorizzare se IdDocIn non è valorizzato
+696        			NomeFileIn					IN		VARCHAR2)							-- Nome del file. Da usare insieme a IdUDin in alternativa  a IdDoc se i file salvati per l'unità documentaria hanno nomi univoci
+697        			return PLS_INTEGER;														-- 1 in caso di operazione effettuata con successo, 0 in caso di errore
+698        
+699        	---- funzione per trovare il protocollo in ingresso corrispondente ad una pratica di Sportello ImpresaInUnGiorno il cui codice e/o id. evento viene passato in input
+700        	---- se esistono più protocolli corrispondenti alla pratica restituisce il primo
+701        	---- se non esiste alcun protocollo restituise NroProtocolloOut e DataOraProtocolloOut vuoti, ma il return value è 1
+702        	function GetProtPraticaSportello(
+703        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+704        																					-- (obblig). Codice identificativo del token di connessione
+705        																					-- Deve essere un token della stessa utenza che ha protocollato la pratica
+706        			CodPraticaIn				IN		VARCHAR2,							-- (obblig. se IdEventoIn è vuoto) codice della pratica
+707        			IdEventoIn					IN		VARCHAR2,							-- (obblig. se CodPraticaIn è vuoto) id. evento dello sportello
+708        			NroProtocolloOut			OUT		INTEGER,							-- Nro di protocollo
+709        			DataOraProtocolloOut		OUT		VARCHAR2,							-- Data e ora di protocollo nel formato GG/MM/AAAA HH24:MI:SS
+710        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+711        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+712        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+713        			return PLS_INTEGER;														-- 1 in caso di operazione effettuata con successo, 0 in caso di errore
+714        
+715        	---- funzione per trovare il protocollo in ingresso corrispondente ad una pratica di Sportello ImpresaInUnGiorno il cui evento-suap.xml è passato in input
+716        	---- in output se viene trovato un protocollo restituisce FlgTrovatoProtocolloOut = 1 e un xml ProtocolloXMLOut conforme a xsd Output_UD.xsd (come quello della risposta del web service di AddUnitaDoc) con i dati del protocollo
+717        	---- se esistono più protocolli corrispondenti alla pratica restituisce il primo
+718        	---- se non esiste alcun protocollo restituise FlgTrovatoProtocolloOut = 0 e un xml ProtocolloXMLOut vuoto, ma il return value è 1
+719        	function GetXMLProtPraticaSportello(
+720        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+721        																					-- (obblig). Codice identificativo del token di connessione
+722        			EventoSuapXMLIn				IN		CLOB,								-- (obblig.) Contenuto dell'xml evento-suap.xml
+723        			FlgTrovatoProtocolloOut		OUT		PLS_INTEGER,						-- valori 1/0 : se 1 indica che almeno un protocollo è stato trovato; se 0 significa che nessun protocollo è stato trovato
+724        			ProtocolloXMLOut			OUT		NOCOPY CLOB,						-- XML conforme a xsd Output_UD.xsd (lo stesso della risposta del web service di AddUnitaDoc) con i dati del protocollo trovato. Se nessun protocollo è stato trovato è vuoto
+725        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+726        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+727        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+728        			return PLS_INTEGER;														-- 1 in caso di operazione effettuata con successo, 0 in caso di errore
+729        
+730        	-- funzione per avere l'accesso - in sola consultazione o per trattamento/modifica - su un'unità documentaria di cui si indicano gli estremi
+731        	function RichiestaAccessoDoc(
+732        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+733        																					-- (obblig). Codice identificativo del token di connessione
+734        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+735        			CodCategoriaRegIn			IN		VARCHAR2 DEFAULT NULL,				-- (obblig.) Codice della categoria di registrazione/numerazione dell'unità documentaria
+736        			SiglaRegIn					IN		VARCHAR2 DEFAULT NULL,				-- Sigla di registrazione/numerazione dell'unità documentaria
+737        			AnnoRegIn					IN		PLS_INTEGER DEFAULT NULL,			-- (obblig.) Anno di registrazione/numerazione dell'unità documentaria
+738        			NumRegIn					IN		INTEGER DEFAULT NULL,				-- (obblig.) N.ro di registrazione/numerazione dell'unità documentaria
+739        			SubNumRegIn					IN		VARCHAR2 DEFAULT NULL,				-- Sub del n.ro di registrazione/numerazione dell'unità documentaria
+740        			TipoAccessoIn				IN		VARCHAR2 DEFAULT 'C',				-- (obblig.) Indica il tipo di accesso richiesto:
+741        																					-- C = per Consultazione
+742        																					-- T = per Trattamento
+743        			MotivoIn					IN		VARCHAR2,							-- (obblig.) Motivo della richiesta ed eventuale indicazione del titolo che si ha per avere l'accesso richiesto
+744        			IdUDOut						OUT		DMT_UNITA_DOC.ID_UD%type,			-- Id. dell'unità documentaria corrispondente aglu estremi indicati: valorizzato solo se la richiesta di accesso va a buon fine
+745        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+746        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+747        			FlgAutoCommitIn				IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+748        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+749        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
+750        			ErrMsgOut					OUT 	VARCHAR2)							-- Messaggio d'errore
+751        			return PLS_INTEGER;														-- 1 in caso di operazione effettuata con successo, 0 in caso di errore
+752        
+753        END dmpk_RegistrazioneDoc;

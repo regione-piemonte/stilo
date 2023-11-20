@@ -1,0 +1,7 @@
+"LANGUAGE","NAME","VERSION","LICENSES","COPYRIGHTS","URL"
+"java","it.eng.auriga:StiloActaClient","0.0.1","GPL-3.0-or-later,Apache-2.0","Engineering Ingegneria Informatica S.p.A.",""
+"java","it.eng.auriga:StiloActaEjb","0.0.1","GPL-3.0-or-later,Apache-2.0","Engineering Ingegneria Informatica S.p.A.",""
+"java","it.eng.auriga:StiloActaModel","0.0.1","GPL-3.0-or-later,Apache-2.0","Engineering Ingegneria Informatica S.p.A.",""
+"java","it.eng.auriga:StiloActaUtil","0.0.1","GPL-3.0-or-later,Apache-2.0","Engineering Ingegneria Informatica S.p.A.",""
+"java","it.eng.auriga:StiloActaWeb","0.0.1","GPL-3.0-or-later,Apache-2.0","Engineering Ingegneria Informatica S.p.A.",""
+"java","it.eng.utility:acta-ws-client","1.0.0","GPL-3.0-or-later,Apache-2.0","Engineering Ingegneria Informatica S.p.A.",""

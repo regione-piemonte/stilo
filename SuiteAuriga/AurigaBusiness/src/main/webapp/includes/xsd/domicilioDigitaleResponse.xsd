@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="domicilioDigitaleResponse">
+		<xs:annotation>
+			<xs:documentation>root element della response del servizio online per dichiarare/variare/cessare domicilio digitale</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="esito">
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:enumeration value="OK"/>
+							<xs:enumeration value="KO"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="nroProtocollo" type="xs:positiveInteger"/>
+				<xs:element name="dataProtocollo" type="xs:dateTime"/>
+				<xs:element name="dataConfermaDomicilio" type="xs:dateTime" minOccurs="0"/>
+				<xs:element name="errCode" minOccurs="0">
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:enumeration value="001"/>
+							<xs:enumeration value="002"/>
+							<xs:enumeration value="999"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="messaggio" type="xs:string"/>
+				<xs:element name="tipoOperazione">
+					<xs:annotation>
+						<xs:documentation>Tipo di operazione richiesta: D = Dichiarazione; V = variazione; C = Cancellazione</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:enumeration value="D"/>
+							<xs:enumeration value="V"/>
+							<xs:enumeration value="C"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="CFRichiedente">
+					<xs:annotation>
+						<xs:documentation>Codice fiscale del richiedente</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:enumeration value=""/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="domicilioDigitaleDaAttivare" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Indirizzo PEC da attivare come nuovo domicilio digitale. Sempre valorizzato in caso di operazione D o V</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="domicilioDigitaleDaCancellare" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Indirizzo PEC del domicilio digitale da cancellare. Sempre valorizzato in caso di operazione V o C</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

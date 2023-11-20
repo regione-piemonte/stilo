@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Administrator (EMBRACE) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="Output_FileModelloDocToExtract">
+		<xs:annotation>
+			<xs:documentation>ROOT element dello schema. Contiene  l'output specifico del Web Service di estrazione file di un modello documentale</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="NomeFile">
+					<xs:annotation>
+						<xs:documentation>Nome del file estratto</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="NroVersione">
+					<xs:annotation>
+						<xs:documentation>Nro di versione del modello che il file estratto rappresenta</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

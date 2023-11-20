@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2006 sp1 U (http://www.altova.com) by Pirates (EMBRACE) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:simpleType name="IdInSistemaEsternoType">
+		<xs:annotation>
+			<xs:documentation>Codice che identifica un oggetto in un sistema esterno</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="30"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="UserType">
+		<xs:choice>
+			<xs:element name="IdInSistemaEsterno" type="IdInSistemaEsternoType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Id. dell'utente nell'applicazione che invoca il WS</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="IdInterno" type="xs:integer" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Id. dell'utente all'interno del sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="UsernameInterna" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Username con cui l'utente si autentica al sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Descrizione" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Descrizione dell'utente</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroMatricola" type="xs:string" minOccurs="0"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="OggDiTabDiSistemaType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un oggetto censito in una tabella di sistema del sistema documentale</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="CodId" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Identificativo del dato di sistema nella banca dati del sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Decodifica_Nome" type="xs:string"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:element name="RPrivilegi">
+		<xs:annotation>
+			<xs:documentation>ROOT element: Consente di revocared ad un utente i privilegi su un oggetto</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="TipoOggetto">
+					<xs:annotation>
+						<xs:documentation>tipo di oggetto su cui dare i privilegi. I valori possibili sono: F=Funzionalità del sistema; TP=Tipo di processo/procedimento; TD=Tipo di documento; TF	=Tipo di folder</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:pattern value="F|TP|TD|TF|"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="Oggetto" type="OggDiTabDiSistemaType">
+					<xs:annotation>
+						<xs:documentation>oggetto su cui revocare i privilegi</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Utente" type="UserType">
+					<xs:annotation>
+						<xs:documentation>Utente a cui togliere i privilegi</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

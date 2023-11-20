@@ -1,0 +1,988 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Andrea Campello (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<xs:simpleType name="FlagSiNoType">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="0|1"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="LibreriaType">
+		<xs:annotation>
+			<xs:documentation>Nome che identifica una libreria contenente unità documentarie e fascicoli</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="100"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="SiglaRegNumType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="30"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="NumRegType">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="9999999"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="EstremiRegNumType">
+		<xs:all>
+			<xs:element name="CategoriaReg" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Categoria di registrazione / numerazione; valori ammessi PG=Protocollo Generale; PP=Protocollo Particolare; R=Repertorio; E=Registrazione d'emergenza; A=Altra numerazione data esternamente al sistema documentale; I=Altra numerazione data internamente al sistema documentale</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="PG"/>
+						<xs:enumeration value="PP"/>
+						<xs:enumeration value="R"/>
+						<xs:enumeration value="E"/>
+						<xs:enumeration value="A"/>
+						<xs:enumeration value="I"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="SiglaReg" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="SiglaRegNumType"/>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="AnnoReg" type="AnnoType"/>
+			<xs:element name="NumReg" type="NumRegType"/>
+		</xs:all>
+	</xs:complexType>
+	<xs:simpleType name="NomeFolderType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="150"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="OggettoFolderType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="1000"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="IdInSistemaEsternoType">
+		<xs:annotation>
+			<xs:documentation>Codice che identifica un oggetto in un sistema esterno</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="30"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="CriterioRicercaSuAttributoAddType">
+		<xs:sequence>
+			<xs:element name="Nome" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Nome identificativo dell'attributo cui è relativo il criterio di ricerca</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="OperatoreLogico">
+				<xs:annotation>
+					<xs:documentation>Operatore logico da utilizzare sul/i valori dell'attributo per imporre il filtro di ricerca</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="uguale"/>
+						<xs:enumeration value="simile a (case-sensitive)"/>
+						<xs:enumeration value="simile a (case-insensitive)"/>
+						<xs:enumeration value="minore"/>
+						<xs:enumeration value="maggiore o uguale"/>
+						<xs:enumeration value="minore"/>
+						<xs:enumeration value="minore o uguale"/>
+						<xs:enumeration value="compreso tra"/>
+						<xs:enumeration value="non valorizzato"/>
+						<xs:enumeration value="valorizzato"/>
+						<xs:enumeration value="spuntato"/>
+						<xs:enumeration value="non spuntato"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="ValoreConfronto_1" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Va specificato se l'operatore logico prevede uno o 2 valori di confronto (dunque salvo se: valorizzato/non valorizzato, spuntato/non spuntato). Se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data o date e ora deve essere nei formati configurati a sistema per date e timestamp. </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="ValoreConfronto_2" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Va specificato se l'operatore logico prevede 2 valori di confronto (dunque solo nl caso di "compreso tra"). Se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data o date e ora deve essere nei formati configurati a sistema per  date e timestamp. </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="OggDiTabDiSistemaType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un oggetto censito in una tabella di sistema del sistema documentale</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="CodId" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Identificativo del dato di sistema nella banca dati del sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Decodifica_Nome" type="xs:string"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:simpleType name="AnnoType">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1900"/>
+			<xs:maxInclusive value="2100"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="NroLivelloGerarchiaType">
+		<xs:annotation>
+			<xs:documentation>Nro di un livello di una struttura gerarchica come la struttura organizzativa o il titolario di classificazione: 1 è il livello più alto (ad esempio il settore o il titolo), 2 il successivo (ad esempio il servizio o la classe) e così via</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="10"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="CodLivelloGerarchiaType">
+		<xs:restriction base="xs:string"/>
+	</xs:simpleType>
+	<xs:complexType name="LivelloGerarchiaType">
+		<xs:attribute name="Nro" type="NroLivelloGerarchiaType" use="required">
+			<xs:annotation>
+				<xs:documentation>N.ro d'ordine del livello</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="Codice" type="CodLivelloGerarchiaType" use="required">
+			<xs:annotation>
+				<xs:documentation>Codice identificativo del livello</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="UOType">
+		<xs:annotation>
+			<xs:documentation>Indica una UO attraverso il suo identificativo o attarverso i suoi livelli o attraverso la sua denominazione. <!-- Ad esempio il "Servizio 10 del Settore 2" si può indicare come <my_element>  
+	<LivelloUO Nro=1 Cod=2> </LivelloUO>
+	<LivelloUO Nro=2 Cod=10> </LivelloUO>
+<my_element> -->
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="IdUO" type="xs:integer" minOccurs="0"/>
+			<xs:element name="LivelloUO" type="LivelloGerarchiaType" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="DenominazioneUO" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Può essere la denominazione semplice della UO o quest'ultima preceduta dalle denominazioni delle UO di livello superiore (separate da " | "). Es:  "Ufficio Rilasci" o "Settore Edilizia | Ufficio Rilasci"</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="ClassificazioneType">
+		<xs:annotation>
+			<xs:documentation>Indica una classificazione di titolario attraverso il suo identificativo o attarverso i suoi livelli o attraverso la sua descrizione. <!-- Ad esempio la classe 10 del titolo XIX si può indicare come <my_element>  
+<Livello Nro=1 Cod=XIX></Livello>
+<Livello Nro=2 Cod=10> </Livello>
+<my_element> -->
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="IdClassificazione" type="xs:integer" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Identificativo della classificazione (interno al sistema)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="LivelloClassificazione" type="LivelloGerarchiaType" minOccurs="0" maxOccurs="unbounded">
+				<xs:annotation>
+					<xs:documentation>Livelli della classificazione (indicati secondo la metrica stabilita per ognuno; se si indica un livello con un dato n.ro d'ordine vanno indicati tutti quelli con n.ro d'ordine inferiore)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DescrizioneClassificazione" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Può essere la descrizione semplice della classificazione o quest'ultima preceduta dalle descrizioni delle classificazioni di livello superiore (separate da " | ") (ricerca case-insensitive in like)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="UserType">
+		<xs:choice>
+			<xs:element name="IdInSistemaEsterno" type="IdInSistemaEsternoType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Id. dell'utente nell'applicazione che invoca il WS</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="IdInterno" type="xs:integer" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Id. dell'utente all'interno del sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="UsernameInterna" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Username con cui l'utente si autentica al sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Descrizione" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Descrizione dell'utente</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroMatricola" type="xs:string" minOccurs="0"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="ScrivaniaVirtualeType">
+		<xs:annotation>
+			<xs:documentation>La scrivania virtuale rappresenta un utente non come persona fisica, ma nella funzione che svolge presso una certa UO. Può essere indicata univocamente indicando UO e utente; oppure il sistema può cercare di identificarla anche o solo a partire dalla sua descrizione</xs:documentation>
+		</xs:annotation>
+		<xs:all>
+			<xs:element name="UO" type="UOType"/>
+			<xs:element name="Utente" type="UserType"/>
+			<xs:element name="DesScrivaniaVirt" type="xs:string" minOccurs="0"/>
+		</xs:all>
+	</xs:complexType>
+	<xs:complexType name="SoggettoEsternoType">
+		<xs:annotation>
+			<xs:documentation>Soggetto (persona fisica o giuridica) esterno all'AOO</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="CodIdInAnagrafe" type="IdInSistemaEsternoType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Codice identificativo del soggetto nell'anagrafe residenti/ditte.
+Sul folder il soggetto è riportato con i dati di seguito riportati, non con quelli eventuali presenti in anagrafe.</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="FlagFisica" type="FlagSiNoType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Indica se persona fisica (1) o giuridica (0)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Denominazione_Cognome" type="xs:string" minOccurs="0"/>
+			<xs:element name="Nome" type="xs:string" minOccurs="0"/>
+			<xs:element name="CodiceFiscale" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="16"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="PartitaIva" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="11"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="SoggettoInternoType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un soggetto interno all'AOO che può essere: una UO, un utente, una scrivania virtuale (che rappresenta l'utente non come persona, ma nella funzione che svolge presso una certa UO), un gruppo (di utenti o UO o scrivanie virtuali) o un ruolo amministrativo (es: Dirigente, Direttore Generale ecc). Quando si assegna ad un gruppo o un ruolo il sistema assegna a tutti gli utenti, UO e scrivanie del gruppo o aventi il ruolo</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="UO" type="UOType"/>
+			<xs:element name="Utente" type="UserType"/>
+			<xs:element name="ScrivaniaVirtuale" type="ScrivaniaVirtualeType"/>
+			<xs:element name="Gruppo" type="OggDiTabDiSistemaType"/>
+			<xs:element name="RuoloAmmContestualizzato" type="RuoloAmmContestualizzatoType"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="SoggettoEstEstesoType">
+		<xs:annotation>
+			<xs:documentation>Soggetto esterno che ha una relazione con un folder</xs:documentation>
+		</xs:annotation>
+		<xs:complexContent>
+			<xs:extension base="SoggettoEsternoType">
+				<xs:sequence>
+					<xs:element name="NaturaRelazioneConFolder" type="OggDiTabDiSistemaType" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>Natura della relazione del soggetto con il folder (valore da apposita tabella di sistema)</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="SoggettoInternoEstesoType">
+		<xs:complexContent>
+			<xs:extension base="SoggettoInternoType">
+				<xs:sequence>
+					<xs:element name="NaturaRelazioneConFolder" type="OggDiTabDiSistemaType" minOccurs="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="AssegnatarioEffType">
+		<xs:choice>
+			<xs:element name="UO" type="UOType"/>
+			<xs:element name="Utente" type="UserType"/>
+			<xs:element name="ScrivaniaVirtuale" type="ScrivaniaVirtualeType"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="RuoloAmmContestualizzatoType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un ruolo amministrativo eventualmente circoscritto ad un certo livello della struttura organizzativa piuttosto che ad una specifica UO (es: Dirigente, Dirigente di Settore, Dirigente del settore X, Dirigenti dei Servizi del Settore X, Segretarie del Settore dell'Ufficio X)</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="RuoloAmm" type="OggDiTabDiSistemaType"/>
+			<xs:choice>
+				<xs:element name="VsLivelloUO" type="NroLivelloGerarchiaType" minOccurs="0"/>
+				<xs:element name="VsTipoUO" type="OggDiTabDiSistemaType" minOccurs="0"/>
+			</xs:choice>
+			<xs:element name="VsUO" type="UOEstesaType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="UOUserType">
+		<xs:choice>
+			<xs:element name="UO" type="UOType"/>
+			<xs:element name="Utente" type="UserType"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="UOEstesaType">
+		<xs:complexContent>
+			<xs:extension base="UOType">
+				<xs:sequence>
+					<xs:element name="FlagIncluseSottoUO" type="FlagSiNoType" default="0"/>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="AssegnazioneInternaType">
+		<xs:complexContent>
+			<xs:extension base="SoggettoInternoType"/>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="EstremiXIdentificazioneFolderType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un folder attraverso il suo path (a partire dalla libreria di appartenenza esclusa)+ nome o il suo identificativo</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="IdFolder" type="xs:integer"/>
+			<xs:sequence>
+				<xs:element name="Libreria" type="OggDiTabDiSistemaType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Libreria di appartenenza (obblligatorio indicarla se la repository ne contiene più di una e non ve n'è una definita come "default" e se l'utente può accedere a più di una di queste)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Path_Nome" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Path (escluso il nome dellla libreria di appartenenza) e nome del folder. Per i fascicoli di titolario il nome è dato da anno di apertura del fascicolo + livelli di classificazione + n.ro di fascicolo + eventuale n.ro di sottofasc. + eventuale n.ro di inserto</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="FascDiTitolarioType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un fascicolo basato sul titolario di calssificazione e identificato attraverso anno, classificazione, n.ro progressivo (all'interno di anno e classificazione) ed eventuali n.ro di sottofascicolo e di inserto</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="Classificazione" type="ClassificazioneType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Classificazione del fascicolo. Vengono ricercati anche i fascicoli relativi a classificazioni ricadenti in quella indicata.</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroFascicolo" type="xs:positiveInteger" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Nro di fascicolo (progressivo all'interno di anno e classificazione). </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroSottofascicolo" type="xs:positiveInteger" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>N.ro di sottofascicolo (progressivo all'interno del fasicolo). </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroInserto" type="xs:positiveInteger" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>N.ro di inserto (progressivo all'interno del sottofascicolo).  </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroSecondario" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>N.ro secondario/alternativo assegnato al fascicolo per identificarlo</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="10"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="EstremiXIdentificazioneFolderNoLibType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un folder attraverso il suo path (a partire dalla libreria di appartenenza esclusa)+ nome o il suo identificativo</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="IdFolder" type="xs:integer"/>
+			<xs:element name="Path_Nome" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Path (escluso il nome dellla libreria di appartenenza) e nome del folder. Per i fascicoli di titolario il nome è dato da anno di apertura del fascicolo + livelli di classificazione + n.ro di fascicolo + eventuale n.ro di sottofasc. + eventuale n.ro di inserto</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="InfoConservazioneType">
+		<xs:sequence>
+			<xs:choice>
+				<xs:element name="FlagDurata" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Serve a restringere la ricerca ai folder che hanno conservazione per tempo illimitato (I) o non definita (ND)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:pattern value="I|ND"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="PerOltreAnni" type="xs:positiveInteger" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Limite inferiore per il n.ro di anni di conservazione dei folder da ricercare</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:choice>
+			<xs:element name="Supporto" type="OggDiTabDiSistemaType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Supporto di conservazione</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="PaginazioneType">
+		<xs:sequence>
+			<xs:element name="NroPagina" type="xs:positiveInteger" default="1" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>E' il numero della pagina da estrarre. Se non valorizzato si intende pari a 1</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroRecordInPagina" type="xs:positiveInteger" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Indica la dimensione (n.ro di record) della pagina da estrarre. Se non indicata viene settata pari ad una dimensione di default</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="TrovaFolder">
+		<xs:annotation>
+			<xs:documentation>ROOT element dello schema. Contiene i filtri di ricerca e l'indicazione se il risultato va paginato o meno</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<!-- ATTENZIONE: dei due elementi successivi almeno uno deve essere valorizzato -->
+				<xs:element name="IdFolder" type="xs:integer" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Identificativo dello specifico folder da ricercare</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FiltriFascDiTitolario" type="FascDiTitolarioType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Filtri di ricerca per i folder che sono unità archivistiche basate sul titolario di classificazione</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="NomeFolder" type="NomeFolderType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Stringa contenuta nel nome del folder (ricerca case-insensitive in like)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Rappresenta" type="OggDiTabDiSistemaType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Indica cosa il folder rappresenta (es: fascicolo basato sul titolario di classificazione; serie, sottoserie, partizione, ecc), ovvero il tipo del folder</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="TipoDiDettaglio" type="OggDiTabDiSistemaType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Tipo di dettaglio. Ad esempio indica di che tipo di fascicolo di tratta (pratica di concessione edilizia, autorizzazione commerciale, fascicolo del personale ecc.)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Apertura" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Filtri sull'apertura dei folder</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:choice minOccurs="0">
+								<xs:element name="Anno" type="AnnoType" minOccurs="0">
+									<xs:annotation>
+										<xs:documentation>Anno di apertura del fascicolo/folder</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+								<xs:sequence>
+									<xs:element name="DataDal" type="xs:date" minOccurs="0">
+										<xs:annotation>
+											<xs:documentation>Inizio intervallo di ricerca sulla data di apertura</xs:documentation>
+										</xs:annotation>
+									</xs:element>
+									<xs:element name="DataAl" type="xs:date" minOccurs="0">
+										<xs:annotation>
+											<xs:documentation>Fine intervallo di ricerca sulla data di apertura</xs:documentation>
+										</xs:annotation>
+									</xs:element>
+								</xs:sequence>
+							</xs:choice>
+							<xs:element name="Utente" type="UserType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Utentedi apertura/creazione del fascicolo/folder.</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="UO" type="UOType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Unità Operativa di apertura/creazione del fascicolo/folder.</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Oggetto" type="OggettoFolderType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Oggetto/descrizione del contenuto del folder (ricerca full-text)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<!-- i 5 elementi seguenti sono relativi al documento primario dell'unità documentaria-->
+				<xs:element name="FlagProcedimentoAssociato" type="FlagSiNoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Serve a restringere la ricerca ai folder con (=1) o senza (=0) procedimento associato</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="ProcedimentoAssociato" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Filtri sul procedimento associato</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Tipo" type="OggDiTabDiSistemaType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Tipo di procedimento associato</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="Responsabile" type="UserType" minOccurs="0"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="ParoleChiave" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Parole chiave (ricerca full-text)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="1000"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:choice>
+					<xs:element name="Libreria" type="OggDiTabDiSistemaType" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>Libreria di appartenenza</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element name="RicercaAPartireDa" type="EstremiXIdentificazioneFolderType" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>Folder/nodo dell'alberatura della repository a partire dal quale bisogna fare la ricerca (si cerca solo nel ramo della repository documentale che discende da quel nodo)</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+				</xs:choice>
+				<xs:element name="RelazioneVsFolder" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Filtri di ricerca sulla relazione (che non sia di appartenenza) con un dato folder</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="EstremiFolder" type="EstremiXIdentificazioneFolderType">
+								<xs:annotation>
+									<xs:documentation>Estremi per indicare il folder verso cui ci deve essere relazione</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="NaturaRelazione" type="OggDiTabDiSistemaType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Natura della relazione con il folder indicato (ad es: cronologica, associativa ecc)</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="RuoloFolder" type="OggDiTabDiSistemaType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Ruolo che svolgel il folder indicato rispetto alla relazione (ad es: precedente, successivo ecc)</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="ArchivioAppartenenza" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Restringe la ricerca a: C=Fascicoli in archivio corrente, D=Fascicoli in archivio di Deposito, S=Fascicoli in archivio Storico</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:pattern value="C|D|S"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="Stato_Chiusura" type="FlagSiNoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Serve a restringere la ricerca ai fascicoli chiusi (=1) o a quelli ancora aperrti (=0)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Chiusura" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Filtri sulla chiusura dei folder</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:choice minOccurs="0">
+								<xs:element name="Anno" type="AnnoType" minOccurs="0">
+									<xs:annotation>
+										<xs:documentation>Anno di chiusura del fascicolo/folder</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+								<xs:sequence>
+									<xs:element name="DataDal" type="xs:date" minOccurs="0">
+										<xs:annotation>
+											<xs:documentation>Inizio intervallo di ricerca sulla data di chiusura</xs:documentation>
+										</xs:annotation>
+									</xs:element>
+									<xs:element name="DataAl" type="xs:date" minOccurs="0">
+										<xs:annotation>
+											<xs:documentation>Fine intervallo di ricerca sulla data di chiusura</xs:documentation>
+										</xs:annotation>
+									</xs:element>
+								</xs:sequence>
+							</xs:choice>
+							<xs:element name="Utente" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Utente di chiusura del fascicolo/folder. </xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:complexContent>
+										<xs:extension base="UserType"/>
+									</xs:complexContent>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="UO" type="UOType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Unità Operativa di chiusura del fascicolo/folder.</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="VersamentoInDeposito" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Filtri sul versamento in archivio di deposito</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:choice minOccurs="0">
+								<xs:element name="Anno" type="AnnoType" minOccurs="0">
+									<xs:annotation>
+										<xs:documentation>Anno di versamento in deposito</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+								<xs:sequence>
+									<xs:element name="DataDal" type="xs:date" minOccurs="0">
+										<xs:annotation>
+											<xs:documentation>Inizio intervallo di ricerca sulla data di versamento in deposito</xs:documentation>
+										</xs:annotation>
+									</xs:element>
+									<xs:element name="DataAl" type="xs:date" minOccurs="0">
+										<xs:annotation>
+											<xs:documentation>Fine intervallo di ricerca sulla data di versamento in deposito</xs:documentation>
+										</xs:annotation>
+									</xs:element>
+								</xs:sequence>
+							</xs:choice>
+							<xs:element name="EffettuatoDa" type="UserType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Indica chi ha effettuato il versamento. </xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="AutorizzatoDa" type="UserType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Indica chi ha autorizzato il versamento</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:choice>
+					<xs:element name="VersamentoInStorico" minOccurs="0">
+						<xs:annotation>
+							<xs:documentation>Filtri sul versamento in archivio storico</xs:documentation>
+						</xs:annotation>
+						<xs:complexType>
+							<xs:sequence>
+								<xs:choice minOccurs="0">
+									<xs:element name="Anno" type="AnnoType" minOccurs="0">
+										<xs:annotation>
+											<xs:documentation>Anno di versamento in storico</xs:documentation>
+										</xs:annotation>
+									</xs:element>
+									<xs:sequence>
+										<xs:element name="DataDal" type="xs:date" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Inizio intervallo di ricerca sulla data di versamento in storico</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="DataAl" type="xs:date" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Fine intervallo di ricerca sulla data di versamento in storico</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+								</xs:choice>
+								<xs:element name="EffettuatoDa" type="UserType" minOccurs="0">
+									<xs:annotation>
+										<xs:documentation>Indica chi ha effettuato il versamento. </xs:documentation>
+									</xs:annotation>
+								</xs:element>
+								<xs:element name="AutorizzatoDa" type="UserType" minOccurs="0">
+									<xs:annotation>
+										<xs:documentation>Indica chi ha autorizzato il versamento</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+					<xs:sequence>
+						<xs:element name="Stato_Scarto" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>Serve a restringere la ricerca ai fascicoli scartati (=F) o a quelli ancora scartati e scartabili (=C) o a quelli non ancora scartabili (=N)</xs:documentation>
+							</xs:annotation>
+							<xs:simpleType>
+								<xs:restriction base="xs:string">
+									<xs:pattern value="F|C|N"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:element>
+						<xs:element name="Scarto" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>Filtri sullo scarto archivistico del folder</xs:documentation>
+							</xs:annotation>
+							<xs:complexType>
+								<xs:sequence>
+									<xs:choice minOccurs="0">
+										<xs:element name="Anno" type="AnnoType" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Anno di scarto</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:sequence>
+											<xs:element name="DataDal" type="xs:date" minOccurs="0">
+												<xs:annotation>
+													<xs:documentation>Inizio intervallo di ricerca sulla data di scarto</xs:documentation>
+												</xs:annotation>
+											</xs:element>
+											<xs:element name="DataAl" type="xs:date" minOccurs="0">
+												<xs:annotation>
+													<xs:documentation>Fine intervallo di ricerca sulla data di scarto</xs:documentation>
+												</xs:annotation>
+											</xs:element>
+										</xs:sequence>
+									</xs:choice>
+									<xs:element name="EffettuatoDa" type="UserType" minOccurs="0">
+										<xs:annotation>
+											<xs:documentation>Indica chi ha effettuato lo scarto. </xs:documentation>
+										</xs:annotation>
+									</xs:element>
+									<xs:element name="AutorizzatoDa" type="UserType" minOccurs="0">
+										<xs:annotation>
+											<xs:documentation>Indica chi ha autorizzato lo scarto</xs:documentation>
+										</xs:annotation>
+									</xs:element>
+								</xs:sequence>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:choice>
+				<xs:element name="Conservazione" type="InfoConservazioneType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Filtri sui dati relativi alla conservazione del folder/fascicolo</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="CollocazioneCartaceo" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Filtri sulla collocazione del cartaceo dei folder</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="LuogoDaTopografico" type="OggDiTabDiSistemaType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Luogo di collocazione, preso da topografico delle locazioni in cui è distribuito l'archivio</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="DescrizioneDettaglio" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Descrizione/dettaglio della collocazione (ricerca case-insensitive in like) (ad. esempio qui si può indicare l'armadio/scaffale...)</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Stato_EliminazioneCartaceo" type="FlagSiNoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Serve a restringere la ricerca ai fascicoli per i quali è stato eliminato il cartaceo (=1) o non è stato eliminato il cartaceoi (=0)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="EliminazioneCartaceo" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Filtri sull'eliminazione del contenuto cartaceo del folder </xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:choice minOccurs="0">
+								<xs:element name="Anno" type="AnnoType" minOccurs="0">
+									<xs:annotation>
+										<xs:documentation>Anno di eliminazione del cartaceo. </xs:documentation>
+									</xs:annotation>
+								</xs:element>
+								<xs:sequence>
+									<xs:element name="DataDal" type="xs:date" minOccurs="0">
+										<xs:annotation>
+											<xs:documentation>Inizio intervallo di ricerca sulla data di eliminazione del cartaceo</xs:documentation>
+										</xs:annotation>
+									</xs:element>
+									<xs:element name="DataAl" type="xs:date" minOccurs="0">
+										<xs:annotation>
+											<xs:documentation>Fine intervallo di ricerca sulla data di eliminazione del cartaceo</xs:documentation>
+										</xs:annotation>
+									</xs:element>
+								</xs:sequence>
+							</xs:choice>
+							<xs:element name="EffettuatoDa" type="UserType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Indica chi ha effettuato l'eliminazione del cartaceo. </xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="AutorizzatoDa" type="UserType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Indica chi ha autorizzato l'eliminazione del cartaceo</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="InCaricoA" type="AssegnatarioEffType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Contiene indicazione su a chi è in carico il folder/fascicolo</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="AltroSoggettoInterno" type="SoggettoInternoEstesoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Soggetto interno  che ha un ruolo/relazione con il folder (oltre a chi lo ha in carico/ne è assegnatario)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="SoggEsterno" type="SoggettoEstEstesoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Soggetto esterno che può essere interessato/coinvolto al/dal contenuto del folder</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<!-- documenti allegati (con o senza file associato) -->
+				<!-- l'emento successivo serve ad indicare qual è l'unità documentaria precedente a quella da caricare (ad esempio quella di cui quella da caricare è la risposta) -->
+				<xs:element name="LivelloRiservatezzaInterno" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Intervallo di ricerca sul livello di riservatezza dei folder per i soggetti interni all'AOO (valori interi da 1 in su)</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Da" type="xs:positiveInteger" default="1"/>
+							<xs:element name="A" type="xs:positiveInteger" minOccurs="0"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="FlagEreditaPermessi" type="FlagSiNoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Serve a restringere al ricerca ai folder che erditano (1) o non ereditano (0)  i permessi dal/da un folder di appartenenza</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FlagInibitaPropagazionePermessi" type="FlagSiNoType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Serve a restringere al ricerca ai folder per cui è inibita (1) o è abilitata (0) la propagazione dei permessi alle unità documentarie e sub-folder contenuti</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="LivelloEvidenza" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Intervallo di ricerca sul livello di evidenza/priorità dei folder (valori interi da 1 in su)</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Da" type="xs:positiveInteger" default="1"/>
+							<xs:element name="A" type="xs:positiveInteger" minOccurs="0"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="InclusioneAnnullati" fixed="1" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se valorizzato la ricerca include anche i folder logicamente annullati, altrimenti no</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="DocumentiContenuti" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Criteri di ricerca sui documenti che devono essere contenuti nei folder da ricercare</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="IdUD" type="xs:integer" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Id. dell'unità documentaria che deve essere contenuta nei folder</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="IdDoc" type="xs:integer" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Id. del documento la cui unità documentaria deve essere contenuta nei folder </xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="TipoDoc" type="OggDiTabDiSistemaType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Tipo di documento la cui unità documentaria deve essere contenuta nei folder </xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="EstremiRegistrazione" type="EstremiRegNumType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Estremi di registrazione dell'unità documentaria che deve essere contenuta nei folder </xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="OggettoDescrizione" type="xs:string" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Oggetto/descrizione del documento  la cui unità documentaria deve essere contenuta nei folder (ricerca full-text)</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Note" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Annotazioni sul  folder (ricerca full-text)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="AttributoAdd" type="CriterioRicercaSuAttributoAddType" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Criteri di ricerca sugli attributi addizionali dei folder, tra cui ad esempio quelli specifici della data tipologia di folder/fascicolo. Se sono più di uno vengono applicati in AND. I criteri possono essere relativi solo agli attributi non strutturati.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Ordinamento" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Contiene indicazioni su come deve essere ordinato il risultato della ricerca</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Per" default="NomeFolder">
+								<xs:annotation>
+									<xs:documentation>Campo/i per cui ordinare</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="NomeFolder"/>
+										<xs:enumeration value="Anno,Classificazione,NroFasc,NroSF,NroInserto"/>
+										<xs:enumeration value="TipoFolder,TipoDiDettaglio,NomeFolder"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="Verso" default="C">
+								<xs:annotation>
+									<xs:documentation>Indica se l'ordinamento deve essere crescente o descrescente</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="C"/>
+										<xs:enumeration value="D"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="EstrazionePaginata" type="PaginazioneType" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Se presente il tag, allora l'estrazione è paginata, ovvero ogni chiamata al Web Service permette di estrarre un set-pagina di record che soddisfano i filtri.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+	<Ricerca>
+		<CFOperatore>str1234000000000</CFOperatore>
+		<CodIDTipoProcedimento>str1234</CodIDTipoProcedimento>
+		<Filtro>
+			<TipiDoc>
+				<TipoDoc>
+					<Decodifica_Nome></Decodifica_Nome>			
+				</TipoDoc>	
+			</TipiDoc>
+			<DataRegistrazioneDa>2012-12-13</DataRegistrazioneDa>
+			<DataRegistrazionA>2012-12-13</DataRegistrazionA>
+			<NroRegistrazioneDa>1</NroRegistrazioneDa>
+			<NroRegistrazioneA>99</NroRegistrazioneA>
+			<TipoRegistrazione>PG</TipoRegistrazione>
+			<SiglaRegistrazione></SiglaRegistrazione>
+			<Mittente></Mittente>
+			<Oggetto></Oggetto>
+		</Filtro>
+		<EstrazionePaginata>
+			<NroPagina>1</NroPagina>
+			<NroRecordInPagina>99</NroRecordInPagina>
+		</EstrazionePaginata>
+</Ricerca>

@@ -1,0 +1,907 @@
+1        PACKAGE  DMPK_GAE AUTHID CURRENT_USER IS
+2        
+3        	------ funzione usata per i controlli di un documento di un lotto inviato da Documentum durante il processo di "estrazione" 
+4        	function VerificaDocLotto(
+5        			IdBatchIn					IN			VARCHAR2,											-- (obblig.) ID del batch di appartenenza
+6        			IdLottoIn					IN			VARCHAR2,											-- (obblig.) ID del lotto di appartenenza
+7        			NroPosizioneDocIn			IN			INTEGER,											-- (obblig.) N.ro posizione del documento all'interno del lotto
+8        			CodiciErroreOut				OUT			VARCHAR2											-- Codice/i degli eventuali errori rilevati
+9        																										-- I vari codici sono separati da ;
+10        			) return PLS_INTEGER;                                                                		-- (valori 1/0) 1 = tutti i controlli superati, 0 = rilevati errori
+11        
+12        	------ funzione per aggiornare i dati dell'anagrafica delle tipologie documentali con quelli provenienti da Documentum
+13        	------ valida solo per le famiglie di assegni e giustificativi
+14        	function AggiornaAnagrafeTipologieDoc(
+15        			XMLRequestIn				IN			CLOB,												-- XML di request
+16        			XMLResponseOut				OUT			NOCOPY CLOB,										-- XML di response 
+17        			FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+18        																										-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+19        			FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+20        			ErrContextOut            	OUT        	VARCHAR2,                                      		-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore se non è un errore gestito e restituito nella response xml
+21                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    	-- N.ro errore di uscita se non è un errore gestito e restituito nella response xml
+22        			ErrMsgOut                	OUT			VARCHAR2                                        	-- Messaggio d'errore se non è un errore gestito e restituito nella response xml
+23                    ) return PLS_INTEGER;                                                                		-- (valori 1/0) 1 = successo, 0 = errore
+24        
+25        	------ funzione per aggiornare i dati dell'anagrafica delle tipologie documentali con quelli provenienti da Documentum
+26        	------ valida solo per la documentazione di clientela
+27        	function AggiornaAnagTipiDocClientela(
+28        			XMLRequestIn				IN			CLOB,												-- XML di request
+29        			XMLResponseOut				OUT			NOCOPY CLOB,										-- XML di response 
+30        			FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+31        																										-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+32        			FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+33        			ErrContextOut            	OUT        	VARCHAR2,                                      		-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore se non è un errore gestito e restituito nella response xml
+34                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    	-- N.ro errore di uscita se non è un errore gestito e restituito nella response xml
+35        			ErrMsgOut                	OUT			VARCHAR2                                        	-- Messaggio d'errore se non è un errore gestito e restituito nella response xml
+36                    ) return PLS_INTEGER;                                                                		-- (valori 1/0) 1 = successo, 0 = errore
+37        
+38        	------- funzione per ricercare i batch di documenti inviati al GAE dal Sistema Documentale (SD)
+39        	function TrovaBatch(	
+40        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+41        																					-- (obblig). Codice identificativo del token di connessione
+42        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+43        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd). 
+44        																					-- Ogni filtro è un tag "Variabile" dell'XML
+45        																					-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+46        																					-- I nomi dei filtri possibili sono:
+47        																					-- DataMessaDisposizioneDocDa 	Estremo inferiore del range sulla data di messa a disposizione del lotto da parte del documentale (nel formato dato dal parametro di conf. FMT_STD_DATA)
+48        																					-- DataMessaDisposizioneDocA	Estremo superiore del range sulla data di messa a disposizione del lotto da parte del documentale (nel formato dato dal parametro di conf. FMT_STD_DATA)
+49        																					-- Stati	Lista degli stati dei batch da estrarre (se più di uno separati da ; o ,) Valori possibili:
+50        																					--						in_elaborazione, scartato_in_rilevazione_documenti, conclusa_rilevazione_documenti, conclusa_estrazione_documenti
+51        																					-- IdBatch	Ricerca sull'id. del batch: ricerca case-insesitive in like senza forzare %
+52        																					-- TempoRielvazioneDa	Estremo inferiore del range sul tempo di rilevazione dei batch da estrarre (in min)
+53        																					-- TempoRilevazioneA	Estremo superiore del range sul tempo di rilevazione dei batch da estrarre (in min)
+54        																					-- TempoEstrazioneDa	Estremo inferiore del range sul tempo di rilevazione dei batch da estrarre (in min)
+55        																					-- TempoEstrazioneA		Estremo superiore del range sul tempo di rilevazione dei batch da estrarre (in min)
+56        		------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+57        		ColOrderByIO				IN OUT	VARCHAR2,								-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 18). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+58        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+59        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+60        		FlgDescOrderByIO  			IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+61        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
+62        		FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+63        		NroPaginaIO      			IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+64        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+65        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+66        		OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+67        																					-- Può assumere valori negativi con specifici significati:
+68        																					-- -1 : la stored deve solo dare il conteggio dei record (tutti, senza limitazioni), non il resultset
+69        																					-- -2 : la stored deve solo schedulare un job per effettuare poi in modalità batch l'estrazione
+70        																					-- -3 : la stored viene chiamata da un batch off-line e deve estrarre e salvare in DB, come output del batch, tutto il resultset, senza limitazioni
+71        		FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+72        		NroTotRecOut				OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+73        		NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+74        		FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+75        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema. 
+76        		------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+77        		ResultOut					OUT		NOCOPY CLOB, 							-- Lista dei batch trovati (XML conforme a schema LISTA_STD.xsd)
+78        																					-- Ogni batch trovato è un tag Riga che può contenere le seguenti colonne: 
+79        																					-- 1: 	Id. del batch (alfanumerico)
+80        																					-- 2:	Stato. Valori possibili: in_elaborazione, scartato_in_rilevazione_documenti, conclusa_rilevazione_documenti, conclusa_estrazione_documenti
+81        																					-- 3: 	Data e ora di messa a disposizione del batch al GAE da parte del SD (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+82        																					-- 4:	Data e ora di inizio rilevazione dei lotti del batch (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+83        																					-- 5:	Data e ora di fine rilevazione dei lotti del batch (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+84        																					-- 6:	Data e ora di inizio "estrazione" dei lotti del batch (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+85        																					-- 7:	Data e ora di fine "estrazione" dei lotti del batch (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+86        																					-- 8:	N.ro lotti contenuti
+87        																					-- 9:	N.ro di lotti scartati in fase di rilevazione
+88        																					-- 10:	N.ro di lotti scartati in fase di estrazione
+89        																					-- 11:	N.ro di documenti dichiarati
+90        																					-- 12:	N.ro di documenti rilevati
+91        																					-- 13:	N.ro di documenti elaborati con successo
+92        																					-- 14:	Cod. errore eventuale riscontrato in fase di rilevazione
+93        																					-- 15:	(1/0) Flag presenza file summary
+94        																					-- 16:	(1/0) Flag presenza file summary di recupero
+95        																					-- 17:	Tempo (in min) di rilevazione
+96        																					-- 18:	Tempo (in minuti) di estrazione
+97        																					-- 19:	Rowid del record in tabella
+98        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+99        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+100        		ErrMsgOut					OUT 		VARCHAR2)							-- Messaggio d'errore
+101        		return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+102        
+103        	------- funzione per ricercare i lotti che compongoni i batch di documenti inviati al GAE dal Sistema Documentale (SD)
+104        	function TrovaLottiBatch(	
+105        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+106        																					-- (obblig). Codice identificativo del token di connessione
+107        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+108        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd). 
+109        																					-- Ogni filtro è un tag "Variabile" dell'XML
+110        																					-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+111        																					-- I nomi dei filtri possibili sono:
+112        																					-- DataMessaDisposizioneDocDa 	Estremo inferiore del range sulla data di messa a disposizione del lotto da parte del documentale (nel formato dato dal parametro di conf. FMT_STD_DATA)
+113        																					-- DataMessaDisposizioneDocA	Estremo superiore del range sulla data di messa a disposizione del lotto da parte del documentale (nel formato dato dal parametro di conf. FMT_STD_DATA)
+114        																					-- IdBatch				Ricerca sull'id. del batch di appartenenza: ricerca case-insesitive in like senza forzare %
+115        																					-- IdLotto				Ricerca sull'id. del lotto: ricerca case-insesitive in like senza forzare %
+116        																					-- Stati				Lista degli stati dei lotti da estrarre (se più di uno separati da ; o ,)Valori possibili:
+117        																					--						in_rilevazione_documenti, scartato_post_rilevazione_documenti, superata_rilevazione_documenti, in_estrazione_documenti, scartato_post_estrazione_documenti, acquisito
+118        																					-- TempoRielvazioneDa	Estremo inferiore del range sul tempo di rilevazione dei lotti da estrarre (in min)
+119        																					-- TempoRilevazioneA	Estremo superiore del range sul tempo di rilevazione dei lotti da estrarre (in min)
+120        																					-- TempoEstrazioneDa	Estremo inferiore del range sul tempo di rilevazione dei lotti da estrarre (in min)
+121        																					-- TempoEstrazioneA		Estremo superiore del range sul tempo di rilevazione dei lotti da estrarre (in min)
+122        		------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+123        		ColOrderByIO				IN OUT	VARCHAR2,								-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 17 + 19). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+124        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+125        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+126        		FlgDescOrderByIO  			IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+127        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
+128        		FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+129        		NroPaginaIO      			IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+130        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+131        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+132        		OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+133        																					-- Può assumere valori negativi con specifici significati:
+134        																					-- -1 : la stored deve solo dare il conteggio dei record (tutti, senza limitazioni), non il resultset
+135        																					-- -2 : la stored deve solo schedulare un job per effettuare poi in modalità batch l'estrazione
+136        																					-- -3 : la stored viene chiamata da un batch off-line e deve estrarre e salvare in DB, come output del batch, tutto il resultset, senza limitazioni
+137        		FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+138        		NroTotRecOut				OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+139        		NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+140        		FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+141        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema. 
+142        		------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+143        		ResultOut					OUT		NOCOPY CLOB, 							-- Lista dei lotti trovati (XML conforme a schema LISTA_STD.xsd)
+144        																					-- Ogni lotto trovato è un tag Riga che può contenere le seguenti colonne: 
+145        																					-- 1: 	Id. del batch di appartenenza (alfanumerico)
+146        																					-- 2:	Id. lotto (alfanumerico)
+147        																					-- 3	Stato del lotto. Valori possibili: in_rilevazione_documenti, scartato_post_rilevazione_documenti, superata_rilevazione_documenti, in_estrazione_documenti, scartato_post_estrazione_documenti, acquisito
+148        																					-- 4: 	Data e ora inizio rilevazione (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+149        																					-- 5:   Data e ora di fine rilevazione (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+150        																					-- 6: 	Data e ora inizio estrazione (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+151        																					-- 7:   Data e ora di fine estrazione (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+152        																					-- 8: 	N.ro di documenti dichiarati 
+153        																					-- 9:	N.ro di documenti rilevati
+154        																					-- 10:	N.ro di documenti elaborati senza errori
+155        																					-- 11:  (1/0) Flag presenza file indice
+156        																					-- 12:	Cod. errore rilevazione riscontrato sul lotto
+157        																					-- 13:	Id. lotto precedente di cui quello corrente è un recupero
+158        																					-- 14:	(1/0) Flag di lotto reinviato
+159        																					-- 15:	Id. lotto recupero successivo
+160        																					-- 16:	Tempo (in min) di rilevazione
+161        																					-- 17:	Tempo (in minuti) di estrazione
+162        																					-- 18:	Rowid del record in tabella
+163        																					-- 19: 	Data e ora di messa a disposizione del lotto al GAE da parte del SD (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+164        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+165        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+166        		ErrMsgOut					OUT 		VARCHAR2)							-- Messaggio d'errore
+167        		return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+168        
+169        	------- funzione per ricercare i documenti inviati al GAE dal Sistema Documentale (SD)
+170        	function TrovaDocLottiBatch(	
+171        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+172        																					-- (obblig). Codice identificativo del token di connessione
+173        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+174        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd). 
+175        																					-- Ogni filtro è un tag "Variabile" dell'XML
+176        																					-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+177        																					-- I nomi dei filtri possibili sono:
+178        																					-- IdBatch				Ricerca sull'id. del batch di appartenenza: ricerca case-insesitive in like senza forzare %
+179        																					-- IdLotto				Ricerca sull'id. del lotto di appartenenza: ricerca case-insesitive in like senza forzare %
+180        																					-- IdDocOriginale		Ricerca sull'IdDocumentum del documento: ricerca case-insesitive in like senza forzare %
+181        																					-- Stati				Sato/i dei documenti da estrarre (se più di uno vanno concatenati con ; o ,). Valori possibili:
+182        																					--						in_rilevazione, scartato_post_rilevazione, superata_rilevazione, in_estrazione, scartato_post_estrazione, acquisito
+183        																					-- CodiciErrore			Codice/i degli errori riscontrati in elaborazione dei documenti (se più di uno vanno concatenati con ; o ,)
+184        		------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+185        		ColOrderByIO				IN OUT	VARCHAR2,								-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 17). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+186        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+187        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+188        		FlgDescOrderByIO  			IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+189        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
+190        		FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+191        		NroPaginaIO      			IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+192        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+193        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+194        		OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+195        																					-- Può assumere valori negativi con specifici significati:
+196        																					-- -1 : la stored deve solo dare il conteggio dei record (tutti, senza limitazioni), non il resultset
+197        																					-- -2 : la stored deve solo schedulare un job per effettuare poi in modalità batch l'estrazione
+198        																					-- -3 : la stored viene chiamata da un batch off-line e deve estrarre e salvare in DB, come output del batch, tutto il resultset, senza limitazioni
+199        		FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+200        		NroTotRecOut				OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+201        		NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+202        		FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+203        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema. 
+204        		------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+205        		ResultOut					OUT		NOCOPY CLOB, 							-- Lista dei documenti inviati dal SD che sono stati trovati (XML conforme a schema LISTA_STD.xsd)
+206        																					-- Ogni documento trovato è un tag Riga che può contenere le seguenti colonne: 
+207        																					-- 1: 	Id. del batch di appartenenza (alfanumerico)
+208        																					-- 2: 	Id. del lotto di appartenenza(alfanumerico)
+209        																					-- 3: 	N.ro posizione del documento all'interno del file indice del lotto
+210        																					-- 4: 	IdDocumentum del documento
+211        																					-- 5: 	Stato del documento. Valori possibili: in_rilevazione, scartato_post_rilevazione, superata_rilevazione, in_estrazione, scartato_post_estrazione, acquisito
+212        																					-- 6: 	Data e ora inizio rilevazione (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+213        																					-- 7:   Data e ora di fine rilevazione (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+214        																					-- 8: 	Data e ora inizio estrazione (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+215        																					-- 9:   Data e ora di fine estrazione (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+216        																					--10:	Attributi chiave del documento 
+217        																					--11:	Mimetype del file del documento
+218        																					--12:	(1/0) Falg che indica presenza xml con tutti i metadati del documento
+219        																					--13:	Codice/i errore eventualmente rilevati sul documento
+220        																					--14:	Messaggio d'errore/i eventualmente rilevati sul documento
+221        																					--15:	Cod. classe documentale
+222        																					--16:	Cod. sottoclasse documentale
+223        																					--17:	Cod. tipo documento
+224        																					--18:	Rowid del record in tabella
+225        																					--19:	ID_UD dell'unità documentaria in cui è stato archiviato il documento
+226        																					--20:	ID_DOC del documento della DMT_DOCUMENTS in cui è stato archiviato il documento
+227        																					--21:   URI del file se presente
+228        																					--22:	Nome dei file se presente
+229        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+230        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+231        		ErrMsgOut					OUT 		VARCHAR2)							-- Messaggio d'errore
+232        		return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+233        
+234        	------- funzione per ricercare i PdV Tipo
+235        	function TrovaPdVTipo(	
+236        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+237        																					-- (obblig). Codice identificativo del token di connessione
+238        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+239        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd). 
+240        																					-- Ogni filtro è un tag "Variabile" dell'XML
+241        																					-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+242        																					-- I nomi dei filtri possibili sono:
+243        																					-- IdPdVTipo			Ricerca sull'id. del PdV tipo: ricerca case-insesitive in like senza forzare %
+244        																					-- Stati				Lista degli stati dei PdV Tipo da estrarre (se più di uno separati da ; o ,)Valori possibili:
+245        																					--						censito, richiesta_di_attivazione_in_corso, attivato, richiesta_di_disattivazione_in_corso, disattivato, richiesta_di_cancellazione_in_corso, cancellato
+246        																					-- DtCensimentoDa		Estremo inferiore - data senza ora - dell'intervallo di ricerca sulla data di censimento del PdV Tipo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+247        																					-- DtCenismentoA		Estremo superiore - data senza ora - dell'intervallo di ricerca sulla data di censimento del PdV Tipo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+248        																					-- DtRichAttivazioneA	Estremo inferiore - data senza ora - dell'intervallo di ricerca sulla data di richiesta di attivazione del PdV Tipo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+249        																					-- DtRichAttivazioneDa	Estremo superiore - data senza ora - dell'intervallo di ricerca sulla data di richiesta di attivazione del PdV Tipo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+250        																					-- DtAttivazioneA		Estremo inferiore - data senza ora - dell'intervallo di ricerca sulla data di attivazione del PdV Tipo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+251        																					-- DtAttivazioneDa		Estremo superiore - data senza ora - dell'intervallo di ricerca sulla data di attivazione del PdV Tipo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+252        																					-- DtRichDisattivazioneDa	Estremo inferiore - data senza ora - dell'intervallo di ricerca sulla data di richiesta di disattivazione del PdV Tipo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+253        																					-- DtRichDisattivazioneA	Estremo superiore - data senza ora - dell'intervallo di ricerca sulla data di richiesta di disattivazione del PdV Tipo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+254        																					-- DtDisattivazioneDa	Estremo inferiore - data senza ora - dell'intervallo di ricerca sulla data di disattivazione del PdV Tipo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+255        																					-- DtDisattivazioneA	Estremo superiore - data senza ora - dell'intervallo di ricerca sulla data di disattivazione del PdV Tipo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+256        																					-- DtRichCancellazioneDa	Estremo inferiore - data senza ora - dell'intervallo di ricerca sulla data di richiesta di cancellazione del PdV Tipo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+257        																					-- DtRichCancellazioneA	Estremo superiore - data senza ora - dell'intervallo di ricerca sulla data di richiesta di cancellazione del PdV Tipo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+258        																					-- DtCancellazioneDa		Estremo inferiore - data senza ora - dell'intervallo di ricerca sulla data di cancellazione del PdV Tipo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+259        																					-- DtCancellazioneA		Estremo superiore - data senza ora - dell'intervallo di ricerca sulla data di cancellazione del PdV Tipo (nel formato dato dal parametro di conf. FMT_STD_DATA)
+260        																					-- CodProcessiBancaProd	Codici del/degli applicativi IT produttori (se più di uno separati da ; o ,)
+261        																					-- CodiceClasse			Codice della classe documentale cui si riferisce il PdV tipo (ricerca esatta)
+262        																					-- IdDocTypeClasse 		ID_DOC_TYPE della classe documentale cui si riferisce il PdV tipo (ricerca esatta)
+263        																					-- CodiciSottoclassi	Codice/i delle sottoclassi documentali cui si riferisce il PdV tipo (ricerca esatta; se più di uno vanno separati con , o ;)
+264        																					-- IdDocTypeSottoclassi ID_DOC_TYPE delle sottoclassi documentali cui si riferisce il PdV tipo (ricerca esatta; se più di uno vanno separati con , o ;)
+265        																					-- NroDocConservatiDa	Estremo inferiore dell'intervallo di ricerca sul N° di documenti conservati afferenti al dato PdV Tipo
+266        																					-- NroDocConservatiA	Estremo superiore dell'intervallo di ricerca sul N° di documenti conservati afferenti al dato PdV Tipo
+267        																					-- VolDocConservatiDa	Estremo inferiore dell'intervallo di ricerca sul volume (GB) di documenti conservati afferenti al dato PdV Tipo
+268        																					-- VolDocConservatiA	Estremo superiore dell'intervallo di ricerca sul volume (GB) di documenti conservati afferenti al dato PdV Tipo
+269        		------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+270        		ColOrderByIO				IN OUT	VARCHAR2,								-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 35 + 38). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+271        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+272        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+273        		FlgDescOrderByIO  			IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+274        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
+275        		FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+276        		NroPaginaIO      			IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+277        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+278        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+279        		OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+280        																					-- Può assumere valori negativi con specifici significati:
+281        																					-- -1 : la stored deve solo dare il conteggio dei record (tutti, senza limitazioni), non il resultset
+282        																					-- -2 : la stored deve solo schedulare un job per effettuare poi in modalità batch l'estrazione
+283        																					-- -3 : la stored viene chiamata da un batch off-line e deve estrarre e salvare in DB, come output del batch, tutto il resultset, senza limitazioni
+284        		FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+285        		NroTotRecOut				OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+286        		NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+287        		FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+288        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema. 
+289        		------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+290        		ResultOut					OUT		NOCOPY CLOB, 							-- Lista dei PdV Tipo che sono stati trovati (XML conforme a schema LISTA_STD.xsd)
+291        																					-- Ogni PdV Tipo è un tag Riga che può contenere le seguenti colonne: 
+292        																					-- 1:  Id. del PdV Tipo
+293        																					-- 2:  Cod. Applicazione IT produttrice
+294        																					-- 3:  Cod. classe documentale (da catalogo)
+295        																					-- 4:  Nome classe documentale (da catalogo)
+296        																					-- 5:  Cod. sottoclasse documentale (da catalogo)
+297        																					-- 6:  Nome sottoclasse documentale (da catalogo)
+298        																					-- 7:  Nome sottoclasse o classe se la sottoclasse non è presente
+299        																					-- 8:  Nome classe documentale per Conservatore
+300        																					-- 9:  Nome Conservatore
+301        																					-- 10: Responsabile produzione PdV del tipo
+302        																					-- 11: Denominazione produttore
+303        																					-- 12: Cod. fiscale produttore
+304        																					-- 13: Stato del PdV Tipo
+305        																					-- 14: Data e ora di censimento (nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+306        																					-- 15: Data e ora di rich attivazione (nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+307        																					-- 16: Data e ora di attivazione effettiva (nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+308        																					-- 17: Data e ora di rich. disattivazione (nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+309        																					-- 18: Data e ora di disattivazione effettiva(nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+310        																					-- 19: Data e ora di rich. cancellazione (nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+311        																					-- 20: Data e ora di effettiva cancellazione (nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+312        																					-- 21: Nro documenti conservati
+313        																					-- 22: Data e ora aggiornamento n.ro documenti conservati (nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+314        																					-- 23: Spazio(GB) di documenti conservati
+315        																					-- 24: Data e ora aggiornamento spazio doc. conservati (nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+316        																					-- 25: Nro max doc. conservabili
+317        																					-- 26: Nro max documenti versabili/anno
+318        																					-- 27: Nro max doc in PdV
+319        																					-- 28: N.ro min di doc. preferibile in PdV
+320        																					-- 29: Dimensione max PdV (in MB)
+321        																					-- 30: Max N° di ore che un documento originale dei Tipi Documento afferenti al dato PdV Tipo può rimanere nel GAE senza essere inviato al Conservatore esterno
+322        																					-- 31: Spazio max (GB) documenti conservati
+323        																					-- 32: Spazio max (GB) documenti versabili/anno
+324        																					-- 33: Anni conservazione della tipologia con minor tempo di conservazione
+325        																					-- 34: Anni conservazione della tipologia con maggior tempo di conservazione
+326        																					-- 35: (1/0) Flag presenza tipologia documentale a conservazione illimitata
+327        																					-- 36: Tipologie documentali presenti
+328        																					-- 37: Mimetype formati ammessi
+329        																					-- 38: Nome Applicazione IT produttrice
+330        																					-- 39: Durata (anni) conservazione
+331        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+332        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+333        		ErrMsgOut					OUT 		VARCHAR2)							-- Messaggio d'errore
+334        		return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+335        
+336        	---- funzione per censire, attivare e/o aggiornare un PdV Tipo
+337        	function IUPdVTipo(
+338        			CodIdConnectionTokenIn	IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+339        																					-- (obblig). Codice identificativo del token di connessione
+340        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+341        			IdPdVTipoIO				IN OUT	BNL_PDV_TIPO.ID_PDV_TIPO%type,			-- Id. del PdV Tipo. In input non va valorizzato se il PdV Tipo è da censire, altrimenti è obbligatorio
+342        																					-- in output, salvo in caso di errore, è sempre valorizzato
+343        			TipoOperazioneIn		IN		VARCHAR2,								-- (obblig.) Indica il tipo di operazione da effettuare sul PdV Tipo. Valori ammessi:
+344        																						-- CENSIMENTO
+345        																						-- ATTIVAZIONE
+346        																						-- AGGIORNAMENTO
+347        			XMLDatiPdVTipoIn		IN		CLOB,									-- (obblig.) XML con i dati del PdV Tipo (XML conforme a schema SezioneCache.xsd)	
+348        																					-- I dati corrispondenti a variabili non presenti - come tag - nell'xml si intende che restino invariati
+349        																					-- Le variabili previste sono:
+350        																					-- CodProcessoBancaProd
+351        																					-- IdDocTypeClasseDocumentale
+352        																					-- IdDocTypeSottoclasseDocumentale
+353        																					-- DurataConservazione
+354        																					-- NomeConservatore
+355        																					-- NomeClasseDocXConservatore
+356        																					-- NomeProduttore
+357        																					-- IdFiscaleProduttore
+358        																					-- ResponsabileProd
+359        																					-- TsAttivazione
+360        																					-- MinNroDocPdV
+361        																					-- MaxNroDocPdV
+362        																					-- MaxDimensionePdV (espressa in MB)
+363        																					-- MaxNroOreAttesaVers
+364        																					-- MaxNroDocConservati
+365        																					-- MaxNroDocVersatiXAnno
+366        																					-- MaxVolDocConservati
+367        																					-- MaxVolDocVersatiXAnno
+368        																					-- @TipiDoc	Tipologie documentali ricadenti nel PdV Tipo. E' una lista con le colonne:
+369        																						-- 1) (obblig.) Id del tipo documento
+370        																						-- 2) Tempo di conservazione (anni)
+371        																						-- 3) Flag di conservazione illimitata (1/0)
+372        																						-- 4) Id. dei formati ammessi per i documenti del dato tipo (se più di uno separati da , o ;)
+373        																					-- @AttributiXConservazione	Attributi con cui indicizzare in conservazione i documenti afferenti al dato PdV Tipo. E' una lista con le colonne:
+374        																						-- 1) (obblig.) Nome identificativo attributo su catalogo Documentum 
+375        																						-- 2) (obblig.) Nome identificativo attributo x il Conservatore esterno
+376        																						-- 3) Flag di attributo opzionale (1) o obbligatorio (0 o NULL)
+377        																						-- 4) (obblig.) Tipo di attributo: string, int, date
+378        																					-- @OpzioniEventiSucc Opzioni di trasmissione degli eventi successivi. E' una lista con le colonne:
+379        																						-- 1) (obblig.)Cod. tipo evento (valori da DICTIONARY_ENTRY TIPO_EVENTO_CONSERV_GAE)
+380        																						-- 2) Opzione di trasmissione. Valori ammessi: a, b, c. Significano:
+381        																								--a)	va comunicato al PB che a sua volta lo trasmette al SD (quindi GAE non deve trametterlo al SD)
+382        																								--b)	va comunicato al PB che però non lo trasmette al SD (quindi è in carico al GAE trasmettere l¿evento anche al SD)
+383        																								--c)	non va comunicato al PB ma solo al SD
+384        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+385        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+386        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+387        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+388        			WarningMsgOut			OUT		VARCHAR2,								-- Messaggio di warning (valorizzato solo se non c'è errore)
+389        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+390        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+391        			ErrMsgOut				OUT 	VARCHAR2)								-- Messaggio d'errore
+392        			return PLS_INTEGER;														-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0
+393        
+394        
+395        
+396        	---- funzione per effettuare su un PdV Tipo le seguenti operazioni 
+397        	---- 1) richiedere la disattivazione 
+398        	---- 2) annullare la richiesta di disattivazione 
+399        	---- 3) cancellare
+400        	function DDRPdVTipo(
+401        			CodIdConnectionTokenIn	IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+402        																					-- (obblig). Codice identificativo del token di connessione
+403        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+404        			IdPdVTipoIn				IN 		BNL_PDV_TIPO.ID_PDV_TIPO%type,			-- (obblig.) Id. del PdV Tipo
+405        			TipoOperazioneIn		IN		VARCHAR2,								-- (obblig.) Indica il tipo di operazione da effettuare sul PdV Tipo. Valori ammessi:
+406        																						-- DISATTIVAZIONE (richiedere la disattivazione )
+407        																						-- RIPRISTINO (annullare la richiesta di disattivazione)
+408        																						-- CANCELLAZIONE
+409        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+410        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+411        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+412        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+413        			WarningMsgOut			OUT		VARCHAR2,								-- Messaggio di warning (valorizzato solo se non c'è errore)
+414        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+415        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+416        			ErrMsgOut				OUT 	VARCHAR2)								-- Messaggio d'errore
+417        			return PLS_INTEGER;														-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0
+418        
+419        	------ funzione per ottenere i dati di dettaglio di un PdV Tipo
+420        	function LoadDettPdVTipo(
+421        			CodIdConnectionTokenIn	IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+422        																					-- (obblig). Codice identificativo del token di connessione
+423        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+424        			IdPdVTipoIn				IN 		BNL_PDV_TIPO.ID_PDV_TIPO%type,			-- (obblig.) Id. del PdV Tipo
+425        			DatiPdVTipoOut			OUT		NOCOPY CLOB,							-- XML con i dati del PdV Tipo (conforma a schema SezioneCache.xsd)
+426        																					-- Le variabili previste sono:
+427        																					-- CodProcessoBancaProd 		Cod. Applicazione IT produttrice
+428        																					-- NomeProcessoBancaProd 		Nome Applicazione IT produttrice
+429        																					-- IdDocTypeClasseDocumentale	Id. della classe documentale
+430        																					-- CodClasseDocumentale			Cod./Nome identificativo della classe sul catalogo Documentum
+431        																					-- NomeClasseDocumentale		Nome della classe sul catalogo Documentum
+432        																					-- IdDocTypeSottoclasseDocumentale	Id. della sottoclasse
+433        																					-- CodSottoclasseDocumentale	Cod./Nome identificativo della sottoclasse sul catalogo Documentum
+434        																					-- NomeSottoclasseDocumentale	Nome della sottoclasse sul catalogo Documentum
+435        																					-- DurataConservazione			Anni di conservazione
+436        																					-- Stato						Stato del PdV Tipo (così come salvato in DB)
+437        																					-- NomeConservatore				Nome conservatore
+438        																					-- NomeClasseDocXConservatore	Nome della classe/sottoclasse documentale per il conservatore
+439        																					-- NomeProduttore				Nome soggetto produttore documenti
+440        																					-- IdFiscaleProduttore			Id. fiscale del soggetto produttore documenti
+441        																					-- ResponsabileProd				Estremi del responsabile della produzione dei PdV del dato tipo
+442        																					-- MinNroDocPdV					Min N° doc. da mettere nel PdV per inviarlo al conservatore
+443        																					-- MaxNroDocPdV					Max N° documenti ammessi in un PdV
+444        																					-- MaxDimensionePdV 			Max dimensione PdV (espressa in MB)
+445        																					-- MaxNroOreAttesaVers			Max N° ore attesa per versamento in conservazione
+446        																					-- MaxNroDocConservati			Max N° documenti conservabili
+447        																					-- MaxNroDocVersatiXAnno		Max N° documenti versabili/anno
+448        																					-- MaxVolDocConservati			Max volume documenti conservabili (in GB)
+449        																					-- MaxVolDocVersatiXAnno		Max volume documenti versabili/anno (in GB)
+450        																					-- TsCensimento					Data e ora di censimento del PdV Tipo (nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+451        																					-- TsRichAttivazione			Data e ora di rich attivazione del PdV Tipo(nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+452        																					-- TsAttivazione				Data e ora di attivazione effettiva del PdV Tipo (nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+453        																					-- TsRichDisattivazione			Data e ora di rich. disattivazione del PdV Tipo(nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+454        																					-- TsDisattivazione 			Data e ora di disattivazione effettiva del PdV Tipo(nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+455        																					-- TsRichCancellazione			Data e ora di rich. cancellazione del PdV Tipo (nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+456        																					-- TsCancellazione 				Data e ora di effettiva cancellazione (nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+457        																					-- NroDocConservati				N° di documenti conservati
+458        																					-- TsAggNroDocConservati 		Data e ora aggiornamento n.ro documenti conservati (nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+459        																					-- VolDocConservati				Spazio(GB) di documenti conservati
+460        																					-- TsAggVolDocConservati 		Data e ora aggiornamento spazio doc. conservati (nel formato dato dal parametro di config FMT_STD_TIMESTAMP)
+461        																					-- @TipiDoc	Tipologie documentali ricadenti nel PdV Tipo (solo quelle valide). E' una lista con le colonne:
+462        																						-- 1) Id del tipo documento
+463        																						-- 2) Tempo di conservazione (anni)
+464        																						-- 3) Flag di conservazione illimitata (1/0)
+465        																						-- 4) Id. dei formati ammessi per i documenti del dato tipo (se più di uno separati da , o ;)
+466        																						-- 5) Nome del tipo documento
+467        																						-- 6) Cod. del tipo documento su catalogo Documentum
+468        																						-- 7) Nomi dei formati ammessi per i documenti del dato tipo (se più di uno separati da , o ;)
+469        																						-- 8) Mimetype dei formati ammessi per i documenti del dato tipo (se più di uno separati da , o ;)
+470        																					-- @AttributiXConservazioneFissi Attributi con cui indicizzare in conservazione TUTTI i documenti di qualsiasi classe e sottoclasse. E' una lista con le colonne:
+471        																						-- 1)  Nome identificativo attributo su catalogo Documentum 
+472        																						-- 2)  Nome identificativo attributo x il Conservatore esterno
+473        																						-- 3)  Flag di attributo opzionale (1) o obbligatorio (0 o NULL)
+474        																						-- 4)  Tipo di attributo: string, int, date
+475        																						-- 5)  Label attributo su catalogo Documentum
+476        																					-- @AttributiXConservazione	Attributi con cui indicizzare in conservazione i documenti afferenti al dato PdV Tipo. E' una lista con le colonne:
+477        																						-- 1)  Nome identificativo attributo su catalogo Documentum 
+478        																						-- 2)  Nome identificativo attributo x il Conservatore esterno
+479        																						-- 3)  Flag di attributo opzionale (1) o obbligatorio (0 o NULL)
+480        																						-- 4)  Tipo di attributo: string, int, date
+481        																						-- 5)  Label attributo su catalogo Documentum
+482        																					-- @OpzioniEventiSucc Opzioni di trasmissione degli eventi successivi. E' una lista con le colonne:
+483        																						-- 1) Cod. tipo evento (valori da DICTIONARY_ENTRY TIPO_EVENTO_CONSERV_GAE)
+484        																						-- 2) Opzione di trasmissione. Valori ammessi: a, b, c. Significano:
+485        																								--a)	va comunicato al PB che a sua volta lo trasmette al SD (quindi GAE non deve trametterlo al SD)
+486        																								--b)	va comunicato al PB che però non lo trasmette al SD (quindi è in carico al GAE trasmettere l¿evento anche al SD)
+487        																								--c)	non va comunicato al PB ma solo al SD
+488        																					-- Abilitazioni.Aggiornamento 	(valori 1/0)
+489        																					-- Abilitazioni.Attivazione		(valori 1/0)
+490        																					-- Abilitazioni.Disattivazione	(valori 1/0)
+491        																					-- Abilitazioni.AnnullaRichDisattivazione	(valori 1/0)
+492        																					-- Abilitazioni.Cancellazione	(valori 1/0)
+493        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+494        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+495        			ErrMsgOut				OUT 	VARCHAR2)								-- Messaggio d'errore
+496        			return PLS_INTEGER;														-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+497        
+498        
+499        	----- funzione per estrarre un file di eventi successivi da mandare ad un certo sistema destinatario 
+500        	function GetFileEventiToSend(
+501        			XMLRequestIn			IN		CLOB,									-- (obblig.) XML SezioneCache con i dati del file da estrarre
+502        																					-- Prevede le seguenti variabili:
+503        																					-- #CodSistemaDestinatario (obbligatoria)
+504        																					-- #@CodTipiEventi (obbligatoria): 
+505        																					--			lista con il/i codici dei tipi di eventi. 
+506        																					--			Ogni evento corrisponde ad una riga con una sola colonna
+507        			NroEventiInFileOut		OUT		INTEGER,								-- Nro di eventi nel file restituito. Se 0 NON viene restituito file
+508        			XMLDatiFileDaInviareOut	OUT		NOCOPY CLOB,							-- XML SezioneCache con i dati del file estratto. E' vuoto se NroEventiInFileOut=0 o in caso di errore
+509        																					-- Prevede le seguenti variabili:
+510        																					-- #NomeFile: 	nome da dare al file 
+511        																					-- #PathFile:	path in cui scrivere il file
+512        			ContenutoFileEventiOut	OUT		NOCOPY CLOB,							-- Contenuto del file di eventi. E' vuoto se NroEventiInFileOut=0 o in caso di errore
+513        			IdFileOut				OUT		VARCHAR2,								-- Id. univoco assegnato al file dal GAE
+514        			FlgFinitiEventiOut		OUT		PLS_INTEGER,							-- Se 1 indica che dopo gli eventi contenuti nel file NON ci sono altri eventi da restituire per il destinatario e tipo/i di eventi indicati, se 0 che ce ne sono altri
+515        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+516        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+517        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+518        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+519        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+520        			ErrMsgOut				OUT 	VARCHAR2)								-- Messaggio d'errore
+521        			return PLS_INTEGER;														-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+522        
+523        	----- funzione per archiviare un file di eventi successivi proveniente da un certo sistema mittente
+524        	----- ove previsto restituendo in output il file rielaborato dal GAE
+525        	function ArchiviaFileEventiRicevuto(
+526        			XMLRequestIn			IN		CLOB,									-- (obblig.) XML SezioneCache con i dati del file da archiviare
+527        																					-- Prevede le seguenti variabili:
+528        																					-- #CodSistemaMittente (obbligatoria)
+529        																					-- #@CodTipiEventi (obbligatoria): 
+530        																					--			lista con il/i codici dei tipi di eventi. 
+531        																					--			Ogni evento corrisponde ad una riga con una sola colonna
+532        			XMLDatiFileRicevutoIn	IN		CLOB,									-- XML SezioneCache con i dati del file ricevuto e da archiviare. 
+533        																					-- Prevede le seguenti variabili:
+534        																					-- #NomeFile (obbligatoria): 			nome del file fisico ricevuto
+535        																					-- #PathFile (obbligatoria):			path assoluto su cui è stato ricevuto il file
+536        																					-- #DimensioneFile (obbligatoria):		dimnsione del file in bytes (senza separatori delle migliaia)
+537        																					-- #TsRicezioneFile	(obbligatoria): 	data e ora di arrivo del file sulla cartella nel formato GG/MM/AAAA HH24:MI:SS
+538        			ContenutoFileEventiIn	IN		CLOB,									-- Contenuto del file di eventi da archiviare
+539        			IdFileOut				OUT		VARCHAR2,								-- Id. univoco assegnato al file dal GAE
+540        			ContFileEventiElabOut	OUT		NOCOPY CLOB,							-- Contenuto del file di eventi ri-elaborato dal GAE comprensivo di esiti dell'elaborazione
+541        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+542        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+543        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+544        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+545        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+546        			ErrMsgOut				OUT 	VARCHAR2)								-- Messaggio d'errore
+547        			return PLS_INTEGER;														-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+548        
+549        	------------funzione per registrare la scrittura su file-system 
+550        	------------	a) di un file di eventi successivi inviato da GAE 
+551        	----------- 	b) del file di elaborazione da parte del GAE di un file di eventi successivi ricevuto dal GAE
+552        	function RegistraExportFileEventi(
+553        			IdFileIn 				IN		VARCHAR2,								-- (obblig.) Id. univoco assegnato al file dal GAE.
+554        																					--			 Nel caso a) è l'id. del file inviato da GAE
+555        																					--			 Nel caso b) è l'id. del file ricevuto dal GAE del cui file rielaborato da GAE stesso si registra la scrittura
+556        			TsExportIn				IN		VARCHAR2 DEFAULT TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS'),
+557        																					-- (obblig.) Data di export, ovvero di scrittura del file su file-system
+558        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+559        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+560        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+561        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+562        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+563        			ErrMsgOut				OUT 	VARCHAR2)								-- Messaggio d'errore
+564        			return PLS_INTEGER;														-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+565        
+566        	----- funzione per ottenere contenuti archiviati come campi CLOB su tabelle 
+567        	function GetClobFromTabCol(
+568        			NomeTabellaIn			IN		VARCHAR2,								-- (obblig.) Nome della tabella in cui si trova il campo clob da prelevare
+569        			NomeColonnaIn			IN		VARCHAR2,								-- (obblig.) Nome della colonna di tabella in cui si trova il campo clob da prelevare
+570        			RowidRecIn				IN		VARCHAR2,								-- (obblig.) Rowid del record di tabella in cui si trova il campo clob da prelevare
+571        			ClobOut					OUT		NOCOPY CLOB,							-- Contenuto del clob 
+572        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+573        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+574        			ErrMsgOut				OUT 	VARCHAR2)								-- Messaggio d'errore
+575        			return PLS_INTEGER;														-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+576        
+577        	-----------procedura che aggiorna lo stato dei PdV Tipo quando la richiesta di attivazione/disattivazione/cacellazione decorrono
+578        	procedure AggAutoStatoPdVTipo;
+579        
+580        	---- funzione per censire o aggiornare una sottoscrizione di notifca mail
+581        	function IUSottoscrizioneNotificaMail(
+582        			CodIdConnectionTokenIn	IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+583        																					-- (obblig). Codice identificativo del token di connessione
+584        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+585        			IdSottoscrizioneIO		IN OUT	VARCHAR2,								-- Id. univoco della notifica mail. Se vuoto si intende una nuova sottoscrizione, altrimenti un'aggiornamento
+586        			XMLSottoscrizioneIn		IN		CLOB,									-- (obblig.) XML con i dati del PdV Tipo (XML conforme a schema SezioneCache.xsd)	
+587        																					-- I dati corrispondenti a variabili non presenti - come tag - nell'xml si intende che restino invariati
+588        																					-- Le variabili previste sono:
+589        																					-- CodTipoEvento: Codice del tipo di evento che innesca la notifica (da dizionario)
+590        																					-- @CodiciErrore
+591        																					-- 		Lista di una sola colonna con i Codici degli specifici errori al cui verificarsi va mandata la notifica
+592        																					-- @AccountDestinatari
+593        																					-- 		Lista di una sola colonna con gli indirizzi email destinatari principali
+594        																					-- @AccountDestinatariCC
+595        																					-- 		Lista di una sola colonna con gli indirizzi email destinatari per conoscenza
+596        																					-- SubjectEmail
+597        																					-- BodyEmail
+598        																					-- RuoliDestinatari Indicazione descrittiva dei ruoli destinatari della notifica
+599        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+600        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+601        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+602        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+603        			WarningMsgOut			OUT		VARCHAR2,								-- Messaggio di warning (valorizzato solo se non c'è errore)
+604        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+605        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+606        			ErrMsgOut				OUT 	VARCHAR2)								-- Messaggio d'errore
+607        			return PLS_INTEGER;														-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0
+608        
+609        
+610        	---- funzione per disattivare o eliminare del tutto una sottoscrizione di notifca mail
+611        	function DSottoscrizioneNotificaMail(
+612        			CodIdConnectionTokenIn	IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+613        																					-- (obblig). Codice identificativo del token di connessione
+614        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+615        			IdSottoscrizioneIn		IN 		VARCHAR2,								-- (obblig.) Id. univoco della notifica mail da disattivare (se già usata) o cancellare
+616        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+617        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+618        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+619        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+620        			WarningMsgOut			OUT		VARCHAR2,								-- Messaggio di warning (valorizzato solo se non c'è errore)
+621        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+622        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+623        			ErrMsgOut				OUT 	VARCHAR2)								-- Messaggio d'errore
+624        			return PLS_INTEGER;														-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0
+625        
+626        
+627        
+628        	------ funzione per ottenere i dati di dettaglio di una sottoscrizione di notifca mail
+629        	function LoadDettSottoscrizioneNotifica(
+630        			CodIdConnectionTokenIn	IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+631        																					-- (obblig). Codice identificativo del token di connessione
+632        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+633        			IdSottoscrizioneIn		IN 		VARCHAR2,								-- (obblig.) Id. univoco sottoscrizione di notifica mail
+634        			DatiSottoscrizioneOut	OUT		NOCOPY CLOB,							-- XML con i dati della sottoscrizione di notifica mail (conforma a schema SezioneCache.xsd)
+635        																					-- Le variabili previste sono:
+636        																					-- CodTipoEvento: Codice del tipo di evento che innesca la notifica (da dizionario)
+637        																					-- DesTipoEvento
+638        																					-- @CodiciErrore
+639        																					-- 		Lista con 2 colonne:
+640        																					-- 		1) Codice di errore al cui verificarsi va mandata la notifica
+641        																					-- 		2) Descrizione dell'errore al cui verificarsi va mandata la notifica
+642        																					-- @AccountDestinatari
+643        																					-- 		Lista di una sola colonna con gli indirizzi email destinatari principali
+644        																					-- @AccountDestinatariCC
+645        																					-- 		Lista di una sola colonna con gli indirizzi email destinatari per conoscenza
+646        																					-- SubjectEmail
+647        																					-- BodyEmail
+648        																					-- TsSottoscrizione: data e ora di sottoscrizione (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+649        																					-- DesUserSottoscrizione: cognome e nome di chi ha effettuato la sottoscrizione
+650        																					-- TsUltimoAgg: data e ora di ultimo aggiornamento della sottoscrizione (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+651        																					-- DesUserUltimoAgg: cognome e nome di chi ha effettuato l'ultimo aggiornamento della sottoscrizione 
+652        																					-- RuoliDestinatari Indicazione descrittiva dei ruoli destinatari della notifica
+653        																					-- Abilitazioni.Aggiornamento	valori 1/0/NULL
+654        																					-- Abilitazioni.Cancellazione 	valori 1/0/NULL
+655        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+656        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+657        			ErrMsgOut				OUT 	VARCHAR2)								-- Messaggio d'errore
+658        			return PLS_INTEGER;														-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+659        
+660        
+661        	------ funzione per ricercare le sottoscrizioni di notifca mail
+662        	function TrovaSottoscrizioniNotifica(
+663        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+664        																					-- (obblig). Codice identificativo del token di connessione
+665        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+666        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd). 
+667        																					-- Ogni filtro è un tag "Variabile" dell'XML
+668        																					-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+669        																					-- I nomi dei filtri possibili sono:
+670        																					-- CodiciTipiEventi		Lista dei codici dei tipi evento cui sono relative le notifiche (da dizionario)
+671        																					--						Se ne può indicare più di uno separandoli con , o ;
+672        																					-- CodiciErrore			Lista dei codici errore cui sono relative le notifiche (da dizionario)
+673        																					--						Se ne può indicare più di uno separandoli con , o ;
+674        																					-- DtSottoscrizioneDa	Estremo inferiore - data senza ora - dell'intervallo di ricerca sulla data di sottoscrizione della notifica (nel formato dato dal parametro di conf. FMT_STD_DATA)
+675        																					-- DtSottoscrizioneA	Estremo superiore - data senza ora - dell'intervallo di ricerca sulla data di sottoscrizione della notifica (nel formato dato dal parametro di conf. FMT_STD_DATA)
+676        																					-- DtUltimoAggDa		Estremo inferiore - data senza ora - dell'intervallo di ricerca sulla data di ultimo aggiornamento sottoscrizione (nel formato dato dal parametro di conf. FMT_STD_DATA)
+677        																					-- DtUltimoAggA			Estremo superiore - data senza ora - dell'intervallo di ricerca sulla data di ultimo aggiornamento sottoscrizione (nel formato dato dal parametro di conf. FMT_STD_DATA)
+678        																					-- IndirizzoEmailDest	Stringa contenuta nell'indirizzo email di un destinatario (ricerca case insensitive in like senza forzare % finale)
+679        																					-- RuoliDestinatari 	Stringa contenuta nell'indicazione descrittiva dei ruoli destinatari della notifica
+680        		------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+681        		ColOrderByIO				IN OUT	VARCHAR2,								-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 11). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+682        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+683        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+684        		FlgDescOrderByIO  			IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+685        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
+686        		FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+687        		NroPaginaIO      			IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+688        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+689        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+690        		OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+691        																					-- Può assumere valori negativi con specifici significati:
+692        																					-- -1 : la stored deve solo dare il conteggio dei record (tutti, senza limitazioni), non il resultset
+693        																					-- -2 : la stored deve solo schedulare un job per effettuare poi in modalità batch l'estrazione
+694        																					-- -3 : la stored viene chiamata da un batch off-line e deve estrarre e salvare in DB, come output del batch, tutto il resultset, senza limitazioni
+695        		FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+696        		NroTotRecOut				OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+697        		NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+698        		FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+699        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema. 
+700        		------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+701        		ResultOut					OUT		NOCOPY CLOB, 							-- Lista dei PdV Tipo che sono stati trovati (XML conforme a schema LISTA_STD.xsd)
+702        																					-- Ogni PdV Tipo è un tag Riga che può contenere le seguenti colonne: 
+703        																					-- 1:  Id. della sottoscrizione
+704        																					-- 2:  Cod. tipo evento cui è legata la notifica
+705        																					-- 3:  Descrizione tipo evento cui è legata la notifica
+706        																					-- 4:  Cod. errore cui è legata la notifica
+707        																					-- 5:  Descrizioni errori cui è legata la notifica
+708        																					-- 6:  Indirizzo/i destinatari (tutti)
+709        																					-- 7:  Indirizzo/i destinatari principali
+710        																					-- 8:  Indirizzo/i destinatari per conoscenza
+711        																					-- 9:  Oggetto della mail di notifica
+712        																					-- 10:  Testo della mail di notifica
+713        																					-- 11: Ruoli destinatari
+714        																					-- 12: Data e ora di sottoscrizione notifica (nel formato dato dal parametro di conf FMT_STD_TIMESTAMP)
+715        																					-- 13: Utente che ha fatto la sottoscrizione
+716        																					-- 14: Data e ora di ultimo aggiornamento (nel formato dato dal parametro di conf FMT_STD_TIMESTAMP)
+717        																					-- 15: Utente di ultimo aggiornamento
+718        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+719        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+720        		ErrMsgOut					OUT 		VARCHAR2)							-- Messaggio d'errore
+721        		return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+722        
+723        
+724        	------ funzione per ricercare le segnalazioni - log - di anomalie/problemi
+725        	function TrovaInAlertLog(
+726        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+727        																					-- (obblig). Codice identificativo del token di connessione
+728        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+729        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd). 
+730        																					-- Ogni filtro è un tag "Variabile" dell'XML
+731        																					-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+732        																					-- I nomi dei filtri possibili sono:
+733        																					-- CodiciTipiEventi		Lista dei codici dei tipi evento cui sono relative le notifiche (da dizionario)
+734        																					--						Se ne può indicare più di uno separandoli con , o ;
+735        																					-- CodiciErrore			Lista dei codici errore cui sono relative le notifiche (da dizionario)
+736        																					--						Se ne può indicare più di uno separandoli con , o ;
+737        																					-- TsLogDa				Estremo inferiore - data con ora - dell'intervallo di ricerca sulla data e ora della notifica (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+738        																					-- TsLogA				Estremo superiore - data con ora - dell'intervallo di ricerca sulla data e ora della notifica (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+739        																					-- IndirizzoEmailDest	Stringa contenuta nell'indirizzo email di un destinatario della notifica mail inviata (ricerca case insensitive in like senza forzare % finale)
+740        																					-- FlgStatoInvioMail	Serve a restringere le notifiche da trovare a quelle:
+741        																					--						inviata	: con mail inviata
+742        																					--						non_previsto_invio:	non inviata in quanto non prevista
+743        																					--						fallito_invio:	con e-mail non inviata a causa di errore
+744        																					--  Si possono specificare più stati dell'invio mail separandoli con ; o ,
+745        																					-- MessaggioErrore		Stringa contenuta nel messaggio di errore (ricerca case-insensitive in like senza forzare il % finale)
+746        		------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+747        		ColOrderByIO				IN OUT	VARCHAR2,								-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 14). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+748        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+749        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+750        		FlgDescOrderByIO  			IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+751        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
+752        		FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+753        		NroPaginaIO      			IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+754        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+755        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
+756        		OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+757        																					-- Può assumere valori negativi con specifici significati:
+758        																					-- -1 : la stored deve solo dare il conteggio dei record (tutti, senza limitazioni), non il resultset
+759        																					-- -2 : la stored deve solo schedulare un job per effettuare poi in modalità batch l'estrazione
+760        																					-- -3 : la stored viene chiamata da un batch off-line e deve estrarre e salvare in DB, come output del batch, tutto il resultset, senza limitazioni
+761        		FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+762        		NroTotRecOut				OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+763        		NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+764        		FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+765        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema. 
+766        		------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+767        		ResultOut					OUT		NOCOPY CLOB, 							-- Lista dei PdV Tipo che sono stati trovati (XML conforme a schema LISTA_STD.xsd)
+768        																					-- Ogni PdV Tipo è un tag Riga che può contenere le seguenti colonne: 
+769        																					-- 1:  Id. del log
+770        																					-- 2:  Cod. tipo evento tracciato nel log	
+771        																					-- 3:  Descrizione tipo evento tracciato nel log
+772        																					-- 4:  Cod. errore cui è legata la notifica
+773        																					-- 5:  Descrizioni/messaggi completi degli errori verificatisi
+774        																					-- 6:  Indirizzo/i destinatari cui è stato notificato il problema (tutti)
+775        																					-- 7:  Indirizzo/i destinatari principali cui è stato notificato il problema
+776        																					-- 8:  Indirizzo/i destinatari per conoscenza cui è stato notificato il problema
+777        																					-- 9:  Oggetto della mail di notifica
+778        																					-- 10: Testo della mail di notifica
+779        																					-- 11: Ruoli destinatari previsti per la notifica
+780        																					-- 12: Data e ora in cui si è verificato il problema (nel formato dato dal parametro di conf FMT_STD_TIMESTAMP)
+781        																					-- 13: Data e ora in cui è stata inviata la mail di notifica
+782        																					-- 14: Stato della mail di notifica: inviata, non_previsto_invio, invio_fallito
+783        																					-- 15: Motivo del fallito invio della mail di notifica
+784        																					-- 16: URI della mail di notifica inviata
+785        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+786        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+787        		ErrMsgOut					OUT 		VARCHAR2)							-- Messaggio d'errore
+788        		return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+789        
+790        	----- funzione per il calcolo degli indicatori statistici su documenti, PdV ecc
+791        	function CalcolaStatistiche(
+792        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+793        																					-- (obblig). Codice identificativo del token di connessione
+794        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+795        		RequestIn					IN		CLOB,									-- XML contenente nomi e valori degli indici statistici richiesti, dei filtri e raggruppamenti eventuali (conforme allo schema SezioneCache.xsd).
+796        																					-- Le variabili possibili sono:
+797        																					-- CategoriaIndicatori (obblig.) : Valori possibili : D = su Documenti; E = su errori/anomalie/problemi
+798        																					-- Indicatore.ConteggioDocInviatiDaSD					valori 1/0/non valorizzato
+799        																					-- Indicatore.ConteggioDocAcquisitiaDaSD				valori 1/0/non valorizzato
+800        																					-- Indicatore.ConteggioDocScartatiDaGAE					valori 1/0/non valorizzato
+801        																					-- Indicatore.ConteggioDocAccettatiDaSdC				valori 1/0/non valorizzato
+802        																					-- Indicatore.ConteggioDocRifiutatiDaSdC				valori 1/0/non valorizzato
+803        																					-- Indicatore.ConteggioDocConRifiutoDaSdC				valori 1/0/non valorizzato
+804        																					-- Indicatore.ConteggioDocVersatiSdCSenzaRicTrasm		valori 1/0/non valorizzato
+805        																					-- Indicatore.ConteggioDocAccettatiSdCSenzaRdA			valori 1/0/non valorizzato
+806        																					-- Indicatore.ConteggioDocScartati						valori 1/0/non valorizzato
+807        																					-- Indicatore.ConteggioDocConRichStampa					valori 1/0/non valorizzato
+808        																					-- Indicatore.ConteggioDocEsitoPosRicStampa				valori 1/0/non valorizzato
+809        																					-- Indicatore.ConteggioDocEsitoNegRicStampa				valori 1/0/non valorizzato
+810        																					-- Indicatore.ConteggioDocSenzaEsitoRichStampa			valori 1/0/non valorizzato
+811        																					-- Indicatore.ConteggioDocEsitoPosRicScartoPror			valori 1/0/non valorizzato
+812        																					-- Indicatore.ConteggioDocEsitoNegRicScartoPror			valori 1/0/non valorizzato
+813        																					-- Indicatore.PercentualeDocAcquisitiDaSD				valori 1/0/non valorizzato
+814        																					-- Indicatore.PercentualeDocScartatiDaGAE				valori 1/0/non valorizzato
+815        																					-- Indicatore.PercentualeDocAccettatiDaSdC				valori 1/0/non valorizzato
+816        																					-- Indicatore.PercentualeDocRifiutatiDaSdC				valori 1/0/non valorizzato
+817        																					-- Indicatore.PercentualeDocConRifiutoDaSdC				valori 1/0/non valorizzato
+818        																					-- Indicatore.PercentualeDocVersatiSdCSenzaRicTrasm		valori 1/0/non valorizzato
+819        																					-- Indicatore.PercentualeDocAccettatiSdCSenzaRdA		valori 1/0/non valorizzato
+820        																					-- Indicatore.PercentualeDocScartati					valori 1/0/non valorizzato
+821        																					-- Indicatore.PercentualeDocConRichStampa				valori 1/0/non valorizzato
+822        																					-- Indicatore.PercentualeDocEsitoPosRicStampa			valori 1/0/non valorizzato
+823        																					-- Indicatore.PercentualeDocEsitoNegRicStampa			valori 1/0/non valorizzato
+824        																					-- Indicatore.PercentualeDocSenzaEsitoRichStampa		valori 1/0/non valorizzato
+825        																					-- Indicatore.PercentualeDocEsitoPosRicScartoPror		valori 1/0/non valorizzato
+826        																					-- Indicatore.PercentualeDocEsitoNegRicScartoPror		valori 1/0/non valorizzato
+827        																					-- Indicatore.VolumeDocAccettatiDaSdC					valori 1/0/non valorizzato
+828        																					-- Indicatore.VolumeDocTrascorsoTermineCons				valori 1/0/non valorizzato
+829        																					-- Indicatore.VolumeDocScartabiliNonScartati			valori 1/0/non valorizzato
+830        																					-- Indicatore.VolumeDocScartati							valori 1/0/non valorizzato
+831        																					-- Indicatore.ConteggioPdVVersatiASdC					valori 1/0/non valorizzato
+832        																					-- Indicatore.ConteggioPdVAccettatiDaSdC				valori 1/0/non valorizzato
+833        																					-- Indicatore.ConteggioPdVRifiutatiDaSdC				valori 1/0/non valorizzato
+834        																					-- Indicatore.ConteggioPdVVersatiSdCSenzaRicTrasm		valori 1/0/non valorizzato
+835        																					-- Indicatore.ConteggioPdVVersatiSdCSenzaRdV			valori 1/0/non valorizzato
+836        																					-- Indicatore.PercentualePdVAccettatiDaSdC				valori 1/0/non valorizzato
+837        																					-- Indicatore.PercentualePdVRifiutatiDaSdC				valori 1/0/non valorizzato
+838        																					-- Indicatore.PercentualePdVVersatiSdCSenzaRicTrasm		valori 1/0/non valorizzato
+839        																					-- Indicatore.PercentualePdVVersatiSdCSenzaRdV			valori 1/0/non valorizzato
+840        																					-- Indicatore.MediaTempoTraMessaDispGAEInvioSdC			valori 1/0/non valorizzato
+841        																					-- Indicatore.MaxTempoTraMessaDispGAEInvioSdC			valori 1/0/non valorizzato
+842        																					-- Indicatore.PercentiliTempoTraMessaDispGAEInvioSdC	percentile/i richiesti separati da , o ; se più di uno
+843        																					-- Indicatore.MediaTempoTraMessaDispGAEAccSdC			valori 1/0/non valorizzato
+844        																					-- Indicatore.MaxTempoTraMessaDispGAEAccSdC				valori 1/0/non valorizzato
+845        																					-- Indicatore.PercentiliTempoTraMessaDispGAEAccSdC		percentile/i richiesti separati da , o ; se più di uno
+846        																					-- Indicatore.MediaTempoTraMessaDispGAEIniConsSdC		valori 1/0/non valorizzato
+847        																					-- Indicatore.MaxTempoTraMessaDispGAEIniConsSdC			valori 1/0/non valorizzato
+848        																					-- Indicatore.PercentiliTempoTraMessaDispGAEIniConsSdC	percentile/i richiesti separati da , o ; se più di uno
+849        																					-- Indicatore.MediaTempoTraInvioPdVRecRicTrasm			valori 1/0/non valorizzato
+850        																					-- Indicatore.MaxTempoTraInvioPdVRecRicTrasm			valori 1/0/non valorizzato
+851        																					-- Indicatore.PercentiliTempoTraInvioPdVRecRicTrasm		percentile/i richiesti separati da , o ; se più di uno
+852        																					-- Indicatore.MediaTempoTraRecRicTrasmPdVRecRdV			valori 1/0/non valorizzato
+853        																					-- Indicatore.MaxTempoTraRecRicTrasmPdVRecRdV			valori 1/0/non valorizzato
+854        																					-- Indicatore.PercentiliTempoTraRecRicTrasmPdVRecRdV	percentile/i richiesti separati da , o ; se più di uno
+855        																					---################TODO: mancano alcuni indicatori dei tempi
+856        																					-- Indicatore.ConteggioErroriAnomalie					valori 1/0/non valorizzato
+857        																					-- Indicatore.PercentualeErroriAnomalie					valori 1/0/non valorizzato
+858        																					-- Periodo.DataOdierna									valori 1/0/non valorizzato. Se 1 gli indicatori vanno calcolati alla data odierna
+859        																					-- Periodo.DataDa										Estremo inferiore del periodo di calcolo degli indicatori (nel formato dato dal parametro FMT_STD_DATA)
+860        																					-- Periodo.DataA										Estremo superiore del periodo di calcolo degli indicatori (nel formato dato dal parametro FMT_STD_DATA)
+861        																					-- Filtro.IdDocTypeClassiDocumentali					ID_DOC_TYPE della/e classi documenatali a cui restringere la ricerca
+862        																					--														Se più di uno sono separati da , o ;
+863        																					-- Filtro.IdDocTypeSottoclassiDocumentali				ID_DOC_TYPE della/e sottoclassi documenatali a cui restringere la ricerca
+864        																					--														Se più di uno sono separati da , o ;
+865        																					-- Filtro.IdDocTypeTipologieDocumentali					ID_DOC_TYPE della/e tipologie documenatali a cui restringere la ricerca
+866        																					--														Se più di uno sono separati da , o ;
+867        																					-- Filtro.CodProcessiBancaProd							Codice/i del/i processi banca/applicazioni IT produttrici dei documenti a cui restringere la ricerca
+868        																					--														Se più di uno sono separati da , o ;
+869        																					-- Filtro.CodErroriAnomalie								Codice/i del/degli errori/situazioni di anomalia a cui restringere la ricerca
+870        																					--														Se più di uno sono separati da , o ;
+871        																					-- Raggruppamento.Periodo								valori possibili: giorno, settimana, mese, trimestre, quadrimestre, anno
+872        																					-- Raggruppamento.ClasseDocumentale						valori 1/0/non valorizzato
+873        																					-- Raggruppamento.SottoclasseDocumentale				valori 1/0/non valorizzato
+874        																					-- Raggruppamento.TipologiaDocumentale					valori 1/0/non valorizzato
+875        																					-- Raggruppamento.ProcessoBancaProduttore				valori 1/0/non valorizzato
+876        																					-- Raggruppamento.TipoErroreAnomalia					valori 1/0/non valorizzato
+877        		ResultOut					OUT		CLOB,									-- XML con le statistiche richieste. E' una lista standard con nomi e valori e raggruppamento eventuale delle statistiche richieste
+878        																					-- Ogni tag Riga può avere le colonne:
+879        																					-- 1) Nome dell'indicatore (come specificato nella RequestIn)
+880        																					-- 2) Decrizione dell'indicatore
+881        																					-- 3) Valore dell'indicatore (nell'eventuale raggruppamento)
+882        																					-- 4) Periodo di raggruppamento
+883        																					--		Giorno nel formato AAAA-MM-GG
+884        																					--		Settimana espressa nel formato AAAA-MM-GG (il primo giorno della settimana)
+885        																					--		Mese espresso nel formato AAAA-MM
+886        																					--		Trimestre espresso nel formato AAAA-MM (il primo mese del trimestre)
+887        																					--		Quadrimestre espresso nel formato AAAA-MM (il primo mese del quadrimestre)
+888        																					--		Anno espresso nel formato AAAA
+889        																					-- 5) Classe documentale di raggruppamento
+890        																					-- 6) Sottoclasse documentale di raggruppamento
+891        																					-- 7) Tipologia documentale di raggruppamento
+892        																					-- 8) Applicazione IT di raggruppamento
+893        																					-- 9) Tipo di anomalia/errore di raggruppamento
+894        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+895        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+896        		ErrMsgOut					OUT 	VARCHAR2)								-- Messaggio d'errore
+897        		return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+898        
+899        	----------- procedura per rilevare e inserire nella tabella apposita di LOG tutte le condizioni di anomalia/errore verificatesi dall'ultima rilevazione effettuata
+900        	procedure RilevaAnomalie
+901        		(CodTipoAnomaliaIn			IN		VARCHAR2 DEFAULT NULL);					-- Se valorizzato vengono rilevate solo le anomalie/errori del tipo indicato, altrimenti tutte																
+902        
+903        	----------- procedura per rilevare e inserire nella tabella apposita tutte notifiche da inviare via e-mail relative di situazioni di anomalia/errore verificatesi dall'ultima rilevazione effettuata
+904        	procedure RilevaAnomalieDaNotificare
+905        		(CodTipoAnomaliaIn			IN		VARCHAR2 DEFAULT NULL);					-- Se valorizzato vengono rilevate solo le anomalie/errori del tipo indicato, altrimenti tutte																
+906        
+907        END DMPK_GAE;

@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Administrator (EMBRACE) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:simpleType name="FlagSiNoType">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="0|1"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="AttributoAddizionaleType">
+		<xs:sequence>
+			<xs:element name="Nome" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Nome identificativo dell'attributo</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:choice>
+				<xs:element name="ValoreSemplice" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Valore dell'attributo  se di tipo semplice e monovalore</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Lista">
+					<xs:annotation>
+						<xs:documentation>Valore/i dell'attributo (come  lista di record) se multivalore e/o strutturato</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Riga" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>Rappresenta un record-valore</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Colonna" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>Colonna / elemento del record-valore (sono tante colonne quante i sotto-attributi che compongono l'attributo nel caso sia strutturato)</xs:documentation>
+											</xs:annotation>
+											<xs:complexType mixed="true">
+												<xs:attribute name="Nro" type="xs:positiveInteger" use="required">
+													<xs:annotation>
+														<xs:documentation>Identifica la colonna</xs:documentation>
+													</xs:annotation>
+												</xs:attribute>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="VersioneElettronicaType">
+		<xs:annotation>
+			<xs:documentation>Contiene le informazioni di come trattare/salvare i file in attach in input al Web Service</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="NomeFile" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Nome dell'ultima versione del file valida e visibile all'utente. </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="IdDocumento" type="xs:integer">
+				<xs:annotation>
+					<xs:documentation>Id. del documento corispondente al file</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroUltimaVersione" type="xs:positiveInteger" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>N.ro dell'ultima versione del file valida e visibile all'utente</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="DatiForumThread">
+		<xs:annotation>
+			<xs:documentation>ROOT element dello schema. Contiene i dati di un thread/discussione di un forum</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="IdUDAvvio" type="xs:integer">
+					<xs:annotation>
+						<xs:documentation>Id. dell'unità documentaria che rappresenta l'avvio del thread</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="IdThreadFolder" type="xs:integer">
+					<xs:annotation>
+						<xs:documentation>Identificativo univoco del folder che contiente tutti gli oggetti del thread (unità documentaria di avvio e varie risposte/contributi)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Autore" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Nome di chi ha avviato il thread</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="DataOraAvvio" type="xs:dateTime">
+					<xs:annotation>
+						<xs:documentation>Data e ora di avvio del thread</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="DataOraChiusura" type="xs:dateTime" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Data e ora di chiusura del thread</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Motivazione">
+					<xs:annotation>
+						<xs:documentation>Motivo di avvio del thread/discussione</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:enumeration value="segnalazione errore"/>
+							<xs:enumeration value="segnalazione carenza"/>
+							<xs:enumeration value="suggerimento"/>
+							<xs:enumeration value="richiesta informazioni e chiarimenti"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="Forum" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Indica il nome del forum ed eventuale sotto-forum e sotto-sotto-forum ecc. in cui è stato avviato il thread (il primo valore è il nome del forum di livello più alto e l'ultimo quello del forum di diretta collocazione del thread)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="150"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="Oggetto">
+					<xs:annotation>
+						<xs:documentation>Oggetto/breve descrizione del thread</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="150"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="Testo">
+					<xs:annotation>
+						<xs:documentation>Testo esteso che spiega la finalità del thread</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="1000"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="FilePrimario" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Contiene le informazioni sul file primario associato all'avvio del thread</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:complexContent>
+							<xs:extension base="VersioneElettronicaType">
+								<xs:sequence>
+									<xs:element name="FlgPaginaWebApplication" type="FlagSiNoType" minOccurs="0">
+										<xs:annotation>
+											<xs:documentation>Se 1 indoca che il file primario è una pagina della web-application </xs:documentation>
+										</xs:annotation>
+									</xs:element>
+								</xs:sequence>
+							</xs:extension>
+						</xs:complexContent>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="FileSecondario" type="VersioneElettronicaType" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Contiene le informazioni sugli eventuali file allegati associati all'avvio del thread. I file sono restituiti secondo l'ordine di salvataggio</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="RichiestiContributiEmail" type="FlagSiNoType">
+					<xs:annotation>
+						<xs:documentation>Indica se è richiesto l'invio via e-mail delle eventuali risposte/contributi al thread</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="eMail" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Indirizzo/i e-mail a cui inviare le risposte/contributi al thraed </xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="PaginaWebApplication" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Pagina della web application a partire e in merito alla quale è stato avviato il thread (se fa parte del forum "Web application")</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="PercorsoNavigazioneWeb" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Pagina di navigazione nella web application fatto il quale è stato avviato il thread (se fa parte del forum "Web application") (i vari livelli del percorso sono separati da /)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="AttributoAddFolder" type="AttributoAddizionaleType" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Attributo addizionale del folder che contiene tutti i documenti/contributi del thread (n.ro di visite, estremi utima visita ecc)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FlagModificabile" type="FlagSiNoType">
+					<xs:annotation>
+						<xs:documentation>Indica se ithread è modificabile dall'utente connesso (quindi anche chiudibile/riapribile)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="FlagCancellabile" type="FlagSiNoType">
+					<xs:annotation>
+						<xs:documentation>Indica se il thread è cancellabile dall'utente connesso</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

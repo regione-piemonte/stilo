@@ -1,0 +1,787 @@
+
+/*============================================================
+	Custom
+    
+============================================================*/
+
+.textItemNumberFocused {
+    -ms-clear { width: 0; height: 0; }
+}
+
+.portalDesktopButton,
+.portalDesktopButtonOver,
+.portalDesktopButtonFocused,
+.portalDesktopButtonFocusedOver,
+.portalDesktopButtonDown,
+.portalDesktopButtonFocusedDown,
+.portalDesktopButtonSelected,
+.portalDesktopButtonSelectedFocused,
+.portalDesktopButtonSelectedDown,
+.portalDesktopButtonSelectedFocusedDown,
+.portalDesktopButtonSelectedOver,
+.portalDesktopButtonSelectedFocusedOver,
+.portalDesktopButtonDisabled,
+.portalDesktopButtonSelectedDisabled {  
+	font-weight:bold;
+    font-size:15px;
+    font-style:normal;
+    color:#00518C;
+    font-family:arial;
+	width:280px;
+}
+
+.portalDesktopButtonOver,
+.portalDesktopButtonFocusedOver,
+.portalDesktopButtonSelectedFocused,
+.portalDesktopButtonSelectedFocusedOver {    
+    color:#006ab5;
+    cursor:pointer;
+}
+
+.stickyNoteCustom,.stickyNoteCustomFocused {
+	background:white url(./images/actions/immagineNote.png) repeat;
+	font-size: 15;
+	font-style: italic;
+	padding: 16px;
+	font-family: cursive;
+	padding-left: 75px;
+	padding-right: 20px;
+	border:1px solid #a5c7fe;
+	width: 750px !important;
+	height: 330px !important;
+	box-shadow: 4px 9px 14px rgba(0, 0, 0, 0.333333);
+	-webkit-box-shadow: 4px 9px 14px rgba(0, 0, 0, 0.333333);
+	-moz-box-shadow: 4px 9px 14px rgba(0, 0, 0, 0.333333);
+	-o-box-shadow: 4px 9px 14px rgba(0, 0, 0, 0.333333);
+}
+
+.formTitleStampaHTML {
+  font-weight: bold;
+  color: #000000;
+  font-size: 14px;
+  margin-top: 3px; 
+  text-align: left;
+}
+
+.formStampaHTML {
+  color: #000000;
+  font-size: 14px;
+  margin-top: 3px;
+  text-align: left;
+}
+
+.newTallCellOver,
+.newTallCellOverDark {
+    border-bottom: 1px solid #e5e5e5;
+	background-color: white;
+}
+
+.hiddenHeaderButton,
+.hiddenHeaderButtonSelected,
+.hiddenHeaderButtonDisabled,
+.hiddenHeaderButtonSelectedDisabled,
+.hiddenHeaderButtonOver,
+.hiddenHeaderButtonDown,
+.hiddenHeaderButtonSelectedOver,
+.hiddenHeaderButtonSelectedDown {
+	color:transparent;	
+	font-size:0px;
+}
+
+.cellTextGreen,
+.cellTextGreenDark,
+.cellTextGreenOver,
+.cellTextGreenOverDark,
+.cellTextGreenSelected,
+.cellTextGreenSelectedDark,
+.cellTextGreenSelectedOver,
+.cellTextGreenSelectedOverDark,
+.cellTextGreenDisabled,
+.cellTextGreenDisabledDark {
+	color: rgb(34, 139, 34);
+	font-weight:bold;
+	font-size: 14px;
+}
+
+.cellTextGreenClickable,
+.cellTextGreenClickableDark,
+.cellTextGreenClickableSelected,
+.cellTextGreenClickableSelectedDark,
+.cellTextGreenClickableDisabled,
+.cellTextGreenClickableOver,
+.cellTextGreenClickableOverDark,
+.cellTextGreenClickableSelectedOver,
+.cellTextGreenClickableSelectedOverDark,
+.cellTextGreenClickableDisabledDark {
+	color: rgb(34, 139, 34);
+	font-weight:bold;
+	font-size: 14px;
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.cellTextGreenClickableOver,
+.cellTextGreenClickableOverDark,
+.cellTextGreenClickableSelectedOver,
+.cellTextGreenClickableSelectedOverDark {
+	border-bottom: 1px solid #e5e5e5;
+	background-color:rgba(101, 200, 0, 0.2);
+}
+
+.cellGreenOver,
+.cellGreenOverDark,
+.cellGreenSelectedOver,
+.cellGreenSelectedOverDark,
+.cellTextGreenOver,
+.cellTextGreenOverDark,
+.cellTextGreenSelectedOver,
+.cellTextGreenSelectedOverDark {
+	border-bottom: 1px solid #e5e5e5;
+	background-color:rgba(101, 200, 0, 0.2);	    
+}
+
+.cellTextGrey,
+.cellTextGreyDark,
+.cellTextGreyOver,
+.cellTextGreyOverDark,
+.cellTextGreySelected,
+.cellTextGreySelectedDark,
+.cellTextGreySelectedOver,
+.cellTextGreySelectedOverDark,
+.cellTextGreyDisabled,
+.cellTextGreyDisabledDark {
+	color: rgb(128, 128, 128);
+	font-weight:bold;
+	font-size: 14px;
+}
+
+.cellTextGreyClickable,
+.cellTextGreyClickableDark,
+.cellTextGreyClickableOver,
+.cellTextGreyClickableOverDark,
+.cellTextGreyClickableSelected,
+.cellTextGreyClickableSelectedDark,
+.cellTextGreyClickableSelectedOver,
+.cellTextGreyClickableSelectedOverDark,
+.cellTextGreyClickableDisabled,
+.cellTextGreyClickableDisabledDark {
+	color: rgb(128, 128, 128);
+	font-weight:bold;
+	font-size: 14px;
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.cellTextGreyClickableOver,
+.cellTextGreyClickableOverDark,
+.cellTextGreyClickableSelectedOver,
+.cellTextGreyClickableSelectedOverDark {
+	border-bottom: 1px solid #e5e5e5;
+	background-color:rgba(128, 128, 128, 0.1);
+}
+	
+.cellGreyOver,
+.cellGreyOverDark,
+.cellGreySelectedOver,
+.cellGreySelectedOverDark,
+.cellTextGreyOver,
+.cellTextGreyOverDark,
+.cellTextGreySelectedOver,
+.cellTextGreySelectedOverDark {
+	border-bottom: 1px solid #e5e5e5;
+	background-color:rgba(128, 128, 128, 0.1);
+}
+
+.cellTextBlue,
+.cellTextBlueDark,
+.cellTextBlueOver,
+.cellTextBlueOverDark,
+.cellTextBlueSelected,
+.cellTextBlueSelectedDark,
+.cellTextBlueSelectedOver,
+.cellTextBlueSelectedOverDark,
+.cellTextBlueDisabled,
+.cellTextBlueDisabledDark {
+	color: rgb(0, 74, 232);
+	font-weight:bold;
+	font-size: 14px;
+}
+
+.cellTextBlueClickable,
+.cellTextBlueClickableDark,
+.cellTextBlueClickableOver,
+.cellTextBlueClickableOverDark,
+.cellTextBlueClickableSelected,
+.cellTextBlueClickableSelectedDark,
+.cellTextBlueClickableSelectedOver,
+.cellTextBlueClickableSelectedOverDark,
+.cellTextBlueClickableDisabled,
+.cellTextBlueClickableDisabledDark {
+	color: rgb(0, 74, 232);
+	font-weight:bold;
+	font-size: 14px;
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.cellTextBlueClickableOver,
+.cellTextBlueClickableOverDark,
+.cellTextBlueClickableSelectedOver,
+.cellTextBlueClickableSelectedOverDark {
+	border-bottom: 1px solid #e5e5e5;
+	background-color:rgba(30, 144, 255, 0.2);
+}
+	
+.cellBlueOver,
+.cellBlueOverDark,
+.cellBlueSelectedOver,
+.cellBlueSelectedOverDark,
+.cellTextBlueOver,
+.cellTextBlueOverDark,
+.cellTextBlueSelectedOver,
+.cellTextBlueSelectedOverDark {
+	border-bottom: 1px solid #e5e5e5;
+	background-color:rgba(30, 144, 255, 0.2);
+}
+
+.cellTextOrange,
+.cellTextOrangeDark,
+.cellTextOrangeOver,
+.cellTextOrangeOverDark,
+.cellTextOrangeSelected,
+.cellTextOrangeSelectedDark,
+.cellTextOrangeSelectedOver,
+.cellTextOrangeSelectedOverDark,
+.cellTextOrangeDisabled,
+.cellTextOrangeDisabledDark {
+	color: rgb(255, 140, 0);
+	font-weight:bold;
+	font-size: 14px;
+}
+
+.cellTextOrangeClickable,
+.cellTextOrangeClickableDark,
+.cellTextOrangeClickableOver,
+.cellTextOrangeClickableOverDark,
+.cellTextOrangeClickableSelected,
+.cellTextOrangeClickableSelectedDark,
+.cellTextOrangeClickableSelectedOver,
+.cellTextOrangeClickableSelectedOverDark,
+.cellTextOrangeClickableDisabled,
+.cellTextOrangeClickableDisabledDark {
+	color: rgb(255, 140, 0);
+	font-weight:bold;
+	font-size: 14px;
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.cellTextOrangeClickableOver,
+.cellTextOrangeClickableOverDark,
+.cellTextOrangeClickableSelectedOver,
+.cellTextOrangeClickableSelectedOverDark {
+	border-bottom: 1px solid #e5e5e5;
+	background-color:rgba(255, 230, 0, 0.2);
+}
+	
+.cellOrangeOver,
+.cellOrangeOverDark,
+.cellOrangeSelectedOver,
+.cellOrangeSelectedOverDark,
+.cellTextOrangeOver,
+.cellTextOrangeOverDark,
+.cellTextOrangeSelectedOver,
+.cellTextOrangeSelectedOverDark {
+	border-bottom: 1px solid #e5e5e5;
+	background-color:rgba(255, 230, 0, 0.2);
+}
+
+.cellGreenSelected,
+.cellGreenSelectedDark,
+.cellGreenSelectedOver,
+.cellGreenSelectedOverDark,
+.cellTextGreenSelected,
+.cellTextGreenSelectedDark,
+.cellTextGreenSelectedOver,
+.cellTextGreenSelectedOverDark {
+	background-color:#fceeaf;
+}
+
+.cellGreySelected,
+.cellGreySelectedDark,
+.cellGreySelectedOver,
+.cellGreySelectedOverDark,
+.cellTextGreySelected,
+.cellTextGreySelectedDark,
+.cellTextGreySelectedOver,
+.cellTextGreySelectedOverDark {
+	background-color:#fceeaf;
+}
+
+.cellBlueSelected,
+.cellBlueSelectedDark,
+.cellBlueSelectedOver,
+.cellBlueSelectedOverDark,
+.cellTextBlueSelected,
+.cellTextBlueSelectedDark,
+.cellTextBlueSelectedOver,
+.cellTextBlueSelectedOverDark {
+	background-color:#fceeaf;
+}
+
+.menuItem,
+.menuItemDark,
+.menuItemOver,
+.menuItemOverDark,
+.menuItemSelected,
+.menuItemSelectedDark,
+.menuItemSelectedOver,
+.menuItemSelectedOverDark,
+.menuItemDisabled,
+.menuItemDisabledDark {
+   	text-decoration: none;	
+	font-family:Arial,sans-serif; font-size:11px;
+    background:transparent;    	
+} 	    	  		
+		
+.menuItemOver,
+.menuItemOverDark,
+.menuItemSelectedOver,
+.menuItemSelectedOverDark {			
+	 /*background:#A6ABB4 url(./images/cssButton/button_Over_stretch.png) repeat-x;*/
+	 background:#FFFFFF url(./images/ListGrid/row_Over.png) repeat-x scroll 0px 1px;
+}		
+	    
+.openedMenuItem,
+.openedMenuItemDark,
+.openedMenuItemOver,
+.openedMenuItemOverDark,
+.openedMenuItemSelected,
+.openedMenuItemSelectedDark,
+.openedMenuItemSelectedOver,
+.openedMenuItemSelectedOverDark,
+.openedMenuItemDisabled,
+.openedMenuItemDisabledDark {
+	text-decoration: underline;
+    background:transparent;   
+    				
+}
+
+.openedMenuItemOver,
+.openedMenuItemOverDark,
+.openedMenuItemSelectedOver,
+.openedMenuItemSelectedOverDark {	
+	/*background:#A6ABB4 url(./images/cssButton/button_Over_stretch.png) repeat-x;*/
+	 background:#FFFFFF url(./images/ListGrid/row_Over.png) repeat-x scroll 0px 1px;    
+}
+
+.nespresso,.nespressoSelected,.nespressoSelectedOver
+{
+	background-color:red;
+	font-family:Arial,sans-serif; 
+	font-size:11px;
+}
+
+.buttonBricioleDiPane,
+.buttonBricioleDiPaneSelected,
+.buttonBricioleDiPaneSelectedOver,
+.buttonBricioleDiPaneDown,
+.buttonBricioleDiPaneSelectedDown,
+.buttonBricioleDiPaneSelectedDisabled,
+.buttonBricioleDiPaneDisabled {
+    font-family:Arial,Verdana,sans-serif; font-size:11px;
+    color: rgb(0, 0, 0);
+}
+.buttonBricioleDiPaneOver {
+	font-family:Arial,Verdana,sans-serif; font-size:11px;
+	color: rgb(0, 0, 0);
+}
+
+.labelStampaMenu
+ {
+ 	font-size: 15px;
+  	padding-left: 10px;
+  	background-color: #C0C0C0;
+  	font-weight: bold;
+}
+
+.pannelloLegendaDinamica
+ {
+ 	background-color: #CEEDE0;
+}
+
+/** Add css rules here for AurigaWeb */
+
+body {
+	overflow: hidden;
+	/*background-image: url(images/background/background.png);*/
+	background-position: top;
+	background-repeat: repeat-x;
+	background-color: #CEDBDC;
+}
+
+.waitmessage {
+	color: black;
+	font: 12px arial, verdana, sans-serif;
+}
+
+.errorhover {
+	border: 2px solid #F00;
+	background-color: #FFBBAA;
+	color: black;
+	font: bold 12px arial, verdana, sans-serif;
+}
+
+.warninghover {
+	border: 2px solid #FF0;
+	background-color: #FFFAAF;
+	color: black;
+	font: bold 12px arial, verdana, sans-serif;
+}
+
+.infohover {
+	border: 2px solid #00F;
+	background-color: #ADCBEC;
+	color: black;
+	font: bold 12px arial, verdana, sans-serif;
+}
+
+#loading {
+	border: 1px solid #CCC;
+	position: absolute;
+	left: 45%;
+	top: 40%;
+	padding: 2px;
+	z-index: 20001;
+	height: auto;
+}
+
+#loading a {
+	color: #225588;
+}
+
+#loading .loadingIndicator {
+	background: white;
+	font: bold 13px tahoma, arial, helvetica;
+	padding: 10px;
+	margin: 0;
+	height: auto;
+	color: #444;
+}
+
+#loadingMsg {
+	font: normal 10px arial, tahoma, sans-serif;
+}
+
+#dock {
+	top: 0;
+	left: 100px;
+}
+
+a.dock-item {
+	position: relative;
+	float: left;
+	margin-right: 10px;
+}
+
+.dock-item span {
+	display: block;
+}
+
+.stack {
+	top: 0;
+}
+
+.stack ul li {
+	position: relative;
+}
+
+.formCellVariazione {
+	border: 2px solid #FF0;
+	background-color: #FFFAAF;
+}
+
+.bckgrdTraspTextBlack20pxBold, .bckgrdTraspTextBlack20pxBoldFocused,
+	.bckgrdTraspTextBlack20pxBoldDisabled,
+	.bckgrdTraspTextBlack20pxBoldError {
+	font-family: Calibri;
+	font-size: 20px;
+	color: #000000;
+	font-weight: bold;
+	border: 0px;
+	background-color: transparent;
+}
+
+.bckgrdTraspTextRed20pxBold, .bckgrdTraspTextRed20pxBoldFocused,
+	.bckgrdTraspTextRed20pxBoldDisabled, .bckgrdTraspTextRed20pxBoldError {
+	font-family: Calibri;
+	font-size: 20px;
+	color: #FF0000;
+	font-weight: bold;
+	border: 0px;
+	background-color: transparent;
+}
+
+.bckgrdTraspTextRed20pxBorder2pxBold,
+	.bckgrdTraspTextRed20pxBorder2pxBoldFocused,
+	.bckgrdTraspTextRed20pxBorder2pxBoldDisabled,
+	.bckgrdTraspTextRed20pxBorder2pxBoldError {
+	font-family: Calibri;
+	font-size: 20px;
+	color: #FF0000;
+	font-weight: bold;
+	border: 1px solid black;
+	background-color: transparent;
+}
+
+.bckgrdRedTextWhiteBold, .bckgrdRedTextWhiteBoldFocused,
+	.bckgrdRedTextWhiteBoldDisabled, .bckgrdRedTextWhiteBoldError {
+	background-color: #FF0000;
+	color: white;
+	border: 1px solid gray;
+	font-family: Calibri;
+	font-size: 16px;
+	font-weight: bold;
+}
+
+.bckgrdBluTextWhiteBold, .bckgrdBluTextWhiteBoldFocused,
+	.bckgrdBluTextWhiteBoldDisabled, .bckgrdBluTextWhiteBoldError {
+	background-color: #0000FF;
+	color: white;
+	border: 1px solid gray;
+	font-family: Calibri;
+	font-size: 16px;
+	font-weight: bold;
+}
+
+.bckgrdGrayTextBlackBold, .bckgrdGrayTextBlackBoldFocused,
+	.bckgrdGrayTextBlackBoldDisabled, .bckgrdGrayTextBlackBoldError {
+	background-color: #A9A9A9;
+	color: black;
+	border: 1px solid gray;
+	font-family: Calibri;
+	font-size: 14px;
+	font-weight: bold;
+}
+
+.bckgrdBlackTextWhiteBold, .bckgrdBlackTextWhiteBoldFocused,
+	.bckgrdBlackTextWhiteBoldDisabled, .bckgrdBlackTextWhiteBoldError {
+	background-color: #000000;
+	color: white;
+	border: 1px solid gray;
+	font-family: Calibri;
+	font-size: 14px;
+	font-weight: bold;
+}
+
+.bckgrdWhiteTextBlackBold, .bckgrdWhiteTextBlackBoldFocused,
+	.bckgrdWhiteTextBlackBoldDisabled, .bckgrdWhiteTextBlackBoldError {
+	background-color: white;
+	color: black;
+	border: 1px solid gray;
+	font-family: Calibri;
+	font-size: 14px;
+	font-weight: bold;
+}
+
+.textItemBold, 
+.textItemBoldFocused, 
+.textItemBoldDisabled,
+.textItemBoldError {
+	background-color: #D6F4ED;
+	font-weight: bold;
+}
+
+.staticTextItemBold, 
+.staticTextItemBoldFocused,
+.staticTextItemBoldDisabled, 
+.staticTextItemBoldError {
+	background-color: #D6F4ED;
+	font-weight: bold;
+	padding: inherit;
+	padding-top: 4px;
+	padding-left: 2px;
+	padding-right: 2px;
+	padding-bottom: 4px;
+}
+
+.textItemBoldGreen {
+	color: rgb(34, 139, 34);
+	font-size: 14px;
+	font-weight: bold;
+}
+
+.textItemBoldGrey {
+	color: rgb(128, 128, 128);
+	font-size: 14px;
+	font-weight: bold;
+}
+
+.textItemBoldBlue {
+	color: rgb(0, 74, 232);
+	font-size: 14px;
+	font-weight: bold;
+}
+
+.textItemBoldOrange {
+	color: rgb(255, 140, 0);
+	font-size: 14px;
+	font-weight: bold;
+}
+
+.toolTipBckgrdGreenTextBlack {
+	background-color: #98FF98;
+	color: black;
+	border: 1px solid gray;
+	font-family: Calibri;
+	font-size: 20px;
+	white-space: pre-line;
+}
+
+.gwt-HTML {
+	background-color: #F0F0F0;
+	color: black;
+	border: 1px solid gray;
+	font-family: Arial, Verdana, sans-serif;
+	font-size: 11px;
+	overflow: auto;
+}
+
+.noBorderItem, 
+.noBorderItemDisabled, 
+.noBorderItemFocused {
+	background-color: #FFFFFF;
+	color: black;
+	border: 0px solid gray;
+	font-family: Arial, Verdana, sans-serif;
+	font-size: 11px;
+}
+
+.luceneTextBox, 
+.luceneTextBoxFocused, 
+.luceneTextBoxDisabled,
+.luceneTextBoxError {
+	background-color: #DEF8D3;
+}
+
+label.cabinet {
+	width: 16px;
+	height: 16px;
+	background: url(images/file/fileopen.png) 0 0 no-repeat;
+	display: block;
+	overflow: hidden;
+	cursor: pointer;
+}
+
+label.cabinet input.file {
+	position: relative;
+	height: 16px;
+	width: 16px;
+	opacity: 0;
+	-moz-opacity: 0;
+	filter: progid:DXImageTransform.Microsoft.Alpha(opacity=0);
+	cursor: pointer;
+}
+
+label.cabinetDoc {
+	width: 30px;
+	height: 30px;
+	background: url(images/file/bigPdf.gif) 0 0 no-repeat;
+	display: block;
+	overflow: hidden;
+	cursor: pointer;
+}
+
+label.cabinetDoc input.file {
+	position: relative;
+	height: 30px;
+	width: 30px;
+	opacity: 0;
+	-moz-opacity: 0;
+	filter: progid:DXImageTransform.Microsoft.Alpha(opacity=0);
+	cursor: pointer;
+}
+
+label.cabinetVuoto {
+    display: block;
+	overflow: hidden;
+}
+
+[class^=cabinetVuotoImage],[class^=cabinetDoc],[class^=cabinetImage],[class^=cabinetPdf] {
+   	display: block;
+	overflow: hidden;
+	font-weight:bold;
+	font-size: 11px;
+	vertical-align: top;
+	height: 150px;
+	margin-bottom:10px;
+}
+/* [class^=cabinetVuotoImage]
+{
+	background: url("images/file/vuotoImage.png") no-repeat scroll center center rgba(0, 0, 0, 0);
+	background-size: 75px;
+}
+[class^=cabinetDoc]
+{
+	background: url("images/file/docImage.png") no-repeat scroll center center rgba(0, 0, 0, 0);
+	background-size: 75px;
+}
+[class^=cabinetImage]
+{
+	background: url("images/file/pngImage.png") no-repeat scroll center center rgba(0, 0, 0, 0);
+	background-size: 75px;
+}
+[class^=cabinetPdf]
+{
+	background: url("images/file/pdfImage.png") no-repeat scroll center center rgba(0, 0, 0, 0);
+	background-size: 75px;
+}
+[class^=cabinetNormal]
+{
+	background: url("images/file/normalImage.png") no-repeat scroll center center rgba(0, 0, 0, 0);
+	background-size: 75px;
+}*/
+[class^=cabinetVuotoImage] img,[class^=cabinetDoc] img,[class^=cabinetImage] img,[class^=cabinetPdf] img{
+    display: none;
+} 
+
+label.cabinetVuoto input.file {
+  	height: 22px !important;
+	width: 75px !important;
+}
+
+/** Example rules used by the template application (remove for your app) */
+h1 {
+	font-size: 2em;
+	font-weight: bold;
+	color: #777777;
+	margin: 40px 0px 70px;
+	text-align: center;
+}
+
+.sendButton {
+	display: block;
+	font-size: 16pt;
+}
+
+/** Most GWT widgets already have a style name defined */
+.gwt-DialogBox {
+	width: 400px;
+}
+
+.dialogVPanel {
+	margin: 5px;
+}
+
+.serverResponseLabelError {
+	color: red;
+}
+
+/** Set ids using widget.getElement().setId("idOfElement") */
+#closeButton {
+	margin: 15px 6px 6px;
+}
+
+.cssBlack {
+	color: black;
+}

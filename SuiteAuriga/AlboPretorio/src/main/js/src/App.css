@@ -1,0 +1,82 @@
+text {
+  color:#6c757d!important;
+}
+body {
+  font-size: 0.875rem;
+}
+[role='main'] {
+  padding-top: 133px; /* Space for fixed navbar */
+}
+
+@media (min-width: 768px) {
+  [role='main'] {
+    padding-top: 48px; /* Space for fixed navbar */
+  }
+}
+.bd-placeholder-img {
+  font-size: 1.125rem;
+  text-anchor: middle;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+@media (min-width: 768px) {
+  .bd-placeholder-img-lg {
+    font-size: 3.5rem;
+  }
+}
+
+input,
+textarea {
+  border-radius: 0 !important;
+}
+
+#page_container {
+  padding-bottom: 60px;
+}
+
+#overlay {
+  position: fixed;
+  display: none;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(178, 172, 172, 0.5);
+  z-index: 2;
+  cursor: pointer;
+}
+
+#spinnerContainer {
+  border-width: 0.8rem;
+    position: absolute;
+    top: 50%;
+    text-align: center;
+    width: 90%;
+}
+
+#spinner {
+  width: 5rem;
+  height: 5rem;
+  border-width: 0.8rem;
+}
+
+.text-info-ultima-rev{
+  color: #17a2b8!important;
+  text-decoration: underline;
+}
+
+.text-info-ultima-rev:hover {
+  color: #0f6674!important;
+  text-decoration: underline;
+  background-color: unset;
+}
+
+.stato-non-valido{
+  color: rgb(66,71,74);
+  font-weight: bold;
+}

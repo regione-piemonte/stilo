@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions name="WSOperazioniAurigaLottiDoc"
+	targetNamespace="http://operazioniaurigalottidoc.webservices.repository2.auriga.eng.it"
+	xmlns:http="http://schemas.xmlsoap.org/wsdl/http/"
+	xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/"
+	xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+	xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/"
+	xmlns:tns="http://operazioniaurigalottidoc.webservices.repository2.auriga.eng.it"
+	xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+	xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<wsdl:documentation>
+		Service: WSOperazioniAurigaLottiDoc
+		Version: 1.0
+		Owner: Engineering
+	</wsdl:documentation>
+	<wsdl:types>
+		<xs:schema elementFormDefault="qualified"
+			targetNamespace="http://operazioniaurigalottidoc.webservices.repository2.auriga.eng.it"
+			xmlns:xmime="http://www.w3.org/2005/05/xmlmime">
+			<xs:simpleType name="ResultType">
+				<xs:annotation>
+					<xs:documentation>Esito della richiesta</xs:documentation>
+				</xs:annotation>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="OK">
+						<xs:annotation>
+							<xs:documentation>Esito della richiesta: OK</xs:documentation>
+						</xs:annotation>
+					</xs:enumeration>
+					<xs:enumeration value="KO">
+						<xs:annotation>
+							<xs:documentation>Esito della richiesta: KO</xs:documentation>
+						</xs:annotation>
+					</xs:enumeration>
+				</xs:restriction>
+			</xs:simpleType>
+			<xs:simpleType name="SignatureType">
+				<xs:annotation>
+					<xs:documentation>Tipologie di firme ammesse</xs:documentation>
+				</xs:annotation>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="PAdES" />
+					<xs:enumeration value="CAdES" />
+				</xs:restriction>
+			</xs:simpleType>
+			<xs:simpleType name="OperationType">
+				<xs:annotation>
+					<xs:documentation>Tipologie di operazioni disponibili
+					</xs:documentation>
+				</xs:annotation>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="FIRMA_AUTOMATICA" />
+					<xs:enumeration value="ARCHIVIAZIONE_DOC" />
+					<xs:enumeration value="INVIO_PEC" />
+					<xs:enumeration value="INVIO_PEO" />
+					<xs:enumeration value="ARCHIVIAZIONE_EMAIL" />
+					<xs:enumeration value="RITORNO_RICEVUTE_NOTIFICHE" />
+					<xs:enumeration value="AVANZAMENTO_TASK" />
+					<xs:enumeration value="INVIO_SUAP" />
+					<xs:enumeration value="ELABORA_FATTURA" />
+					<xs:enumeration value="ESTRAI_DOC_ORIGINALE" />
+					<xs:enumeration value="INVIA_FATTURA" />
+					<xs:enumeration value="AGGIORNA_METADATI_DOC" />
+				</xs:restriction>
+			</xs:simpleType>
+			<xs:simpleType name="ArchiverType">
+				<xs:annotation>
+					<xs:documentation>Formato di archiviazione del lotto
+					</xs:documentation>
+				</xs:annotation>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="ZIP" />
+					<xs:enumeration value="7Z" />
+					<xs:enumeration value="CARTELLA" />
+					<xs:enumeration value="ATTACHMENT" />
+					<xs:enumeration value="REMOTE_DIR" />
+				</xs:restriction>
+			</xs:simpleType>
+			<xs:complexType name="RequestActionsOnDocList">
+				<xs:annotation>
+					<xs:documentation>Dati di richiesta di operazione/i su un lotto di
+						documenti
+					</xs:documentation>
+				</xs:annotation>
+					<xs:sequence>
+						<xs:element name="Operations">
+							<xs:annotation>
+								<xs:documentation>Operazioni richieste sui documenti del lotto
+								</xs:documentation>
+							</xs:annotation>
+							<xs:complexType>
+								<xs:sequence>
+									<xs:element name="Operation" maxOccurs="unbounded">
+										<xs:complexType>
+											<xs:choice minOccurs="0">
+												<xs:element name="SignOpOption">
+													<xs:annotation>
+														<xs:documentation>Opzioni/dati dell'operazione di firma
+														</xs:documentation>
+													</xs:annotation>
+													<xs:complexType>
+														<xs:sequence>
+															<xs:element name="Signer"
+																maxOccurs="unbounded">
+																<xs:annotation>
+																	<xs:documentation>Dati della/e firme da apporre
+																	</xs:documentation>
+																</xs:annotation>
+																<xs:complexType>
+																	<xs:sequence>
+																		<xs:element name="CertOwnerUserid"
+																			type="xs:string">
+																			<xs:annotation>
+																				<xs:documentation>Userid del titolare del
+																					certificato di firma
+																				</xs:documentation>
+																			</xs:annotation>
+																		</xs:element>
+																		<xs:element name="DelegateUserid"
+																			type="xs:string" minOccurs="0">
+																			<xs:annotation>
+																				<xs:documentation>Userid dell'eventuale delegato che
+																					deve firmare con il certificato del titolare
+																				</xs:documentation>
+																			</xs:annotation>
+																		</xs:element>
+																	</xs:sequence>
+																</xs:complexType>
+															</xs:element>
+														</xs:sequence>
+														<xs:attribute name="type" use="required"
+															type="tns:SignatureType">
+															<xs:annotation>
+																<xs:documentation>Tipo di firma: CAdES (p7m) o PAdES
+																</xs:documentation>
+															</xs:annotation>
+
+														</xs:attribute>
+													</xs:complexType>
+												</xs:element>
+												<xs:element name="SendEmail">
+													<xs:annotation>
+														<xs:documentation>Opzioni/dati delle operazioni di invio
+															e-mail PEC o PEO
+														</xs:documentation>
+													</xs:annotation>
+													<xs:complexType>
+														<xs:sequence>
+															<xs:element name="SenderAccount"
+																type="xs:string" minOccurs="0" maxOccurs="unbounded">
+																<xs:annotation>
+																	<xs:documentation>Account della/e caselle da cui
+																		effettuare l'invio
+																	</xs:documentation>
+																</xs:annotation>
+															</xs:element>
+															<xs:element name="Template">
+																<xs:annotation>
+																	<xs:documentation>Nome del template di subject e body
+																		della mail da usare
+																	</xs:documentation>
+																</xs:annotation>
+																<xs:simpleType>
+																	<xs:restriction base="xs:string" />
+																</xs:simpleType>
+															</xs:element>
+														</xs:sequence>
+													</xs:complexType>
+												</xs:element>
+											</xs:choice>
+											<xs:attribute name="type" use="required"
+												type="tns:OperationType">
+												<xs:annotation>
+													<xs:documentation>Tipo di operazione richiesta
+													</xs:documentation>
+												</xs:annotation>
+											</xs:attribute>
+										</xs:complexType>
+									</xs:element>
+								</xs:sequence>
+							</xs:complexType>
+						</xs:element>
+<!-- 						<xs:element minOccurs="0" name="binaryData" type="xs:base64Binary" xmime:expectedContentTypes="text/xml"/> -->
+						<xs:element minOccurs="0" name="IndexAttach" type="xs:base64Binary" xmime:expectedContentTypes="text/plain"/>
+					</xs:sequence>
+					<xs:attribute name="IdLottoDoc" use="required">
+						<xs:annotation>
+							<xs:documentation>Identificativo univoco del lotto di documenti
+								su cui si richiede l'elaborazione
+							</xs:documentation>
+						</xs:annotation>
+						<xs:simpleType>
+							<xs:restriction base="xs:normalizedString">
+								<xs:minLength value="1" />
+								<xs:maxLength value="30" />
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:attribute>
+					<xs:attribute name="FormatoLottoDoc" use="required"
+						type="tns:ArchiverType">
+						<xs:annotation>
+							<xs:documentation>Formato di trasmissione del lotto di documenti:
+								cartella, file archivio ZIP, file archivio 7z
+							</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="NroDoc" type="xs:positiveInteger"
+						use="required">
+						<xs:annotation>
+							<xs:documentation>N.ro complessivo di documenti (anche composti
+								da più file) presenti nel lotto
+							</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="NroFile" type="xs:positiveInteger"
+						use="required">
+						<xs:annotation>
+							<xs:documentation>N.ro complessivo di file dei documenti presenti
+								nel lotto
+							</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="TipoDoc" use="required">
+						<xs:annotation>
+							<xs:documentation>Tipo dei documenti del lotto: da lista
+								prestabilita di tipologie ammesse
+							</xs:documentation>
+						</xs:annotation>
+						<xs:simpleType>
+							<xs:restriction base="xs:string">
+								<xs:minLength value="1" />
+								<xs:maxLength value="100" />
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:attribute>
+			</xs:complexType>
+			<xs:element name="RequestActionsOnDocList" type="tns:RequestActionsOnDocList" />
+			<xs:element name="RequestActionsOnElencoDocList" type="tns:RequestActionsOnDocList" />
+			<xs:element name="ResponseActionsOnDocList">
+				<xs:complexType>
+					<xs:attribute name="Esito" type="tns:ResultType"
+						use="required">
+						<xs:annotation>
+							<xs:documentation>Esito della richiesta: OK = successo, KO =
+								errore
+							</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="FaultActionsOnDocList" nillable="true">
+				<xs:annotation>
+					<xs:documentation>Eccezione sollevata dal servizio con codice
+						errore e Messaggio di errore
+					</xs:documentation>
+				</xs:annotation>
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="errCode" type="xs:positiveInteger">
+							<xs:annotation>
+								<xs:documentation>Codice errore
+								</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="errMsg" type="xs:string">
+							<xs:annotation>
+								<xs:documentation>Messaggio errore
+								</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:schema>
+	</wsdl:types>
+	<wsdl:message name="OperazioniAurigaLottiDocIn">
+		<wsdl:part element="tns:RequestActionsOnDocList"
+			name="parameter" />
+	</wsdl:message>
+	<wsdl:message name="OperazioniAurigaLottiDocOut">
+		<wsdl:part element="tns:ResponseActionsOnDocList"
+			name="parameter" />
+	</wsdl:message>
+	<wsdl:message name="OperazioniAurigaLottiDocFault">
+		<wsdl:part element="tns:FaultActionsOnDocList"
+			name="parameter" />
+	</wsdl:message>
+	<wsdl:message name="OperazioniAurigaElencoDocIn">
+		<wsdl:part element="tns:RequestActionsOnElencoDocList"
+			name="parameter" />
+	</wsdl:message>
+	<wsdl:message name="OperazioniAurigaElencoDocOut">
+		<wsdl:part element="tns:ResponseActionsOnDocList"
+			name="parameter" />
+	</wsdl:message>
+	<wsdl:portType name="OperazioniAurigaLottiDocPortType">
+		<wsdl:operation name="OperazioniAurigaLottiDoc">
+			<wsdl:input message="tns:OperazioniAurigaLottiDocIn"
+				name="RequestOperazioniAurigaLottiDoc" />
+			<wsdl:output message="tns:OperazioniAurigaLottiDocOut"
+				name="ResponseOperazioniAurigaLottiDoc" />
+			<wsdl:fault message="tns:OperazioniAurigaLottiDocFault"
+				name="FaultActionsOnDocList" />
+		</wsdl:operation>
+		<wsdl:operation name="OperazioniAurigaElencoDoc">
+			<wsdl:input message="tns:OperazioniAurigaElencoDocIn"
+				name="RequestOperazioniAurigaElencoDoc" />
+			<wsdl:output message="tns:OperazioniAurigaElencoDocOut"
+				name="ResponseOperazioniAurigaElencoDoc" />
+			<wsdl:fault message="tns:OperazioniAurigaLottiDocFault"
+				name="FaultActionsOnElencoDocList" />
+		</wsdl:operation>
+	</wsdl:portType>
+	<wsdl:binding name="OperazioniAurigaLottiDocSoapBinding"
+		type="tns:OperazioniAurigaLottiDocPortType">
+		<soap:binding style="document"
+			transport="http://schemas.xmlsoap.org/soap/http" />
+		<wsdl:operation name="OperazioniAurigaLottiDoc">
+			<soap:operation
+				soapAction="http://operazioniaurigalottidoc.webservices.repository2.auriga.eng.it/OperazioniAurigaLottiDoc" />
+			<wsdl:input>
+				<soap:body use="literal" />
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal" />
+			</wsdl:output>
+			<wsdl:fault name="FaultActionsOnDocList">
+				<soap:fault name="FaultActionsOnDocList" use="literal" />
+			</wsdl:fault>
+		</wsdl:operation>
+		<wsdl:operation name="OperazioniAurigaElencoDoc">
+			<soap:operation
+				soapAction="http://operazioniaurigalottidoc.webservices.repository2.auriga.eng.it/OperazioniAurigaElencoDoc" />
+			<wsdl:input>
+				<soap:body use="literal" />
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal" />
+			</wsdl:output>
+			<wsdl:fault name="FaultActionsOnElencoDocList">
+				<soap:fault name="FaultActionsOnElencoDocList" use="literal" />
+			</wsdl:fault>
+		</wsdl:operation>
+	</wsdl:binding>
+	<wsdl:service name="WSOperazioniAurigaLottiDoc">
+		<wsdl:port name="OperazioniAurigaLottiDocPort"
+			binding="tns:OperazioniAurigaLottiDocSoapBinding">
+			<soap:address
+				location="http://operazioniaurigalottidoc.webservices.repository2.auriga.eng.it" />
+		</wsdl:port>
+	</wsdl:service>
+</wsdl:definitions>

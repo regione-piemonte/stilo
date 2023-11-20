@@ -1,0 +1,8 @@
+https://ckeditor.com/docs/ckeditor4/latest/guide/dev_build.html
+
+Aprire il prompt e andare nella cartella dev/builder/ del progetto
+
+digitare il comando ./build.sh
+
+questo rigenererà il contenuto della cartella dev/builder/build/release
+ovvero il progetto compilato che va portato su AurigaWeb

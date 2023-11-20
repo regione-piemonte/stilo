@@ -1,0 +1,487 @@
+1        PACKAGE DMPK_MODELLI_DOC AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        
+12        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+13        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        	/***** Funzione per ottenere gli estremi della versione elettronica di un modello documentale ******/
+20        	function GetInfoVerElModello(
+21        			IdModelloIn				IN		DMT_MODELLI_DOC.ID_MODELLO%type,				-- (obblig.) Id. del modello
+22        			IdDocOut				OUT		DMT_DOCUMENTS.ID_DOC%type,					-- Id. del documento corrispondente al modello
+23        			NroVerOut				OUT		PLS_INTEGER,							-- N.ro dell'ultima versione elettronica valida del modello
+24        			IdUDOut				OUT		DMT_UNITA_DOC.ID_UD%type,					-- Id. dell'unità documentaria di appartenenza del documento elettronico
+25        			DisplayFilenameVerOut		OUT		VARCHAR2,								-- Nome con cui mostrare/in cui estrarre il file corrispondente alla versione
+26        			IdFormatoElOut			OUT		DMT_FORMATI_EL_AMMESSI.ID_FORMATO_EL%type,		-- Id. del formato elettronico
+27        			NomeFormatoElOut			OUT		DMT_FORMATI_EL_AMMESSI.NOME_FORMATO%type,			-- Nome del formato elettronico
+28        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+29        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+30        			ErrMsgOut				OUT 		VARCHAR2								-- Messaggio d'errore
+31        			) return PLS_INTEGER;													-- vale 1 in caso tutto vada bene, 0 in caso di errore
+32        
+33        	-----overload della precedente con alcuni output in meno
+34        	function GetInfoVerElModello(
+35        			IdModelloIn				IN		DMT_MODELLI_DOC.ID_MODELLO%type,				-- (obblig.) Id. del modello
+36        			IdDocOut				OUT		DMT_DOCUMENTS.ID_DOC%type,					-- Id. del documento corrispondente al modello
+37        			NroVerOut				OUT		PLS_INTEGER,							-- N.ro dell'ultima versione elettronica valida del modello
+38        			DisplayFilenameVerOut		OUT		VARCHAR2,								-- Nome con cui mostrare/in cui estrarre il file corrispondente alla versione
+39        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+40        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+41        			ErrMsgOut				OUT 		VARCHAR2								-- Messaggio d'errore
+42        			) return PLS_INTEGER;													-- vale 1 in caso tutto vada bene, 0 in caso di errore
+43        
+44        	/**** Funzione per ottenere la lista dei bookmark disponibili in un certo dominio di lavoro (ed eventualmente per una certa applicazione)*****/
+45        	function GetListaBookmark(
+46        			IdDominioIn				IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,			-- Identificativo del dominio di lavoro (se null è lo schema, altrimnti è l'id. del soggetto produttore o AOO)
+47        			CodApplOwnerIn			IN		VARCHAR2 DEFAULT NULL,						-- Codice dell'applicazione per cui estrarre i bookmark.
+48        			CodIstApplOwnerIn			IN 		VARCHAR2 DEFAULT NULL,						-- Codice dell'istanza di applicazione per cui estrarre i bookmark.
+49        			FlgRestrApplOwnerIn		IN 		INTEGER DEFAULT 1)						-- (valori 1/0/NULL) Se 1 vengono estratti solo i bookmark di cui è proprietaria l'applicazione (ed eventuale istanza) specificata in CodApplOwnerIn; se 0 o NULL vengono estratti solo i bookmark senza applicazione proprietaria o con applicazione proprietria pari a quella specificata
+50        			return DMTO_DECODIFICHE;												-- Lista con i bookmark (internal e dispaly value) e con l'argomento/categoria in cui ricade il bookmark
+51        
+52        	/**** Funzione per ottenere la lista delle categorie/argomenti dei bookmark disponibili in un certo dominio di lavoro (ed eventualmente per una certa applicazione)*****/
+53        	function GetListaCategorieBookmark(
+54        			IdDominioIn				IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,			-- Identificativo del dominio di lavoro (se null è lo schema, altrimnti è l'id. del soggetto produttore o AOO)
+55        			CodApplOwnerIn			IN		VARCHAR2 DEFAULT NULL,						-- Codice dell'applicazione per cui estrarre gli argomenti/categorie dei bookmark
+56        			CodIstApplOwnerIn			IN 		VARCHAR2 DEFAULT NULL,						-- Codice dell'istanza di applicazione per cui estrarre gli argomenti/categorie dei bookmark
+57        			FlgRestrApplOwnerIn		IN 		INTEGER DEFAULT 1)						-- (valori 1/0/NULL) Se 1 vengono estratti solo gli argomenti/categorie dei bookmark di cui è proprietaria l'applicazione (ed eventuale istanza) specificata in CodApplOwnerIn; se 0 o NULL vengono estratti solo gli argomenti/categorie dei bookmark senza applicazione proprietaria o con applicazione proprietria pari a quella specificata
+58        			return DMTO_STRING;													-- Lista con gli argomenti/categorie dei bookmark
+59        
+60        	/***** Funzione per ottenere la lista dei bookmark "validi" contenuti in un modello Word (identificato attraverso id. e/o nome) *****/
+61        	function GetListaBookmarkInModello(
+62        			IdDominioIn				IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,			-- Identificativo del dominio di lavoro (se null è lo schema, altrimnti è l'id. del soggetto produttore o AOO)
+63        			CodApplicazioneIn			IN		VARCHAR2 DEFAULT NULL,						-- Codice dell'applicazione di lavoro
+64        			CodIstApplicazioneIn		IN 		VARCHAR2 DEFAULT NULL,						-- Codice dell'istanza di applicazione di lavoro
+65        			IdModelloIn				IN		DMT_MODELLI_DOC.ID_MODELLO%type DEFAULT NULL,		-- Id. del modello di cui listare i bookmark
+66        			NomeModelloIn			IN		DMT_MODELLI_DOC.NOME_MODELLO%type DEFAULT NULL		-- Nome (o suo inizio) del modello di cui listare i bookmark (ricerca case-insensitive in like)
+67        			) return DMTO_STRING;													-- Lista con i bookmark (validi) del modello
+68        
+69        	/***** Funzione per ottenere, a partire dal nome di un bookmark definito in un modello Word, le informazioni con cui popolare il bookmark stesso *****/
+70        	function GetInfoBookmarkInModello(
+71        			IdDominioIn				IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,			-- Identificativo del dominio di lavoro (se null è lo schema, altrimnti è l'id. del soggetto produttore o AOO)
+72        			NomeBookmarkIn			IN		VARCHAR2,								-- (obblig.) Nome del bookmark presente nel modello Word
+73        			FlgTabellareOut			OUT		PLS_INTEGER,							-- (valori 1/0) Se 1 il contenuto del bookmark va rappresentato in una tabella Word
+74        			SeparatoreValoriOut		OUT		VARCHAR2,								-- Separatore che deve essere messo tra i valori ottenuti dalla query con cui popolare il bookmark (se è una query che può dare più record)
+75        			QueryValoriOut			OUT		VARCHAR2,								-- Query con cui popolare il bookmark
+76        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+77        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+78        			ErrMsgOut				OUT 		VARCHAR2								-- Messaggio d'errore
+79        			) return PLS_INTEGER;													-- vale 1 in caso di bookmark corretto, 0 in caso di errore
+80        
+81        	/***** Funzione per aggiornare la lista dei bookmark di un modello Word (identificato attraverso id. e/o nome) 					*****/
+82        	/***** Non viene controllato che l'ultima versione del modello sia un file Word 										*****/
+83        	function AggiornaBookmarkInModello(
+84        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,		-- (obblig). Codice identificativo del token di connessione
+85        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,			-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+86        			IdModelloIn				IN		DMT_MODELLI_DOC.ID_MODELLO%type DEFAULT NULL,		-- Id. del modello di cui aggiornare i bookmark
+87        			NomeModelloIn			IN		DMT_MODELLI_DOC.NOME_MODELLO%type DEFAULT NULL,		-- Nome (o suo inizio) del modello di cui aggiornare i bookmark (ricerca case-insensitive in like)
+88        			FlgModBookmarkIn			IN		VARCHAR2 DEFAULT 'I',						-- (valori I/C) Indica se i bookmark indicati nell'argomento successivo sono forniti in modo incrementale (=I) (solo quelli da inserire/modificare/cancellare) oppure completo (=C), vale a dire che dovranno soppiantare tutti quelli eventualmente già registrati in DB
+89        			XMLBookmarkIn			IN		CLOB DEFAULT NULL,						-- Lista con i bookmark da aggiornare nel modello (XML conforme a schema LISTA_STD.xsd)
+90        																			-- Ogni bookmark è un tag "Riga" che può contenere le seguenti colonne:
+91        																			-- 1: Nome del bookmark
+92        																			-- 2: (valori 1/0/NULL) Flag di bookmark da eliminare
+93        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+94        																			-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+95        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,					-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+96        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+97        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+98        			ErrMsgOut				OUT 		VARCHAR2								-- Messaggio d'errore
+99        			) return PLS_INTEGER;													-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+100        
+101        	/******* serve a ricercare modelli per un dato sogg. produttore o AOO a partire da Id. e/o nome	(ed eventualmente il formato)		******/
+102        	/******* restituisce gli id. del/i modelli trovati														******/
+103        	function FindModelli(
+104        			IdDominioIn				IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,			-- Identificativo del dominio (soggetto produttore o AOO o lo schema, se NULL) per cui cercare il tipo di flusso WF
+105        			CodApplOwnerIn			IN		VARCHAR2 DEFAULT NULL,						-- Codice dell'applicazione "proprietaria" del modello (ricerca esatta e case-sensitive)
+106        			CodIstApplOwnerIn			IN 		VARCHAR2 DEFAULT NULL,						-- Codice dell'istanza di applicazione "proprietaria" del modello (ricerca esatta e case-sensitive)
+107        			FlgRestrApplOwnerIn		IN		INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 viene trovato solo un modello di cui è proprietaria l'applicazione proprietaria (ed eventuale istanza) specificata in CodApplOwnerIn; se 0 o NULL e se CodApplOwnerIn è valorizzata vengono viene trovato un modello senza applicazione proprietaria o con applicazione proprietria pari a quella specificata
+108        			IdModelloIn				IN		DMT_MODELLI_DOC.ID_MODELLO%type DEFAULT NULL,		-- Id. del modello
+109        			NomeModelloIn			IN		DMT_MODELLI_DOC.NOME_MODELLO%type DEFAULT NULL,		-- Nome (o suo inizio) del modello (ricerca case-insensitive in like)
+110        			IdFormatoElIn			IN 		DMT_FORMATI_EL_AMMESSI.ID_FORMATO_EL%type DEFAULT NULL,
+111        																			-- Identificativo del formato elettronico del modello (la sua ultima versione valida)
+112        			NomeFormatoElIn			IN 		DMT_FORMATI_EL_AMMESSI.NOME_FORMATO%type DEFAULT NULL,-- Nome del formato elettronico del modello (ricerca case-insensitive in like) (la sua ultima versione valida)
+113        			EstensioneFormatoElIn		IN 		VARCHAR2 DEFAULT NULL,						-- Estensione del formato elettronico del modello (ricerca case-insensitive esatta) (la sua ultima versione valida)
+114        			FlgSoloVldIn			IN		PLS_INTEGER DEFAULT 1,						-- (valori 1/0/NULL) Indica se il modello deve essere valido (1) o no (al timestamp TsRifIn)
+115        			TsRifIn				IN		VARCHAR2 default TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS')
+116        																			-- Stringa con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) di riferimento al quale il modello deve avere gli estremi specificati in input. Se non valorizzato si intende sysdate
+117        			)return DMTO_ID;														-- Lista con gli identificativi dei modelli trovati. In caso di errore la lista è NULL
+118        
+119        	/******* serve a ricercare un modello per un dato sogg. produttore o AOO a partire da Id. e/o nome (ed eventualmente il formato)	******/
+120        	/******* restituisce l'identificativo del modello solo se a partire dagli estremi immessi riesce a identificarlo univocamente		******/
+121        	function FindModello(
+122        			IdDominioIn				IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,			-- Identificativo del dominio (soggetto produttore o AOO o lo schema, se NULL) per cui cercare il tipo di flusso WF
+123        			CodApplOwnerIn			IN		VARCHAR2 DEFAULT NULL,						-- Codice dell'applicazione "proprietaria" del modello (ricerca esatta e case-sensitive)
+124        			CodIstApplOwnerIn			IN 		VARCHAR2 DEFAULT NULL,						-- Codice dell'istanza di applicazione "proprietaria" del modello (ricerca esatta e case-sensitive)
+125        			FlgRestrApplOwnerIn		IN		INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 viene trovato solo un modello di cui è proprietaria l'applicazione proprietaria (ed eventuale istanza) specificata in CodApplOwnerIn; se 0 o NULL e se CodApplOwnerIn è valorizzata vengono viene trovato un modello senza applicazione proprietaria o con applicazione proprietria pari a quella specificata
+126        			IdModelloIn				IN		DMT_MODELLI_DOC.ID_MODELLO%type DEFAULT NULL,		-- Id. del modello
+127        			NomeModelloIn			IN		DMT_MODELLI_DOC.NOME_MODELLO%type DEFAULT NULL,		-- Nome (o suo inizio) del modello (ricerca case-insensitive in like)
+128        			IdFormatoElIn			IN 		DMT_FORMATI_EL_AMMESSI.ID_FORMATO_EL%type DEFAULT NULL,
+129        																			-- Identificativo del formato elettronico del modello (la sua ultima versione valida)
+130        			NomeFormatoElIn			IN 		DMT_FORMATI_EL_AMMESSI.NOME_FORMATO%type DEFAULT NULL,-- Nome del formato elettronico del modello (ricerca case-insensitive in like) (la sua ultima versione valida)
+131        			EstensioneFormatoElIn		IN 		VARCHAR2 DEFAULT NULL,						-- Estensione del formato elettronico del modello (ricerca case-insensitive esatta) (la sua ultima versione valida)
+132        			FlgSoloVldIn			IN		PLS_INTEGER DEFAULT 1,						-- (valori 1/0/NULL) Indica se il modello deve essere valido (1) o no (al timestamp TsRifIn)
+133        			TsRifIn				IN		VARCHAR2 default TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS')
+134        																			-- Stringa con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) di riferimento al quale il modello deve avere gli estremi specificati in input. Se non valorizzato si intende sysdate
+135        			)return PLS_INTEGER;													-- Identificativo del modello trovato. E' NULL in caso di errore o modello non individuabile univocamente
+136        
+137        	/******* Funzione da richiamare per avere i dati per estrarre il file corrispondente ad una data versione, valida e visibile, di un modello documentale 	*******/
+138        	/******* (o l'ultima valida, se nessuna è specificata). Il modello può essere indicato attraverso id. e/o nome								*******/
+139        	function ExtractVerModello(
+140        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,		-- (obblig). Codice identificativo del token di connessione
+141        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,			-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+142        			IdModelloIn				IN		DMT_MODELLI_DOC.ID_MODELLO%type DEFAULT NULL,		-- Id. del modello
+143        			NomeModelloIn			IN		DMT_MODELLI_DOC.NOME_MODELLO%type DEFAULT NULL,		-- Nome (o suo inizio) del modello (ricerca case-insensitive in like)
+144        			NroProgrVerIO			IN OUT 	INTEGER,								-- N.ro progressivo che identifica la versione da estrarre;
+145        																			-- ATTENZIONE: se in input è NULL significa che si vuole estrarre l'ultima versione valida del modello documentale
+146        																			-- In output, in caso di successo, restituisce il n.ro della versione estratta
+147        			IdDocOut				OUT		DMT_DOCUMENTS.ID_DOC%type,					-- Id. del documento corrispodente al modello
+148        			DisplayFilenameVerOut		OUT		VARCHAR2,								-- Nome con cui mostrare/in cui estrarre il file corrispondente alla versione
+149        			URIVerOut				OUT		VARCHAR2,						    		-- Riferimento per reperire univocamente nella repository il file corrispondente alla versione
+150        			ImprontaVerOut			OUT		VARCHAR2,								-- Impronta del file corrispondente alla versione
+151        			AlgoritmoImprontaVerOut		OUT		VARCHAR2,								-- 	Algoritmo di calcolo dell'impronta: SHA-1, SHA-256, MD5 ecc
+152        			EncodingImprontaVerOut		OUT		VARCHAR2,								-- Encoding usato nel calcolo dell'impronta: hex = esadecimale, base64 = in base 64
+153        			DimensioneVerOut		OUT		INTEGER,									-- Dimensione del file in bytes
+154        			MimetypeVerOut			OUT		VARCHAR2,									-- Mimetype del file
+155        																						-- è il mimetype principale del formato del file
+156        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+157        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
+158        			ErrMsgOut				OUT 		VARCHAR2								-- Messaggio d'errore
+159        			) return PLS_INTEGER;													-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+160        
+161        	/**** Funzione per ricercare i modelli di documenti ****/
+162        	FUNCTION TrovaModelli(
+163        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+164        																	-- (obblig). Codice identificativo del token di connessione
+165        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+166        			FlgPreimpostaFiltroIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1 i filtri e l'ordinamento vengono settati secondo le impostazioni dell'utente di lavoro, altrimenti restano come passati in input
+167        			--------------- inizio filtri di ricerca-------------------
+168        			IdModelloIO				IN OUT	DMT_MODELLI_DOC.ID_MODELLO%type,		-- 1° filtro di ricerca: id. del modello da ricercare
+169        			NomeModelloIO			IN OUT	DMT_MODELLI_DOC.NOME_MODELLO%type, 		-- 2° filtro di ricerca: stringa contenuta nel nome del modello (ricerca case-insensitive in like)
+170        			DescrizioneModelloIO	IN OUT	DMT_MODELLI_DOC.DES_MODELLO%type,		-- 3° filtro di ricerca: stringa contenuta nella descrizione del modello (ricerca case-insensitive in like)
+171        			TyObjRelatedIO			IN OUT  VARCHAR2,								-- 4° filtro di ricerca: indica il tipo di oggetto cui è associato il modello: TD = Tipo documento, TF = Tipo folder, TP = Tipo di processo/procedimento
+172        			IdTyObjRelatedIO		IN OUT	INTEGER,								-- 5° filtro di ricerca: Id. del tipo documento/folder/procedimento cui è associato il modello
+173        			NomeTyObjRelatedIO		IN OUT	VARCHAR2, 								-- 6° filtro di ricerca: Nome del tipo documento/folder/procedimento cui è associato il modello (ricerca case-insensitive in like)
+174        			CIProvModelloIO			IN OUT	DMT_MODELLI_DOC.PROV_CI_MODELLO%TYPE,	-- 7° filtro di ricerca: Codice identificativo del modello nel sistema di provenienza: ricerca esatta case-sensitive
+175        			IdFormatoElIO			IN OUT	DMT_DOC_TYPES.ID_FORMATO_EL%type,		-- 8° filtro di ricerca: identificativo del formato elettronico dei modelli da ricercare
+176        																					-- Viene considerato e gestito solo se è valorizzato uno dei 2 argomenti successivi; se non congruenti con questi l'id. viene ignorato
+177        			NomeFormatoElIO			IN OUT	DMT_FORMATI_EL_AMMESSI.NOME_FORMATO%type,	-- 9° filtro di ricerca: nome del formato elettronico dei modelli da ricercare (ricerca case-insensitive in like)
+178        			EstensioneFormatoElIO		IN OUT	VARCHAR2,							-- 10° filtro di ricerca: estensione del formato elettronico dei modelli da ricercare (ricerca case-insensitive esatta)
+179        			NoteModelloIO			IN OUT	DMT_MODELLI_DOC.NOTE%TYPE,				-- 11° filtro di ricerca: stringa contenuta nelle annotazioni dei modelli da ricercare (ricerca case-insensitive in like)
+180        			CodApplOwnerIO			IN OUT	VARCHAR2,								-- 12° filtro di ricerca: Codice dell'applicazione "proprietaria" dei modelli. Se valorizzata pari a #BY_CONN_TKN e si è connessi da un'applicazione esterna si ricercano solo modelli di cui è proprietaria quell'applicazione
+181        			CodIstApplOwnerIO			IN OUT	VARCHAR2,							-- 13° filtro di ricerca: Codice dell'istanza di applicazione "proprietaria" dei modelli. Se valorizzata pari a #BY_CONN_TKN e si è connessi da un'applicazione esterna si ricercano solo modelli di cui è proprietaria l'istanza di applicazione esterna da cui si è connessi
+182        			FlgRestrApplOwnerIO		IN OUT	INTEGER,								-- (valori 1/0/NULL) Se 1 vengono estratti solo modelli di cui è proprietaria l'applicazione proprietaria (ed eventuale istanza) specificata in CodApplOwnerIO; se 0 o NULL e se CodApplOwnerIO è valorizzata vengono estratti solo i modelli senza applicazione proprietaria o con applicazione proprietria pari a quella specificata
+183        			FlgInclAnnullatiIO		IN OUT	INTEGER,								-- (valori 1/0/NULL) 14° filtro di ricerca: se 1 vengono estratti anche i modelli logicamente annullati, altrimenti no
+184        			IdProcessTypeIO			IN OUT	DMT_PROCESS_TYPES.ID_PROCESS_TYPE%type,	-- 15° filtro di ricerca: id. dell'eventuale tipo di processo cui devono essere legati i modelli già legati a un tipo documento
+185        			AltriCriteriIO			IN OUT 	NOCOPY CLOB,							-- Altri criteri di ricerca sugli attributi addizionali dei modelli (XML conforme a schema LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+186        																	-- Ogni criterio è un tag Riga che può contenere le seguenti colonne:
+187        																	--	1) Nome (ATTR_NAME) dell'attributo cui è relativo il criterio
+188        																	--	2) (obblig.) Operatore logico. Valori possibili:
+189        																	--		"uguale" (ricerca esatta)
+190        																	--		"simile a (case-sensitive)" (ricerca case-sensitive in like)
+191        																	--		"simile a (case-insensitive)" (ricerca case-insensitive in like e che ignora i caratteri quali spazi, ., ecc)
+192        																	--		"maggiore" (se attributo numerico o data)
+193        																	--		"maggiore o uguale" (se attributo numerico o data)
+194        																	--		"minore" (se attributo numerico o data)
+195        																	--		"minore o uguale" (se attributo numerico o data)
+196        																	--		"tra" (se attributo numerico o data)
+197        																	--		"non valorizzato"
+198        																	--		"valorizzato"
+199        																	--		"spuntato" (se attributo di tipo casella di spunta)
+200        																	--		"non spuntato" (se attributo di tipo casella di spunta)
+201        																	--	3) 1° valore di confronto (obblig. e gestito solo se l'operatore non ha uno dei seguenti valori: valorizzato, non valorizzato, spuntato, non spuntato) (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+202        																	--	4) 2° valore di confronto (obblig. e gestito solo se l'operatore è "tra") (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+203        																	--	5) Label dell''attributo cui è relativo il criterio (se sotto-attributo di complesso <label del complesso> - <label del sotto-attributo>
+204        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+205        			ColOrderByIO			IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 5). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+206        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+207        																	-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+208        			FlgDescOrderByIO  		IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+209        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+210        			FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+211        			NroPaginaIO      			IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+212           			BachSizeIO				IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+213        																	-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+214        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+215        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+216        			NroTotRecOut			OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+217             			NroRecInPaginaOut 		OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+218        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+219        			ListaXMLOut				OUT		NOCOPY CLOB,					-- Lista dei modelli trovati (XML conforme a schema LISTA_STD.xsd)
+220        																	-- Ogni modello è un tag Riga che contiene le seguenti colonne:
+221        																	-- 1:  Identificativo del modello
+222        																	-- 2:  Nome del modello
+223        																	-- 3:  Descrizione dettagliata del modello
+224        																	-- 4:  Identificativo del formato del modello
+225        																	-- 5:  Formato del modello (descrittivo)
+226        																	-- 6:  Nome del tipo di documento/fascicolo/procedimento cui è associato il modello
+227        																	-- 7:  Identificativo del documento della repository che costituisce il modello
+228        																	-- 8:  Annotazioni sul modello
+229        																	-- 9:  Flag di annullamento logico (valori 1/0)
+230        																	-- 10: Motivi dell'annullamento logico
+231        																	-- 11: Cod. identificativo del modello nel sistema di provenienza
+232        																	-- 12: Timestamp di creazione del modello (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+233        																	-- 13: Descrizione dell'utente di creazione del modello
+234        																	-- 14: Timestamp di ultima modifica dei dati del modello (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+235        																	-- 15: Descrizione dell'utente di ultima modifica dei dati del modello
+236        																	-- 16: (valori 1/0) Indicatore di modello riservato dal sistema e non modificabile da applicativo
+237        																	-- 17: (valori 1/0) Indicatore di modulo da compilare on-line (attributo custom PER_COMPILAZIONE_ONLINE)
+238        																	-- 18: (valori 1/0/NULL) Indicatore di modulo on-line profilato completamente (1) o meno (0)
+239        																	-- 19: URI del file del modello
+240        																	-- 21: indica il tipo di modello, ovvero con che generatore deve avvenire la generazione del file a partire dal modello
+241        																		-- odt_con_freemarkers
+242        																		-- docx_con_campi_controllo
+243        																		-- docx_con_placeholder
+244        																	-- 22: Display filename del file del modello
+245        																	-- 23: Tipo di oggetto cui è associato il modello: TD = Tipo documento, TF = Tipo folder, TP = Tipo di processo/procedimento
+246        																	-- 24: Id. del tipo documento/folder/procedimento cui è associato il modello
+247        																	-- 25: Nome della tabella in cui sono archiviati gli oggetti i cui metadati sono rappresentati nel modello
+248        			FlgAbilInsOut	 		OUT 		PLS_INTEGER ,            			-- (valori 1/0) Se 1 si ha abilitazione a inserimento di modello
+249        			FlgAbilUpdOut 			OUT 		PLS_INTEGER ,            			-- (valori 1/0) Se 1 si ha abilitazione a modifica di modello
+250        			FlgAbilDelOut 			OUT 		PLS_INTEGER,            			-- (valori 1/0) Se 1 si ha abilitazione a cancellazione di modello
+251        			FlgMostraAltriAttrOut		OUT		PLS_INTEGER,					-- (valori 1/0) Se 1 nella GUI vanno mostrati gli attributi addizionali per un nuovo modello (ce ne sono di visibile all'utente), se 0 no
+252        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+253        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+254        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+255        			return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+256        
+257        	/**** Funzione per ricercare i modelli validi attualmente disponibili per un certo tipo di documento 	****/
+258        	/**** è possibile limitare la ricerca ai modelli di un certo formato (es. solo Word) 			****/
+259        	/****	e specifici di un certo tipo di procedimento									****/
+260        	function TrovaModelliXTipoDoc(
+261        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+262        																	-- (obblig). Codice identificativo del token di connessione
+263        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+264        			--------------- inizio filtri di ricerca-------------------
+265        			IdDocTypeIn				IN 		DMT_DOC_TYPES.ID_DOC_TYPE%type,		-- (obblig) id. di un tipo di documento per cui mostrare i modelli
+266        			EstensioneFormatoElIn		IN		VARCHAR2 DEFAULT NULL,				-- Estensione del formato elettronico dei modelli da ricercare (ricerca case-insensitive esatta)
+267        			IdProcessTypeIn			IN		DMT_PROCESS_TYPES.ID_PROCESS_TYPE%type DEFAULT NULL,
+268        																	-- Id. dell'eventuale tipo del processo a cui deve essere relativo il modello
+269        			IdProcessIn				IN		DMT_PROCESSES.ID_PROCESS%type DEFAULT NULL,
+270        																	-- Id. dell'eventuale processo al cui tipo deve essere relativo il modello
+271        			FlgRestrApplConnessaIn		IN 		INTEGER,						-- (valori 1/0/NULL) Se 1 vengono estratti solo modelli di cui è proprietaria l'applicazione connessa (ed eventuale istanza); se 0 o NULL e se si è connessi da un'applicazione esterna vengono estratti solo i modelli senza applicazione proprietaria o con applicazione proprietria pari a quella connessa
+272        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+273        			ColOrderByIO			IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 5). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+274        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+275        																	-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+276        			FlgDescOrderByIO  		IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+277        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+278        			FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+279        			NroPaginaIO      			IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+280           			BachSizeIO				IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+281        																	-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+282        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+283        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+284        			NroTotRecOut			OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+285             			NroRecInPaginaOut 		OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+286        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+287        			ListaXMLOut				OUT		NOCOPY CLOB,					-- Lista dei modelli trovati (XML conforme a schema LISTA_STD.xsd)
+288        																	-- Ogni modello è un tag Riga che contiene le seguenti colonne:
+289        																	-- 1:  Identificativo del modello
+290        																	-- 2:  Nome del modello
+291        																	-- 3:  Descrizione dettagliata del modello
+292        																	-- 4:  Identificativo del formato del modello
+293        																	-- 5:  Formato del modello (descrittivo)
+294        																	-- 6:  Nome del tipo di documento/fascicolo/procedimento cui è associato il modello
+295        																	-- 7:  Identificativo del documento della repository che costituisce il modello
+296        																	-- 8:  Annotazioni sul mdodello
+297        																	-- 9:  Flag di annullamento logico (valori 1/0)
+298        																	-- 10: Motivi dell'annullamento logico
+299        																	-- 11: Cod. identificativo del modello nel sistema di provenienza
+300        																	-- 12: Timestamp di creazione del modello (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+301        																	-- 13: Descrizione dell'utente di creazione del modello
+302        																	-- 14: Timestamp di ultima modifica dei dati del modello (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+303        																	-- 15: Descrizione dell'utente di ultima modifica dei dati del modello
+304        																	-- 16: (valori 1/0) Indicatore di modello riservato dal sistema e non modificabile da applicativo
+305        																	-- 19: URI del file del modello
+306        																	-- 20: (flag 1/0) Indica se i documenti generati da modello devono essere restituiti in forma immodificabile pdf (1) o nel formato originale del modello (0)
+307        																	-- 21: indica il tipo di modello, ovvero con che generatore deve avvenire la generazione del file a partire dal modello
+308        																		-- odt_con_freemarkers
+309        																		-- docx_con_campi_controllo
+310        																		-- docx_con_placeholder
+311        																	-- 22: Display filename del file del modello
+312        																	-- 23: Tipo di oggetto cui è associato il modello: TD = Tipo documento, TF = Tipo folder, TP = Tipo di processo/procedimento
+313        																	-- 24: Id. del tipo documento/folder/procedimento cui è associato il modello
+314        																	-- 25: Nome della tabella in cui sono archiviati gli oggetti i cui metadati sono rappresentati nel modello
+315        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+316        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+317        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+318        			return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+319        
+320        	/**** Funzione per contare i modelli validi attualmente disponibili per un certo tipo di documento 	****/
+321        	/**** è possibile limitare il conteggio ai modelli di un certo formato (es. solo Word) 			****/
+322        	/****	e specifici di un certo tipo di procedimento									****/
+323        	function ContaModelliXTipoDoc(
+324        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+325        																	-- (obblig). Codice identificativo del token di connessione
+326        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+327        			IdDocTypeIn				IN 		DMT_DOC_TYPES.ID_DOC_TYPE%type,		-- (obblig) id. di un tipo di documento per cui contare i modelli
+328        			EstensioneFormatoElIn		IN		VARCHAR2 DEFAULT NULL,				-- Estensione del formato elettronico dei modelli da contare (ricerca case-insensitive esatta)
+329        			IdProcessTypeIn			IN		DMT_PROCESS_TYPES.ID_PROCESS_TYPE%type DEFAULT NULL,
+330        																	-- Id. dell'eventuale tipo del processo a cui devono essere relativi i modelli
+331        			IdProcessIn				IN		DMT_PROCESSES.ID_PROCESS%type DEFAULT NULL,
+332        																	-- Id. dell'eventuale processo al cui tipo devono essere relativi i modelli
+333        			FlgRestrApplConnessaIn		IN 		INTEGER,						-- (valori 1/0/NULL) Se 1 vengono contati solo modelli di cui è proprietaria l'applicazione connessa (ed eventuale istanza); se 0 o NULL e se si è connessi da un'applicazione esterna vengono contati solo i modelli senza applicazione proprietaria o con applicazione proprietria pari a quella connessa
+334        			NroTotRecOut			OUT		PLS_INTEGER,					-- E' il n.ro di modelli contati
+335             			IdModelloOut			OUT		DMT_MODELLI_DOC.ID_MODELLO%type,		-- Id. del modello (se è uno solo)
+336        			NomeModelloOut			OUT		DMT_MODELLI_DOC.NOME_MODELLO%type,		-- Nome del modello (se è uno solo)
+337        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+338        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+339        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+340        			return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+341        
+342        	/***** Funzione per ottenere tutti i dati di un modello a partire dal suo id. *****/
+343        	function LoadDettModello(
+344        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+345        																	-- (obblig). Codice identificativo del token di connessione
+346        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+347        			IdModelloIO   			IN OUT   	DMT_MODELLI_DOC.ID_MODELLO%type, 		-- (obblig) Identificativo del modello di documento di cui caricare il dettaglio
+348        			NomeOut				OUT		DMT_MODELLI_DOC.NOME_MODELLO%TYPE,		-- Nome del modello di documento
+349        			DescrizioneOut			OUT		DMT_MODELLI_DOC.DES_MODELLO%TYPE,		-- Descrizione dettagliata del modello di documento
+350        			IdDocOut				OUT		DMT_MODELLI_DOC.ID_DOC%type,			-- Id. del documento della repository che corrisponde al modello (in formato originale)
+351        			NroVerElDocOut			OUT		PLS_INTEGER,					-- N.ro dell'ultima versione elettronica valida del documento della repository che corrisponde al modello
+352        			DisplayFilenameVerElDocOut	OUT		VARCHAR2,						-- Nome con cui visualizzare il file dell'ultima versione elettronica valida del documento della repository che corrisponde al modello
+353        			AnnotazioniOut			OUT		DMT_MODELLI_DOC.NOTE%TYPE,			-- Annotazioni sul modello
+354        			CIProvModelloOut			OUT 		DMT_MODELLI_DOC.PROV_CI_MODELLO%TYPE,	-- Codice identificativo del modello nel sistema di provenienza
+355        			FlgLockedOut			OUT		PLS_INTEGER,					-- (valori 1/0) Indicatore di modello riservato dal sistema e non modificabile/cancellabile da GUI
+356        			IdDocXMLOut				OUT		PLS_INTEGER,					-- Id. del documento della repository che corrisponde al modello convertito in formato xml
+357        			IdDocPdfOut				OUT		PLS_INTEGER,					-- Id. del documento della repository che corrisponde al modello convertito in formato pdf
+358        			IdDocHtmlOut			OUT		PLS_INTEGER,					-- Id. del documento della repository che corrisponde al modello convertito in formato HTML
+359        			NroOrdineOut			OUT		PLS_INTEGER,					-- N.ro che indica l'ordine di presentazione del modello tra quelli da i vari da compilare on-line
+360        			FlgProfCompletaOut		OUT		PLS_INTEGER,					-- (valori 1/0/NULL) Indicatore di modulo on-line profilato completamente (1) o meno (0)
+361        			RowidOut				OUT		VARCHAR2,						-- Rowid del record del modello di documento
+362        			AttributiAddOut			OUT		NOCOPY CLOB,					-- Lista degli eventuali ulteriori attributi con cui caratterizzare il modello di documento (XML conforme a schema LISTA_STD.xsd)
+363        																	-- Ogni attributo è un tag "Riga" che contiene le seguenti colonne:
+364        																	-- 1: N.ro (valori da 1 a n) del riquadro (fieldset) in cui mostrare l'attributo
+365        																	-- 2: Nome identificativo dell'attributo (ATTR_NAME)
+366        																	-- 3: Label del campo con cui rappresentare l'attributo
+367        																	-- 4: Tipo di attributo. Valori: DATE, DATETIME, TEXT, TEXT-AREA, CHECK, INTEGER, EURO, DECIMAL, COMBO-BOX, LISTA
+368        																	-- 5: N.ro massimo di caratteri/cifre
+369        																	-- 6: Larghezza del campo con cui rappresentare l'attributo (size)
+370        																	-- 7: Valore dell'attributo
+371        																	-- 8: Label del riquadro (fieldset) in cui mostrare l'attributo
+372        																	-- 9: (valori 1/0) 1 indica che l'attributo è obbligatorio, 0 che è facoltativo
+373        																	-- 10: Altezza (in nro righe) del campo con cui rappresentare l'attributo (se TEXT-AREA)
+374        																	-- 11:(valori 1/0) 1 indica se l'attributo è modificabile, 0 che è in sola visualizzazione
+375        			FlgMostraAltriAttrOut		OUT		PLS_INTEGER,					-- (valori 1/0) Se 1 nella GUI vanno mostrati gli attributi addizionali (ce ne sono di visibile all'utente), se 0 no
+376        			TipoModelloOut			OUT		DMT_MODELLI_DOC.TIPO_MODELLO%type,	-- Tipo del modello.
+377        																			-- Valori possibili:
+378        																			-- odt_con_freemarkers
+379        																			-- docx_con_campi_controllo
+380        																			-- docx_con_placeholder
+381        			TipoEntitaAssociataOut	OUT		VARCHAR2,						-- Indica il tipo di entità a cui è associato il modello; valori possibili:
+382        																			-- TD = Tipo documento
+383        																			-- TF = Tipo fascicolo
+384        																			-- TP = Tipo di processo/procedimento
+385        			IdEntitaAssociataOut	OUT		INTEGER,						-- Id. dell'entità a cui è associato il modello: ID_DOC_TYPE o ID_FOLDER_TYPE o ID_PROCESS_TYPE
+386        			NomeEntitaAssociataOut	OUT		VARCHAR,						-- Nome dell'entità a cui è associato il modello: NOME_DOC_TYPE o NOME_FOLDER_TYPE o NOME_PROCESS_TYPE
+387        			NomeTabellaEntitaAssOut	OUT		VARCHAR2,						-- Nome della tabella in cui sono memorizzate le entità del tipo associato al modello
+388        			FlgGeneraFormatoPDFOut	OUT		PLS_INTEGER,					-- flag 1/0: Indica se i documenti generati da modello devono essere restituiti in forma immodificabile pdf (1) o nel formato originale del modello (0)
+389        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+390        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+391        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+392        			return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+393        
+394        	/***** Funzione per inserire o aggiornare un modello														*****/
+395        	/***** In caso di creazione il documento del modello viene anche creato nella repository documentale (senza vers. elettronica)	*****/
+396        	function IUModello(
+397        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+398        																	-- (obblig). Codice identificativo del token di connessione
+399        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+400        			IdModelloIO   			IN OUT   	DMT_MODELLI_DOC.ID_MODELLO%type, 		-- Identificativo del modello da modificare. Se non valorizzato il modello è da inserire ex-novo
+401        																	-- In output, salvo in caso di errore, è sempre valorizzato
+402        			NomeIn				IN		DMT_MODELLI_DOC.NOME_MODELLO%TYPE DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+403        																	-- (obblig.) Nome del modello di documento
+404        			DescrizioneIn			IN		DMT_MODELLI_DOC.DES_MODELLO%TYPE DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+405        																	-- Descrizione dettagliata del modello di documento
+406        			AnnotazioniIn			IN		DMT_MODELLI_DOC.NOTE%TYPE DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+407        																	-- Annotazioni sul modello
+408        			CIProvModelloIn			IN 		DMT_MODELLI_DOC.PROV_CI_MODELLO%TYPE DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+409        																	-- Codice identificativo del modello nel sistema di provenienza
+410        			FlgLockedIn				IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+411        																	-- (valori 1/0/NULL) Indicatore di modello riservato dal sistema e non modificabile/cancellabile da GUI
+412        			NroOrdineIn				IN		PLS_INTEGER,					-- N.ro che indica l'ordine di presentazione del modello tra quelli da i vari da compilare on-line
+413        			AttributiAddIn			IN		CLOB DEFAULT NULL,				-- XML contenente nomi e valori degli attributi dinamici da aggiornare (conforme allo schema SezioneCache.xsd)
+414        																	-- Gli attributi già presenti in DB e per i quali non c'è corrispondente nell'XML restano invariati
+415        																	-- Per tutti gli attributi vale quanto segue:
+416        																	-- Un attributo da settare è un tag "Variabile" dell'XML il cui tag "Nome" contiene il nome identificativo dell'attributo (ATTR_NAME di DMT_ATTRIBUTES_DEF)
+417        																	-- Un attributo da settare è una variabile con tag "ValoreSemplice" se è un attributo a singolo valore e non strutturato (cioè con tipo diverso da COMPLEX)
+418        																	-- altrimenti è una variabile con tag "Lista" che ha un'unica colonna con "Nro" pari a 1 se l'attributo non è strutturato, che ha invece tante colonne quanti gli attributi componenti (ordinate in base al loro NRO_ORD_IN_SUP) se l'attributo è complesso
+419        																	-- Nel caso di variabili con tag "Lista" i valori specificati nell'XML si aggiungono o sostituiscono quelli già presenti in DB a seconda che nell'XML sia presente o meno una variabile con tag "Nome" pari a #Append_<Nome attributo> e tag "ValoreSemplice" pari a 1
+420        																	-- In particolare se non sono specificati valori nell'XML (tag Lista vuoto) e se i valori non sono da aggiungere significa che tutti i valori dell'attributo già presenti in DB vanno rimossi
+421        			IdDocOut				OUT		DMT_MODELLI_DOC.ID_DOC%type,			-- Id. del documento della repository che corrisponde al modello appena creato
+422        			IdDocXMLOut				OUT		PLS_INTEGER,					-- Id. del documento della repository che corrisponde al modello convertito in formato xml
+423        			IdDocPdfOut				OUT		PLS_INTEGER,					-- Id. del documento della repository che corrisponde al modello convertito in formato pdf
+424        			IdDocHtmlOut			OUT		PLS_INTEGER,					-- Id. del documento della repository che corrisponde al modello convertito in formato HTML
+425        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+426        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+427        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+428        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+429        			WarningMsgOut			OUT		VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+430        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+431        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+432        			ErrMsgOut				OUT 		VARCHAR2,						-- Messaggio d'errore
+433        			TipoModelloIn			IN		DMT_MODELLI_DOC.TIPO_MODELLO%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+434        																			-- Tipo del modello. Se non valorizzato assume il tipo di default odt_con_freemarkers
+435        																			-- Valori ammessi:
+436        																			-- odt_con_freemarkers
+437        																			-- docx_con_campi_controllo
+438        																			-- docx_con_placeholder
+439        			TipoEntitaAssociataIn	IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+440        																			-- Indica il tipo di entità a cui è associato il modello; valori possibili:
+441        																			-- TD = Tipo documento
+442        																			-- TF = Tipo fascicolo
+443        																			-- TP = Tipo di processo/procedimento
+444        			IdEntitaAssociataIn		IN		INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+445        																			-- Id. dell'entità a cui è associato il modello: ID_DOC_TYPE o ID_FOLDER_TYPE o ID_PROCESS_TYPE
+446        			FlgGeneraFormatoPDFIn	IN		INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD')
+447        																			-- flag 1/0: Indica se i documenti generati da modello devono essere restituiti in forma immodificabile pdf (1) o nel formato originale del modello (0)
+448        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+449        
+450        	/*** Funzione di eliminazione di un modello di documento							***/
+451        	/*** Si può specificare se l'eliminazione deve essere fisica o solo logica (annullamento)		***/
+452        	/*** Se non lo si specifica il sistema fa quella fisica se possibile, se no quella logica		***/
+453        	function DModello(
+454        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+455        																	-- (obblig). Codice identificativo del token di connessione
+456        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+457        			IdModelloIn   			IN 		DMT_MODELLI_DOC.ID_MODELLO%TYPE,		-- (obblig.)Identificativo del modello di documento
+458        			FlgCancFisicaIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL): Se 1 si richiede la cancellazione fisica; se 0 l'annullamento logico; se non è valorizzato quella possibile delle 2.
+459        			MotiviIn				IN		DMT_MODELLI_DOC.MOTIVI_ANN%type,		-- Motivi della cancellazione/annullamento
+460        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+461        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+462        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+463        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+464        			WarningMsgOut			OUT		VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+465        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+466        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+467        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+468        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+469        
+470        	/******* funzione per ottenere come xml conforma allo schema SezioneCache.xsd i dati da inettare in un modello ******/
+471        	function GetDatiXGenDaModello(
+472        			CodIdConnectionTokenIn		IN	    		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+473        																							-- (obblig). Codice identificativo del token di connessione
+474        			IdUserLavoroIn				IN				DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+475        			NomeModelloIn				IN				VARCHAR2,								-- (obblig.) Nome del modello
+476        			FlgTpObjRifIn				IN				VARCHAR2 DEFAULT NULL,					-- Indica il tipo dell'oggetto - UD, folder o processo - per cui generare il file da modello
+477        																								-- Valori ammessi: U (Unità documentaria), F (Folder), P (Processo/procedimento), S = Seduta organo collegiale
+478        			IdObjRifIn					IN				VARCHAR2 DEFAULT NULL,					-- Id. dell'oggetto - UD, folder o processo o seduta - per cui generare il file da modello
+479        			DatixModelloXMLOut			OUT				NOCOPY CLOB,							-- XML conforme allo schema SezioneCache.xsd con i dati da inettare nel modello
+480        																								-- Nota: solo i nomi della variabili che matchano con quelli dei campi compilabili presenti nel modello vengono iniettati nel modello stesso
+481        			ErrContextOut				OUT				VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+482        			ErrCodeOut					OUT				PLS_INTEGER,							-- N.ro errore di uscita
+483        			ErrMsgOut					OUT 			VARCHAR2,								-- Messaggio d'errore
+484        			AttributiAddIn				IN				CLOB DEFAULT NULL)						-- XML contenente nomi e valori degli attributi da iniettare nel modello (conforme allo schema SezioneCache.xsd)
+485        			return PLS_INTEGER;																	-- vale 1 se tutto è andato a buon fine, altrimenti 0
+486        
+487        END DMPK_MODELLI_DOC;

@@ -1,0 +1,46 @@
+{
+  "listaRichiesteAutotutelaCed": [
+    {
+      "idRichiesta": 12,
+      "descrizioneTipoRichiesta": "Autotutela",
+      "codiceTipoRichiesta": "ATTTL",
+      "descrizioneStatoRichiesta": "In Istruttoria",
+      "codiceStatoRichiesta": "ISTRT",
+      "codicefiscaleUtente": "FRRGRL69D64Z129B",
+      "numeroDocumento": "20140430009930000419040",
+      "numeroProtocollo": "12",
+      "dataRichiesta": "2016-05-23T00:00:00",
+      "dataCambioStato": "2016-05-23T00:00:00",
+      "flagLetto": false,
+      "idEnte": 430
+    },
+    {
+      "idRichiesta": 13,
+      "descrizioneTipoRichiesta": "Autotutela",
+      "codiceTipoRichiesta": "ATTTL",
+      "descrizioneStatoRichiesta": "In Istruttoria",
+      "codiceStatoRichiesta": "ISTRT",
+      "codicefiscaleUtente": "VLNGLI63S10F839J",
+      "numeroDocumento": "20140430015780002379121",
+      "numeroProtocollo": "13",
+      "dataRichiesta": "2016-05-23T00:00:00",
+      "dataCambioStato": "2016-05-23T00:00:00",
+      "flagLetto": false,
+      "idEnte": 430
+    },
+    {
+      "idRichiesta": 15,
+      "descrizioneTipoRichiesta": "Autotutela",
+      "codiceTipoRichiesta": "ATTTL",
+      "descrizioneStatoRichiesta": "In Istruttoria",
+      "codiceStatoRichiesta": "ISTRT",
+      "codicefiscaleUtente": "FRRGRL69D64Z129B",
+      "numeroDocumento": "20140430017410000016979",
+      "numeroProtocollo": "15",
+      "dataRichiesta": "2016-05-23T00:00:00",
+      "dataCambioStato": "2016-05-23T00:00:00",
+      "flagLetto": false,
+      "idEnte": 430
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+	<ModificaTipoDocumento>
+		<IdTipoDocumento>101</IdTipoDocumento>
+		 <!--  <Nome>Piano Malattia</Nome>-->
+		<Descrizione>Descrizione piano malattia</Descrizione> 
+		<FlagAllegato>0</FlagAllegato>
+	</ModificaTipoDocumento>

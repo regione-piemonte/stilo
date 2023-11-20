@@ -1,0 +1,117 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+ 	<modelVersion>4.0.0</modelVersion>
+ 	<parent>
+    	<groupId>it.eng.suiteAuriga</groupId>
+    	<artifactId>StiloActaJob</artifactId>
+    	<version>1.8.14</version>
+  	</parent>
+  	<groupId>it.eng.auriga</groupId>
+  	<artifactId>StiloActaEjb</artifactId>
+  	<packaging>ejb</packaging>
+  	
+  	<properties>
+        <jpa.version>2.2</jpa.version>
+        <ejb.version>3.2</ejb.version>
+        <jms.version>2.0.1</jms.version>
+        <jdom.version>1.1</jdom.version>
+        <stilo.version>1.0-SNAPSHOT</stilo.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>javax.persistence</groupId>
+            <artifactId>javax.persistence-api</artifactId>
+            <version>${jpa.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.ejb</groupId>
+            <artifactId>javax.ejb-api</artifactId>
+            <version>${ejb.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.jms</groupId>
+            <artifactId>javax.jms-api</artifactId>
+            <version>${jms.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jdom</groupId>
+            <artifactId>jdom</artifactId>
+            <version>${jdom.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+			<groupId>it.eng.auriga</groupId>
+			<artifactId>StiloActaClient</artifactId>
+			<version>${suiteAuriga.version}</version>
+		</dependency>
+        <dependency>
+            <groupId>it.eng.auriga</groupId>
+            <artifactId>StiloActaModel</artifactId>
+            <version>${suiteAuriga.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>it.eng.auriga</groupId>
+            <artifactId>StiloActaUtil</artifactId>
+            <version>${suiteAuriga.version}</version>
+        </dependency>
+    </dependencies>
+
+    <!-- profiles>
+        <profile>
+            <id>test</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <profile.name>test</profile.name>
+            </properties>
+        </profile>
+        <profile>
+            <id>prod</id>
+            <properties>
+                <profile.name>prod</profile.name>
+            </properties>
+        </profile>
+    </profiles -->
+
+    <build>
+    	<resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>src/config/${config.res}</directory>
+            </resource>
+        </resources>
+        <!-- resources>
+            <resource>
+                <directory>src/main/resources/${profile.name}</directory>
+            </resource>
+        </resources -->
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-ejb-plugin</artifactId>
+                <configuration>
+                    <ejbVersion>${ejb.version}</ejbVersion>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.2</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/listener/${handler.mode.excl}/*</exclude>
+                    </excludes>
+                    <source>1.8</source>
+                    <target>1.8</target>                    
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+  	
+</project>

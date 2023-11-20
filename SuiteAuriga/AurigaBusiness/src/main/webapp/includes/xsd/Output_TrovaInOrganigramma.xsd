@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:complexType name="NodoOrganigrammaType">
+		<xs:sequence>
+			<xs:element name="TipoNodo" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Indica se si tratta di unita' operativa (UO), utente senza scrivania (UT), scrivania occupata da utente (SV)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="FlagUO_UT" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>indica se si tratta di unita' operativa (UO) o utente (UT) con o senza scrivania</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DesNodo" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Denominazione della UO (se TipoNodo=UO) o intestazione della scrivania virtuale + descrizione dell'utente e ruolo ricoperto (se TipoNodo= SV) o descrizione dell'utente e ruolo ricoperto (se TipoNodo= UT)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroLivelloGerarchico" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>(valorizzato se TipoNodo = UO) N.ro che indica il livello gerarchico della UO (da 1 in su)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="CodTipoUO" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>(valorizzata se TipoNodo =  UO) Codice che indica il tipo della UO</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="TipoUO" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>(valorizzata se TipoNodo =  UO) Tipo della UO (decodificato)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Identificativo" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Identificativo univoco della UO (se TipoNodo=UO) o della scrivania virtuale  (se TipoNodo=SV) o dell'utente  (se TipoNodo=UT) </xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DesEstesaNodo" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Denominazione estesa (cioe' incluse le denominazioni delle UO superiori) dell'unita' operativa (nel caso di utente o scrivania quella della UO cui e' legato l'utente/scrivania seguita da nome della scrivania/utente)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="IdUO" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Identificativo dell’unita' operativa (nel caso di utente o scrivania quella cui e' legato l'utente/scrivania)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="IdUtente" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Indice univoco dell'utente (valorizzato se TipoNodo = UT o SV) )</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DataInizioValidita" type="xs:string">
+				<xs:annotation>
+					<xs:documentation> Data di istituzione della UO (se TipoNodo = UO) o di inizio associazione dell'utente alla UO  (nel formato GG/MM/AAAA)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DataFineValidita" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Data di soppressione della UO (se TipoNodo = UO) o di fine associazione dell'utente alla UO  (nel formato GG/MM/AAAA)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="CodInSistMasterDataOrganigramma" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Cod. della struttura/utente nel sistema che fa da master data dell'organigramma</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="CodiceUO" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Codice parlante della UO (nel caso di utente o scrivania quello della UO cui e' legato l'utente/scrivania)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DesUOAppartenenza" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Descrizione della UO cui e' collegto l'utente/scrivania se il nodo rappresenta un utente con o senza scrivania</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DesUtente" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Cognome e nome dell'utente se il nodo rappresenta un utente con o senza scrivania</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="DesScrivania" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Descrizione della scrivania se il nodo rappresenta una scrivania</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="IdRuoloUtente" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Identificativo del ruolo ricoperto dall'utente nella UO (valorizzato solo se TipoNodo = UT o SV)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="RuoloUtente" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Ruolo ricoperto dall'utente nella UO (valorizzato solo se TipoNodo = UT o SV)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="UsernameUtente" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Username dell'utente (valorizzato solo se TipoNodo = UT o SV)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="TitoloUtente" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Titolo (dott, ing. avv. ecc) dell'utente (valorizzato solo se TipoNodo = UT o SV)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="QualificaUtente" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Qualifica dell'utente (valorizzato solo se TipoNodo = UT o SV)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="CFUtente" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Codice fiscale dell'utente se disponibile</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroMatricolaUtente" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>N. di matricola dell'utente se disponibile</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="TipoRelUtenteUO" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Tipo di relazione dell'utente con la UO (se TipoNodo = UT o SV). Valori possibili: A = Appartenenza, L e D = Delega/a lavorare per</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="FlagRelEstesaSottoUO" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>(valori 1/0) Se 1 indica che la relazione dell'utente vale anche per le sotto-UO (valorizzato se TipoNodo = UT o SV)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="FlagRelEstesaSVDellaUO" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>(valori 1/0) Se 1 indica che la relazione dell'utente vale anche per le scrivanie della UO (e sotto-UO se estesa anche a quelle) (valorizzato se TipoNodo = UT o SV)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="FlagNodoSelezionabilePerFinalita" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>(valori 1/0) Se 1 indica che il nodo e' selezionabile per la finalita' indicata, se 0 che non e' selezionabile</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="FlagAssegnazioneConsentita" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>(valori 1/0) Iindica se e' consentita l'assegnazione per competenza al nodo</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="FlagInvioConoscConsentito" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>(valori 1/0) Iindica se e' consentito l'invio in conoscenza al nodo</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="FlagPuntoProtocollo" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>(valori 1/0) Se 1 indica che la UO e' un Punto di Protocollo</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroPosizioneUO" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>N.ro posizione della UO tra le UO sotto lo stesso padre (da 1 in su)</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="Lista">
+		<xs:annotation>
+			<xs:documentation>ROOT element: Lista delle classificazioni trovate</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="NodoOrganigramma" type="NodoOrganigrammaType" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+			<xs:attribute name="NroTotaleRecord" use="required">
+				<xs:annotation>
+					<xs:documentation>N.ro totale di record che soddisfano i filtri di ricerca</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:integer">
+						<xs:minInclusive value="0"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<xs:attribute name="NroPagine" type="xs:integer" default="0">
+				<xs:annotation>
+					<xs:documentation>N.ro di pagine in cui sono distribuiti i record che sodisfano i filtri di ricerca (presente nel caso di estrazione pginata)</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

@@ -1,0 +1,505 @@
+1        PACKAGE DMPK_LOGIN AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        	
+12        	/************** Tutte le funzioni restituiscono 1 in caso di successo, altrimenti 0										*******/
+13        	/************** In caso di result 0 restituiscono un n.ro, un contesto e un messaggio di errore:							*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        	/***** Funzione per ricavare i parametri di configurazione del dominio in cui si è autenticato un utente ******/
+20        	function GetParametriConfig(
+21        			FlgTpDominioAutIn		IN	PLS_INTEGER DEFAULT NULL,				-- (obblig.) Indica il tipo di dominio in cui l'utente si è autenticato: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+22        			IdDominioAutIn		IN	DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type DEFAULT NULL)
+23        																-- (obblig. se FlgTpDominioAutIn vale 2 o 3) Identificativo del dominio di autenticazione, vale a dire l'id. del soggetto produttore o AOO se FlgTpDominioAutOut vale 2 o 3
+24        			return CLOB;											-- Parametri di configurazione: XML conforme a schema LISTA_STD.xsd
+25        																-- Ogni parametro è un tag Riga che contiene 2 colonne: 
+26        																-- 1: Nome
+27        																-- 2: Valore
+28        																-- Il valore se numerico ha la ',' come separatore decimale e il '.' come separatore delle migliaia, se di tipo data ha il formato GG/MM/AAAA
+29        
+30        	/***** Funzione per ricavare i parametri di configurazione del dominio in cui si è autenticato un utente ******/
+31        	function GetParametriConfig_J(
+32        			FlgTpDominioAutIn		IN	PLS_INTEGER DEFAULT NULL,				-- (obblig.) Indica il tipo di dominio in cui l'utente si è autenticato: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+33        			IdDominioAutIn			IN	DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type DEFAULT NULL,
+34        																-- (obblig. se FlgTpDominioAutIn vale 2 o 3) Identificativo del dominio di autenticazione, vale a dire l'id. del soggetto produttore o AOO se FlgTpDominioAutOut vale 2 o 3
+35        			XMLParametriOut 		OUT NOCOPY	CLOB)			-- Parametri di configurazione: XML conforme a schema LISTA_STD.xsd
+36        																-- Ogni parametro è un tag Riga che contiene 2 colonne: 
+37        																-- 1: Nome
+38        																-- 2: Valore
+39        																-- Il valore se numerico ha la ',' come separatore decimale e il '.' come separatore delle migliaia, se di tipo data ha il formato GG/MM/AAAA
+40        			RETURN PLS_INTEGER;									-- vale 1 in caso di successo, altrimenti 0
+41        			
+42        	/********funzione che restituisce le voci di menu e relativi dati *******/
+43        	FUNCTION LoadMenu(
+44        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+45        																	-- (obblig). Codice identificativo del token di connessione
+46        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+47        			MenuOut				OUT 		NOCOPY CLOB,       				-- Voci di menu (XML conforme a schema LISTA_STD.xsd)
+48        																	-- Ogni voce di menu è un tag Riga che contiene le colonne:
+49        																	-- 1 codice identificativo menu padre (vuoto se è un menu principale)
+50        																	-- 2 codice identificativo voce di menu
+51        																	-- 3 nome della voce di menu
+52        																	-- 4 tooltip della voce di menu
+53        																	-- 5 access key della voce di menu
+54        																	-- 6 n.ro d'ordine della voce (comunque le righe sono restituite già ordinate) tra le voci del menu di appartenenza
+55        																	-- 7 immagine associata 
+56        																	-- 8 abilitazione ad accedere alla funzione corrispondente alla voce di menu (valori 1/0)
+57        																	-- 9 URL corrispondente alla voce di menu
+58        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+59        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+60        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+61        			RETURN PLS_INTEGER;											-- vale 1 in caso di successo, altrimenti 0
+62        
+63        	/**** funzione per ottenere i privilegi su funzioni posseduti da un dato utente su un dato dominio.				*****/
+64        	/**** restituisce i codici delle funzioni cui si è abilitati;  nel caso di funzione con opzioni standard		*****/
+65        	/**** restituisce seguito da ; anche l'indicazione dell'opzione di accesso posseduta (I, M o FC) 				*****/
+66        	/**** NOTA: non vengono restituite le funzioni che hanno sotto-funzioni											*****/
+67        	FUNCTION GetUserPrivs(
+68        			FlgTpDominioAutIn		IN  	PLS_INTEGER,								-- (obblig.) Indica il tipo di dominio in cui l'utente si autentica: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+69        			IdDominioAutIn			IN 		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,		-- Identificativo del dominio di autenticazione, vale a dire l'id. del soggetto produttore o AOO se FlgTpDominioAutIn vale 2 o 3
+70        			IdUserIn				IN		DMT_USERS.ID_USER%type,						-- (obblig.) Id. dell'utente per cui ottenere le abilitazioni nel dominio indicato
+71        			PrivsListOut			OUT	NOCOPY CLOB,									-- Privilegi dell'utente(XML conforme a schema LISTA_STD.xsd)
+72        																						-- Ogni privilegio è un tag Riga che contiene una sola colonna:
+73        																						-- 1: Codice del privilegio, ovvero il cod. della funzione (la varie parti sono separate da /) 
+74        																						--    seguito da ;<opzione> nel caso sia un privilegio relativo ad una specifica opzione su funzione con opzioni standard (ad es: UT/TOP;I indica la funzione UT/TOP, il privilegio di inserire nuovi record)
+75        			ErrContextOut			OUT		VARCHAR2,									-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+76        			ErrCodeOut				OUT		PLS_INTEGER,								-- N.ro errore di uscita
+77        			ErrMsgOut				OUT 	VARCHAR2)									-- Messaggio d'errore
+78        			RETURN PLS_INTEGER;															-- vale 1 in caso di successo, altrimenti 0
+79        																		
+80        	/***** serve a caricare le informazioni/abilitazioni dell'utente di lavoro alle varie liste dell''applicazione *****/
+81        	function LoadInfoListe(
+82        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+83        																	-- (obblig). Codice identificativo del token di connessione
+84        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+85        			ListeXMLOut				OUT		NOCOPY CLOB,     					-- Info sulle liste (XML conforme a schema LISTA_STD.xsd)
+86        																	-- Ogni riga ha i dati di una lista ed  è un tag Riga che contiene le colonne:
+87        																	-- 1 Nome identificativo della lista
+88        																	-- 2 (1/0/NULL) Abilitazione all'inserimento/creazione di nuove occorrenze nella lista	
+89        																	-- 3 (1/0) Indica se quando si crea nuovo record il tab "Altri dati" con gli attributi custom deve essere visualizzato
+90        																	-- 4 Overflow limit della lista se estratta online (massimo n.ro di record estraibili senza dare errore)
+91        																	-- 5 Ordinamento di default della lista
+92        																	-- 6 Verso di ordinamento di default della lista (1 decrescente, 0 o NULL crescente)
+93        																	-- 7 (valori 1/0/NULL) Se 1 la lista va aperta sempre già popolata; se 0 la lista non va mai aperta già popolata; se NULL la lista va aperta già popolata solo se ci sono fitri preimpostati 
+94        																	-- 8 (1/0/NULL) Abilitazione alla modifica di record della lista (valorizzato solo per le liste in cui ha senso)
+95        																	-- 9 (1/0/NULL) Abilitazione alla cancellazione di record della lista (valorizzato solo per le liste in cui ha senso)														
+96        																	-- 10 Overflow limit della lista se estratta off-line come batch (massimo n.ro di record estraibili senza dare errore)
+97        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+98        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+99        			ErrMsgOut				OUT 		VARCHAR2)						-- Messaggio d'errore
+100        			RETURN PLS_INTEGER;											-- vale 1 in caso di successo, altrimenti 0
+101        
+102        	-----la funzione seguente di Login serve per retrocompatibilità (es back office SUAP)
+103        	function Login_OLD(
+104        			UsernameIn			IN		DMT_USERS.USERNAME%type,				-- (obblig.) Username nel sistema documentale
+105        			PasswordIn			IN		DMT_USERS.PASSWORD%type,				-- Password nel sistema documentale
+106        			FlgTpDominioAutIO		IN OUT 	PLS_INTEGER,						-- Indica il tipo di dominio in cui l'utente si autentica: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+107        																	-- Se NULL si intende che si autentichi nel tipo di dominio del dominio di default
+108        																	-- In OUTPUT indica il tipo di dominio in cui ci si è autenticati
+109        			IdDominioAutIO		IN OUT 	DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,		-- (obblig. se FlgTpDominioAutIO vale 2 o 3) Identificativo del dominio di autenticazione, vale a dire l'id. del soggetto produttore o AOO se FlgTpDominioAutI vale 2 o 3
+110        																	--  Se NULL e se anche FlgTpDominioAutIO è NULL si intende che si autentichi nel dominio di default
+111        																	-- In OUTPUT è l'identificativo del dominio in cui ci si è autenticati														
+112        			CodApplicazioneEstIn	IN		VARCHAR2 DEFAULT NULL,					-- Codice dell'eventuale applicazione esterna da cui l'utente chiede la login
+113        			CodIstanzaApplEstIn	IN		VARCHAR2,							-- Codice dell'istanza di applicazione esterna da cui l'utente chiede la login (se applicazioni multi-istanza)
+114        			CodIdConnectionTokenOut	OUT		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- Id. del token di connessione restituito in caso di login avvenuta
+115        			DesUserOut			OUT		DMT_USERS.DES_USER%type,				-- Descrizione utente loggato
+116        			DesDominioOut		OUT		VARCHAR2,							-- Descrizione del dominio in cui ci si è loggati
+117        			ParametriConfigOut	OUT		NOCOPY CLOB,						-- Parametri di configurazione: XML conforme a schema LISTA_STD.xsd
+118        																	-- Ogni parametro è un tag Riga che contiene 2 colonne: 
+119        																	-- 1: Nome
+120        																	-- 2: Valore
+121        																	-- Il valore se numerico ha la ',' come separatore decimale e il '.' come separatore delle migliaia, se di tipo data ha il formato GG/MM/AAAA
+122        			MenuOut			OUT 		NOCOPY CLOB,     						-- Voci del menu per l'utente collegato (XML conforme a schema LISTA_STD.xsd)
+123        																	-- Ogni voce di menu è un tag Riga che contiene le colonne:
+124        																	-- 1 codice identificativo menu padre (vuoto se è un menu principale)
+125        																	-- 2 codice identificativo voce di menu
+126        																	-- 3 nome della voce di menu
+127        																	-- 4 tooltip della voce di menu
+128        																	-- 5 access key della voce di menu
+129        																	-- 6 n.ro d'ordine della voce (comunque le righe sono restituite già ordinate) tra le voci del menu di appartenenza
+130        																	-- 7 immagine associata 
+131        																	-- 8 abilitazione ad accedere alla funzione corrispondente alla voce di menu (valori 1/0)
+132        																	-- 9 URL corrispondente alla voce di menu
+133        			ListeXMLOut				OUT		NOCOPY CLOB,     					-- Info sulle liste (XML conforme a schema LISTA_STD.xsd)
+134        																	-- Ogni riga ha i dati di una lista ed  è un tag Riga che contiene le colonne:
+135        																	-- 1 Nome identificativo della lista
+136        																	-- 2 (1/0/NULL) Abilitazione all'inserimento/creazione di nuove occorrenze nella lista	
+137        																	-- 3 (1/0) Indica se quando si crea nuovo record il tab "Altri dati" con gli attributi custom deve essere visualizzato
+138        																	-- 4 Overflow limit della lista se estratta online (massimo n.ro di record estraibili senza dare errore)
+139        																	-- 5 Ordinamento di default della lista
+140        																	-- 6 Verso di ordinamento di default della lista (1 decrescente, 0 o NULL crescente)
+141        																	-- 7 (valori 1/0/NULL) Se 1 la lista va aperta sempre già popolata; se 0 la lista non va mai aperta già popolata; se NULL la lista va aperta già popolata solo se ci sono fitri preimpostati 
+142        																	-- 8 (1/0/NULL) Abilitazione alla modifica di record della lista (valorizzato solo per le liste in cui ha senso)
+143        																	-- 9 (1/0/NULL) Abilitazione alla cancellazione di record della lista (valorizzato solo per le liste in cui ha senso)														
+144        																	-- 10 Overflow limit della lista se estratta off-line come batch (massimo n.ro di record estraibili senza dare errore)
+145        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+146        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+147        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+148        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+149        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+150        			ErrMsgOut			OUT 		VARCHAR2,							-- Messaggio d'errore,
+151        			FlgNoCtrlPasswordIn	IN		PLS_INTEGER DEFAULT NULL				-- Se 1 il controllo della password viene saltato
+152        			)return PLS_INTEGER;											-- vale 1 in caso di successo, altrimenti 0	
+153        		
+154        	/***** Funzione per loggarsi al sistema documentale con credenziali locali	****/
+155        	function Login(
+156        			UsernameIn			IN		DMT_USERS.USERNAME%type,				-- (obblig.) Username nel sistema documentale
+157        			PasswordIn			IN		DMT_USERS.PASSWORD%type,				-- Password nel sistema documentale
+158        			FlgTpDominioAutIO		IN OUT 	PLS_INTEGER,						-- Indica il tipo di dominio in cui l'utente si autentica: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+159        																	-- Se NULL si intende che si autentichi nel tipo di dominio del dominio di default
+160        																	-- In OUTPUT indica il tipo di dominio in cui ci si è autenticati
+161        			IdDominioAutIO		IN OUT 	DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,		-- (obblig. se FlgTpDominioAutIO vale 2 o 3) Identificativo del dominio di autenticazione, vale a dire l'id. del soggetto produttore o AOO se FlgTpDominioAutI vale 2 o 3
+162        																	--  Se NULL e se anche FlgTpDominioAutIO è NULL si intende che si autentichi nel dominio di default
+163        																	-- In OUTPUT è l'identificativo del dominio in cui ci si è autenticati														
+164        			CodApplicazioneEstIn	IN		VARCHAR2 DEFAULT NULL,					-- Codice dell'eventuale applicazione esterna da cui l'utente chiede la login
+165        			CodIstanzaApplEstIn	IN		VARCHAR2,							-- Codice dell'istanza di applicazione esterna da cui l'utente chiede la login (se applicazioni multi-istanza)
+166        			CodIdConnectionTokenOut	OUT		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- Id. del token di connessione restituito in caso di login avvenuta
+167        			IdUserOut			OUT		DMT_USERS.ID_USER%type,					-- Id. univoco dell'utente
+168        			DesUserOut			OUT		DMT_USERS.DES_USER%type,				-- Descrizione utente loggato
+169        			DesDominioOut		OUT		VARCHAR2,							-- Descrizione del dominio in cui ci si è loggati
+170        			ParametriConfigOut	OUT		NOCOPY CLOB,						-- Parametri di configurazione: XML conforme a schema LISTA_STD.xsd
+171        																	-- Ogni parametro è un tag Riga che contiene 2 colonne: 
+172        																	-- 1: Nome
+173        																	-- 2: Valore
+174        																	-- Il valore se numerico ha la ',' come separatore decimale e il '.' come separatore delle migliaia, se di tipo data ha il formato GG/MM/AAAA
+175        			MenuOut			OUT 		NOCOPY CLOB,     						-- Voci del menu per l'utente collegato (XML conforme a schema LISTA_STD.xsd)
+176        																	-- Ogni voce di menu è un tag Riga che contiene le colonne:
+177        																	-- 1 codice identificativo menu padre (vuoto se è un menu principale)
+178        																	-- 2 codice identificativo voce di menu
+179        																	-- 3 nome della voce di menu
+180        																	-- 4 tooltip della voce di menu
+181        																	-- 5 access key della voce di menu
+182        																	-- 6 n.ro d'ordine della voce (comunque le righe sono restituite già ordinate) tra le voci del menu di appartenenza
+183        																	-- 7 immagine associata 
+184        																	-- 8 abilitazione ad accedere alla funzione corrispondente alla voce di menu (valori 1/0)
+185        																	-- 9 URL corrispondente alla voce di menu
+186        			ListeXMLOut				OUT		NOCOPY CLOB,     					-- Info sulle liste (XML conforme a schema LISTA_STD.xsd)
+187        																	-- Ogni riga ha i dati di una lista ed  è un tag Riga che contiene le colonne:
+188        																	-- 1 Nome identificativo della lista
+189        																	-- 2 (1/0/NULL) Abilitazione all'inserimento/creazione di nuove occorrenze nella lista	
+190        																	-- 3 (1/0) Indica se quando si crea nuovo record il tab "Altri dati" con gli attributi custom deve essere visualizzato
+191        																	-- 4 Overflow limit della lista se estratta online (massimo n.ro di record estraibili senza dare errore)
+192        																	-- 5 Ordinamento di default della lista
+193        																	-- 6 Verso di ordinamento di default della lista (1 decrescente, 0 o NULL crescente)
+194        																	-- 7 (valori 1/0/NULL) Se 1 la lista va aperta sempre già popolata; se 0 la lista non va mai aperta già popolata; se NULL la lista va aperta già popolata solo se ci sono fitri preimpostati 
+195        																	-- 8 (1/0/NULL) Abilitazione alla modifica di record della lista (valorizzato solo per le liste in cui ha senso)
+196        																	-- 9 (1/0/NULL) Abilitazione alla cancellazione di record della lista (valorizzato solo per le liste in cui ha senso)														
+197        																	-- 10 Overflow limit della lista se estratta off-line come batch (massimo n.ro di record estraibili senza dare errore)
+198        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+199        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+200        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+201        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+202        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+203        			ErrMsgOut			OUT 		VARCHAR2,							-- Messaggio d'errore
+204        			FlgNoCtrlPasswordIn	IN		PLS_INTEGER DEFAULT NULL)				-- Se 1 il controllo della password viene saltato
+205        			return PLS_INTEGER;											-- vale 1 in caso di successo, altrimenti 0	
+206        			
+207        	function Login(
+208        			UsernameIn			IN		DMT_USERS.USERNAME%type,				-- (obblig.) Username nel sistema documentale
+209        			PasswordIn			IN		DMT_USERS.PASSWORD%type,				-- Password nel sistema documentale
+210        			FlgTpDominioAutIO		IN OUT 	PLS_INTEGER,						-- Indica il tipo di dominio in cui l'utente si autentica: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+211        																	-- Se NULL si intende che si autentichi nel tipo di dominio del dominio di default
+212        																	-- In OUTPUT indica il tipo di dominio in cui ci si è autenticati
+213        			IdDominioAutIO		IN OUT 	DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,		-- (obblig. se FlgTpDominioAutIO vale 2 o 3) Identificativo del dominio di autenticazione, vale a dire l'id. del soggetto produttore o AOO se FlgTpDominioAutIO vale 2 o 3
+214        																	--  Se NULL e se anche FlgTpDominioAutIO è NULL si intende che si autentichi nel dominio di default
+215        																	-- In OUTPUT è l'identificativo del dominio in cui ci si è autenticati														
+216        			CodApplicazioneEstIn	IN		VARCHAR2 DEFAULT NULL,					-- Codice dell'eventuale applicazione esterna da cui l'utente chiede la login
+217        			CodIstanzaApplEstIn	IN		VARCHAR2,							-- Codice dell'istanza di applicazione esterna da cui l'utente chiede la login (se applicazioni multi-istanza)
+218        			CodIdConnectionTokenOut	OUT		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- Id. del token di connessione restituito in caso di login avvenuta
+219        			IdUserOut			OUT		DMT_USERS.ID_USER%type,					-- Id. univoco dell'utente
+220        			DesUserOut			OUT		DMT_USERS.DES_USER%type,				-- Descrizione utente loggato
+221        			DesDominioOut		OUT		VARCHAR2,							-- Descrizione del dominio in cui ci si è loggati
+222        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+223        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+224        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+225        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+226        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+227        			ErrMsgOut			OUT 		VARCHAR2,							-- Messaggio d'errore
+228        			FlgNoCtrlPasswordIn	IN		PLS_INTEGER DEFAULT NULL)				-- Se 1 il controllo della password viene saltato
+229        			return PLS_INTEGER;											-- vale 1 in caso di successo, altrimenti 0
+230        	
+231        	-----overload usato dai WS di AurigaRepository
+232        	function Login(
+233        			UsernameIn			IN		DMT_USERS.USERNAME%type,				-- (obblig.) Username nel sistema documentale
+234        			PasswordIn			IN		DMT_USERS.PASSWORD%type,				-- Password nel sistema documentale
+235        			FlgTpDominioAutIO		IN OUT 	PLS_INTEGER,						-- Indica il tipo di dominio in cui l'utente si autentica: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+236        																	-- Se NULL si intende che si autentichi nel tipo di dominio del dominio di default
+237        																	-- In OUTPUT indica il tipo di dominio in cui ci si è autenticati
+238        			IdDominioAutIO		IN OUT 	DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,		-- (obblig. se FlgTpDominioAutIO vale 2 o 3) Identificativo del dominio di autenticazione, vale a dire l'id. del soggetto produttore o AOO se FlgTpDominioAutIO vale 2 o 3
+239        																	--  Se NULL e se anche FlgTpDominioAutIO è NULL si intende che si autentichi nel dominio di default
+240        																	-- In OUTPUT è l'identificativo del dominio in cui ci si è autenticati														
+241        			CodApplicazioneEstIn	IN		VARCHAR2 DEFAULT NULL,					-- Codice dell'eventuale applicazione esterna da cui l'utente chiede la login
+242        			CodIstanzaApplEstIn	IN		VARCHAR2,							-- Codice dell'istanza di applicazione esterna da cui l'utente chiede la login (se applicazioni multi-istanza)
+243        			CodIdConnectionTokenOut	OUT		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- Id. del token di connessione restituito in caso di login avvenuta
+244        			DesUserOut			OUT		DMT_USERS.DES_USER%type,				-- Descrizione utente loggato
+245        			DesDominioOut		OUT		VARCHAR2,							-- Descrizione del dominio in cui ci si è loggati
+246        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+247        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+248        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+249        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+250        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+251        			ErrMsgOut			OUT 		VARCHAR2)					-- Se 1 il controllo della password viene saltato
+252        			return PLS_INTEGER;											-- vale 1 in caso di successo, altrimenti 0
+253        
+254        	/******** login di un'applicazione ***************/
+255        	function LoginApplicazione(
+256        			UseridApplicazioneIn	IN		VARCHAR2,							-- (obblig.) Username dell'applicazione
+257        			PasswordIn				IN		VARCHAR2,							-- Password dell'applicazione
+258        			FlgTpDominioAutOut		OUT 	PLS_INTEGER,						-- Indica il tipo di dominio in cui l'applicazione si autentica: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+259        			IdDominioAutOut			IN OUT 	DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,		
+260        																				-- Identificativo del dominio di autenticazione, vale a dire l'id. del soggetto produttore o AOO se FlgTpDominioAutOut vale 2 o 3													
+261        			CodIdConnectionTokenOut	OUT		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	
+262        																				-- Id. del token di connessione restituito in caso di login avvenuta
+263        			IdUserOut			OUT		DMT_USERS.ID_USER%type,					-- Id. univoco dell'utente
+264        			DesUserOut			OUT		DMT_USERS.DES_USER%type,				-- Descrizione utente loggato
+265        			DesDominioOut		OUT		VARCHAR2,								-- Descrizione del dominio in cui ci si è loggati
+266        			ParametriConfigOut	OUT		NOCOPY CLOB,							-- Parametri di configurazione: XML conforme a schema LISTA_STD.xsd
+267        																				-- Ogni parametro è un tag Riga che contiene 2 colonne: 
+268        																				-- 1: Nome
+269        																				-- 2: Valore
+270        																				-- Il valore se numerico ha la ',' come separatore decimale e il '.' come separatore delle migliaia, se di tipo data ha il formato GG/MM/AAAA
+271        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+272        																				-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+273        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+274        			ErrContextOut		OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+275        			ErrCodeOut			OUT		PLS_INTEGER,							-- N.ro errore di uscita
+276        			ErrMsgOut			OUT 		VARCHAR2,							-- Messaggio d'errore
+277        			FlgNoCtrlPasswordIn	IN		PLS_INTEGER DEFAULT NULL)				-- Se 1 il controllo della password viene saltato
+278        			return PLS_INTEGER;													-- vale 1 in caso di successo, altrimenti 0	
+279        			
+280        	/***** Funzione per loggari al sistema documentale con credenziali esterne	****/
+281        	function LoginConCredenzialiEsterne(
+282        			CodApplicazioneIn		IN		VARCHAR2,							-- (obblig) Codice dell'applicazione esterna
+283        			CodIstanzaApplIn		IN		VARCHAR2,							-- Codice dell'istanza di applicazione in cui le credenziali fornite sono accreditate (e la username unica)
+284        			UsernameIn			IN		VARCHAR2,							-- (obblig.) Username nell'applicazione esterna
+285        			PasswordIn			IN		VARCHAR2,							-- Password nell'applicazione esterna
+286        			CodIdConnectionTokenOut	OUT		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- Id. del token di connessione restituito in caso di login avvenuta
+287        			DesUserOut			OUT		DMT_USERS.DES_USER%type,				-- Descrizione utente loggato
+288        			IdDominioOut		OUT		INTEGER,							-- Identificativo del dominio (id. del sogg. produttore o AOO) di autenticazione
+289        			DesDominioOut		OUT		VARCHAR2,							-- Descrizione del dominio in cui ci si è loggati
+290        			ParametriConfigOut	OUT		CLOB,								-- Parametri di configurazione: XML conforme a schema LISTA_STD.xsd
+291        																	-- Ogni parametro è un tag Riga che contiene 2 colonne: 
+292        																	-- 1: Nome
+293        																	-- 2: Valore
+294        																	-- Il valore se numerico ha la ',' come separatore decimale e il '.' come separatore delle migliaia, se di tipo data ha il formato GG/MM/AAAA
+295        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+296        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+297        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+298        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+299        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+300        			ErrMsgOut			OUT 		VARCHAR2,							-- Messaggio d'errore
+301        			FlgNoCtrlPasswordIn	IN		PLS_INTEGER DEFAULT NULL)				-- Se 1 il controllo della password viene saltato
+302        			return PLS_INTEGER;											-- vale 1 in caso di successo, altrimenti 0
+303        	
+304        	function LoginConCredenzialiEsterne(
+305        			CodApplicazioneIn		IN		VARCHAR2,							-- (obblig) Codice dell'applicazione esterna
+306        			CodIstanzaApplIn		IN		VARCHAR2,							-- Codice dell'istanza di applicazione in cui le credenziali fornite sono accreditate (e la username unica)
+307        			UsernameIn			IN		VARCHAR2,							-- (obblig.) Username nell'applicazione esterna
+308        			PasswordIn			IN		VARCHAR2,							-- Password nell'applicazione esterna
+309        			CodIdConnectionTokenOut	OUT		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- Id. del token di connessione restituito in caso di login avvenuta
+310        			DesUserOut			OUT		DMT_USERS.DES_USER%type,				-- Descrizione utente loggato
+311        			IdDominioOut		OUT		INTEGER,							-- Identificativo del dominio (id. del sogg. produttore o AOO) di autenticazione
+312        			DesDominioOut		OUT		VARCHAR2,							-- Descrizione del dominio in cui ci si è loggati
+313        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+314        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+315        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+316        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+317        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+318        			ErrMsgOut			OUT 		VARCHAR2,							-- Messaggio d'errore
+319        			FlgNoCtrlPasswordIn	IN		PLS_INTEGER DEFAULT NULL)				-- Se 1 il controllo della password viene saltato
+320        			return PLS_INTEGER;											-- vale 1 in caso di successo, altrimenti 0
+321        	
+322        	function LoginConCredenzialiEsterne(
+323        			CodApplicazioneIn		IN		VARCHAR2,							-- (obblig) Codice dell'applicazione esterna
+324        			CodIstanzaApplIn		IN		VARCHAR2,							-- Codice dell'istanza di applicazione in cui le credenziali fornite sono accreditate (e la username unica)
+325        			UsernameIn			IN		VARCHAR2,							-- (obblig.) Username nell'applicazione esterna
+326        			PasswordIn			IN		VARCHAR2,							-- Password nell'applicazione esterna
+327        			CodIdConnectionTokenOut	OUT		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- Id. del token di connessione restituito in caso di login avvenuta
+328        			IdUserOut			OUT		DMT_USERS.ID_USER%type,					-- Id. utente loggato
+329        			DesUserOut			OUT		DMT_USERS.DES_USER%type,				-- Descrizione utente loggato
+330        			FlgTpDominioOut		OUT 		PLS_INTEGER,						-- Indica il tipo di dominio in cui l'utente si autentica: Soggetto produttore; 3 = AOO
+331        			IdDominioOut		OUT		INTEGER,							-- Identificativo del dominio (id. del sogg. produttore o AOO) di autenticazione
+332        			DesDominioOut		OUT		VARCHAR2,							-- Descrizione del dominio in cui ci si è loggati
+333        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+334        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+335        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+336        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+337        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+338        			ErrMsgOut			OUT 		VARCHAR2,							-- Messaggio d'errore
+339        			FlgNoCtrlPasswordIn	IN		PLS_INTEGER DEFAULT NULL)				-- Se 1 il controllo della password viene saltato
+340        			return PLS_INTEGER;											-- vale 1 in caso di successo, altrimenti 0
+341        	
+342        	/********* Funzione con cui un utente connesso o che vuole connettersi può cambiare la propria password ************/
+343        	function CambioPassword(
+344        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig) Token di connessione 
+345        			OldPasswordIn		IN		DMT_USERS.PASSWORD%type,				-- Vecchia password
+346        			NewPasswordIn		IN		DMT_USERS.PASSWORD%type,				-- Nuova password
+347        			ConfNewPasswordIn		IN		DMT_USERS.PASSWORD%type,				-- Conferma nuova password
+348        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+349        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+350        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+351        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+352        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+353        			ErrMsgOut			OUT 		VARCHAR2)							-- Messaggio d'errore
+354        			return PLS_INTEGER;											-- vale 1 in caso di successo, altrimenti 0	
+355        
+356        	/****** Funzione che restituisce il n.ro di domini in cui un utente, indicato attraverso la sua userneme, è attualmente accreditato *****/
+357        	function ContaDominiAccredUtente(
+358        			UsernameIn			IN		DMT_USERS.USERNAME%type,				-- (obblig.) Username dell'utente (quella interna al sistema)
+359        			NroDominiAccredOut	OUT		PLS_INTEGER,						-- N.ro di domini in cui l'utente è accreditato
+360        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+361        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+362        			ErrMsgOut			OUT 		VARCHAR2)							-- Messaggio d'errore
+363        			return PLS_INTEGER;											-- vale 1 in caso di successo, altrimenti 0	
+364        
+365        	/****** Funzione che restituisce lo username data la mail e viceversa: usata dal plugin x Lotus Notes e per l'invio di pwd o credenziali via mail ad un utente *****/
+366        	function GetUsernameMail(
+367        			emailIO			IN OUT		DMT_USERS.E_MAIL%type,				-- e-mail dell'utente
+368        			UsernameIO			IN OUT		DMT_USERS.USERNAME%type,			-- Username dell'utente (quella interna al sistema)
+369        			ErrContextOut		OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+370        			ErrCodeOut			OUT		PLS_INTEGER,						-- N.ro errore di uscita
+371        			ErrMsgOut			OUT 		VARCHAR2)							-- Messaggio d'errore
+372        			return PLS_INTEGER;											-- vale 1 in caso di successo, altrimenti 0	
+373        
+374        	/******* funzione da richiamare ogni qual volta si effettua un'operazione usando un certo token di connessione 	******/
+375        	/******* in input si attende il token di connessione															******/
+376        	function MarkTokenUsage (
+377        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig) Token di connessione della sessione di lavoro
+378        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+379        																							-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+380        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+381        			ErrContextOut		OUT		VARCHAR2,											-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+382        			ErrCodeOut			OUT		PLS_INTEGER,										-- N.ro errore di uscita
+383        			ErrMsgOut			OUT 		VARCHAR2)										-- Messaggio d'errore
+384        			return PLS_INTEGER;																-- vale 1 in caso di successo, altrimenti 0	
+385        		
+386        	/******* funzione da richiamare quando viene effettuato il logout 								******/
+387        	/******* o più in generale quando si chiude una sessione di lavoro anche tramite web service	******/
+388        	/******* in input si attende il token di connessione											******/
+389        	function Logout (
+390        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig) Token di connessione della sessione che termina
+391        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+392        																							-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+393        			FlgAutoCommitIn		IN 		PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+394        			ErrContextOut		OUT		VARCHAR2,											-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+395        			ErrCodeOut			OUT		PLS_INTEGER,										-- N.ro errore di uscita
+396        			ErrMsgOut			OUT 		VARCHAR2)										-- Messaggio d'errore
+397        			return PLS_INTEGER;															-- vale 1 in caso di successo, altrimenti 0	
+398        			
+399        	
+400        	/********* funzione per verifica credenziali autenticazione senza generazione di token di connessione *******/
+401        	function VerificaCredenziali(
+402        			UsernameIn			IN		DMT_USERS.USERNAME%type,				-- (obblig.) Username nel sistema documentale
+403        			PasswordIn			IN		DMT_USERS.PASSWORD%type)				-- Password nel sistema documentale
+404        			return PLS_INTEGER;											-- 1 in caso di autenticazione andata a buon fine, altrimenti 0	
+405        			
+406        	/*************** funzione per iniziare una sessione di lavoro in delega 				*************/
+407        	/*************** può restituire 0 in caso di warning (se FlgIgnoreWarningIn <> 1)		*************/	
+408        	function StartSessioneInDelega(
+409        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig) Token di connessione della sessione di lavoro da cui attiviare la sessione in delega
+410        			IdUserDeleganteIn		IN		DMT_USERS.ID_USER%type,							-- (obblig.) Id. dell'utente per cui iniziare la sessione di lavoro in delega
+411        			UsernameDeleganteOut	OUT		VARCHAR2,										-- Username del delegante (da utilizzare per caricare le preference nelle GUI a meno che l'utente loggato NON scelga di mantenere le sue preference)
+412        			DesUserDeleganteOut		OUT		VARCHAR2,										-- Cognome e nome dell'utente per cui si è avviata la sessione in delega (valorizzato solo se funzione restituisce 1)
+413        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+414        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+415        																							-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+416        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+417        			WarningMsgOut			OUT		VARCHAR2,										-- Messaggio di warning (valorizzato solo se non c'è errore)
+418        			ErrContextOut			OUT		VARCHAR2,										-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+419        			ErrCodeOut				OUT		PLS_INTEGER,									-- N.ro errore di uscita
+420        			ErrMsgOut				OUT 	VARCHAR2										-- Messaggio d'errore
+421        			) return PLS_INTEGER;															-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+422        
+423        	/***************   funzione per terminare la sessione di lavoro in delega in corso su una certa conessione	*************/
+424        	function EndSessioneInDelega(
+425        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obblig) Token di connessione in cui è attiva la sessione di lavoro in delega da terminare
+426        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+427        																							-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+428        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+429        			ErrContextOut			OUT		VARCHAR2,										-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+430        			ErrCodeOut				OUT		PLS_INTEGER,									-- N.ro errore di uscita
+431        			ErrMsgOut				OUT 	VARCHAR2)										-- Messaggio d'errore
+432        			return PLS_INTEGER;																-- vale 1 in caso di successo, 0 in caso di errore
+433        
+434        			
+435        	/********* Funzione con cui resettare la password di un utente (un amministratore loggato) ************/
+436        	function ResetPasswordLogin(
+437        			CodIdConnectionTokenIn		IN			DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	
+438        																							-- (obblig) Token di connessione
+439        			UsernameIn                  IN        	DMT_USERS.USERNAME%type,                -- (obblig.) Username dell'utente di cui resettare la password
+440        			FlgNewUsersIn				IN			PLS_INTEGER DEFAULT NULL,               -- (valori 1/0/NULL) Se 1 indica che è il reset password di un utente appena creato
+441        			FlgRollBckFullIn            IN        	PLS_INTEGER DEFAULT NULL,               -- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+442                    FlgAutoCommitIn        		IN        	PLS_INTEGER DEFAULT NULL,               -- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+443        			EmailUtenteOut    			OUT   		VARCHAR2,                             	-- Email dell'utente a cui inviare la nuova password
+444                    NewPasswordOut          	OUT   		DMT_USERS.PASSWORD%type,                -- Nuova password
+445                    EmailMittenteOut			OUT			VARCHAR2,								-- Indirizzo mail da cui mandare la mail di reset
+446        			OggettoMailOut				OUT			VARCHAR2,								-- Oggetto della mail di reset password
+447        			BodyMailOut					OUT			NOCOPY CLOB,							-- Testo della mail di reset password
+448        			OggettoMailNewUserOut		OUT			VARCHAR2,								-- Oggetto della mail di creazione nuova utenza
+449        			BodyMailNewUserOut			OUT			NOCOPY CLOB,							-- Testo della mail di creazione nuova utenza
+450        			ErrContextOut        		OUT        	VARCHAR2,                               -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+451                    ErrCodeOut            		OUT         PLS_INTEGER,                            -- N.ro errore di uscita
+452                    ErrMsgOut            		OUT         VARCHAR2)                               -- Messaggio d'errore
+453                    return PLS_INTEGER;																-- Restituisce 1 in caso di password resettata, altrimenti 0
+454        
+455        	
+456        	/********* Funzione con cui un utente puo' resettare la sua password senza essersi autenticato ************/
+457            function ResetPasswordNoLogin(
+458        			UsernameIn                  IN        	DMT_USERS.USERNAME%type,                -- (obblig.) Username dell'utente 
+459        			FlgRollBckFullIn            IN        	PLS_INTEGER DEFAULT NULL,               -- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+460                    FlgAutoCommitIn        		IN        	PLS_INTEGER DEFAULT NULL,               -- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+461        			EmailUtenteOut    			OUT   		VARCHAR2,                             	-- Email dell'utente a cui inviare la nuova password
+462                    NewPasswordOut          	OUT   		DMT_USERS.PASSWORD%type,                -- Nuova password
+463                    EmailMittenteOut			OUT			VARCHAR2,								-- Indirizzo mail da cui mandare la mail di reset
+464        			OggettoMailOut				OUT			VARCHAR2,								-- Oggetto della mail di reset password
+465        			BodyMailOut					OUT			NOCOPY CLOB,							-- Testo della mail di reset password
+466        			ErrContextOut        		OUT        	VARCHAR2,                               -- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+467                    ErrCodeOut            		OUT         PLS_INTEGER,                            -- N.ro errore di uscita
+468                    ErrMsgOut            		OUT         VARCHAR2)                               -- Messaggio d'errore
+469                    return PLS_INTEGER;																-- Restituisce 1 in caso di password resettata, altrimenti 0
+470        
+471        	----- funzione per ottenere la UO di lavoro di default di un dato utente su un dato dominio
+472        	function GetIdUOLavoroDefault(
+473        			IdDominioAutIn		IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,			--(obblig.)	Id. del dominio - sogg. produttore/AOO - nel quale trovare la UO di lavoro di default
+474        			IdUserIn			IN		DMT_USERS.ID_USER%type,							-- Id. dell'utente (obblig. se UsernameIn non è valorizzato)
+475        			UsernameIn			IN		DMT_USERS.USERNAME%type)						-- Username dell'utente (obblig. se IdUserIn non è valorizzato)
+476        			return DMT_STRUTTURA_ORG.ID_UO%type;										-- viene restituito l'Id. della UO di lavoro impostata di default dall'utente sul dominio
+477        																						-- in caso la UO non sia impostata o in caso di errore non viene valorizzato il return
+478        	
+479        	----- funzione per ottenere l'ID_UO del punto di protocollo vs cui un dato utente ha attivato la funzione di protocollista su un dato dominio
+480        	function GetIdUOPPAttivaFunzProt(
+481        			IdDominioAutIn		IN		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,			--(obblig.)	Id. del dominio - sogg. produttore/AOO - nel quale trovare la UO di lavoro di default
+482        			IdUserIn			IN		DMT_USERS.ID_USER%type,							-- Id. dell'utente (obblig. se UsernameIn non è valorizzato)
+483        			UsernameIn			IN		DMT_USERS.USERNAME%type)						-- Username dell'utente (obblig. se IdUserIn non è valorizzato)
+484        			return DMT_STRUTTURA_ORG.ID_UO%type;										-- viene restituito l'Id. UO del punto di protocollo del dato dominio vs l'utente ha attivato la funzione di protocollista
+485        																						-- in caso la UO non sia impostata o in caso di errore non viene valorizzato il return
+486        
+487        	-- funzione per tracciare in DB un tentativo di login, sia che sia andato a buon fine sia in caso di errore																					
+488        	function LogLoginTry(
+489        			CodApplicazioneIn		IN		VARCHAR2,										-- Codice dell'applicazione esterna da cui eventualmente è stata fatta la login. In caso di Login da AurigaWeb o moduli di Auriga lasciare vuoto
+490        			CodIstanzaApplIn		IN		VARCHAR2,										-- Codice dell'istanza di applicazione esterna da cui eventualmente è stata fatta la login. In caso di Login da AurigaWeb o moduli di Auriga lasciare vuoto
+491        			FlgTpDominioAutIn		IN 		PLS_INTEGER,									-- Indica il tipo di dominio in cui l'utente si autentica: 1 = Schema DB; 2 = Soggetto produttore; 3 = AOO
+492        			IdDominioAutIn			IN 		DMT_SOGGETTI_PROD_AOO.ID_SP_AOO%type,			-- (obblig. se FlgTpDominioAutIn vale 2 o 3) Identificativo del dominio di autenticazione, vale a dire l'id. del soggetto produttore o AOO se FlgTpDominioAutIn vale 2 o 3
+493        			UsernameIn				IN		VARCHAR2,										-- (obblig.) Username passata in login
+494        			EsitoLoginIn			IN		PLS_INTEGER,									-- (obblig., valori 1/0) Indica se la login è andata a buon fine (1) o meno (0)
+495        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,	-- (obbligatorio se EsitoLoginIn = 1) Token di connessione rilasciato da Auriga a fronte della Login se andata a buon fine
+496        			ParametriClientIn		IN		CLOB,											-- (obblig.) Stringa con i dati del client che ha fatto la login: IP client, tipo di browser ecc
+497        			FlgRollBckFullIn		IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+498        																							-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+499        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,						-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+500        			ErrContextOut			OUT		VARCHAR2,										-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore; se NULL è la funzione stessa
+501        			ErrCodeOut				OUT		PLS_INTEGER,									-- N.ro errore di uscita
+502        			ErrMsgOut				OUT 	VARCHAR2)										-- Messaggio d'errore
+503        			return PLS_INTEGER;																-- vale 1 in caso di successo, 0 in caso di errore
+504        
+505        END DMPK_LOGIN;

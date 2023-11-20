@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mappings xmlns="http://dozer.sourceforge.net"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://dozer.sourceforge.net
+      http://dozer.sourceforge.net/schema/beanmapping.xsd">
+
+    <mapping map-id="def">
+        <class-a>it.eng.stilo.model.core.DocumentType</class-a>
+        <class-b>it.eng.stilo.web.dto.DocumentTypeDTO</class-b>
+        <field>
+            <a>id</a>
+            <b>typeCode</b>
+        </field>
+        <field>
+            <a>name</a>
+            <b>typeName</b>
+        </field>
+        <field>
+            <a>description</a>
+            <b>typeDesc</b>
+        </field>
+        <field-exclude>
+            <a>documentsAttribute</a>
+            <b>documentAttributesDTO</b>
+        </field-exclude>
+    </mapping>
+
+    <mapping map-id="B">
+        <class-a>it.eng.stilo.model.core.DocumentType</class-a>
+        <class-b>it.eng.stilo.web.dto.DocumentTypeDTO</class-b>
+        <field>
+            <a>id</a>
+            <b>typeCode</b>
+        </field>
+        <field>
+            <a>name</a>
+            <b>typeName</b>
+        </field>
+        <field>
+            <a>description</a>
+            <b>typeDesc</b>
+        </field>
+        <field map-id="B-DocAttr">
+            <a>documentsAttribute</a>
+            <b>documentAttributesDTO</b>
+        </field>
+    </mapping>
+
+    <mapping map-id="B-DocAttr">
+        <class-a>it.eng.stilo.model.core.DocumentAttribute</class-a>
+        <class-b>it.eng.stilo.web.dto.DocumentAttributeDTO</class-b>
+        <field-exclude>
+            <a>id.documentTypeId</a>
+            <b>documentTypeDTO.typeCode</b>
+        </field-exclude>
+        <field-exclude>
+            <a>id.attributeTypeId</a>
+            <b>attributeTypeDTO.typeCode</b>
+        </field-exclude>
+        <field-exclude>
+            <a>documentType</a>
+            <b>documentTypeDTO</b>
+        </field-exclude>
+        <field>
+            <a>attributeValue</a>
+            <b>value</b>
+        </field>
+        <field>
+            <a>attributeType</a>
+            <b>attributeTypeDTO</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>it.eng.stilo.model.core.AttributeType</class-a>
+        <class-b>it.eng.stilo.web.dto.AttributeTypeDTO</class-b>
+        <field>
+            <a>id</a>
+            <b>typeCode</b>
+        </field>
+        <field>
+            <a>name</a>
+            <b>typeName</b>
+        </field>
+    </mapping>
+
+    <mapping map-id="C">
+        <class-a>it.eng.stilo.model.core.DocumentType</class-a>
+        <class-b>it.eng.stilo.web.dto.DocumentTypeDTO</class-b>
+        <field>
+            <a>id</a>
+            <b>typeCode</b>
+        </field>
+        <field>
+            <a>name</a>
+            <b>typeName</b>
+        </field>
+        <field>
+            <a>description</a>
+            <b>typeDesc</b>
+        </field>
+        <field map-id="C-DocAttr">
+            <a>documentsAttribute</a>
+            <b>documentAttributesDTO</b>
+        </field>
+    </mapping>
+
+    <mapping map-id="C-DocAttr">
+        <class-a>it.eng.stilo.model.core.DocumentAttribute</class-a>
+        <class-b>it.eng.stilo.web.dto.DocumentAttributeDTO</class-b>
+        <field>
+            <a>id.documentTypeId</a>
+            <b>documentTypeDTO.typeCode</b>
+        </field>
+        <field>
+            <a>id.attributeTypeId</a>
+            <b>attributeTypeDTO.typeCode</b>
+        </field>
+        <field map-id="C-DocTyp">
+            <a>documentType</a>
+            <b>documentTypeDTO</b>
+        </field>
+        <field>
+            <a>attributeValue</a>
+            <b>value</b>
+        </field>
+        <field>
+            <a>attributeType</a>
+            <b>attributeTypeDTO</b>
+        </field>
+    </mapping>
+
+    <mapping map-id="C-DocTyp">
+        <class-a>it.eng.stilo.model.core.DocumentType</class-a>
+        <class-b>it.eng.stilo.web.dto.DocumentTypeDTO</class-b>
+        <field>
+            <a>id</a>
+            <b>typeCode</b>
+        </field>
+        <field-exclude>
+            <a>name</a>
+            <b>typeName</b>
+        </field-exclude>
+        <field-exclude>
+            <a>description</a>
+            <b>typeDesc</b>
+        </field-exclude>
+        <field-exclude>
+            <a>documentsAttribute</a>
+            <b>documentAttributesDTO</b>
+        </field-exclude>
+    </mapping>
+
+</mappings>

@@ -1,0 +1,357 @@
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+
+import it.eng.document.NumeroColonna;
+
+public class PraticaXMLBean {
+	
+	@NumeroColonna(numero = "1")
+	private String idRichiedente;
+	@NumeroColonna(numero = "3")
+	private String ruolo;
+	
+	
+	@NumeroColonna(numero = "5")
+	private String denominazione;
+	@NumeroColonna(numero = "6")
+	private String cognome;
+	@NumeroColonna(numero = "7")
+	private String nome;
+	@NumeroColonna(numero = "8")
+	private String flgPersonaFisica;	
+	@NumeroColonna(numero = "9")
+	private String codFiscale;
+	@NumeroColonna(numero = "10")
+	private String partitaIva;
+	
+	@NumeroColonna(numero = "74")
+	private String tipoToponimoSedeLegale;
+	@NumeroColonna(numero = "61")
+	private String toponimoSedeLegale;
+	@NumeroColonna(numero = "62")
+	private String nroCivicoSedeLegale;	
+	@NumeroColonna(numero = "67")
+	private String localitaFrazioneSedeLegale;
+	@NumeroColonna(numero = "66")
+	private String capSedeLegale;
+	@NumeroColonna(numero = "68")
+	private String comuneSedeLegale;
+	@NumeroColonna(numero = "69")
+	private String nomeComuneSedeLegale;
+	@NumeroColonna(numero = "70")
+	private String statoSedeLegale;
+	@NumeroColonna(numero = "71")
+	private String nomeStatoSedeLegale;
+	@NumeroColonna(numero = "72")
+	private String zonaSedeLegale;
+	@NumeroColonna(numero = "73")
+	private String complementoIndirizzoSedeLegale;
+	
+		
+	@NumeroColonna(numero = "58")
+	private String tipoToponimoRecapito;
+	@NumeroColonna(numero = "28")
+	private String toponimoRecapito;
+	@NumeroColonna(numero = "29")
+	private String nroCivicoRecapito;	
+	@NumeroColonna(numero = "34")
+	private String localitaFrazioneRecapito;	
+	@NumeroColonna(numero = "33")
+	private String capRecapito;
+	@NumeroColonna(numero = "35")
+	private String comuneRecapito;
+	@NumeroColonna(numero = "36")
+	private String nomeComuneRecapito;
+	@NumeroColonna(numero = "37")
+	private String statoRecapito;
+	@NumeroColonna(numero = "38")
+	private String nomeStatoRecapito;
+	@NumeroColonna(numero = "56")
+	private String zonaRecapito;
+	@NumeroColonna(numero = "57")
+	private String complementoIndirizzoRecapito;
+	
+	@NumeroColonna(numero = "42")
+	private String email;
+	@NumeroColonna(numero = "40")
+	private String telefono;
+	
+	@NumeroColonna(numero = "55")
+	private String idSoggGiuridico;	
+	
+	private String listaXMLRiferimenti;
+
+	public String getIdRichiedente() {
+		return idRichiedente;
+	}
+
+	public void setIdRichiedente(String idRichiedente) {
+		this.idRichiedente = idRichiedente;
+	}
+
+	public String getRuolo() {
+		return ruolo;
+	}
+
+	public void setRuolo(String ruolo) {
+		this.ruolo = ruolo;
+	}
+
+	public String getDenominazione() {
+		return denominazione;
+	}
+
+	public void setDenominazione(String denominazione) {
+		this.denominazione = denominazione;
+	}
+
+	public String getCognome() {
+		return cognome;
+	}
+
+	public void setCognome(String cognome) {
+		this.cognome = cognome;
+	}
+
+	public String getNome() {
+		return nome;
+	}
+
+	public void setNome(String nome) {
+		this.nome = nome;
+	}
+
+	public String getFlgPersonaFisica() {
+		return flgPersonaFisica;
+	}
+
+	public void setFlgPersonaFisica(String flgPersonaFisica) {
+		this.flgPersonaFisica = flgPersonaFisica;
+	}
+
+	public String getCodFiscale() {
+		return codFiscale;
+	}
+
+	public void setCodFiscale(String codFiscale) {
+		this.codFiscale = codFiscale;
+	}
+
+	public String getPartitaIva() {
+		return partitaIva;
+	}
+
+	public void setPartitaIva(String partitaIva) {
+		this.partitaIva = partitaIva;
+	}
+
+	public String getTipoToponimoSedeLegale() {
+		return tipoToponimoSedeLegale;
+	}
+
+	public void setTipoToponimoSedeLegale(String tipoToponimoSedeLegale) {
+		this.tipoToponimoSedeLegale = tipoToponimoSedeLegale;
+	}
+
+	public String getToponimoSedeLegale() {
+		return toponimoSedeLegale;
+	}
+
+	public void setToponimoSedeLegale(String toponimoSedeLegale) {
+		this.toponimoSedeLegale = toponimoSedeLegale;
+	}
+
+	public String getNroCivicoSedeLegale() {
+		return nroCivicoSedeLegale;
+	}
+
+	public void setNroCivicoSedeLegale(String nroCivicoSedeLegale) {
+		this.nroCivicoSedeLegale = nroCivicoSedeLegale;
+	}
+
+	public String getLocalitaFrazioneSedeLegale() {
+		return localitaFrazioneSedeLegale;
+	}
+
+	public void setLocalitaFrazioneSedeLegale(String localitaFrazioneSedeLegale) {
+		this.localitaFrazioneSedeLegale = localitaFrazioneSedeLegale;
+	}
+
+	public String getCapSedeLegale() {
+		return capSedeLegale;
+	}
+
+	public void setCapSedeLegale(String capSedeLegale) {
+		this.capSedeLegale = capSedeLegale;
+	}
+
+	public String getComuneSedeLegale() {
+		return comuneSedeLegale;
+	}
+
+	public void setComuneSedeLegale(String comuneSedeLegale) {
+		this.comuneSedeLegale = comuneSedeLegale;
+	}
+
+	public String getNomeComuneSedeLegale() {
+		return nomeComuneSedeLegale;
+	}
+
+	public void setNomeComuneSedeLegale(String nomeComuneSedeLegale) {
+		this.nomeComuneSedeLegale = nomeComuneSedeLegale;
+	}
+
+	public String getStatoSedeLegale() {
+		return statoSedeLegale;
+	}
+
+	public void setStatoSedeLegale(String statoSedeLegale) {
+		this.statoSedeLegale = statoSedeLegale;
+	}
+
+	public String getNomeStatoSedeLegale() {
+		return nomeStatoSedeLegale;
+	}
+
+	public void setNomeStatoSedeLegale(String nomeStatoSedeLegale) {
+		this.nomeStatoSedeLegale = nomeStatoSedeLegale;
+	}
+
+	public String getZonaSedeLegale() {
+		return zonaSedeLegale;
+	}
+
+	public void setZonaSedeLegale(String zonaSedeLegale) {
+		this.zonaSedeLegale = zonaSedeLegale;
+	}
+
+	public String getComplementoIndirizzoSedeLegale() {
+		return complementoIndirizzoSedeLegale;
+	}
+
+	public void setComplementoIndirizzoSedeLegale(
+			String complementoIndirizzoSedeLegale) {
+		this.complementoIndirizzoSedeLegale = complementoIndirizzoSedeLegale;
+	}
+
+	public String getTipoToponimoRecapito() {
+		return tipoToponimoRecapito;
+	}
+
+	public void setTipoToponimoRecapito(String tipoToponimoRecapito) {
+		this.tipoToponimoRecapito = tipoToponimoRecapito;
+	}
+
+	public String getToponimoRecapito() {
+		return toponimoRecapito;
+	}
+
+	public void setToponimoRecapito(String toponimoRecapito) {
+		this.toponimoRecapito = toponimoRecapito;
+	}
+
+	public String getNroCivicoRecapito() {
+		return nroCivicoRecapito;
+	}
+
+	public void setNroCivicoRecapito(String nroCivicoRecapito) {
+		this.nroCivicoRecapito = nroCivicoRecapito;
+	}
+
+	public String getLocalitaFrazioneRecapito() {
+		return localitaFrazioneRecapito;
+	}
+
+	public void setLocalitaFrazioneRecapito(String localitaFrazioneRecapito) {
+		this.localitaFrazioneRecapito = localitaFrazioneRecapito;
+	}
+
+	public String getCapRecapito() {
+		return capRecapito;
+	}
+
+	public void setCapRecapito(String capRecapito) {
+		this.capRecapito = capRecapito;
+	}
+
+	public String getComuneRecapito() {
+		return comuneRecapito;
+	}
+
+	public void setComuneRecapito(String comuneRecapito) {
+		this.comuneRecapito = comuneRecapito;
+	}
+
+	public String getNomeComuneRecapito() {
+		return nomeComuneRecapito;
+	}
+
+	public void setNomeComuneRecapito(String nomeComuneRecapito) {
+		this.nomeComuneRecapito = nomeComuneRecapito;
+	}
+
+	public String getStatoRecapito() {
+		return statoRecapito;
+	}
+
+	public void setStatoRecapito(String statoRecapito) {
+		this.statoRecapito = statoRecapito;
+	}
+
+	public String getNomeStatoRecapito() {
+		return nomeStatoRecapito;
+	}
+
+	public void setNomeStatoRecapito(String nomeStatoRecapito) {
+		this.nomeStatoRecapito = nomeStatoRecapito;
+	}
+	
+	public String getZonaRecapito() {
+		return zonaRecapito;
+	}
+
+	public void setZonaRecapito(String zonaRecapito) {
+		this.zonaRecapito = zonaRecapito;
+	}
+
+	public String getComplementoIndirizzoRecapito() {
+		return complementoIndirizzoRecapito;
+	}
+
+	public void setComplementoIndirizzoRecapito(
+			String complementoIndirizzoRecapito) {
+		this.complementoIndirizzoRecapito = complementoIndirizzoRecapito;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
+	public String getTelefono() {
+		return telefono;
+	}
+
+	public void setTelefono(String telefono) {
+		this.telefono = telefono;
+	}
+
+	public String getListaXMLRiferimenti() {
+		return listaXMLRiferimenti;
+	}
+
+	public void setListaXMLRiferimenti(String listaXMLRiferimenti) {
+		this.listaXMLRiferimenti = listaXMLRiferimenti;
+	}
+
+	public String getIdSoggGiuridico() {
+		return idSoggGiuridico;
+	}
+
+	public void setIdSoggGiuridico(String idSoggGiuridico) {
+		this.idSoggGiuridico = idSoggGiuridico;
+	}
+	
+}

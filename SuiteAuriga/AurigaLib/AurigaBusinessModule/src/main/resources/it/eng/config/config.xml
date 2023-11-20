@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+
+	<!-- Configurazione per l'open office converter -->
+	<!--Va settata al minimo uno in più degli openoffice configurati in modo da permettere il giro -->		
+	<!-- 
+	<bean id="oomanager" class="it.eng.utility.oomanager.config.OpenOfficeConfiguration">
+		<property name="maxTrytoconvert" value="2"></property>
+		<property name="instances">
+			<util:list value-type="it.eng.utility.oomanager.config.OpenOfficeInstance">
+				<bean class="it.eng.utility.oomanager.config.OpenOfficeInstance">
+					<property name="host" value="127.0.0.1"></property>
+					<property name="port" value="8100"></property>
+					<property name="servicename" value="OpenOffice_1"></property>
+				</bean>
+			</util:list>
+		</property>
+	</bean>
+	-->
+
+	<!-- Bean di configurazione per i parametri globali da usare nel modulo -->
+	<bean id="moduleConfig" class="it.eng.auriga.module.config.ModuleConfig">		
+		<!-- Identificativo del DB di storage dei file -->
+		<property name="idDbStorage" value="AURIGA@1"></property>
+	</bean>
+
+	<!-- Bean di configurazione per un eventuale proxy -->
+	<bean id="proxyconfig" class="it.eng.auriga.module.config.ProxyConfiguration">
+		<property name="host" value="proxy.eng.it"></property>
+		<property name="port" value="3128"></property>
+		<property name="username" value="campello"></property>
+		<property name="password" value="pelllo123"></property>
+	</bean>
+
+</beans>

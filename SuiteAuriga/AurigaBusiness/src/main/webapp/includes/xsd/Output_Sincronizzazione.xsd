@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- edited with XMLSpy v2011 rel. 3 (x64) (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<!-- ValoriAttributo ver 1.0: edited by Valentina Martinucci (Engineering II Spa) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="qualified">
+	<xs:simpleType name="result">
+		<xs:annotation>
+			<xs:documentation>Risultato del servizio invocato: successo (=OK), fallito a causa di errori (=KO), W (andato a buon fine ma ci sono avvertimenti)</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="OK">
+				<xs:annotation>
+					<xs:documentation>Successo (senza avvertimenti)</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="KO">
+				<xs:annotation>
+					<xs:documentation>Fallito a causa di errori</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="W">
+				<xs:annotation>
+					<xs:documentation>Andato a buon fine ma con avvertimenti</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="ValoriAttributo">
+		<xs:annotation>
+			<xs:documentation>Valore/i da assegnare ad un dato attributo</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="MatriceValori">
+				<xs:annotation>
+					<xs:documentation>Valore/i dell'attributo (come  lista di record) se multivalore o strutturato. E' una matrice fatta di una o più righe (più di una se è un attributo multi-valore) e da una o più colonne (più di una se è un attributo strutturato formato da più sotto-attributi)</xs:documentation>
+				</xs:annotation>
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="Rec" minOccurs="0" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>Rappresenta un record-valore dell'attributo</xs:documentation>
+							</xs:annotation>
+							<xs:complexType>
+								<xs:sequence>
+									<xs:element name="Cols">
+										<xs:annotation>
+											<xs:documentation>Colonne che formano il record-valore</xs:documentation>
+										</xs:annotation>
+										<xs:complexType>
+											<xs:sequence>
+												<xs:element name="Col" maxOccurs="unbounded">
+													<xs:annotation>
+														<xs:documentation>Valore di una colonna del record. Nel caso di attributo non strutturato, ovvero non composto a sua volta da sotto-attributi, ci può essere una sola colonna; nel caso di attributo di tipo strutturato sono al massimo tante colonne quante i sotto-attributi che compongono l'attributo. Se è il valore di un attributo data è formattato come xs:date, se data e ora come xs:dateTime, se è un anno come xs:gYear e se è un altro tipo numerico come xs:float; se è un check come xs:boolean</xs:documentation>
+													</xs:annotation>
+													<xs:complexType>
+														<xs:simpleContent>
+															<xs:extension base="xs:string">
+																<xs:attribute name="NomeSottoAttributo" type="xs:token">
+																	<xs:annotation>
+																		<xs:documentation>Nome che identifica il sotto-attributo i cui valori sono riportati nella colonna. Va specificato ed è obbligatorio solo nel caso di attributo strutturato - i.e. formato da più sotto-attributi - altrimenti va omesso</xs:documentation>
+																	</xs:annotation>
+																</xs:attribute>
+															</xs:extension>
+														</xs:simpleContent>
+													</xs:complexType>
+												</xs:element>
+											</xs:sequence>
+										</xs:complexType>
+									</xs:element>
+								</xs:sequence>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="ValoreSemplice" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Valore dell'attributo se monovalore e di tipo non strutturato (cioè non composto a sua volta da sotto-attributi). Se è un attributo data è formattato come xs:date, se data e ora come xs:dateTime, se è un anno come xs:integer e se è un altro tipo numerico come xs:decimal; se è un check come xs:boolean</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:choice>
+		<xs:attribute name="NomeAttributo" type="xs:token" use="required">
+			<xs:annotation>
+				<xs:documentation>E' il nome che identifica l'attributo</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:element name="Output">
+		<xs:annotation>
+			<xs:documentation>Output della chiamata ad un servizio</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence minOccurs="0">
+				<xs:element name="ErrMsg" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Errori riscontrati</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="xs:string">
+								<xs:attribute name="code" type="xs:token">
+									<xs:annotation>
+										<xs:documentation>Codice identificativo dell'errore</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+							</xs:extension>
+						</xs:simpleContent>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Warning" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Avvertimenti</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="xs:string">
+								<xs:attribute name="code" type="xs:token">
+									<xs:annotation>
+										<xs:documentation>Codice identificativo dell'avvertimento</xs:documentation>
+									</xs:annotation>
+								</xs:attribute>
+							</xs:extension>
+						</xs:simpleContent>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="AltroDatoRitorno" type="ValoriAttributo" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Altri dati restituiti dal servizio chiamato (ad esempio l'id. assegnato all'entità creata sul sistema sincronizzato a fronte della propagazione di un evento di creazione di un'entità) </xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="result" type="result" use="required">
+				<xs:annotation>
+					<xs:documentation>Indica se la sincronizzazione è andata a buon fine (=OK) o meno (=KO). Se è andata a buon fine ma con avvertimenti è pari a W</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

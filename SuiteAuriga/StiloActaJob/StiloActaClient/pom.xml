@@ -1,0 +1,174 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  	<modelVersion>4.0.0</modelVersion>
+  	<parent>
+    	<groupId>it.eng.suiteAuriga</groupId>
+    	<artifactId>StiloActaJob</artifactId>
+    	<version>1.8.14</version>
+  	</parent>
+  	<groupId>it.eng.auriga</groupId>
+  	<artifactId>StiloActaClient</artifactId>
+  	
+  	<properties>
+        <!-- <base.url.test>http://tst-applogic.reteunitaria.piemonte.it/actasrv</base.url.test>
+        <base.url.prod>http://wsbe.csi.it/actasrv-coto01</base.url.prod>-->
+        <jms.version>2.0.1</jms.version>
+    </properties>
+
+    <dependencies>
+    	<dependency>
+            <groupId>it.eng.auriga</groupId>
+            <artifactId>StiloActaUtil</artifactId>
+            <version>${suiteAuriga.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.jms</groupId>
+            <artifactId>javax.jms-api</artifactId>
+            <version>${jms.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.25</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>5.5.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <version>RELEASE</version>
+            <scope>test</scope>
+        </dependency-->
+        <dependency>
+    		<groupId>it.eng.utility</groupId>
+    		<artifactId>acta-ws-client</artifactId>
+    		<version>1.0.0</version>
+    		<!-- scope>system</scope>
+    		<systemPath>${basedir}/src/lib/acta-ws-client.jar</systemPath -->
+		</dependency>
+    </dependencies>
+
+    <profiles>
+        <profile>
+            <id>test</id>
+            <!-- activation>
+                <activeByDefault>true</activeByDefault>
+            </activation -->
+            <properties>
+                <profile.name>test</profile.name>
+                <base.url>${base.url.test}</base.url>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>jaxws-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>generate-ws-code</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>prod</id>
+            <properties>
+                <profile.name>prod</profile.name>
+                <base.url>${base.url.prod}</base.url>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>jaxws-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>generate-ws-code</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>wsGenTest</id>
+            <properties>
+                <profile.name>test</profile.name>
+                <base.url>${base.url.test}</base.url>
+            </properties>
+        </profile>
+        <profile>
+            <id>wsGenProd</id>
+            <properties>
+                <profile.name>prod</profile.name>
+                <base.url>${base.url.prod}</base.url>
+            </properties>
+        </profile>
+    </profiles>
+
+    <build>
+        <finalName>acta-client</finalName>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+            <resource>
+                <directory>src/main/resources/${profile.name}</directory>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>jaxws-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>generate-ws-code</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>wsimport</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Specify where to place generated source files -->
+                            <sourceDestDir>${project.basedir}/src/main/java</sourceDestDir>
+
+                            <!-- Unspecified package name: the source files will be generated under the same namespace which is mentioned in the WSDL -->
+
+                            <!-- List of WSDL url -->
+                            <wsdlUrls>
+                                <wsdlUrl>${base.url}/backofficeWS?wsdl</wsdlUrl>
+                                <wsdlUrl>${base.url}/objectWS?wsdl</wsdlUrl>
+                                <wsdlUrl>${base.url}/relationshipsWS?wsdl</wsdlUrl>
+                                <wsdlUrl>${base.url}/repositoryWS?wsdl</wsdlUrl>
+                            </wsdlUrls>
+                            <verbose>true</verbose>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.2</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M4</version>
+            </plugin>
+        </plugins>
+    </build>
+  	
+</project>

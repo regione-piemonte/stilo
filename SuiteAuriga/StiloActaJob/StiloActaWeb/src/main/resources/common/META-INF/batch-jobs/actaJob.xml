@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<job id="actaJob" xmlns="http://xmlns.jcp.org/xml/ns/javaee" version="1.0">
+
+    <!-- Close Volumes -->
+    <step id="actaVolumeClosingStep" next="actaVolumeOpeningStep">
+        <batchlet ref="actaVolumeClosingBatchlet"/>
+    </step>
+
+    <!-- Open Volumes -->
+    <step id="actaVolumeOpeningStep" next="actaDocumentDecision">
+        <batchlet ref="actaVolumeOpeningBatchlet"/>
+    </step>
+
+    <!-- Send Documents or not -->
+    <decision id="actaDocumentDecision" ref="actaDocumentSendingDecision">
+        <next on="SUCCESS" to="actaDocumentStep"/>
+        <next on="AUTO_SUCCESS" to="actaDocumentStep"/>
+        <end on="FAILED" exit-status="COMPLETED"/>
+    </decision>
+
+    <!-- Standard flow for main Documents - including Attachments and Classification -->
+    <step id="actaDocumentStep" next="actaAttachmentStep">
+        <properties>
+            <property name="job-document-max" value="5"/>
+        </properties>
+        <chunk item-count="3">
+            <reader ref="actaDocumentItemReader"/>
+            <processor ref="actaDocumentItemProcessor"/>
+            <writer ref="actaDocumentItemWriter"/>
+        </chunk>
+    </step>
+
+    <!-- Recovery flow for Attachments previously failed -->
+    <step id="actaAttachmentStep" next="actaClassificationStep">
+        <properties>
+            <property name="job-document-max" value="10"/>
+        </properties>
+        <chunk item-count="3">
+            <reader ref="actaAttachmentItemReader"/>
+            <processor ref="actaAttachmentItemProcessor"/>
+            <writer ref="actaAttachmentItemWriter"/>
+        </chunk>
+    </step>
+
+    <!-- Recovery flow for Classification previously failed -->
+    <step id="actaClassificationStep">
+        <properties>
+            <property name="job-document-max" value="10"/>
+        </properties>
+        <chunk item-count="3">
+            <reader ref="actaClassificationItemReader"/>
+            <processor ref="actaClassificationItemProcessor"/>
+            <writer ref="actaClassificationItemWriter"/>
+        </chunk>
+    </step>
+
+</job>
+

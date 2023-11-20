@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="RequestRicercaAttiPerProgettoLLPP">
+		<xs:annotation>
+			<xs:documentation>Root element della request per ricercare atti legati ad un certo progetto di Opere Pubbliche</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="AnnoProgettoLLPP" type="xs:gYear" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Anno del progetto di opere pubbliche per cui ricercare atto/i collegati</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="NroProgettoLLPP" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Nro del progetto di opere pubbliche per cui ricercare atto/i collegati</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="TipoAtto" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Nome del tipo di atti da ricercare. Ricerca esatta case-insensitive</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="RegistroNumDefinitivaAtto" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Sigla del registro di numerazione definitiva degli atti da ricercare</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="AnnoAtto" type="xs:gYear" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Anno di numerazine definitiva atti da riccercare</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="NroAtto" type="xs:positiveInteger" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>N di numerazine definitiva atti da ricercare</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="CIG" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>CIG o Smart CIG (ricerca esatta)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="10"/>
+							<xs:minLength value="10"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="CUP" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>CUP (ricerca esatta)</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="15"/>
+							<xs:minLength value="15"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

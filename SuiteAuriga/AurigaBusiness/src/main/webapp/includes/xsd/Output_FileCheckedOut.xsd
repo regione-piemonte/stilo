@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Andrea Campello (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="Output_FileCheckedOut">
+		<xs:annotation>
+			<xs:documentation>ROOT element dello schema. Contiene  l'output specifico del Web Service di check-out di un documento</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="IdDoc" type="xs:integer">
+					<xs:annotation>
+						<xs:documentation>Identificativo univoco del documento checked-out</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="NroUltimaVersione">
+					<xs:annotation>
+						<xs:documentation>Nro dell'ultima versione valida del documento (quella cui corrisponde il file estratto)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="NomeFile">
+					<xs:annotation>
+						<xs:documentation>Nome del file estratto, ovvero l'ultima versione valida</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="TipoDoc">
+					<xs:annotation>
+						<xs:documentation>Tipo del documento (descrizione e codice)</xs:documentation>
+					</xs:annotation>
+					<xs:complexType mixed="true">
+						<xs:attribute name="CodiceIdentificativo" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="DesOgg" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Descrizione/oggetto del documento</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

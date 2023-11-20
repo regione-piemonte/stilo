@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<!-- edited by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="Lista">
+		<xs:annotation>
+			<xs:documentation>Root element</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="NodoOrganigramma" minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Contiene i dati di un nodo dell'organigramma</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Cid" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>Identificativo univoco del nodo (invariante nel tempo e a fronte di spostamenti eventuali)</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="CidPadre" type="xs:string" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Identificativo univoco del nodo padre. Solo se struttura apicale non va indicato</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="Nome" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>Nome della struttura</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="CodSiglario" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>Codice della struttura come da siglario</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="DesQualifica" type="xs:string" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Descrizione di eventuale qualifica</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="IndirizzoEmailAziendale" type="xs:string" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Indirizzo mail ezindale</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="FlgSocieta" type="xs:boolean" default="false" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Se true indica che si tratta di una società</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="DataInizio" type="xs:date">
+								<xs:annotation>
+									<xs:documentation>Data di istituzione / inizio validità</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="DataFine" type="xs:date" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Data di cessazione/fine validità</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="Societa" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Società di appartenenza</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:choice>
+										<xs:element name="Cid">
+											<xs:annotation>
+												<xs:documentation>Codice identificativo univoco della società di appartenenza</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="Nome">
+											<xs:annotation>
+												<xs:documentation>Nome della società di appartenenza</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:choice>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="CidResponsabile" type="xs:string" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Codice identificativo univoco del responsabile della struttura</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="CidResponsabileInterim" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Codice identificativo univoco del responsabile ad interim della struttura</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="Modalita" use="required">
+				<xs:annotation>
+					<xs:documentation>Indica la modalità di invio dei dati: completa o incrementale (solo i dati non ancora inviati)</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:pattern value="completa"/>
+						<xs:pattern value="incrementale"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

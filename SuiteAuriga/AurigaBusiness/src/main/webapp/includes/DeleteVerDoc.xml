@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DeleteVerDoc>		
+		<EstremiXIdentificazioneUD>
+			<EstremiRegNum>
+				<SiglaReg>N.I.</SiglaReg>
+				<AnnoReg>2016</AnnoReg>
+				<NumReg>237</NumReg>
+			</EstremiRegNum>
+		</EstremiXIdentificazioneUD>		
+		<EstremixIdentificazioneFileUD>
+		    <!--  Cancella il primario, versione 2-->
+			<FlagPrimario>1</FlagPrimario>       
+		    <NroVersione>2</NroVersione> 	
+		   		   
+			<!--  Cancella allegato 1, versione 2
+		    <NroAllegato>1</NroAllegato>
+		    <NroVersione>2</NroVersione>
+		    -->
+		</EstremixIdentificazioneFileUD>
+		<FlagDelLogicaFisica>F</FlagDelLogicaFisica>
+</DeleteVerDoc>

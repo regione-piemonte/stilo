@@ -1,0 +1,195 @@
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.aggiornaanagrafeclassidoc;
+
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.jws.WebService;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.ws.WebServiceContext;
+import javax.xml.ws.handler.MessageContext;
+import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
+import com.sun.xml.ws.developer.SchemaValidation;
+
+import it.eng.auriga.database.store.bean.SchemaBean;
+import it.eng.auriga.database.store.dmpk_gae.bean.DmpkGaeAggiornaanagrafetipologiedocBean;
+import it.eng.auriga.database.store.dmpk_gae.store.Aggiornaanagrafetipologiedoc;
+import it.eng.auriga.database.store.result.bean.StoreResultBean;
+import it.eng.auriga.module.business.dao.DaoBnlConsumerWS;
+import it.eng.auriga.repository2.jaxws.jaxbBean.aggiornaanagrafeclassidoc.ErrorType;
+import it.eng.auriga.repository2.jaxws.jaxbBean.aggiornaanagrafeclassidoc.RequestAggiornaAnagrafeClassiDoc;
+import it.eng.auriga.repository2.jaxws.jaxbBean.aggiornaanagrafeclassidoc.ResponseAggiornaAnagrafeClassiDoc;
+import it.eng.auriga.repository2.jaxws.jaxbBean.aggiornaanagrafeclassidoc.ResponseAggiornaAnagrafeClassiDoc.Errori;
+import it.eng.auriga.repository2.jaxws.jaxbBean.aggiornaanagrafeclassidoc.ResultType;
+import it.eng.core.business.subject.SubjectBean;
+import it.eng.core.business.subject.SubjectUtil;
+import it.eng.document.configuration.AggiornaAnagrafeClassiDocConfigBean;
+import it.eng.spring.utility.SpringAppContext;
+import it.eng.storeutil.AnalyzeResult;
+
+@WebService(targetNamespace = "http://aggiornaanagrafeclassidoc.webservices.repository2.auriga.eng.it", endpointInterface = "it.eng.auriga.repository2.jaxws.webservices.aggiornaanagrafeclassidoc.WSIAggiornaAnagrafeClassiDoc", name = "WSAggiornaAnagrafeClassiDoc")
+@SchemaValidation
+@MTOM(enabled = true, threshold = 0)
+
+public class WSAggiornaAnagrafeClassiDoc implements WSIAggiornaAnagrafeClassiDoc {
+
+	@Resource
+	private WebServiceContext context;
+
+	static Logger aLogger = Logger.getLogger(WSAggiornaAnagrafeClassiDoc.class.getName());
+
+	@Override
+	public ResponseAggiornaAnagrafeClassiDoc aggiornaAnagrafeClassiDoc(RequestAggiornaAnagrafeClassiDoc parameter) {
+
+		aLogger.debug("WS aggiornaAnagrafeClassiDoc - request: " + parameter);
+
+		// la validazione è già effettuata da XMLValidation sullo schema associato al wsdl
+		// verifico comunque che i dati in input siano valorizzati
+
+		ResponseAggiornaAnagrafeClassiDoc response = new ResponseAggiornaAnagrafeClassiDoc();
+
+		try {
+			
+			if (parameter == null) {
+				throw new Exception("Request non valorizzata correttamente");
+			}
+			
+			// verifico username e password in input alla richiesta SOAP
+			MessageContext lMessageContext = context.getMessageContext();
+			String username = (String) lMessageContext.get("username");
+			String password = (String) lMessageContext.get("password");
+			if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
+				throw new Exception("Credenziali non presenti o incomplete");
+			}
+
+			AggiornaAnagrafeClassiDocConfigBean lAggiornaAnagrafeClassiDocConfigBean = null;
+			try {
+				// recupero il token per effettuare la chiamata alla store e il relativo schema dal bean di configurazione
+				lAggiornaAnagrafeClassiDocConfigBean = (AggiornaAnagrafeClassiDocConfigBean) SpringAppContext.getContext()
+						.getBean("AggiornaAnagrafeClassiDocConfigBean");
+			} catch (Exception e) {
+			}
+			if (lAggiornaAnagrafeClassiDocConfigBean == null) {
+				throw new Exception("Bean AggiornaAnagrafeClassiDocConfigBean non configurato");
+			}
+			if (StringUtils.isBlank(lAggiornaAnagrafeClassiDocConfigBean.getDefaultSchema())) {
+				throw new Exception("Schema non valorizzato");
+			}
+
+			// creo bean connessione
+			SchemaBean lSchemaBean = new SchemaBean();
+			lSchemaBean.setSchema(lAggiornaAnagrafeClassiDocConfigBean.getDefaultSchema());
+
+			SubjectBean subject = new SubjectBean();
+			subject.setIdDominio(lSchemaBean.getSchema());
+			SubjectUtil.subject.set(subject);
+
+			// verifico le credenziali in database
+			DaoBnlConsumerWS lDaoBnlConsumerWS = new DaoBnlConsumerWS();
+			Boolean authentication = lDaoBnlConsumerWS.verificaCredenziali(lSchemaBean, username, password);
+			if(!authentication){
+				throw new Exception("Credenziali non valide");
+			}
+
+			JAXBContext lJAXBContextMarshaller = JAXBContext.newInstance(RequestAggiornaAnagrafeClassiDoc.class);
+			Marshaller marshaller = lJAXBContextMarshaller.createMarshaller();
+
+			JAXBContext lJAXBContextUnmarshaller = JAXBContext.newInstance(ResponseAggiornaAnagrafeClassiDoc.class);
+			Unmarshaller unmarshaller = lJAXBContextUnmarshaller.createUnmarshaller();
+
+			StringWriter stringWriter = new StringWriter();
+			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+			marshaller.marshal(parameter, stringWriter);
+
+			final Aggiornaanagrafetipologiedoc service = new Aggiornaanagrafetipologiedoc();
+			DmpkGaeAggiornaanagrafetipologiedocBean lDmpkGaeAggiornaanagrafetipologiedocBean = new DmpkGaeAggiornaanagrafetipologiedocBean();
+			lDmpkGaeAggiornaanagrafetipologiedocBean.setXmlrequestin(stringWriter.toString());
+
+			service.setBean(lDmpkGaeAggiornaanagrafetipologiedocBean);
+
+			// effettuo chiamata alla store
+			StoreResultBean<DmpkGaeAggiornaanagrafetipologiedocBean> lResultStore = service.execute(lSchemaBean, lDmpkGaeAggiornaanagrafetipologiedocBean);
+
+			AnalyzeResult.analyze(lDmpkGaeAggiornaanagrafetipologiedocBean, lResultStore);
+			lResultStore.setResultBean(lDmpkGaeAggiornaanagrafetipologiedocBean);
+
+			// si è verificato un errore
+			if (lResultStore.isInError()) {
+
+				// la store ha restituito un errore, mappo il corrispondente errore con quelli previsti per il web service
+				// In caso l'errore non sia fra quelli previsti si restituisce il codice AUR-999 e il dettaglio dell'errore
+
+				aLogger.debug(lResultStore.getDefaultMessage());
+				aLogger.debug(lResultStore.getErrorContext());
+				aLogger.debug(lResultStore.getErrorCode());
+
+			} else {
+				if (lResultStore.getResultBean() != null && StringUtils.isNotBlank(lResultStore.getResultBean().getXmlresponseout())) {
+					// restituisco xml in output dalla store
+					StringReader sr = new StringReader(lResultStore.getResultBean().getXmlresponseout());
+					response = (ResponseAggiornaAnagrafeClassiDoc) unmarshaller.unmarshal(sr);
+				} else {
+					throw new Exception("Nessun risultato restituito dalla store");
+				}
+			}
+
+		} catch (Exception e) {
+			aLogger.error("Errore WS aggiornaAnagrafeClassiDoc", e);
+			// in caso di errore restituisco KO e il codice di errore GAE-999
+			response.setEsito(ResultType.KO);
+			ResponseAggiornaAnagrafeClassiDoc.Errori errori = new Errori();
+			List<ResponseAggiornaAnagrafeClassiDoc.Errori.Errore> listaErrori = new ArrayList<ResponseAggiornaAnagrafeClassiDoc.Errori.Errore>();
+			ResponseAggiornaAnagrafeClassiDoc.Errori.Errore errore = new ResponseAggiornaAnagrafeClassiDoc.Errori.Errore();
+			errore.setCodice(ErrorType.GAE_999);
+			String messaggio = "Errore generico";
+			if (StringUtils.isNotBlank(e.getMessage())) {
+				messaggio = e.getMessage();
+			}
+			errore.setValue(messaggio);
+			listaErrori.add(errore);
+			errori.setErrore(listaErrori);
+			response.setErrori(errori);
+		}
+
+		aLogger.debug("WS aggiornaAnagrafeClassiDoc - response: " + response);
+
+		return response;
+	}
+
+	/**
+	 * Metodo di utilità che restituisce il corrispondente codice di errore a partire dall'errore restituito dalla store
+	 * 
+	 * @param storeError
+	 * @return
+	 */
+
+	private ErrorType getErrorCode(Integer storeError) {
+
+		ErrorType result = ErrorType.GAE_999;
+
+		if (storeError != null) {
+
+			if (storeError == 1) {
+				result = ErrorType.GAE_001;
+			} else if (storeError == 2) {
+				result = ErrorType.GAE_002;
+			} else if (storeError == 3) {
+				result = ErrorType.GAE_003;
+			}
+
+		}
+
+		return result;
+
+	}
+
+}

@@ -1,0 +1,61 @@
+1        PACKAGE DMPK_BT_CLIENTI AS 
+2        
+3        
+4          /**** Funzione per testare se un soggetto di rubrica o un gruppo appartiene ad un dato gruppo di soggetti rubrica					*****/
+5          function LoadMassivoClienti (
+6        				CodIdConnectionTokenIn	IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,-- (obblig). Codice identificativo del token di connessione
+7                IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+8                ListaClienti 	IN		CLOB DEFAULT NULL,						-- Lista dei clienti (XML conforme a schema LISTA_STD.xsd)
+9                ListaBA 	IN		CLOB DEFAULT NULL,						-- Lista dei BA (XML conforme a schema LISTA_STD.xsd)
+10                ErrContextOut			OUT		VARCHAR2,				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+11                ErrCodeOut				OUT		PLS_INTEGER,			-- N.ro errore di uscita
+12                ErrMsgOut				OUT 		VARCHAR2			-- Messaggio d'errore
+13              )
+14        			return PLS_INTEGER;												-- Valori possibili:
+15        																			--	1	=	test positivo
+16        																			--	0	=	test negativo
+17        																			--	interi negativi = errore (il result è il codice d'errore)
+18        
+19          
+20        	function UploadMassivoClienti (
+21        				CodIdConnectionTokenIn	IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,-- (obblig). Codice identificativo del token di connessione
+22                IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+23                NumeroClientiOUT OUT PLS_INTEGER, --numero di clienti saltati
+24                NumeroBAOUT OUT PLS_INTEGER, --numero di BA saltati
+25                ErrContextOut			OUT		VARCHAR2,				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+26                ErrCodeOut				OUT		PLS_INTEGER,			-- N.ro errore di uscita
+27                ErrMsgOut				OUT 		VARCHAR2			-- Messaggio d'errore
+28              )
+29        			return PLS_INTEGER;												-- Valori possibili:
+30        																			--	1	=	test positivo
+31        																			--	0	=	test negativo
+32        																			--	interi negativi = errore (il result è il codice d'errore)
+33        
+34          function setDelta (
+35                CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,-- (obblig). Codice identificativo del token di connessione
+36                IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+37                currentCliente DMTO_VAR_SEZ_CACHE,
+38                DenomCognomeOut IN OUT VARCHAR2,  -- Denominazione (se persona giuridica) o cognome (se persona fisica)
+39                CFOut IN OUT DMT_RUBRICA_SOGGETTI.CF%TYPE,			-- Codice fiscale del soggetto
+40                PIVAOut	 IN OUT 		DMT_RUBRICA_SOGGETTI.PIVA%TYPE,		-- Partita IVA del soggetto
+41                CodCondGiuridicaOut	 IN OUT 	DMT_RUBRICA_SOGGETTI.COD_COND_GIURIDICA%type, -- Codice della condizione giuridica 
+42                AttributiAddOut	IN OUT CLOB, 
+43                RowidOut VARCHAR2, -- Rowid del record del soggetto
+44                ErrContextOut			OUT		VARCHAR2,				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+45                ErrCodeOut				OUT		PLS_INTEGER,			-- N.ro errore di uscita
+46                ErrMsgOut				OUT 		VARCHAR2			-- Messaggio d'errore
+47              )
+48        			return PLS_INTEGER ;												-- Valori possibili:
+49        																			--	1	=	test positivo
+50        																			--	0	=	test negativo
+51        																			--	interi negativi = errore (il result è il codice d'errore)
+52        
+53              
+54          function getToken(
+55               theList  CLOB,
+56               theIndex number,
+57               delim     CLOB:= ','
+58              )
+59              return CLOB;
+60              
+61        END DMPK_BT_CLIENTI;

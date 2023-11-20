@@ -1,0 +1,63 @@
+1        PACKAGE DMPK_ORDER AS 
+2        
+3          l_XMLEncoding		CONSTANT VARCHAR2(100):=dmpk_utility.GetValConfigParamText(1, NULL, 'XML_ENCODING');
+4        
+5         function setAttributesDettOrdini (  
+6              CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+7        																	-- (obblig). Codice identificativo del token di connessione
+8        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+9        			--------------- inizio filtri di ricerca-------------------
+10        			idDoc DMT_DETT_ORDINI.ID_DOC%TYPE,
+11              Attr				IN CLOB
+12        			) return PLS_INTEGER;
+13              
+14         function setAttributeDettOrdini (
+15        				CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+16        																	-- (obblig). Codice identificativo del token di connessione
+17        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+18        			--------------- inizio filtri di ricerca-------------------
+19        			idDoc DMT_DETT_ORDINI.ID_DOC%TYPE,
+20              NomeAttrIO				IN varchar2,		
+21              ValoreAttributo   IN varchar2, 
+22        			TipoAttrIO				IN varchar2 DEFAULT 'STRING',
+23              numLinea          IN PLS_INTEGER DEFAULT 0, 
+24              numOccValue       IN PLS_INTEGER DEFAULT 0
+25        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+26        
+27         function getCounterForSociety (
+28        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+29        																	-- (obblig). Codice identificativo del token di connessione
+30        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+31        			--------------- inizio filtri di ricerca-------------------
+32        			Society				IN varchar2,
+33              counter OUT varchar2
+34        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+35        
+36        function getCodiciIntermediari (
+37        			CodIdConnectionTokenIn	IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,-- (obblig). Codice identificativo del token di connessione (connessione a applicazione esterna che corrisponde a una società)
+38              OtherParams IN Varchar2, --Utile per sviluppi futuri 
+39              ResultOut         OUT   VARCHAR2,       --Risultati della ricerca, separati da #,#
+40              ErrContextOut			OUT		VARCHAR2,				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+41        			ErrCodeOut				OUT		PLS_INTEGER,			-- N.ro errore di uscita
+42        			ErrMsgOut				OUT 	VARCHAR2				-- Messaggio d'errore
+43        			)
+44        			return PLS_INTEGER;-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+45         
+46        function getOrderLines (
+47        			CodIdConnectionTokenIn	IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,-- (obblig). Codice identificativo del token di connessione (connessione a applicazione esterna che corrisponde a una società)
+48              id_doc IN Varchar2, --id_doc del documento di cui fanno parte le orderline ricercate
+49              OtherParams IN Varchar2, --Utile per sviluppi futuri 
+50              ListaXMLOut			OUT		NOCOPY CLOB,						-- Lista delle orderl line trovate (XML conforme a schema LISTA_STD.xsd)
+51              ErrContextOut			OUT		VARCHAR2,				-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+52        			ErrCodeOut				OUT		PLS_INTEGER,			-- N.ro errore di uscita
+53        			ErrMsgOut				OUT 	VARCHAR2				-- Messaggio d'errore
+54        			)
+55        			return PLS_INTEGER;										-- Vale 1 se il recupero è andato a buon fine, altrimenti 0 
+56              
+57        function getToken(
+58               theList  CLOB,
+59               theIndex number,
+60               delim     CLOB:= ','
+61              )
+62              return CLOB;
+63        END DMPK_ORDER;

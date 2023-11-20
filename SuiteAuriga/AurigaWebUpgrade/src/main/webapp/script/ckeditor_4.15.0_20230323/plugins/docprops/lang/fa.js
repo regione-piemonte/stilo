@@ -1,0 +1,3 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+label:"ویژگی​های سند",margin:"حاشیه​های صفحه",marginBottom:"پایین",marginLeft:"چپ",marginRight:"راست",marginTop:"بالا",meta:"فراداده",metaAuthor:"نویسنده",metaCopyright:"حق انتشار",metaDescription:"توصیف سند",metaKeywords:"کلیدواژگان نمایه​گذاری سند (با کاما جدا شوند)",other:"\x3cسایر\x3e",previewHtml:'\x3cp\x3eاین یک \x3cstrong\x3eمتن نمونه\x3c/strong\x3e است. شما در حال استفاده از \x3ca href\x3d"javascript:void(0)"\x3eCKEditor\x3c/a\x3e هستید.\x3c/p\x3e',title:"ویژگی​های سند",txtColor:"رنگ متن",
+xhtmlDec:"شامل تعاریف XHTML"});

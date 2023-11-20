@@ -1,0 +1,5 @@
+﻿/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+ Copyright (c) 2003-2020, CKSource - Frederico Knabben. All rights reserved.
+ For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
+*/
+CKEDITOR.plugins.setLang("uicolor","tr",{title:"UI Renk Seçici",options:"Renk Seçenekleri",highlight:"İşaretle",selected:"Seçilmiş Renk",predefined:"Önceden tanımlı renk seti",config:"Bu yazıyı config.js dosyasının içine yapıştırın"});

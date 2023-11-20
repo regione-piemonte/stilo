@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Administrator (EMBRACE) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:simpleType name="SiglaRegNumType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="30"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="AnnoType">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1900"/>
+			<xs:maxInclusive value="2100"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="NumRegType">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="9999999"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="EstremiXIdentificazioneUDType">
+		<xs:annotation>
+			<xs:documentation>Contiene i dati attraverso cui identificare univocamente un'unità documentaria</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="IdUD" type="xs:integer">
+				<xs:annotation>
+					<xs:documentation>Identificativo univoco dell'unità documentaria all'interno del sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="EstremiRegNum" type="EstremiRegNumType">
+				<xs:annotation>
+					<xs:documentation>Estremi di registrazione/numerazione attraverso cui identificare un'unità documentaria</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="EstremiRegNumType">
+		<xs:all>
+			<xs:element name="SiglaReg" type="SiglaRegNumType">
+				<xs:annotation>
+					<xs:documentation>Sigla che identifica il registro/tipo della numerazione</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="AnnoReg" type="AnnoType"/>
+			<xs:element name="NumReg" type="NumRegType"/>
+		</xs:all>
+	</xs:complexType>
+	<xs:element name="EstremiXIdentificazioneForumThread">
+		<xs:annotation>
+			<xs:documentation>ROOT element dello schema. ROOT element. Contiene gli estremi per individuare il thread di discussione</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:choice>
+				<xs:element name="UDAvvio" type="EstremiXIdentificazioneUDType">
+					<xs:annotation>
+						<xs:documentation>Estremi dell'unità documentaria che ha dato inizio al thread</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:choice>
+					<xs:element name="IdThreadFolder" type="xs:integer">
+						<xs:annotation>
+							<xs:documentation>Identificativo univoco del folder che contiente tutti gli oggetti del thread (unità documentaria di avvio e varie risposte/contributi)</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:sequence>
+						<xs:element name="ForumAppartenenza" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>Nome del forum ed eventuale sotto-forum e sotto-sotto-forum ecc. in cui è stato avviato il thread (il primo valore è il nome del forum di livello più alto e l'ultimo quello del forum di diretta collocazione del thread)</xs:documentation>
+							</xs:annotation>
+							<xs:simpleType>
+								<xs:restriction base="xs:string">
+									<xs:maxLength value="150"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:element>
+						<xs:element name="OggettoThread">
+							<xs:annotation>
+								<xs:documentation>Oggetto/breve descrizione del thread</xs:documentation>
+							</xs:annotation>
+							<xs:simpleType>
+								<xs:restriction base="xs:string">
+									<xs:maxLength value="150"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:element>
+					</xs:sequence>
+				</xs:choice>
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

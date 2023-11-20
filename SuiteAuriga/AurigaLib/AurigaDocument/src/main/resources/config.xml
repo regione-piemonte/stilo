@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<import resource="document.xml" />
+	
+	<bean id="Storage" class="it.eng.utility.storageutil.StorageConfig">
+	</bean>
+	
+	<bean id="StorageSetter"
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetObject">
+			<ref local="Storage" />
+		</property>
+		<property name="targetMethod">
+			<value>configureWithInternalDatabase</value>
+		</property>
+		<property name="arguments">
+			<list value-type="java.lang.String">
+				<value>storage.h2.db</value>
+				<value>storage-poste.cfg.xml</value>
+			</list>
+		</property>
+	</bean>
+	
+	<!-- Bean di configurazione per i parametri globali da usare nel modulo -->
+	<bean id="moduleConfig" class="it.eng.auriga.module.config.ModuleConfig">
+		<property name="storages">
+			<util:map key-type="java.lang.String" value-type="java.lang.String">
+			<entry key="DEFAULT" value="AURIGADOCUMENT@1"></entry>
+			<entry key="1" value="AURIGADOCUMENT@1"></entry>
+			<entry key="2" value="AURIGADOCUMENT@1"></entry>
+			<entry key="3" value="AURIGADOCUMENT@1"></entry>
+			<entry key="POSTE" value="POSTE@1"></entry>
+			</util:map>
+		</property>
+	</bean>
+	
+	<bean id="SessionFileConfigurator" class="it.eng.auriga.module.config.SessionFileConfigurator">
+		<property name="sessions">
+			<util:list value-type="it.eng.auriga.module.config.SessionFile">
+				<bean class="it.eng.auriga.module.config.SessionFile" id="OWNER_1">
+					<property name="fileName" value="hibernate-auriga_owner_1.cfg.xml"></property>
+					<property name="sessionName" value="OWNER_1"></property>
+				</bean>
+				<bean class="it.eng.auriga.module.config.SessionFile" id="FATT_EGEA_1">
+					<property name="fileName" value="hibernate-auriga_owner_1.cfg.xml"></property>
+					<property name="sessionName" value="FATT_EGEA_1"></property>
+				</bean>
+			</util:list>
+		</property>
+	</bean>
+	
+	<bean id="sharePointUtil" class="it.eng.document.sharepoint.SharePointUtil">
+		<property name="propertySocieta" value="ADR_Societa"/>
+		<property name="propertyTipoProtocollo" value="ADR_Protocolo_Tipo"/>
+		<property name="propertyDataProtocollo" value="ADR_Protocolo_Data"/>
+		<property name="propertyAnnoProtocollo" value="ADR_Protocolo_Anno"/>
+		<property name="propertyNumeroProtocollo" value="ADR_Protocolo_Numero"/>
+		<property name="propertyUtenteProtocollo" value="ADR_Protocollo_Utente"/>
+		<property name="propertyUfficioProtocollo" value="ADR_Protocollo_Ufficio"/>
+		<property name="propertyDocumentoPrimario" value="ADR_Documento_Primario"/>
+		<property name="propertyNumeroAllegato" value="ADR_Numero_Allegato"/>
+		<property name="propertyAltraNumerazioneRegistro" value="ADR_AltraNumerazione_Registro"/>
+		<property name="propertyAltraNumerazioneData" value="ADR_AltraNumerazione_Data"/>
+		<property name="propertyAltraNumerazioneAnno" value="ADR_AltraNumerazione_Anno"/>
+		<property name="propertyAltraNumerazioneNumero" value="ADR_AltraNumerazione_Numero"/>
+		<property name="propertyMittenti" value="ADR_Mittenti"/>
+		<property name="propertyDestinatari" value="ADR_Destinatari"/>
+		<property name="propertyOggettoRegistrazione" value="ADR_Oggetto_Registrazione"/>
+		<property name="propertyDescrizione" value="ADR_Descrizione"/>
+		<property name="propertyProtRicevutoRifOriginale" value="ADR_ProtRicevuto_Rif_Originale"/>
+		<property name="propertyProtRicevutoNumero" value="ADR_ProtRicevuto_Numero"/>
+		<property name="propertyProtRicevutoAnno" value="ADR_ProtRicevuto_Anno"/>
+		<property name="propertyProtRicevutoData" value="ADR_ProtRicevuto_Data"/>
+		<property name="propertyAssegnatari" value="ADR_Assegnatari"/>
+		<property name="propertyInConoscenzaA" value="ADR_InConoscenzaA"/>
+		<property name="propertyClassificazione" value="ADR_Classificazione"/>
+		<property name="propertyRiservatezza" value="ADR_Riservatezza"/>
+		<property name="propertyTermineRiservatezza" value="ADR_Termine_Riservatezza"/>
+		<property name="propertyTipologia" value="ADR_Tipologia"/>
+		<property name="propertyDataDocumento" value="ADR_Data_Documento"/>
+		<property name="propertyMezzoEstremiTrasmissione" value="ADR_Mezzo_Trasmissione"/>
+		<property name="propertyNote" value="ADR_Note"/>
+		<property name="propertyDataOraAnnullamento" value="ADR_Annullamento_DataOra"/>
+		<property name="propertyAnnullamentoEffettuatoDa" value="ADR_Annullamento_EffettuatoDa"/>
+		<property name="propertyMotivoAnnullamento" value="ADR_Annullamento_Motivo"/>
+		<property name="propertyAnnullamentoAutorizzatoConAtto" value="ADR_Annullamento_AutorizzatoConAtto"/>
+		<property name="propertyNomeFile" value="ADR_NomeFile"/>
+		<property name="propertyFirmato" value="ADR_Firmato_Digitalmente"/>
+		<property name="propertyFirmatoDa" value="ADR_FirmatoDa"/>
+		<property name="propertyAnnullato" value="ADR_Annullato"/>
+		<property name="formatoDate" value="yyyy-MM-dd'T'HH:mm:ss'Z'"/>
+	</bean>
+	
+	<bean id="GestioneEsportazioneAsincronaListeBean" class="it.eng.document.configuration.GestioneEsportazioneAsincronaListeBean">
+		<property name="corePoolSize" value="5"/>
+		<property name="maximumPoolSize" value="10"/>
+		<property name="keepAliveTime" value="1000"/>
+		<property name="workQueueSize" value="100"/>
+		<property name="dateFormat" value="yyyy-MM-dd"/>
+	</bean>
+	
+</beans>

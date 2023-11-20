@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="ResponseRicercaAttiPerProgettoLLPP">
+		<xs:annotation>
+			<xs:documentation>Root element della response della ricerca atti per opera lavori pubblici</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Atto" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Tipo">
+								<xs:annotation>
+									<xs:documentation>Tipo di atto: dedetrmina dirigenziale, decreto ecc (valori come da enumeration)</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="determina dirigenziale"/>
+										<xs:enumeration value="decreto del sindaco/consigliere delegato"/>
+										<xs:enumeration value="decreto del sindaco/vicesindaco"/>
+										<xs:enumeration value="atto di liquidazione/riscossione"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="DataAdozione" type="xs:date">
+								<xs:annotation>
+									<xs:documentation>Data di adozione</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="Numerazione" type="NumerazioneType">
+								<xs:annotation>
+									<xs:documentation>Estremi di numerazione dell'atto (qiella per Ente in caso vi sia anche una numerzaone per struttura)</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="NumerazionePerStruttura" type="NumerazioneType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Estremi di numerazione per struttura (se presente)</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="StrutturaAdottante">
+								<xs:annotation>
+									<xs:documentation>Denominazione della struttura adottante</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:simpleContent>
+										<xs:extension base="xs:string">
+											<xs:attribute name="codice" type="xs:string" use="required">
+												<xs:annotation>
+													<xs:documentation>Codice della struttura adottante</xs:documentation>
+												</xs:annotation>
+											</xs:attribute>
+										</xs:extension>
+									</xs:simpleContent>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="Oggetto" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>Oggetto dell'atto. Nel caso di omissis nell'oggetto è la versione con omissis dell'oggetto</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="CodAtto">
+								<xs:annotation>
+									<xs:documentation>Materia dell'atto </xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:simpleContent>
+										<xs:extension base="xs:string">
+											<xs:attribute name="codice" type="xs:integer" use="required">
+												<xs:annotation>
+													<xs:documentation>Codice numerco che identifica la materia dell'atto</xs:documentation>
+												</xs:annotation>
+											</xs:attribute>
+											<xs:attribute name="progressivo" type="xs:integer" use="optional">
+												<xs:annotation>
+													<xs:documentation>Eventuale progressivo</xs:documentation>
+												</xs:annotation>
+											</xs:attribute>
+										</xs:extension>
+									</xs:simpleContent>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="DataEsecutivita" type="xs:date">
+								<xs:annotation>
+									<xs:documentation>Data di esecutività</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="UrlPubblcazione" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>URL di pubblicazione all'Albo.  Può essere vuoto se l'atto non è pubblicato</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="PeriodoPubblicazione" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Periodo di pubblicazione (presente solo se atto pubblicato all'Albo)</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Dal" type="xs:date">
+											<xs:annotation>
+												<xs:documentation>Data di ecorrenza della pubblicazione all'Albo</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="Al" type="xs:date">
+											<xs:annotation>
+												<xs:documentation>Data di termine pubblicazione all'Albo</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="CIG" type="xs:string" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>CIG o smart CIG dell'atto</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="CUP" type="xs:string" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>CUP dell'atto</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="AnnoProgettoLLPP" type="xs:gYear">
+								<xs:annotation>
+									<xs:documentation>Anno del progetto di opere pubbliche</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="NroProgettoLLPP" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>Nro del progetto di opere pubbliche</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="nroAtti" type="xs:integer" use="required">
+				<xs:annotation>
+					<xs:documentation>Nro di atti trovati</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	<xs:complexType name="NumerazioneType">
+		<xs:sequence>
+			<xs:element name="SiglaRegistro" type="xs:string"/>
+			<xs:element name="Anno" type="xs:gYear"/>
+			<xs:element name="Nro" type="xs:positiveInteger"/>
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>

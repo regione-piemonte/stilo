@@ -1,0 +1,224 @@
+1        PACKAGE  DMPK_INT_PORTALE_CRM AUTHID CURRENT_USER IS
+2        
+3        
+4        	------ funzione per verificare se gli estremi di prot. generale in input corrispondono ad una richiesta di accesso agli atti con appuntamento prenotabile
+5        	function VerificaRichiestaAccessoAtti(
+6        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,			-- (obblig). Codice identificativo del token di connessione
+7        			AnnoProtGenIn				IN			PLS_INTEGER,										-- Anno di prot. generale della richiesta
+8        			NroProtGenIn				IN			PLS_INTEGER,										-- N.ro di prot. generale della richiesta
+9        			IDRichiestaOut				OUT			PLS_INTEGER,										-- ID univoco della richiesta se ha appuntamento prenotabile
+10        																										-- E' l'ID_UD dell'unità documentaria corrispondente alla richiesta
+11        			OggettoRichiestaOut			OUT			VARCHAR2,											-- Oggetto della richiesta se ha appuntamento prenotabile
+12        			AttiRichiestiListaOut		OUT 		NOCOPY CLOB,										-- Lista XML (secondo schema ListaSTD.xsd) con gli estremi degli atti richiesti
+13        																										-- Ogni item è un tag Riga che contiene una sola colonna con gli estremi di un atto richiesto
+14        			SediAppuntamentoOut			OUT			NOCOPY CLOB,										-- Lista XML (secondo schema ListaSTD.xsd) con le sedi in cui si può fissare appuntamento
+15        																										-- Ogni item è un tag Riga che contiene una sola colonna con la sede in cui si può fissare appuntamento
+16        			ErrContextOut            	OUT        	VARCHAR2,                                      		-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+17                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    	-- N.ro errore di uscita.
+18        																										-- Nel web service che chiama la funzione l'errore va restituito preceduto da un prefisso AUR-
+19                    ErrMsgOut                	OUT			VARCHAR2                                        	-- Messaggio d'errore
+20                    ) return PLS_INTEGER;                                                                		-- (valori 1/0) 1 = successo, 0 = errore
+21        
+22        	------ funzione per aggiornare l'appuntamento di una richiesta di accesso agli atti indicata attraverso gli estremi di prot. generale
+23        	function AggiornaRichiestaAccessoAtti(
+24        			CodIdConnectionTokenIn		IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,			-- (obblig). Codice identificativo del token di connessione
+25        			AnnoProtGenIn				IN			PLS_INTEGER,										-- Anno di prot. generale della richiesta
+26        			NroProtGenIn				IN			PLS_INTEGER,										-- N.ro di prot. generale della richiesta
+27        			DatiAppuntamentoXMLIn		IN			CLOB,												-- Dati dell'appuntamento. XML conforme a schema SezioneCache.xsd.
+28        																										-- Prevede le seguenti variabili semplici:
+29        																										-- (facoltativo) SedeAppuntamento: Sede dell'appuntamento. Obbligatoria se per la data richiesta (anno e n.ro di prot.) ci sono appuntamenti in più sedi
+30        																										-- (obblig.) DaAnnullare :  (valori true/false) indica se l'appuntamento già fissato è da annullare
+31        																										-- (facoltativo) UID : ID univoco dell'appuntamento
+32        																										-- (facoltativo) AppCode : AppCode dell'appuntamento
+33        																										-- (facoltativo) DataOra : data e ora dell'appuntamento nel formato xs:dateTime
+34        																										-- (obblg.) Richiedente.Nome
+35        																										-- (obblg.) Richiedente.Cognome
+36        																										-- (facoltativo) Richiedente.UserID
+37        																										-- (facoltativo) Richiedente.CodFiscale
+38        																										-- (facoltativo) Richiedente.Email
+39        																										-- (facoltativo) Richiedente.Tel
+40        																										-- (facoltativo) Delegante.Cognome_Denominazione
+41        																										-- (facoltativo) Delegante.Nome
+42        																										-- (facoltativo) Delegante.CodFiscale
+43        																										-- (facoltativo) Delegante.Email
+44        																										-- (facoltativo) NominativoPresenza.Cognome
+45        																										-- (facoltativo) NominativoPresenza.Nome
+46        																										-- (facoltativo) NominativoPresenza.CodFiscale
+47        																										-- (facoltativo) NominativoPresenza.Email
+48        																										-- (facoltativo) NominativoPresenza.Tel
+49        			FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+50        																										-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+51        			FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+52        			ErrContextOut            	OUT        	VARCHAR2,                                      		-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+53                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    	-- N.ro errore di uscita.
+54        																										-- Nel web service che chiama la funzione l'errore va restituito preceduto da un prefisso AUR-
+55                    ErrMsgOut                	OUT			VARCHAR2                                        	-- Messaggio d'errore
+56                    ) return PLS_INTEGER;                                                                		-- (valori 1/0) 1 = successo, 0 = errore
+57        
+58        
+59        	---------funzione chiamata a fronte di una richiesta di agibilità
+60        	---------se trova la/le agibilità richieste protocolla la richiesta, crea protocollo in uscita per la risposta e restituisce dati per invio e-mail delle agibilità e della risposta protocollata
+61        	function RichiestaAgibilita(
+62        			DatiRichiestaXMLIn			IN			CLOB,												-- (obblig.) Dati della richiesta. XML con la seguente struttura
+63        																										-- <ricercaAgibilitaRequest>
+64        																										-- 		<codiceFiscaleRichiedente></codiceFiscaleRichiedente>
+65        																										-- 		<cognomeRichiedente></cognomeRichiedente>
+66        																										-- 		<nomeRichiedente></nomeRichiedente>
+67        																										-- 		<emailRichiedente></emailRichiedente>
+68        																										-- 		<numeroTelefonoRichiedente></numeroTelefonoRichiedente>
+69        																										-- 		<codiceFiscaleDelegante></codiceFiscaleDelegante>
+70        																										-- 		<cognomeDelegante></cognomeDelegante>
+71        																										-- 		<nomeDelegante></nomeDelegante>
+72        																										-- 		<codiceToponomasticoViaImmobile></codiceToponomasticoViaImmobile>
+73        																										-- 		<viaImmobile></viaImmobile>
+74        																										-- 		<numeroCivico></numeroCivico>
+75        																										-- 		<appendiceCivico></appendiceCivico>
+76        																										-- 		<classificazioneRichiedente></classificazioneRichiedente>
+77        																										-- 		<motivazioniRichiesta></motivazioniRichiesta>
+78        																										-- 		<note></note>
+79        																										-- </ricercaAgibilitaRequest>
+80        			FileAllegatiRichiestaIn		IN			CLOB,												-- Lista XML con i dati dei file allegati alla richiesta (conforma al tracciato ListaStd.xsd)
+81        																										-- Ogni file è una riga con queste colonne:
+82        																										-- 1) URI del file (in notazione StorageUtil)
+83        																										-- 2) Nome del file
+84        																										-- 3) Dimensione del file (in bytes)
+85        																										-- 4) Impronta del file
+86        																										-- 5) Algoritmo di calcolo impronta
+87        																										-- 6) Encoding di calcolo impronta
+88        																										-- 7) Mymetype
+89        																										-- 8) (valori 1/0) Flad di file firmato
+90        																										-- 9) Firmatari del file (se più di uno separati da ;)
+91        			DatiRispostaXMLOut			OUT			NOCOPY CLOB,										-- Dati della risposta. conforme a schema SezioneCache.xsd.
+92        																										-- Viene valorizzato SOLO se la richiesta può essere evasa ed è andata a buon fine
+93        																										-- Contiene le variabili:
+94        																										-- IdDominio Id. del dominio di lavoro
+95        																										-- FlgTpDominio	Indica il tipo di dominio: 2 = Ente; 3 = AOO
+96        																										-- IdUDProtocolloRisposta ID_UD del protocollo di risposta
+97        																										-- IdDocPrimarioProtocolloRisposta	ID_DOC del documento primario del protocollo di risposta
+98        																										-- NomeModelloRisposta	Nome del modello da usare per generare il pdf della risposta
+99        																										-- URIModelloRisposta URI del file del modello da usare per generare il pdf della risposta
+100        																										-- TipoModelloRisposta Indica il tipo del modello da usare per generare il pdf della risposta
+101        																										-- IdModelloRisposta Id del modello da usare per generare il pdf della risposta
+102        																										-- ContenutoTimbroRisposta	Stringa da mettere nel timbro da apporre sul pdf della risposta generata da modello
+103        																										-- TestoInChiaroPerTimbroRisposta	Testo da mettere in chiaro accanto al timbro della risposta generata da modello
+104        																										-- NroProtocolloRichiesta n.ro del protocollo in entrata assegnato alla richiesta
+105        																										-- DataOraProtocolloRichiesta nel formato GG/MM/AAAA HH24:MI:SS
+106        																										-- @ListaAgibilita lista con una sola colonna contenete i nri delle agibilità trovate
+107        																										-- @ListaFileAgibilita lista formata dalle seguenti colonne
+108        																										--		colonna 1) Nome file
+109        																										--		colonna 2) URI del file
+110        																										-- 		colonna 3) Mimeetype del file
+111        																										--		colonna 4) Dimensione del file (in bytes)
+112        																										-- IndirizzoMittenteEmailRisposta	indirizzo mail da cui mandare la mail di risposta
+113        																										-- IdCasellaMittenteEmailRisposta	Id. della casella da cui mandare la mail di risposta
+114        																										-- DestinatariEmailRisposta	Indirizzi destinatari principali della mail di risposta (se più di uno separati da ,)
+115        																										-- OggettoEmailRisposta	Oggetto della mail di risposta
+116        																										-- CorpoEmailRisposta	Corpo della mail di risposta (è un html)
+117        																										-- AgibilitaAllegateEmail Se 1 significa che i file delle agibilità vanno allegati alla mail, se 0 no
+118        			FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+119        																										-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+120        			FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+121        			ErrContextOut            	OUT        	VARCHAR2,                                      		-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+122                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    	-- N.ro errore di uscita.
+123        																										-- Nel web service che chiama la funzione l'errore va restituito preceduto da un prefisso AUR-
+124                    ErrMsgOut                	OUT			VARCHAR2                                        	-- Messaggio d'errore
+125                    ) return PLS_INTEGER;                                                                		-- (valori 1/0) 1 = successo, 0 = errore
+126        
+127        	---------funzione chiamata a fronte di una richiesta di sblocco del limite di richieste di agibilità consentito ad un determinato utente del portale
+128        	function RichSbloccoLimRichAgibilita(
+129        			DatiRichiestaXMLIn			IN			CLOB,												-- (obblig.) Dati della richiesta di sblocci. XML con la seguente struttura
+130        																										-- <richiestaSbloccoLimiteRichAgibilitaRequest>
+131        																										-- 		<codiceFiscaleRichiedente></codiceFiscaleRichiedente>
+132        																										-- 		<cognomeRichiedente></cognomeRichiedente>
+133        																										-- 		<nomeRichiedente></nomeRichiedente>
+134        																										-- 		<emailRichiedente></emailRichiedente>
+135        																										-- 		<numeroTelefonoRichiedente></numeroTelefonoRichiedente>
+136        																										-- 		<motivazioniRichiesta></motivazioniRichiesta>
+137        																										-- <richiestaSbloccoLimiteRichAgibilitaRequest>
+138        			FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+139        																										-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+140        			FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+141        			ErrContextOut            	OUT        	VARCHAR2,                                      		-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+142                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    	-- N.ro errore di uscita.
+143        																										-- Nel web service che chiama la funzione l'errore va restituito preceduto da un prefisso AUR-
+144                    ErrMsgOut                	OUT			VARCHAR2                                        	-- Messaggio d'errore
+145                    ) return PLS_INTEGER;                                                                		-- (valori 1/0) 1 = successo, 0 = errore
+146        
+147        
+148        	--- funzione per ricercare le richieste di sblocco del limite di agibilità che si possono richiedere in un anno
+149        	function TrovaRichSbloccoLimAgibilita(
+150        			CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+151        																										-- (obblig). Codice identificativo del token di connessione
+152        			IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,					-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+153        			FiltriIO					IN OUT	NOCOPY CLOB,											-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd).
+154        																										-- Ogni filtro è un tag "Variabile" dell'XML
+155        																										-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+156        																										-- I nomi dei filtri possibili sono:
+157        																										-- Stato: indica lo stato delle richieste da ricercare. Valori ammessi: da_evadere, accolte, respinte
+158        																										-- RichiesteDal: estremo inferiore dell'intervallo di ricerca sulla data di sblocco (nel formato del parametro FMT_STD_DATA)
+159        																										-- RichiesteAl: estremo superiore dell'intervallo di ricerca sulla data di sblocco (nel formato del parametro FMT_STD_DATA)
+160        																										-- EvaseDal: estremo inferiore dell'intervallo di ricerca sulla data di accoglimento/respingimento (nel formato del parametro FMT_STD_DATA)
+161        																										-- EvaseAl: estremo superiore dell'intervallo di ricerca sulla data di accoglimento/respingimento (nel formato del parametro FMT_STD_DATA)
+162        																										-- CognomeNomeRichiedente: cognome e nome del richiedente (ricerca case insensitive in like senza forzare %)
+163        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+164        			ColOrderByIO				IN OUT	VARCHAR2,												-- Indica il/i numeri della/e colonna dell'XML (CLOB ResultOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne: da 1 a 9). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+165        																										-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+166        																										-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+167        			FlgDescOrderByIO  			IN OUT	VARCHAR2,												-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+168        																										-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+169        			FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            					-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+170        			NroPaginaIO      			IN OUT	PLS_INTEGER,                  							-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+171        			BachSizeIO					IN OUT	PLS_INTEGER,											-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+172        																										-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+173        			OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,								-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+174        			FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,								-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+175        			NroTotRecOut				OUT		PLS_INTEGER,											-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+176        			NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     						-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+177        			FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,								-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
+178        																										-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema.
+179        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+180        			ResultOut					OUT		NOCOPY CLOB, 											-- Lista delle richieste trovate (XML conforme a schema LISTA_STD.xsd)
+181        																										-- Ogni record di richiesta è un tag Riga che può contenere le seguenti colonne:
+182        																										-- 1: Data e ora richiesta (nel formato dato dal parametro FMT_STD_TIMESTAMP)
+183        																										-- 2: Cod. fiscale richiedente
+184        																										-- 3: Cognome e Nome richiedente
+185        																										-- 4: Email richiedente
+186        																										-- 5: Tel richiedente
+187        																										-- 6: Motivo richiesta
+188        																										-- 7: Stato richiesta: da evadere, accolta, respinta
+189        																										-- 8: Data e ora evasione (nel formato dato dal parametro FMT_STD_TIMESTAMP)
+190        																										-- 9: Utente che ha evaso la richiesta
+191        																										-- 10: Limite richieste accoglibili (pre sblocco)
+192        																										-- 11: Nuovo limite impostato con accoglimento richiesta
+193        																										-- 12: Id. richiesta
+194        																										-- 13: Motivo respingimento
+195        			ErrContextOut				OUT		VARCHAR2,												-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+196        			ErrCodeOut					OUT		PLS_INTEGER,											-- N.ro errore di uscita
+197        			ErrMsgOut					OUT 	VARCHAR2)												-- Messaggio d'errore
+198        			return PLS_INTEGER;																			-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+199        
+200        	------- funzione per accogliere o respingere una richiesta di sblocco del limite annuale di richieste di agibilità consentito ad un dato soggetto
+201        	function GestRichSbloccoLimAgibilita(
+202        			CodIdConnectionTokenIn		IN	   		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+203        																										-- (obblig). Codice identificativo del token di connessione
+204        			IdUserLavoroIn				IN			DMT_USERS.ID_USER%type DEFAULT NULL,				-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+205        			IdRichiestaIn				IN			VARCHAR2,											-- (obblig.) Id. della richiesta da gestire
+206        			EsitoGestioneIn				IN			VARCHAR2,											-- (obblig.) Esito della gestione della richiesta. Valori ammessi: accolta, respinta
+207        			MotivoRespingimentoIn		IN			VARCHAR2,											-- (obblig. se EsitoGestioneIn = respinta) Motivo del respingimento
+208        			NuovoLimiteIn				IN			INTEGER,											-- (obblig. se EsitoGestioneIn = accolta) Nuovo limite di richieste per l'anno
+209        			DatiEmailRispostaOut		OUT			NOCOPY CLOB,										-- Dati per mail di notifica accoglimento/rifiuto richiesta. E' un xml SezioneCache con le seguenti variabili:
+210        																										-- IndirizzoMittenteEmailRisposta	indirizzo mail da cui mandare la mail di risposta
+211        																										-- IdCasellaMittenteEmailRisposta	Id. della casella da cui mandare la mail di risposta
+212        																										-- DestinatariEmailRisposta	Indirizzi destinatari principali della mail di risposta (se più di uno separati da ,)
+213        																										-- OggettoEmailRisposta	Oggetto della mail di risposta
+214        																										-- CorpoEmailRisposta	Corpo della mail di risposta (è un html)
+215        			FlgRollBckFullIn			IN 			PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+216        																										-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+217        			FlgAutoCommitIn				IN 			PLS_INTEGER DEFAULT NULL,							-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+218        			ErrContextOut            	OUT        	VARCHAR2,                                      		-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+219                    ErrCodeOut               	OUT        	PLS_INTEGER,                                    	-- N.ro errore di uscita.
+220        																										-- Nel web service che chiama la funzione l'errore va restituito preceduto da un prefisso AUR-
+221                    ErrMsgOut                	OUT			VARCHAR2                                        	-- Messaggio d'errore
+222                    ) return PLS_INTEGER;                                                                		-- (valori 1/0) 1 = successo, 0 = errore
+223        
+224        END DMPK_INT_PORTALE_CRM;

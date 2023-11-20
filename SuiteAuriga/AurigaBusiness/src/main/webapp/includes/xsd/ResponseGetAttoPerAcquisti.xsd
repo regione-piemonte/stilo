@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2018 rel. 2 sp1 (http://www.altova.com) by Valentina Martinucci (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="ResponseGetAttoPerAcquisti">
+		<xs:annotation>
+			<xs:documentation>Root element della response di una richiesta estremi atto necessari al sistema acquisiti</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Esito">
+					<xs:annotation>
+						<xs:documentation>Indica se è presente o meno un atto con gli estremi specificat nella request</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:enumeration value="atto_trovato"/>
+							<xs:enumeration value="atto_non_trovato"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="DatiAtto" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Dati dell'atto trovato (presente solo se Esito=atto_trovato</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="StrutturaProponente">
+								<xs:annotation>
+									<xs:documentation>Denominazione della struttura proponente</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:simpleContent>
+										<xs:extension base="xs:string">
+											<xs:attribute name="codice" type="xs:string" use="required">
+												<xs:annotation>
+													<xs:documentation>Codice identificativo della struttura proponente nel sistema di HR</xs:documentation>
+												</xs:annotation>
+											</xs:attribute>
+										</xs:extension>
+									</xs:simpleContent>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="Oggetto" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>Oggetto dell'atto. Nel caso di omissis nell'oggetto è la versione con omissis dell'oggetto</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="CdC" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>Centro di Costo dell'atto</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="CdR" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>Centro di Responsabilità dell'atto</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="DataAdozione" type="xs:date">
+								<xs:annotation>
+									<xs:documentation>Data di adozione dell'atto</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="DataEsecutivita" type="xs:date">
+								<xs:annotation>
+									<xs:documentation>Data di esecutività</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

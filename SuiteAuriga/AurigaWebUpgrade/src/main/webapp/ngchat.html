@@ -1,0 +1,59 @@
+<div ng-app="chatApp" ng-controller="chatCtrl" ng-init="login()">
+	
+	<!-- includes -->
+	<script src="script/angular.js"></script>
+	<script src="script/angular-route.js"></script>
+	<script src="script/angular-resource.js"></script>
+ 	<script src="script/angular-chat.js"></script>
+ 	
+	<!-- configuration -->
+	<script>
+		angular.module('chat').constant('config', {
+		    // 
+		    // Get your PubNub API Keys in the link above. 
+		    // 
+		    "pubnub":{
+		    	"publish-key":"pub-c-61e460b9-3bc7-47f4-b88b-161008f97df9",
+		        "subscribe-key":"sub-c-91280598-e887-11e6-b325-02ee2ddab7fe"
+		    }
+		});
+	</script>
+	
+	<!-- controller -->
+	<script>
+		var chat = angular.module('chatApp', ['chat', 'ngResource']);
+		chat.controller('chatCtrl', ['Messages', '$scope', '$location', '$resource', function(Messages, $scope, $location, $resource) {
+		    // Message Inbox 
+			$scope.username = '';
+		    $scope.messages = [];							
+			var baseUrl = 'http://localhost:8080/AurigaBNL';											
+			var chatLogin = $resource(baseUrl + '/springdispatcher/chat/login');				
+			// Login
+			   $scope.login = function() {
+				chatLogin.get({ }, function(response){
+					$scope.username = response.username;
+					//alert($location.absUrl());
+				});									
+			};
+			// Receive Messages 
+			Messages.receive(function(message){
+				$scope.messages.push(message);
+			});
+			// Send Messages 
+			$scope.send = function() {
+			    Messages.send({data : $scope.textbox});
+			};
+		} ]);
+	</script> 
+	
+	<!-- view -->
+	{{username}}
+	<div ng-repeat="message in messages">
+        {{ message.user.name }}:
+        {{ message.data }}
+    </div>
+    <form ng-show="true" ng-submit="send()">
+        <input ng-model="textbox">
+    </form>
+
+</div>

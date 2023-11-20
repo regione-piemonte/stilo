@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Andrea Campello (Engineering) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:simpleType name="IdInSistemaEsternoType">
+		<xs:annotation>
+			<xs:documentation>Codice che identifica un oggetto in un sistema esterno</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="30"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="UserType">
+		<xs:choice>
+			<xs:element name="IdInSistemaEsterno" type="IdInSistemaEsternoType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Id. dell'utente nell'applicazione che invoca il WS</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="IdInterno" type="xs:integer" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Id. dell'utente all'interno del sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="UsernameInterna" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Username con cui l'utente si autentica al sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Descrizione" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Descrizione dell'utente</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="NroMatricola" type="xs:string" minOccurs="0"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:simpleType name="FlagSiNoType">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="0|1"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="SiglaRegNumType">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="10"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="AttributoAddizionaleType">
+		<xs:sequence>
+			<xs:element name="Nome" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Nome identificativo dell'attributo</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:choice>
+				<xs:element name="ValoreSemplice" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Valore dell'attributo  se di tipo semplice e monovalore</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Lista">
+					<xs:annotation>
+						<xs:documentation>Valore/i dell'attributo (come  lista di record) se multivalore e/o strutturato</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Riga" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>Rappresenta un record-valore</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Colonna" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>Colonna / elemento del record-valore (sono tante colonne quante i sotto-attributi che compongono l'attributo nel caso sia strutturato)</xs:documentation>
+											</xs:annotation>
+											<xs:complexType mixed="true">
+												<xs:attribute name="Nro" type="xs:positiveInteger" use="required">
+													<xs:annotation>
+														<xs:documentation>Identifica la colonna</xs:documentation>
+													</xs:annotation>
+												</xs:attribute>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:simpleType name="AnnoType">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1900"/>
+			<xs:maxInclusive value="2100"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="NumRegType">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="9999999"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="EstremiRegNumType">
+		<xs:all>
+			<xs:element name="CategoriaReg" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Categoria di registrazione / numerazione; valori ammessi PG=Protocollo Generale; PP=Protocollo Particolare; R=Repertorio; E=Registrazione d'emergenza; A=Altra numerazione data esternamente al sistema documentale; I=Altra numerazione data internamente al sistema documentale</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="PG"/>
+						<xs:enumeration value="PP"/>
+						<xs:enumeration value="R"/>
+						<xs:enumeration value="E"/>
+						<xs:enumeration value="A"/>
+						<xs:enumeration value="I"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="SiglaReg" type="SiglaRegNumType" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Sigla che identifica il registro/tipo della numerazione specificata</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="AnnoReg" type="AnnoType"/>
+			<xs:element name="NumReg" type="NumRegType"/>
+		</xs:all>
+	</xs:complexType>
+	<xs:complexType name="OggDiTabDiSistemaType">
+		<xs:annotation>
+			<xs:documentation>Rappresenta un oggetto censito in una tabella di sistema del sistema documentale</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="CodId" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Identificativo del dato di sistema nella banca dati del sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="Decodifica_Nome" type="xs:string"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="EstremiXIdentificazioneDocType">
+		<xs:annotation>
+			<xs:documentation>Contiene gli estremi per individuare un documento</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="IdDoc" type="xs:integer">
+				<xs:annotation>
+					<xs:documentation>Identificativo univoco del documento</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:sequence>
+				<xs:element name="EstremiXIdentificazioneUD" type="EstremiXIdentificazioneUDType">
+					<xs:annotation>
+						<xs:documentation>Estremi per identificare l'unità documentaria cui appartiene il documento</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="DocVsUD">
+					<xs:annotation>
+						<xs:documentation>Contiene l'indicazione di cosa il documento rappresenta nell'unità documentaria di appartenenza</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:choice>
+							<xs:element name="FlagPrimario" fixed="1">
+								<xs:annotation>
+									<xs:documentation>Se valorizzato il documento è il primario dell'unità documentaria</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="NroAllegato">
+								<xs:annotation>
+									<xs:documentation>E' il n.ro di allegato cui corrisponde il documento</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:positiveInteger">
+										<xs:minInclusive value="1"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:sequence>
+								<xs:annotation>
+									<xs:documentation>Dati per individuare l'allegato cui è relativo il file</xs:documentation>
+								</xs:annotation>
+								<xs:element name="NaturaRelVsUd" type="OggDiTabDiSistemaType" minOccurs="0">
+									<xs:annotation>
+										<xs:documentation>Indica che cosa il documento rappresenta per l'unità documentaria (oltrte che primario e allegato potrebbe essere ad esempio: ricevuta di accettazione; documentazione relativa all'esercizio diritti di cui al codice sulla privacy; ricevuta di avvenuta consegna; avviso anomalia ricezione ecc.)</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+								<xs:element name="TipoDoc" type="OggDiTabDiSistemaType" minOccurs="0">
+									<xs:annotation>
+										<xs:documentation>Tipo del documento</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+								<xs:element name="DesOgg" type="xs:string" minOccurs="0">
+									<xs:annotation>
+										<xs:documentation>Descrizione/oggetto del documento (ricerca full-text; può essere anche una o più parole contenute nell'oggetto/descrizione)</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+							</xs:sequence>
+						</xs:choice>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="EstremiXIdentificazioneUDType">
+		<xs:annotation>
+			<xs:documentation>Contiene i dati attraverso cui identificare univocamente un'unità documentaria</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="IdUD" type="xs:integer">
+				<xs:annotation>
+					<xs:documentation>Identificativo univoco dell'unità documentaria all'interno del sistema documentale</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="EstremiRegNum" type="EstremiRegNumType">
+				<xs:annotation>
+					<xs:documentation>Estremi di registrazione/numerazione attraverso cui identificare un'unità documentaria</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:choice>
+	</xs:complexType>
+	<xs:element name="DatiXCheckIn">
+		<xs:annotation>
+			<xs:documentation>ROOT element. Contiene gli estremi per individuare il documento di cui fare check-in più i dati della nuova versione elettronica da caricare</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="EstremiXIdentificazioneDoc" type="EstremiXIdentificazioneDocType">
+					<xs:annotation>
+						<xs:documentation>Contiene gli estremi per individuare il documento su cui fare check-in</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="NroVersioneEstratta" type="xs:positiveInteger" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>N.ro della versione già esistente del documento che è stata estratta e che si vuole versionare: se la si specifica significa richiedere che il sistema effettui un controllo bloccante sul fatto che questa sia l'ultima versione valida, se non la si specifica questo controllo non viene fatto</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="NuovaVersioneElettronica">
+					<xs:annotation>
+						<xs:documentation>Contiene i dati della nuova versione da caricare</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="NomeFile" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>Nome con cui salvare il file nel sistema; si tenga conto che l'estensione del nome viene utilizzata per ricavare il formato</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="AttivaVerificaFirma" type="FlagSiNoType" default="0" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Serve (se pari a 1) a richiedere la verifica dell'eventuale firma sul file  e a bloccare il check-in in caso di verifica fallita</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="CodVersione" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Codice con cui identificare la versione tra tutte quelle del documento</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:maxLength value="30"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="FlagPubblicata" type="FlagSiNoType">
+								<xs:annotation>
+									<xs:documentation>Indica se la versione è pubblicata (1) o meno</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="DerivaDaScansione" fixed="1" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Se presente indica che il file è un immagine derivante da processo di scansione</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="DataScansione" type="xs:date" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Data in cui è stato prodotto il file a seguito di processo di scansione</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="UtenteScansione" type="UserType" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Utente che ha eseguito la scansione che ha prodotto il file</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="SpecificheScansione" type="xs:string" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Dettagli sul processo di scansione che ha dato luogo al file</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="Note" type="xs:string">
+								<xs:annotation>
+									<xs:documentation>Annotazioni sulla versione</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="AttributoAdd" type="AttributoAddizionaleType" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>Attributo addizionale (oltre quelli già previsti dal tracciato) con cui caratterizzare la versione. ATTENZIONE: gli attributi addizionali che si possono specificare sono solo quelli previsti per l'entità "versione elettronica"</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

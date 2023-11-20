@@ -1,0 +1,320 @@
+1        PACKAGE DMPK_TIPI_REG_NUM_UD AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        
+12        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+13        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        
+20        	/**** Funzione per ricercare i tipi di registrazioni/numerazioni di unità documenatrie ****/
+21        	FUNCTION TrovaTipiRegNum(
+22        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+23        																	-- (obblig). Codice identificativo del token di connessione
+24        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+25        			FlgPreimpostaFiltroIn		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1 i filtri e l'ordinamento vengono settati secondo le impostazioni dell'utente di lavoro, altrimenti restano come passati in input
+26        			--------------- inizio filtri di ricerca-------------------
+27        			IdTipoRegNumIO			IN OUT	DMT_TIPI_REGISTRAZIONE.ID_TP_REGISTRAZIONE%type,
+28        																	-- 1° filtro di ricerca: id. del tipo di registrazione/numerazione da ricercare
+29        			CodCategoriaIO			IN OUT	DMT_TIPI_REGISTRAZIONE.COD_CATEGORIA%type,-- 2° filtro di ricerca: codice della categoria dei tipi di registrazione/numerazione da ricercare (ricerca esatta case-insensitive)
+30        			SiglaIO				IN OUT	DMT_TIPI_REGISTRAZIONE.SIGLA%type, 		-- 3° filtro di ricerca: sigla del tipo di registrazione/numerazione da ricercare (ricerca case-insensitive in like)
+31        			DescrizioneIO			IN OUT	DMT_TIPI_REGISTRAZIONE.DESCRIZIONE%type,	-- 4° filtro di ricerca: stringa contenuta nella descrizione dei tipi di registrazione/numerazione da ricercare (ricerca case-insensitive in like)
+32        			FlgInternaIO			IN OUT	PLS_INTEGER,					-- 5° filtro di ricerca: indica se i tipi di registrazione/numerazione da ricercare devono essere solo quelle date dal sistema (=1) o date da sistemi esterni (=0)
+33        			FlgStatoRegistroIO		IN OUT	VARCHAR2,						-- 6° filtro di ricerca: serve a restringere la ricerca ai soli tipi di registrazione/numerazione con registro aperto (=A) oppure chiuso (=C)
+34        			PeriodicitaDiAnniIO		IN OUT	PLS_INTEGER,					-- 7° filtro di ricerca: serve ad indicare che la ricerca va ristretta alle numerazioni che si rinnovano (ovvero ricominciano da 1) con periodicità (espressa come n.ro di anni) pari a quella indicata nel filtro
+35        			PeriodicitaNonDiAnniIO		IN OUT	PLS_INTEGER,					-- 8° filtro di ricerca: serve ad indicare che la ricerca va ristretta alle numerazioni che si rinnovano (ovvero ricominciano da 1) con periodicità (espressa come n.ro di anni) diversa da quella indicata nel filtro
+36        			IdDocTypeAmmessoIO		IN OUT	DMT_DOC_TYPES.ID_DOC_TYPE%type,		-- 9° filtro di ricerca (viene considerato e gestito solo se l'argomento successivo è valorizzato): Serve a restringere la ricerca i tipi di registrazione/numerazione in cui si possono registrare/numerare documenti del tipo il cui id. è indicato nel filtro.
+37        																	--	Se non è congruente con il valore del filtro successivo viene ignorato
+38        			NomeDocTypeAmmessoIO		IN OUT	DMT_DOC_TYPES.NOME_DOC_TYPE%type,		-- 10° filtro di ricerca: Serve a restringere la ricerca i tipi di registrazione/numerazione in cui si possono registrare/numerare documenti del tipo il nome è indicato nel filtro (ricerca case-insensitive in like che deve matchare uno e un  solo tipo di documento).
+39        			IdDocTypeEsclusoIO		IN OUT	DMT_DOC_TYPES.ID_DOC_TYPE%type,		-- 11° filtro di ricerca (viene considerato e gestito solo se l'argomento successivo è valorizzato): Serve a restringere la ricerca i tipi di registrazione/numerazione in cui NON si possono registrare/numerare documenti del tipo il cui id. è indicato nel filtro.
+40        																	--	Se non è congruente con il valore del filtro successivo viene ignorato
+41        			NomeDocTypeEsclusoIO		IN OUT	DMT_DOC_TYPES.NOME_DOC_TYPE%type,		-- 12° filtro di ricerca: Serve a restringere la ricerca i tipi di registrazione/numerazione in cui NON si possono registrare/numerare documenti del tipo il nome è indicato nel filtro (ricerca case-insensitive in like che deve matchare uno e un  solo tipo di documento).
+42        			CIProvTipoRegNumIO		IN OUT	DMT_TIPI_REGISTRAZIONE.PROV_CI_TP_REG%TYPE,
+43        																	-- 13° filtro di ricerca: Codice identificativo del tipo di registrazione/numerazione nel sistema di provenienza: ricerca esatta case-sensitive
+44        			FlgSoloVldIO 			IN OUT 	INTEGER, 						-- (valori 1/0/NULL) 14° filtro di ricerca: Se 1 indica se si devono estrarre solo i tipi di registrazione/numerazione validi alla data odierna
+45        			TsVldIO				IN OUT	VARCHAR2,						-- 15° filtro di ricerca: Stinga con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) a cui devono essere validi i tipi di registrazione/numerazione da estrarre
+46        			GruppoAppIO				IN OUT	VARCHAR2,						-- 16° filtro di ricerca: gruppo di appartenenza del registro (ricerca esatta case-sensitive)
+47        			AltriCriteriIO			IN OUT 	NOCOPY CLOB,					-- Altri criteri di ricerca sugli attributi addizionali dei tipi di registrazione/numerazione  (XML conforme a schema LISTA_STD.xsd). Se più di uno vengono applicati in AND.
+48        																	-- Ogni criterio è un tag Riga che può contenere le seguenti colonne:
+49        																	--	1) Nome (ATTR_NAME) dell'attributo cui è relativo il criterio
+50        																	--	2) (obblig.) Operatore logico. Valori possibili:
+51        																	--		"uguale" (ricerca esatta)
+52        																	--		"simile a (case-sensitive)" (ricerca case-sensitive in like)
+53        																	--		"simile a (case-insensitive)" (ricerca case-insensitive in like e che ignora i caratteri quali spazi, ., ecc)
+54        																	--		"maggiore" (se attributo numerico o data)
+55        																	--		"maggiore o uguale" (se attributo numerico o data)
+56        																	--		"minore" (se attributo numerico o data)
+57        																	--		"minore o uguale" (se attributo numerico o data)
+58        																	--		"tra" (se attributo numerico o data)
+59        																	--		"non valorizzato"
+60        																	--		"valorizzato"
+61        																	--		"spuntato" (se attributo di tipo casella di spunta)
+62        																	--		"non spuntato" (se attributo di tipo casella di spunta)
+63        																	--	3) 1° valore di confronto (obblig. e gestito solo se l'operatore non ha uno dei seguenti valori: valorizzato, non valorizzato, spuntato, non spuntato) (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+64        																	--	4) 2° valore di confronto (obblig. e gestito solo se l'operatore è "tra") (se l'attributo è numerico deve avere la virgola come separatore dei decimali, se è di tipo data deve essere in uno dei formato dati dai parametri di conf. FMT_STD_DATA e FMT_STD_TIMESTAMP)
+65        																	--	5) Label dell''attributo cui è relativo il criterio (se sotto-attributo di complesso <label del complesso> - <label del sotto-attributo>
+66        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+67        			ColOrderByIO			IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 11). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
+68        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+69        																	-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+70        			FlgDescOrderByIO  		IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+71        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+72        			FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+73        			NroPaginaIO      			IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+74           			BachSizeIO				IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+75        																	-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+76        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+77        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+78        			NroTotRecOut			OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+79             			NroRecInPaginaOut 		OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+80        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+81        			ListaXMLOut				OUT		NOCOPY CLOB,					-- Lista dei tipi di registrazione/numerazione trovati (XML conforme a schema LISTA_STD.xsd)
+82        																	-- Ogni tipo di registrazione/numerazione è un tag Riga che può contenere le seguenti colonne:
+83        																	-- 1:  Identificativo del tipo di registrazione/numerazione
+84        																	-- 2:  Descrizione del tipo di registrazione/numerazione
+85        																	-- 3:  Codice che indica la categoria in cui ricade il tipo di registrazione/numerazione
+86        																	-- 4:  Descrizione della categoria in cui ricade il tipo di registrazione/numerazione
+87        																	-- 5:  Sigla del tipo di registrazione/numerazione
+88        																	-- 6:  (valori 1/0) Se 1 indica che la registrazione/numerazione viene data all'interno del sistema, se 0 che viene data da sistemi esterni
+89        																	-- 7:  N.ro di anni ogni quanto si rinnova la numerazione (se non valorizzato significa che è una numerazione continua che non riparte mai da 1)
+90        																	-- 8:  Anno di inizio della numerazione
+91        																	-- 9:  Data di inizio validità del tipo di registrazione/numerazione (nel formato dato dal parametro di config. FMT_STD_DATA)
+92        																	-- 10:  Data di fine validità del tipo di registrazione/numerazione (nel formato dato dal parametro di config. FMT_STD_DATA)
+93        																	-- 11: Stato del registro del dato tipo di registrazione/numerazione: Aperto, Chiuso
+94        																	-- 12: Data e ora (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP) da cui il registro del dato tipo di registrazione/numerazione si trova nello stato attuale di Aperto o Chiuso
+95        																	-- 13: (valori 1/0) Indica se è un tipo di registrazione/numerazione attualmente valida
+96        																	-- 14: Lista dei tipi di documenti che possono essere registrati/numerati col dato tipo di registrazione/numerazione (separati da ;)
+97        																	-- 15: Lista dei tipi di documenti che NON possono essere registrati/numerati col dato tipo di registrazione/numerazione (separati da ;)
+98        																	-- 16: Cod. identificativo del tipo di registrazione/numerazione nel sistema di provenienza
+99        																	-- 17: Data e ora dell'ultima registrazione/numerazione nel registro (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
+100        																	-- 18: Anno dell'ultima registrazione/numerazione nel registro
+101        																	-- 19: N.ro dell'ultima registrazione/numerazione nel registro
+102        																	-- 20: (valori 1/0) Indicatore di tipo di registrazione/numerazione riservato dal sistema e non modificabile da applicativo
+103        																	-- 21: (valori 1/0): se 1 è richiesta abilitazione esplicita per visualizzare documenti registrati/numerati col dato tipo di registrazione/numerazione
+104        																	-- 22: (valori 1/0): se 1 è richiesta abilitazione esplicita per gestire (modificare, versionare, cancellare) documenti registrati/numerati col dato tipo di registrazione/numerazione
+105        																	-- 23: (valori 1/0): se 1 è richiesta abilitazione esplicita per numerare/registrare documenti col dato tipo di registrazione/numerazione
+106        																	-- 24: (valori 1/0): se 1 è richiesta abilitazione esplicita per firmare documenti registrati/numerati col dato tipo di registrazione/numerazione
+107        																	-- 25: Timestamp di creazione del tipo di registrazione/numerazione (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+108        																	-- 26: Descrizione dell'utente di creazione del tipo di registrazione/numerazione
+109        																	-- 27: Timestamp di ultima modifica dei dati del tipo di registrazione/numerazione (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
+110        																	-- 28: Descrizione dell'utente di ultima modifica dei dati del tipo di registrazione/numerazione
+111        			FlgAbilInsOut	 		OUT 		PLS_INTEGER ,            			-- (valori 1/0) Se 1 si ha abilitazione a inserimento di tipo di registrazione/numerazione
+112        			FlgAbilUpdOut 			OUT 		PLS_INTEGER ,            			-- (valori 1/0) Se 1 si ha abilitazione a modifica di tipo di registrazione/numerazione
+113        			FlgAbilDelOut 			OUT 		PLS_INTEGER,            			-- (valori 1/0) Se 1 si ha abilitazione a cancellazione di tipo di registrazione/numerazione
+114        			FlgMostraAltriAttrOut		OUT		PLS_INTEGER,					-- (valori 1/0) Se 1 nella GUI vanno mostrati gli attributi addizionali per un nuovo di tipo di registrazione/numerazione (ce ne sono di visibile all'utente), se 0 no
+115        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+116        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+117        			ErrMsgOut				OUT 		VARCHAR2,						-- Messaggio d'errore
+118        			FlgRichAbilXVisualizzIn		IN		PLS_INTEGER default NULL,			-- (valori 1/0/NULL): filtro di ricerca per restringere la ricerca ai soli tipi per cui è richiesta abilitazione esplicita per visualizzare documenti registrati/numerati col dato tipo di registrazione/numerazione (=1) o per cui non è richiesta abilitazione esplicita per visualizzare documenti registrati/numerati col dato tipo di registrazione/numerazione (=0)
+119        			FlgRichAbilXGestIn		IN		PLS_INTEGER default NULL,			-- (valori 1/0/NULL): filtro di ricerca per restringere la ricerca ai soli tipi per cui è richiesta abilitazione esplicita per gestire (modificare, versionare, cancellare) documenti registrati/numerati col dato tipo di registrazione/numerazione (=1) o per cui non è richiesta abilitazione esplicita per gestire documenti registrati/numerati col dato tipo di registrazione/numerazione (=0)
+120        			FlgRichAbilXAssegnIn		IN		PLS_INTEGER default NULL,			-- (valori 1/0/NULL): filtro di ricerca per restringere la ricerca ai soli tipi per cui è richiesta abilitazione esplicita numerare/registrare documenti col dato tipo di registrazione/numerazione (=1) o per cui non è richiesta abilitazione esplicita per numerare/registrare documenti col dato tipo di registrazione/numerazione (=0)
+121        			FlgRichAbilXFirmaIn		IN		PLS_INTEGER default NULL,			-- (valori 1/0/NULL): filtro di ricerca per restringere la ricerca ai soli tipi per cui è richiesta abilitazione esplicita per firmare documenti registrati/numerati col dato tipo di registrazione/numerazione (=1) o per cui non è richiesta abilitazione esplicita per firmare documenti registrati/numerati col dato tipo di registrazione/numerazione (=0)
+122        			FlgStatoAbilIn			IN		PLS_INTEGER default NULL,			-- (valori 1/0/NULL): filtro di ricerca per restringere la ricerca ai soli tipi cui l'utente/UO/scrivania/profilo ecc specificato nell'argomento IdDestAbilIn ha (= 1) o non ha (=0) abilitazione (con le opzioni eventualmente specificate nell'argomento OpzioniAbilIn)
+123        			FlgTpDestAbilIn			IN		VARCHAR2 default NULL,				-- (obblig. e gestito solo se FlgStatoAbilIn è valorizzato) Indica il tipo di chi (utente o UO ecc) deve avere o non avere abilitazione - con tutte le opzioni specificate in OpzioniAbilIn - verso i tipi da ricercare
+124        																	-- Valori ammessi:
+125        																	--	UO	=	U.O.
+126        																	-- 	SV	=	Scrivania virtuale
+127        																	--	UT	=	Utente
+128        																	--	PR	=	Profilo
+129        																	--	GP	=	Gruppo di privilegi
+130        			IdDestAbilIn			IN		INTEGER default NULL,				-- (obblig. e gestito solo se FlgStatoAbilIn è valorizzato) Identificativo (ID_UO o ID_SCRIVANIA o ID_USER o ID_PROFILO o ID_GRUPPO_PRIV) di chi deve avere o non avere abilitazione - con tutte le opzioni specificate in OpzioniAbilIn - verso i tipi da ricercare
+131        			OpzioniAbilIn			IN		VARCHAR2 DEFAULT NULL,				-- Indica la/le opzione (se più di una separate da ;) con cui IdDestAbilIn deve essere abilitato o meno (a seconda che FlgStatoAbilIn sia 1 o 0) ai tipi da ricercare
+132        																	-- Opzioni possibili:
+133        																	--	M	=	a Modificare/gestire
+134        																	--	A	=	ad Assegnare
+135        																	--	F	=	a Firmare
+136        			NomeTagRigaIn			IN		VARCHAR2 default null,				--se valorizzato è il nome del tag riga che deve avere l'xml in output
+137        			NomeTagColonnaIn			IN		DMVA_STRING default null   			--se valorizzatorappresenta i nomi dei tag colonne dell'xml di output
+138        			)return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+139        
+140        	/******* funzione per creare o aggiornare un tipo di registrazione/numerazione *******/
+141        	function IUTipoRegNum(
+142        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+143        																	-- (obblig). Codice identificativo del token di connessione
+144        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+145        			IdTipoRenNumIO   			IN OUT   	DMT_TIPI_REGISTRAZIONE.ID_TP_REGISTRAZIONE%type,
+146        																	-- Identificativo del tipo di registrazione/numerazione da modificare. Se non valorizzato il tipo è da inserire ex-novo
+147        																	-- In output, salvo in caso di errore, è sempre valorizzato
+148        			CodCategoriaIn			IN 		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+149        																	-- (obblig.) Codice della categoria del tipo di registrazione/numerazione (valori codificati nel dizionario di sistema)
+150        			SiglaIn				IN 		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+151        																	-- Sigla che contraddistingue il registro della data registrazione/numerazione
+152        			DescrizioneIn			IN 		DMT_TIPI_REGISTRAZIONE.DESCRIZIONE%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+153        																	-- (obblig.) Descrizione del tipo di registrazione/numerazione
+154        			DtInizioVldIn			IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+155        																	-- Data di inizio validità (nel formato dato dal parametro di conf. FMT_STD_DATA).
+156        			DtFineVldIn				IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'DATE_VAL_NO_UPD'),
+157        																	-- Data di fine validità (nel formato dato dal parametro di conf. FMT_STD_DATA).
+158        			FlgInternaIn			IN 		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+159        																	-- (valori 1/0/NULL) Se vale 1 significa che la registrazione/numerazione è data dal sistema, altrimenti che è data da un sistema esterno
+160        			FlgStatoRegistroIn		IN 		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+161        																	-- (obblig., valori A/C) Flag che indica lo stato del registro della data registrazione/numerazione: aperto (=A) oppure chiuso (=C)
+162        			PeriodicitaDiAnniIn		IN 		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+163        																	-- Serve ad indicare ogni quanti anni la numerazione deve rinnovarsi (ovvero ricominciare da 1)
+164        																	-- Se non valorizzato significa che è una numerazione che prosegue nel tempo senza mai rinnovarsi
+165        			AnnoInizioNumerazioneIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+166        																	-- (obblig. se PeriodicitaDiAnniIn>1 e valorizzata) Anno (espresso a 2 o 4 cifre) a partire dal quale è iniziata la numerazione: è rilevante solo per le numerazioni che si rinnovano con periodicità non annuale
+167        			FlgRichAbilXVisualizzIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+168        																	-- (valori 1/0/NULL): se 1 è richiesta abilitazione esplicita per visualizzare documenti registrati/numerati col dato tipo
+169        			FlgRichAbilXGestIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+170        																	-- (valori 1/0/NULL): se 1 è richiesta abilitazione esplicita per gestire (modificare, versionare, cancellare) documenti registrati/numerati col dato tipo
+171        			FlgRichAbilXAssegnIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+172        																	-- (valori 1/0/NULL): se 1 è richiesta abilitazione esplicita per registrare/numerare documenti con la data registrazione/numerazione
+173        			FlgRichAbilXFirmaIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+174        																	-- (valori 1/0/NULL): se 1 è richiesta abilitazione esplicita per firmare documenti registrati/numerati col dato tipo
+175        			CIProvTipoRegNumIn		IN 		DMT_TIPI_REGISTRAZIONE.PROV_CI_TP_REG%TYPE DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+176        																	-- Codice identificativo del tipo di registrazione/numerazione nel sistema che la eroga
+177        			FlgLockedIn				IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+178        																	-- (valori 1/0/NULL) Indicatore di tipo di registrazione/numerazione riservata dal sistema e non modificabile/cancellabile da GUI
+179        			FlgBuchiAmmessiIn		IN		PLS_INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+180        																			-- Se 1 indica che i numeri staccati per il dato registro/tipo di numerazione possono non essere continui, altrimenti deve essere un registro senza "buchi di numerazione"
+181        			GruppoAppIn				IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+182        																			-- Nome del gruppo di registri cui il registro/tipo di numerazione appartiene
+183        			RestrizioniVersoRegIn	IN 		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+184        																			-- Serve a definire eventuali restrizioni sul "verso" - entrata, uscita, interni - dei documenti che possono essere registrati nel registro
+185        																			-- Valori ammessi: E, U, I o una loro concatenazione (separando i valori con , o ;)
+186        			FlgCtrAbilUOMittIn		IN		INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+187        																			-- (valori 1/0/NULL) Se 1 indica che per le registrazioni interne e in uscita viene controllato che la UO mittente sia abilitata al registro
+188        			NroInizialeIn			IN		INTEGER DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
+189        																			-- N.ro da cui deve partire la numerazione nel registro (se non specificato la numerazione parte da 1)
+190        																			-- Viene considerato solo se non sono già stati numerati documenti nel registro
+191        			FlgAmmEscXTipiDocIn		IN		VARCHAR2 DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
+192        																	-- (valori A/E) Indica se nel successivo argomento XMLTipiDocAmmEscIn saranno specificati i tipi di documenti ammessi (=A) o esclusi (=E) alla/dalla registrazione/numerazione
+193        			FlgModTipiDocAmmEsclIn		IN		VARCHAR2 DEFAULT 'I',				-- (valori I/C) Indica se i tipi di documenti indicati nell'argomento successivo sono forniti in modo incrementale (=I) (solo quelle da inserire/modificare/cancellare) oppure completo (=C), vale a dire che dovranno soppiantare tutti quelli già specificati (e relativi al dominio di lavoro) in caso di tipo di registrazione/numerazione da aggiornare
+194        			XMLTipiDocAmmEscIn		IN		CLOB DEFAULT NULL,				-- Lista con i i tipi di documenti ammessi (se FlgAmmEscXTipiDocIn=A) o esclusi (se FlgAmmEscXTipiDocIn=E) alla/dalla registrazione/numerazione (XML conforme a schema LISTA_STD.xsd)
+195        																	-- Ogni tipo documento è un tag "Riga" che può contenere le seguenti colonne:
+196        																	-- 1: Identificativo del tipo documento
+197        																	-- 2: Nome del tipo documento (ricerca case insensitive in like)
+198        																	-- 3: (valori 1/0/NULL) Flag di record da eliminare
+199        			FlgModAttrAddXDocDelTipoIn	IN		VARCHAR2 DEFAULT 'I',				-- (valori I/C) Indica se gli attributi addizionali previsti per i documenti registrati/numerati con il dato tipo di registrazione/numerazione e indicati nell'argomento successivo sono forniti in modo incrementale (=I) (solo quelli da inserire/modificare/cancellare) oppure completo (=C), vale a dire che dovranno soppiantare tutti quelli già specificati (e relativi al dominio di lavoro) in caso di tipo di registrazione da aggiornare
+200        			XMLAttrAddXDocDelTipoIn		IN		CLOB DEFAULT NULL,				-- Lista con gli attributi addizionali previsti per i documenti registrati/numerati con il dato tipo di registrazione/numerazione (XML conforme a schema LISTA_STD.xsd)
+201        																	-- Ogni relazione tipo registrazione/numerazione-attributo è tag "Riga" che può contenere le seguenti colonne:
+202        																	-- 1: Identificativo (ROWID) con cui la relazione è già stata registrata in banca dati
+203        																	-- 2: Nome identificativo dell'attributo (internal name)
+204        																	-- 3: Label con cui viene mostrato l'attributo nella GUI
+205        																	-- 4: (valori 1/0) Indicatore di obbligatorietà dell'attributo
+206        																	-- 5: Massimo numero di valori possibili per l'attributo
+207        																	-- 6: Data di inizio validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità decorre da sempre.
+208        																	-- 7: Data di fine validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità è illimitata.
+209        																	-- 8: N.ro (valori da 1 a n) che indica la posizione dell'attributo tra tutti quelli associati
+210        																	-- 9: (valori 1/0/NULL) Flag di relazione da eliminare
+211        			AttributiAddIn			IN		CLOB DEFAULT NULL,				-- XML contenente nomi e valori degli attributi dinamici da aggiornare (conforme allo schema SezioneCache.xsd)
+212        																	-- Gli attributi già presenti in DB e per i quali non c'è corrispondente nell'XML restano invariati
+213        																	-- Per tutti gli attributi vale quanto segue:
+214        																	-- Un attributo da settare è un tag "Variabile" dell'XML il cui tag "Nome" contiene il nome identificativo dell'attributo (ATTR_NAME di DMT_ATTRIBUTES_DEF)
+215        																	-- Un attributo da settare è una variabile con tag "ValoreSemplice" se è un attributo a singolo valore e non strutturato (cioè con tipo diverso da COMPLEX)
+216        																	-- altrimenti è una variabile con tag "Lista" che ha un'unica colonna con "Nro" pari a 1 se l'attributo non è strutturato, che ha invece tante colonne quanti gli attributi componenti (ordinate in base al loro NRO_ORD_IN_SUP) se l'attributo è complesso
+217        																	-- Nel caso di variabili con tag "Lista" i valori specificati nell'XML si aggiungono o sostituiscono quelli già presenti in DB a seconda che nell'XML sia presente o meno una variabile con tag "Nome" pari a #Append_<Nome attributo> e tag "ValoreSemplice" pari a 1
+218        																	-- In particolare se non sono specificati valori nell'XML (tag Lista vuoto) e se i valori non sono da aggiungere significa che tutti i valori dell'attributo già presenti in DB vanno rimossi
+219        			RowidOut				OUT		VARCHAR2,						-- Rowid del record del tipo di registrazione/numerazione
+220        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+221        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+222        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+223        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+224        			WarningMsgOut			OUT		VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+225        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+226        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+227        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+228        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+229        
+230        	/******* funzione per caricare i dati di dettaglio di un tipo di registrazione/numerazione *******/
+231        	function LoadDettTipoRegNum(
+232        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+233        																	-- (obblig). Codice identificativo del token di connessione
+234        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+235        			IdTipoRenNumIO   			IN OUT   	DMT_TIPI_REGISTRAZIONE.ID_TP_REGISTRAZIONE%type,
+236        																	-- (obblig.) Identificativo del tipo di registrazione/numerazione
+237        			CodCategoriaOut			OUT		VARCHAR2,						-- (obblig.) Codice della categoria del tipo di registrazione/numerazione (valori codificati nel dizionario di sistema)
+238        			SiglaOut				OUT		VARCHAR2,						-- Sigla che contraddistingue il registro della data registrazione/numerazione
+239        			DescrizioneOut			OUT 		DMT_TIPI_REGISTRAZIONE.DESCRIZIONE%type,	-- Descrizione del tipo di registrazione/numerazione
+240        			DtInizioVldOut			OUT		VARCHAR2,						-- Data di inizio validità (nel formato dato dal parametro di conf. FMT_STD_DATA).
+241        			DtFineVldOut			OUT		VARCHAR2,						-- Data di fine validità (nel formato dato dal parametro di conf. FMT_STD_DATA).
+242        			FlgInternaOut			OUT		PLS_INTEGER,					-- (valori 1/0) Se vale 1 significa che la registrazione/numerazione è data dal sistema, altrimenti che è data da un sistema esterno
+243        			FlgStatoRegistroOut		OUT		VARCHAR2,						-- (valori A/C) Flag che indica lo stato del registro della data registrazione/numerazione: aperto (=A) oppure chiuso (=C)
+244        			TsInizioStatoRegistroOut	OUT		VARCHAR2,						-- Data e ora (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP) a partire dalla quale il registro della data registrazione/numerazione è nello stato attuale
+245        			PeriodicitaDiAnniOut		OUT		PLS_INTEGER,					-- Serve ad indicare ogni quanti anni la numerazione deve rinnovarsi (ovvero ricominciare da 1)
+246        																	-- Se non valorizzato significa che è una numerazione che prosegue nel tempo senza mai rinnovarsi
+247        			AnnoInizioNumerazioneOut	OUT		PLS_INTEGER,					-- (sempre valorizzato se PeriodicitaDiAnniOut>1) Anno (espresso a 4 cifre) a partire dal quale è iniziata la numerazione
+248        			FlgRichAbilXVisualizzOut	OUT		PLS_INTEGER,					-- (valori 1/0): se 1 è richiesta abilitazione esplicita per visualizzare documenti registrati/numerati col dato tipo
+249        			FlgRichAbilXGestOut		OUT		PLS_INTEGER,					-- (valori 1/0): se 1 è richiesta abilitazione esplicita per gestire (modificare, versionare, cancellare) documenti registrati/numerati col dato tipo
+250        			FlgRichAbilXAssegnOut		OUT		PLS_INTEGER,					-- (valori 1/0): se 1 è richiesta abilitazione esplicita per registrare/numerare documenti con la data registrazione/numerazione
+251        			FlgRichAbilXFirmaOut		OUT		PLS_INTEGER,					-- (valori 1/0): se 1 è richiesta abilitazione esplicita per firmare documenti registrati/numerati col dato tipo
+252        			CIProvTipoRegNumOut		OUT		DMT_TIPI_REGISTRAZIONE.PROV_CI_TP_REG%TYPE,
+253        																	-- Codice identificativo del tipo di registrazione/numerazione nel sistema che la eroga
+254        			FlgLockedOut			OUT		PLS_INTEGER,					-- (valori 1/0) Indicatore di tipo di registrazione/numerazione riservata dal sistema e non modificabile/cancellabile da GUI
+255        			FlgBuchiAmmessiOut		OUT		PLS_INTEGER,					-- Se 1 indica che i numeri staccati per il dato registro/tipo di numerazione possono non essere continui, altrimenti deve essere un registro senza "buchi di numerazione"
+256        			GruppoAppOut			OUT		VARCHAR2,						-- Nome del gruppo di registri cui il registro/tipo di numerazione appartiene
+257        			RestrizioniVersoRegOut	OUT 	VARCHAR2,						-- Serve a definire eventuali restrizioni sul "verso" - entrata, uscita, interni - dei documenti che possono essere registrati nel registro
+258        																			-- Valori: E, U, I o una loro concatenazione (separando i valori con , o ;)
+259        			FlgCtrAbilUOMittOut		OUT		INTEGER,						-- (valori 1/0) Se 1 indica che per le registrazioni interne e in uscita viene controllato che la UO mittente sia abilitata al registro
+260        			NroInizialeOut			OUT		INTEGER,						-- N.ro da cui deve partire la numerazione nel registro
+261        			UltimoNroGenearatoOut	OUT		INTEGER,						-- Ultimo n.ro generato
+262        			DataUltNroGeneratoOut	OUT		VARCHAR2,						-- Data dell'ultimo n.ro generato (nel formato dato dal parametro di conf. FMT_STD_DATA)
+263        			RowidOut				OUT		VARCHAR2,						-- Rowid del record del tipo di registrazione/numerazione
+264        			FlgAmmEscXTipiDocOut		OUT		VARCHAR2,						-- (valori A/E) Indica se nel successivo argomento XMLTipiDocAmmEscOut saranno specificati i tipi di documenti ammessi (=A) o esclusi (=E) alla/dalla registrazione/numerazione
+265        			XMLTipiDocAmmEscOut		OUT		NOCOPY CLOB,					-- Lista con i i tipi di documenti ammessi (se FlgAmmEscXTipiDocOut=A) o esclusi (se FlgAmmEscXTipiDocOut=E) alla/dalla registrazione/numerazione (XML conforme a schema LISTA_STD.xsd)
+266        																	-- Ogni tipo documento è un tag "Riga" che contiene le seguenti colonne:
+267        																	-- 1: Identificativo del tipo documento
+268        																	-- 2: Nome del tipo documento (ricerca case insensitive in like)
+269        			XMLAttrAddXDocDelTipoOut	OUT		NOCOPY CLOB,					-- Lista con gli attributi addizionali previsti per i documenti registrati/numerati con il dato tipo di registrazione/numerazione (XML conforme a schema LISTA_STD.xsd)
+270        																	-- Ogni relazione tipo registrazione/numerazione-attributo è tag "Riga" che contiene le seguenti colonne:
+271        																	-- 1: Identificativo (ROWID) con cui la relazione è già stata registrata in banca dati
+272        																	-- 2: Nome identificativo dell'attributo (internal name)
+273        																	-- 3: Label con cui viene mostrato l'attributo nella GUI
+274        																	-- 4: (valori 1/0) Indicatore di obbligatorietà dell'attributo
+275        																	-- 5: Massimo numero di valori possibili per l'attributo
+276        																	-- 6: Data di inizio validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità decorre da sempre.
+277        																	-- 7: Data di fine validità della relazione (nel formato dato dal parametro di conf. FMT_STD_DATA). Se non specificata la validità è illimitata.
+278        																	-- 8: N.ro (valori da 1 a n) che indica la posizione dell'attributo tra tutti quelli associati
+279        			AttributiAddOut			OUT		NOCOPY CLOB,					-- Lista degli eventuali ulteriori attributi con cui caratterizzare il tipo di registrazione/numerazione (XML conforme a schema LISTA_STD.xsd)
+280        																	-- Ogni attributo è un tag "Riga" che contiene le seguenti colonne:
+281        																	-- 1: N.ro (valori da 1 a n) del riquadro (fieldset) in cui mostrare l'attributo
+282        																	-- 2: Nome identificativo dell'attributo (ATTR_NAME)
+283        																	-- 3: Label del campo con cui rappresentare l'attributo
+284        																	-- 4: Tipo di attributo. Valori: DATE, DATETIME, TEXT, TEXT-AREA, CHECK, INTEGER, EURO, DECIMAL, COMBO-BOX, LISTA
+285        																	-- 5: N.ro massimo di caratteri/cifre
+286        																	-- 6: Larghezza del campo con cui rappresentare l'attributo (size)
+287        																	-- 7: Valore dell'attributo
+288        																	-- 8: Label del riquadro (fieldset) in cui mostrare l'attributo
+289        																	-- 9: (valori 1/0) 1 indica che l'attributo è obbligatorio, 0 che è facoltativo
+290        																	-- 10: Altezza (in nro righe) del campo con cui rappresentare l'attributo (se TEXT-AREA)
+291        																	-- 11:(valori 1/0) 1 indica se l'attributo è modificabile, 0 che è in sola visualizzazione
+292        			FlgMostraAltriAttrOut		OUT		PLS_INTEGER,					-- (valori 1/0) Se 1 nella GUI vanno mostrati gli attributi addizionali (ce ne sono di visibile all'utente), se 0 no
+293        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+294        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+295        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+296        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine, altrimenti 0 (in caso di errore o warning)
+297        
+298        	/*** Funzione di eliminazione di un tipo di registrazione/numerazione					***/
+299        	function DTipoRegNum(
+300        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
+301        																	-- (obblig). Codice identificativo del token di connessione
+302        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+303        			IdTipoRenNumIn   			IN	   	DMT_TIPI_REGISTRAZIONE.ID_TP_REGISTRAZIONE%type DEFAULT NULL,
+304        																	-- Identificativo del tipo di registrazione/numerazione
+305        			CodCategoriaIn			IN		VARCHAR2 DEFAULT NULL,				-- Codice della categoria del tipo di registrazione/numerazione (valori codificati nel dizionario di sistema)
+306        			SiglaIn				IN		VARCHAR2 DEFAULT NULL,				-- Sigla che contraddistingue il registro della registrazione/numerazione
+307        			DescrizioneIn			IN		DMT_TIPI_REGISTRAZIONE.DESCRIZIONE%type DEFAULT NULL,
+308        																	-- Descrizione del tipo di registrazione/numerazione (ricerca case insensitive in like che non forza il % finale)
+309        			MotiviIn				IN		DMT_ACTIVITIES.NOTE%type DEFAULT NULL,	-- Motivi della cancellazione
+310        			FlgIgnoreWarningIn 		IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 0 o NULL significa che in presenza di WARNING la stored si comporta come in caso di errore; se 1 gli WARNING vengono ignorati
+311        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+312        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+313        			FlgAutoCommitIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+314        			WarningMsgOut			OUT		VARCHAR2,						-- Messaggio di warning (valorizzato solo se non c'è errore)
+315        			ErrContextOut			OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+316        			ErrCodeOut				OUT		PLS_INTEGER,					-- N.ro errore di uscita
+317        			ErrMsgOut				OUT 		VARCHAR2						-- Messaggio d'errore
+318        			) return PLS_INTEGER;											-- Vale 1 se tutto è andato a buon fine (senza warning), altrimenti 0 (in caso di errore o warning)
+319        
+320        END DMPK_TIPI_REG_NUM_UD;

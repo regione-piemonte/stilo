@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="theme-color" content="#000000" />
+   <script src="./ckeditor.js"></script>
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+   <script src="./adapters/jquery.js"></script>
+   	<style src="./content.css"></style>
+    <title>Organigramma editor</title>
+</head>
+
+<body>
+
+            <div style='height: 75%;padding: 5%; overflow: auto;'>
+                <label for="CKeditorCompetenze" style="
+                font-weight: bold;
+                font-size: 110%;">Funzioni</label>
+                <textarea id="CKeditorCompetenze" name="CKEditor"></textarea>
+            </div>
+<script>
+	$("#CKeditorCompetenze").ckeditor({
+         height: '100%',
+         resize_enabled: false,
+         extraPlugins: 'entities',
+         removePlugins: 'elementspath',
+         toolbar: [
+             ['Source', 'SpecialChar','Table', 'Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord', '-', 'Bold', 'Italic', 'Underline', 'Strike', '-', 'NumberedList', 'BulletedList']
+         ]
+     });
+	</script>
+</html>

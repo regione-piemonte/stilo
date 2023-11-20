@@ -1,0 +1,21 @@
+Manifest-Version: 1.0
+Implementation-Title: StiloExport
+Implementation-Version: 1.3.0.Final
+Java-Version: 1.8.0_201
+Built-By: dleone
+Scm-Connection: scm:git:https://github.com/jberet/jsr352.git/wildfly-jberet-samples/StiloExport
+Specification-Vendor: JBoss by Red Hat
+Os-Arch: amd64
+Specification-Title: StiloExport
+Implementation-Vendor-Id: org.jberet.samples
+Java-Vendor: Oracle Corporation
+Os-Name: Windows 10
+Scm-Url: scm:git:https://github.com/jberet/jsr352.git/wildfly-jberet-samples/StiloExport
+Implementation-Vendor: JBoss by Red Hat
+Os-Version: 10.0
+Scm-Revision: 
+Build-Jdk: 1.8.0_201
+Specification-Version: 1.3
+Created-By: Maven Integration for Eclipse
+Implementation-URL: https://github.com/jberet/jsr352.git/wildfly-jberet-samples/StiloExport
+

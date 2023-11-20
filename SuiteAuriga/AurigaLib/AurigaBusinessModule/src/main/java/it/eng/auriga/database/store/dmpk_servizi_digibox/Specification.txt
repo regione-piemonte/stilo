@@ -1,0 +1,39 @@
+1        PACKAGE DMPK_SERVIZI_DIGIBOX AS 
+2        
+3          /**** Funzione creata da Domenico D'Antonio - 30/04/2020 *****/
+4          /**** Funzione per recuperare le credenziali di accesso per i servizi SOAP inerenti Digibox *****/
+5        	function RecuperaCredenzialiSoapDigibox (
+6        			IdUdIn IN DMT_UNITA_DOC.ID_UD%TYPE, --idUd del file (REGISTRO) che permette di trovare COD_APPL_OWNER e le credenziali                                     
+7              UsernameOut OUT T_MAPPING_USERS_DGBOX.USER_ID%TYPE, --Username del servizio, legata al COD_APPL_OWNER dell'idUd
+8              PasswordOut OUT T_MAPPING_USERS_DGBOX.PASSWORD%TYPE, --Username del servizio, legata al COD_APPL_OWNER dell'idUd
+9              ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+10        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+11        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore
+12        			) return PLS_INTEGER;												-- Valori possibili:
+13        																			--	1	=	test positivo
+14        																			--	0	=	test negativo
+15        																			--	interi negativi = errore (il result è il codice d'errore)
+16        
+17          /**** Funzione creata da Domenico D'Antonio - 24/06/2020 *****/
+18          /**** Funzione per recuperare i documenti Digibox *****/
+19        	function RicercaDocumentiDigibox ( 
+20              CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE, -- (obblig). Codice identificativo del token di connessione
+21              IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
+22        			CriteriAvanzatiIO			IN OUT	NOCOPY CLOB,		-- XML contenente nomi e valori dei filtri su unità documentarie e folder (conforme allo schema SezioneCache.xsd).
+23        																	-- Ogni filtro è un tag "Variabile" dell'XML
+24        																	-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
+25              MaxNumResultIn  IN 		PLS_INTEGER, -- (valore numerico/NULL) Se NUOO oppure <1, il ResultOut sarà vuoto (serve per trovare il solo conteggio dei record filtrati/totale)
+26              OverFlowLimitIn IN 		PLS_INTEGER,                           
+27              ResultOut				OUT		NOCOPY CLOB, 			-- Lista delle unità documentarie trovati (XML conforme a schema LISTA_STD.xsd)
+28              NroRecOut       OUT   PLS_INTEGER,      --Numero di record portati su ResultOut
+29              NroRecTotOut       OUT   PLS_INTEGER,      --Numero di record totali trovati
+30              ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+31        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+32        			ErrMsgOut			OUT 		VARCHAR2						-- Messaggio d'errore
+33        			) return PLS_INTEGER;	-- Valori possibili:
+34        																			--	1	=	test positivo
+35        																			--	0	=	test negativo
+36        																			--	interi negativi = errore (il result è il codice d'errore)
+37              
+38              
+39        END DMPK_SERVIZI_DIGIBOX;

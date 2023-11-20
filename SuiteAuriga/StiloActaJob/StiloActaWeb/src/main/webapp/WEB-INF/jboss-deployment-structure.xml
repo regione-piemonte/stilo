@@ -1,0 +1,14 @@
+<jboss-deployment-structure>
+    <deployment>
+	    <exclude-subsystems>
+			<subsystem name="webservices" />
+		</exclude-subsystems>
+        <dependencies>
+            <module name="com.google.guava"/>
+            <module name="org.springframework.spring"/>
+            <module name="org.codehaus.woodstox" />
+            <module name="org.dom4j" />
+            <module name="org.apache.commons.codec" />            
+        </dependencies>
+    </deployment>
+</jboss-deployment-structure>

@@ -1,0 +1,92 @@
+1        PACKAGE DMPK_SPATIAL AUTHID CURRENT_USER IS
+2        
+3        	/****************************************************		INFORMAZIONI GENERALI		*******************************************************/
+4        	/************** Argomenti delle stored per il controllo della transazione:											*******/
+5        	/************** FlgRollBckFullIn -> se 1 in caso di errore viene fatta la rollback completa (non a savepoint), 					*******/
+6        	/************** 				altrimenti la rollback delle sole modifiche effettuate nella stored						*******/
+7        	/************** 				ATTENZIONE: la rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log			*******/
+8        	/************** FlgAutoCommitIn  -> se vale 1, dopo la rollback e qualunque sia l'esito (positivo o no), la stored esegue una commit finale *****/
+9        	/************** Tutte le funzioni/procedure che NON hanno gli argomenti in input FlgRollBckFullIn e FlgAutoCommitIn 				*******/
+10        	/************** NON ESEGUONO AL LORO INTERNO ALCUNA COMMIT nè ROLLBACK 												*******/
+11        
+12        	/************** Tutte le funzioni, tranne quelle da utilizzarsi nelle select, restituiscono 1 in caso di successo, altrimenti 0		*******/
+13        	/************** Tali funzioni restituiscono, in caso di result 0, un n.ro, un contesto e un messaggio di errore:					*******/
+14        	/************** il n.ro è: <0 se errore ORACLE non specificamente gestito 											*******/
+15        	/**************		   da 1->1000 errore "grave" (SEVERE_ERROR) gestito											*******/
+16        	/**************		   >1000 errore non grave gestito														*******/
+17        	/************** il contesto indica il package e/o funzione/procedura in cui si è verificato l'errore							*******/
+18        
+19        	function TrovaComuniItaliani(
+20        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+21        																-- (obblig). Codice identificativo del token di connessione
+22        			StrInNomeIn			IN		VARCHAR2 DEFAULT NULL,				-- Stringa che deve essere contenuta nei nomi dei comuni da trovare (ricerca case-insensitive in like)
+23        			StrInCodIstatIn		IN		VARCHAR2 DEFAULT NULL,				-- Stringa che deve essere contenuta nel codice ISTAT (ricerca in like)
+24        			TargaProvIn			IN		VARCHAR2 DEFAULT NULL,				-- Targa della provincia di appartenenza (ricerca esatta)
+25        			CAPIn				IN		VARCHAR2 DEFAULT NULL,				-- Codice Avviamento Postale (ricerca esatta)
+26        			FlgCapoluogoProvIn	IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 si devono trovare solo i capolouoghi di provincia, se 0 solo i comuni non capoluogo
+27        			TsVldIn			IN		VARCHAR2 default TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS'),
+28        																-- Stringa con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) per cui si richiede che i comuni trovati siano validi. Se non valorizzato si intende che si richiedono comuni validi a qualsisai data
+29        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+30        			ColOrderByIO		IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso. Se l'ordinamento è per più colonne queste vanno separate con "," (es: 1; 1,2)
+31        																-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+32        																-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+33        			FlgDescOrderByIO  	IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+34        																-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+35        			FlgSenzaPaginazioneIn 	IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+36        			NroPaginaIO      		IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+37           			BachSizeIO			IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+38        																-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+39        			OverFlowLimitIn		IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+40        			FlgSenzaTotIn		IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+41        			NroTotRecOut		OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+42             			NroRecInPaginaOut 	OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+43        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+44        			ListaXMLOut			OUT		CLOB,							-- Lista dei comuni trovati (XML conforme a schema LISTA_STD.xsd)
+45        																-- Ogni valore è un tag Riga che contiene 2 colonne:
+46        																-- 1: Codice ISTAT
+47        																-- 2: Nome del comune
+48        																-- 3: Targa provincia di appartenenza
+49        																-- 4: CAP
+50        																-- 5: Data inizio validità (nel formato dato dal parametro di config. FMT_STD_DATA)
+51        																-- 6: Data fine validità (nel formato dato dal parametro di config. FMT_STD_DATA)
+52        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+53        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+54        			ErrMsgOut			OUT 		VARCHAR2)						-- Messaggio d'errore
+55        			return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+56        
+57        	function TrovaStatiNazionali(
+58        			CodIdConnectionTokenIn	IN		DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%type,
+59        																-- (obblig). Codice identificativo del token di connessione
+60        			StrInNomeIn			IN		VARCHAR2 DEFAULT NULL,				-- Stringa che deve essere contenuta nei nomi degli stati da trovare (ricerca case-insensitive in like)
+61        			StrInCodIstatIn		IN		VARCHAR2 DEFAULT NULL,				-- Stringa che deve essere contenuta nel codice ISTAT (ricerca in like)
+62        			TsVldIn			IN		VARCHAR2 default TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS'),
+63        																-- Stringa con il timestamp (nel formato GG/MM/AAAA HH24:MI:SS) per cui si richiede che gli stati trovati siano validi. Se non valorizzato si intende che si richiedono comuni validi a qualsisai data
+64        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+65        			ColOrderByIO		IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso. Se l'ordinamento è per più colonne queste vanno separate con "," (es: 1; 1,2)
+66        																-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
+67        																-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
+68        			FlgDescOrderByIO  	IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
+69        																-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+70        			FlgSenzaPaginazioneIn 	IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
+71        			NroPaginaIO      		IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
+72           			BachSizeIO			IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
+73        																-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+74        			OverFlowLimitIn		IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
+75        			FlgSenzaTotIn		IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
+76        			NroTotRecOut		OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
+77             			NroRecInPaginaOut 	OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
+78        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
+79        			ListaXMLOut			OUT		CLOB,							-- Lista dei comuni trovati (XML conforme a schema LISTA_STD.xsd)
+80        																-- Ogni valore è un tag Riga che contiene 2 colonne:
+81        																-- 1: Codice ISTAT
+82        																-- 2: Nome dello stato
+83        																-- 3: Data inizio validità (nel formato dato dal parametro di config. FMT_STD_DATA)
+84        																-- 4: Data fine validità (nel formato dato dal parametro di config. FMT_STD_DATA)
+85        																-- 5: Cittadinanza corrispondente allo stato
+86        			ErrContextOut		OUT		VARCHAR2,						-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+87        			ErrCodeOut			OUT		PLS_INTEGER,					-- N.ro errore di uscita
+88        			ErrMsgOut			OUT 		VARCHAR2,						-- Messaggio d'errore
+89        			StrInCittadinanzaIn	IN		VARCHAR2 DEFAULT NULL				-- FILTRO: Stringa che deve essere contenuta nella cittadinanza degli stati da trovare (ricerca case-insensitive in like)
+90        			) return PLS_INTEGER;										-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+91        
+92        end DMPK_SPATIAL;
