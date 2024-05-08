@@ -11,42 +11,19 @@ description:
       - Stilo Gestione atti
     genericName: Stilo
     longDescription: |
-      Il sistema Stilo è composto dai seguenti moduli
+      Il sistema Stilo è composto dai seguenti moduli:
+      
+      **Gestione & Ricerca Atti** è il modulo centrale del sistema, che eroga le web GUI e i servizi per la gestione e ricerca degli atti (determine,
+      delibere, decreti ecc). Integra al suo interno i servizi di apposizione e verifica firma usati a supporto della gestione degli atti.
 
-        
+      **Gestione e-mail** è il modulo per l'invio e lo scarico delle mail. Il prodotto consente la gestione di mail PEO e PEC, integrato su STILO con una gestione dedicata alle notifiche dei worflow e a tutte le comunicazioni di servizio, ad esempio report. 
 
-      · **Gestione & Ricerca Atti **è il modulo centrale del sistema, che eroga
+      **Amministrazione & Configurazione** è il modulo che offre le web GUI e i servizi per la definizione dei dati del contesto organizzativo e procedurale del sistema ed in generale per la sua amministrazione e configurazione
 
-      le web GUI e i servizi per la gestione e ricerca degli atti (determine,
+      **Autenticazione** l’autenticazione è demandata tramite Shibboleth
 
-      delibere, decreti ecc). Integra al suo interno i servizi di apposizione e
-
-      verifica firma usati a supporto della gestione degli atti.
-
-       **Gestione e-mail** è il modulo per l'invio e lo scarico delle mail. Il prodotto consente la gestione di mail PEO e PEC, integrato su STILO con una gestione dedicata alle notifiche dei worflow e a tutte le comunicazioni di servizio, ad esempio report. 
-
-      · **Amministrazione & Configurazione **è il modulo che offre le web GUI e
-
-      i servizi per la definizione dei dati del contesto organizzativo e
-
-      procedurale del sistema ed in generale per la sua amministrazione e
-
-      configurazione
-
-
-
-      · **Autenticazione: **l’autenticazione è demandata tramite Shibboleth
-
-
-
-      · **Archivio Centrale Atti **riceve flussi dati da **Gestione & Ricerca
-
-      Atti **– file xls/csv – deposti su cartelle condivise o ftp e li veicola
-
-      ai sistemi BUR, Trasparenza e Contabilia (lista degli atti su cui fare
-
-      impegni/accertamenti)
-    shortDescription: Stilo
+      **Archivio Centrale Atti** riceve flussi dati da **Gestione & Ricerca Atti**– file xls/csv – deposti su cartelle condivise o ftp e li veicola ai sistemi BUR, Trasparenza e Contabilia (lista degli atti su cui fare impegni/accertamenti)
+    shortDescription: Soluzione per digitalizzare il ciclo di vita degli atti amministrativi
 developmentStatus: stable
 it:
   conforme:
@@ -69,6 +46,8 @@ localisation:
   availableLanguages:
     - it
   localisationReady: false
+logo: |-
+  image/stilo.jpg
 maintenance:
   contacts:
     - email: diego.migliardi@csi.it
