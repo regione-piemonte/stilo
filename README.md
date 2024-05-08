@@ -20,7 +20,9 @@ Il codice sorgente viene gestito tramite maven e versionato su git.
 Versione 2.0.0
 
 # Copyrights
- (C) Copyright 2023 Regione Piemonte
+ (C) Copyright Regione Piemonte – 2023
+ (C) Copyright Comune di Torino – 2023
+ (C) Copyright Città Metropolitana di Torino – 2023
 
 # License
 Stilo è rilasciato sotto licenza “AGPL 3 or later”, con una “GPL linking exception”
