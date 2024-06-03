@@ -47,7 +47,7 @@ localisation:
     - it
   localisationReady: false
 logo: |-
-  image/stilo.jpg
+  image/stilo.png
 maintenance:
   contacts:
     - email: diego.migliardi@csi.it
