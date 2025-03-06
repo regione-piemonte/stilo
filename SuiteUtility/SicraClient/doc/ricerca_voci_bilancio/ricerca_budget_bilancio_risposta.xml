@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<risultato>
+	<esito>
+		<tipo>OK</tipo>
+		<descrizione></descrizione>
+	</esito>
+	<lista_budget>
+		<budget>
+			<parte>U</parte>
+			<idcapitolo>4681</idcapitolo>
+			<codifica>01081.03.01817</codifica>
+			<descrizione>PROGETTI EUROPEI: ALTRI BENI DI CONSUMO </descrizione>
+			<numcapitolo>1817</numcapitolo>
+			<annocompetenza>2019</annocompetenza>
+			<sigpianofincapitolo>U.1.03.01.02.000</sigpianofincapitolo>
+			<despianofincapitolo>Altri beni di consumo</despianofincapitolo>
+			<sigcptcapitolo />
+			<descptcapitolo />
+			<codrespservcapitolo>801</codrespservcapitolo>
+			<desrespservcapitolo>0801 - INNOVAZIONE E SERVIZI DIGITALI
+			</desrespservcapitolo>
+			<codrespproccapitolo>801</codrespproccapitolo>
+			<desrespproccapitolo>0801 - INNOVAZIONE E SERVIZI DIGITALI</desrespproccapitolo>
+			<stanziamento>16900.00</stanziamento>
+			<disponibile>16900.00</disponibile>
+			<impegnato>0.00</impegnato>
+			<mandatiemessi>0.00</mandatiemessi>
+			<documentiaperti>0.00</documentiaperti>
+			<prenotatodisponibile>0.00</prenotatodisponibile>
+			<descrizionebudget>Budget di Spesa:
+				Centro di costo:
+				Piano Finanziario:
+				Piano dei conti:
+				Lavoro:
+				Tipo spesa:
+				Tipo finanziamento:
+				Coperto da F.P.V.: NO
+			</descrizionebudget>
+		</budget>
+		<!-- ... -->
+	</lista_budget>
+	<lista_budget_zip64 />
+</risultato>

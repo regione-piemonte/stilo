@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:sec="http://cxf.apache.org/configuration/security"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jaxws="http://cxf.apache.org/jaxws" xmlns:cxf="http://cxf.apache.org/core"
+	xmlns:http-conf="http://cxf.apache.org/transports/http/configuration"
+	xsi:schemaLocation="http://cxf.apache.org/core http://cxf.apache.org/schemas/core.xsd
+	       http://cxf.apache.org/configuration/security http://cxf.apache.org/schemas/configuration/security.xsd
+           http://cxf.apache.org/bindings/soap http://cxf.apache.org/schemas/configuration/soap.xsd
+           http://cxf.apache.org/jaxws http://cxf.apache.org/schemas/jaxws.xsd
+           http://cxf.apache.org/transports/http/configuration http://cxf.apache.org/schemas/configuration/http-conf.xsd
+           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+           http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="clientSIBPEG" class="it.eng.utility.client.sib.peg.ClientSIBPEG">
+		<property name="proxy" ref="proxySIBPEG" />
+	</bean>
+
+	<bean id="bearerSIBPEG" class="it.eng.utility.client.sib.BearerAuthSupplier">
+		<property name="bearer" value="${sib.peg.bearer}" />
+	</bean>
+
+	<http-conf:conduit name="{http://ws.wso2.org/dataservice}SIBPegEndpoint.http-conduit">
+	    <!-- ==================== -->
+	    <http-conf:tlsClientParameters disableCNCheck="true">
+            <sec:trustManagers>
+                <sec:keyStore resource="${sib.keystore}" password="changeit" type="JKS"/>
+            </sec:trustManagers>
+        </http-conf:tlsClientParameters>
+	    <!-- ==================== -->
+		<http-conf:client ConnectionTimeout="60000"
+			ReceiveTimeout="${sib.peg.timeout}" AllowChunking="true" CacheControl="no-cache"
+			ProxyServer="${sib.proxy.server}" ProxyServerPort="${sib.proxy.port}" />
+		<http-conf:authSupplier bean="bearerSIBPEG" />
+	</http-conf:conduit>
+
+	<!-- The SOAP client bean -->
+	<jaxws:client id="proxySIBPEG" serviceName="peg:SibPeg11"
+		endpointName="peg:SIBPegEndpoint" xmlns:peg="http://ws.wso2.org/dataservice"
+		serviceClass="org.wso2.ws.dataservice.SibPeg11PortType" address="${sib.peg.endpoint}">
+		<jaxws:features>
+			<ref bean="loggingFeature" />
+		</jaxws:features>
+	</jaxws:client>
+
+</beans>

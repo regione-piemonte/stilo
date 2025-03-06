@@ -1,0 +1,64 @@
+package eng.database.tablemanager;
+
+import  eng.database.definition.ResultSelection;
+import  eng.database.modal.EngResultSet;
+import  eng.database.exception.EngException;
+import  eng.database.exception.EngSqlApplException;
+import  eng.database.exception.EngSqlNoApplException;
+import  eng.database.modal.EngConnectionForSelection;
+import  eng.servlet.TableManager;
+
+
+//GHF28/10/2003
+//import  java.sql.CallableStatement;
+//import  java.sql.SQLException;
+//import  java.sql.Types;
+
+import  java.util.Enumeration;
+
+public abstract class TableManagerDb extends EngConnectionForSelection
+{
+  //PRIVATE_FIELDS_BEGIN
+
+  //ALL'OCCHIO_BEGIN!!!
+  //ALL'OCCHIO_BEGIN!!!
+  //ALL'OCCHIO_BEGIN!!!
+  /*
+  NON si può inserire nessuna variabile di istanza.
+
+  Per una spiegazione più dettagliata leggere le note analoghe nella classe base, TableManager.
+  */
+  //ALL'OCCHIO_END!!!
+
+  //PRIVATE_FIELDS_END
+
+  //PROTECTED_FIELDS_BEGIN
+
+  //GHF 29/09/2003
+  //  protected static  final String  MESSAGE_EXCEPTION_COMMAND_SQL = "Engineering. Command SQL = ";
+  //  protected static  final String  MESSAGE_EXCEPTION_GENERIC     = "Engineering. Generic Exception. ";
+
+  protected static  final String  MESSAGE_EXCEPTION_COMMAND_SQL = "SQL: ";
+  protected static  final String  MESSAGE_EXCEPTION_GENERIC     = "Errore: ";
+
+  //PROTECTED_FIELDS_ENDEDb
+
+  //CONSTRUCTORS_BEGIN
+  public TableManagerDb() throws EngSqlNoApplException
+  {
+    /*DEBUG_BSEO_BEGIN
+    super(true);
+    if (TableDebug.isBseo())
+    {
+      con = TableDebug.makeConnectionDb();
+    }
+    /*DEBUG_BSEO_END*/
+  }
+  //CONSTRUCTORS_END
+
+  public TableManagerDb(int a) throws EngSqlNoApplException
+      { super(a); }
+  
+  public TableManagerDb(String a) throws EngSqlNoApplException
+  { super(a); }
+}

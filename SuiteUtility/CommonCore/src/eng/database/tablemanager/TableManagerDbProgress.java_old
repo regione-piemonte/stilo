@@ -1,0 +1,113 @@
+package eng.database.tablemanager;
+
+import  eng.database.definition.ResultSelection;
+import  eng.database.modal.EngResultSet;
+import  eng.database.exception.EngException;
+import  eng.database.exception.EngSqlApplException;
+import  eng.database.exception.EngSqlNoApplException;
+import  eng.database.modal.EngConnectionForSelection;
+import  eng.storefunction.*;
+
+import  eng.util.Properties;
+
+import  java.sql.CallableStatement;
+import  java.sql.SQLException;
+import  java.sql.Types;
+
+import  java.util.Enumeration;
+
+public class TableManagerDbProgress extends TableManagerDb
+{
+  //PRIVATE_FIELDS_BEGIN
+  private static  final String  MESSAGE_EXCEPTION_COMMAND_SQL = "Engineering. Command SQL = ";
+  private static  final String  MESSAGE_EXCEPTION_GENERIC     = "Engineering. Generic Exception. ";
+  //PRIVATE_FIELDS_END
+
+  //ALL'OCCHIO_BEGIN!!!
+  //ALL'OCCHIO_BEGIN!!!
+  //ALL'OCCHIO_BEGIN!!!
+  /*
+  NON si puo` inserire nessuna variabile qui.
+
+  Per una spiegazione piu` dettagliata leggere le note analoghe nella classe base, TableManager.
+  */
+  //ALL'OCCHIO_END!!!
+
+  public TableManagerDbProgress() throws EngSqlNoApplException
+  {
+  }
+
+  public TableManagerDbProgress(int a) throws EngSqlNoApplException
+      { super(a); }
+  
+  public TableManagerDbProgress(String a) throws EngSqlNoApplException
+  { super(a); }
+
+  //PUBLIC_METHODS_BEGIN
+  public ResultSelection execute(eng.util.Properties properties)
+	                 throws EngSqlNoApplException, EngSqlApplException
+  {
+    eng.servlet.Commarea commarea = (eng.servlet.Commarea)properties.get("COMMAREA");
+
+    CallableStatement statement = null;
+    StoreFunction     storeFunction =null;
+    try
+    {
+
+      storeFunction = (StoreFunction)properties;
+
+
+      // GHF 02/11/2003
+      //ricava la connessione
+      getPooledConnection();
+
+      statement = storeFunction.makeCallableStatement(commarea, con);
+
+
+      statement.execute();
+
+
+      if (storeFunction.isInErrorApplicative(commarea,statement))
+      {
+        // 08/06/05 MRK Aggiorno tutti i parametri in uscita anche in caso di errore
+        //storeFunction.updateValuesErrorApplicative(commarea, statement);
+        storeFunction.updateValuesParametersOutput(commarea, statement);
+
+        return  null;
+      }
+      else
+      {
+        con.commit();
+        storeFunction.updateValuesParametersOutput(commarea, statement);
+      }
+
+
+      return  new EngResultSet();
+    }
+    catch(SQLException ex)
+    {
+
+
+      throw new EngSqlNoApplException(ex.getMessage());
+
+    }
+    catch(EngSqlNoApplException ex)
+    {
+
+      throw ex;
+    }
+    catch(Exception ex)
+    {
+
+      throw new EngSqlNoApplException(ex.getMessage());
+    }
+    //GHF 28/10/2003
+    //aggiunto finally per chiudere sempre lo statement
+    //GHF 02/11/2003 rilascio sicuro della connessione
+    finally
+    {
+      try { if (statement != null) statement.close(); }   catch(Exception e){}
+      try { releasePooledConnection();  }   catch(Exception e){}
+    }
+  }
+}

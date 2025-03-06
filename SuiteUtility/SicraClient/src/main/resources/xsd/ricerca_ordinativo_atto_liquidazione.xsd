@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://sicraweb/RicercaOrdinativoAttoLiquidazione"
+	elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<!-- <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"> -->
+	<xsd:element name="richiesta">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="numero_atto" type="xsd:integer"
+					minOccurs="1" maxOccurs="1" nillable="false">
+					<xsd:annotation>
+						<xsd:documentation>Numero dell'atto associato alle liquidazioni
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="anno_atto" type="xsd:integer"
+					minOccurs="1" maxOccurs="1" nillable="false">
+					<xsd:annotation>
+						<xsd:documentation>Anno dell'atto associato alle liquidazioni
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="sigla_tipo_atto" type="xsd:string"
+					minOccurs="1" maxOccurs="1" nillable="false">
+					<xsd:annotation>
+						<xsd:documentation>Sigla utente del tipo dell'atto Maggioli
+							associato alle
+							liquidazioni
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="data_atto" type="xsd:date"
+					minOccurs="0" maxOccurs="1">
+					<xsd:annotation>
+						<xsd:documentation>Data dell'atto associato alle liquidazioni
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="settore_atto" type="xsd:string"
+					minOccurs="0" maxOccurs="1">
+					<xsd:annotation>
+						<xsd:documentation>Codice del settore dell'atto associato alle
+							liquidazioni</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="risultato">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="esito">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="tipo">
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:string">
+										<xsd:enumeration value="OK" />
+										<xsd:enumeration value="ERR" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="descrizione" type="xsd:string" />
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="liquidazione" minOccurs="0"
+					maxOccurs="unbounded">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="codice" type="xsd:long"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Codice univoco della liquidazione
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="codice_annuale" type="xsd:long"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Codice annuale della liquidazione
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="anno" type="xsd:integer"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Anno della liquidazione</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="data" type="xsd:date"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Data della liquidazione</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="oggetto" type="xsd:string"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Oggetto della liquidazione
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="tipo_liquidazione" minOccurs="1"
+								maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Indica il tipo della liquidazione
+									</xsd:documentation>
+								</xsd:annotation>
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:integer">
+										<xsd:enumeration value="0">
+											<xsd:annotation>
+												<xsd:documentation>LIQUIDAZIONE TECNICA</xsd:documentation>
+											</xsd:annotation>
+										</xsd:enumeration>
+										<xsd:enumeration value="1">
+											<xsd:annotation>
+												<xsd:documentation>LIQUIDAZIONE CONTABILE
+												</xsd:documentation>
+											</xsd:annotation>
+										</xsd:enumeration>
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="ordinativi" minOccurs="0"
+								maxOccurs="1">
+								<xsd:annotation>
+									<xsd:documentation>Elenco degli ordinativi di incasso/pagamento
+										prodotti dalla
+										liquidazione
+									</xsd:documentation>
+								</xsd:annotation>
+								<xsd:complexType>
+									<xsd:sequence>
+										<xsd:element name="ordinativo" minOccurs="1"
+											maxOccurs="unbounded">
+											<xsd:annotation>
+												<xsd:documentation>Ordinativo di incasso/pagamento prodotto
+													dalla
+													liquidazione
+												</xsd:documentation>
+											</xsd:annotation>
+											<xsd:complexType>
+												<xsd:sequence>
+													<xsd:element name="tipo" minOccurs="1"
+														maxOccurs="1" nillable="false">
+														<xsd:annotation>
+															<xsd:documentation>Tipo dell'ordinativo
+															</xsd:documentation>
+														</xsd:annotation>
+														<xsd:simpleType>
+															<xsd:restriction base="xsd:string">
+																<xsd:enumeration value="E">
+																	<xsd:annotation>
+																		<xsd:documentation>ORDINATIVO DI INCASSO (REVERSALE)
+																		</xsd:documentation>
+																	</xsd:annotation>
+																</xsd:enumeration>
+																<xsd:enumeration value="U">
+																	<xsd:annotation>
+																		<xsd:documentation>ORDINATIVO DI PAGAMENTO (MANDATO)
+																		</xsd:documentation>
+																	</xsd:annotation>
+																</xsd:enumeration>
+															</xsd:restriction>
+														</xsd:simpleType>
+													</xsd:element>
+													<xsd:element name="numero" type="xsd:long"
+														minOccurs="1" maxOccurs="1" nillable="false">
+														<xsd:annotation>
+															<xsd:documentation>Numero dell'ordinativo
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:element>
+													<xsd:element name="anno" type="xsd:integer"
+														minOccurs="1" maxOccurs="1" nillable="false">
+														<xsd:annotation>
+															<xsd:documentation>Anno dell'ordinativo
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:element>
+													<xsd:element name="data" type="xsd:date"
+														minOccurs="1" maxOccurs="1" nillable="false">
+														<xsd:annotation>
+															<xsd:documentation>Data dell'ordinativo
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:element>
+													<xsd:element name="causale" type="xsd:string"
+														minOccurs="1" maxOccurs="1" nillable="false">
+														<xsd:annotation>
+															<xsd:documentation>Causale dell'ordinativo
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:element>
+													<xsd:element name="annullato" minOccurs="1"
+														maxOccurs="1" nillable="false">
+														<xsd:annotation>
+															<xsd:documentation>Indica se l'ordinativo e' stato
+																annullato</xsd:documentation>
+														</xsd:annotation>
+														<xsd:simpleType>
+															<xsd:restriction base="xsd:integer">
+																<xsd:enumeration value="0">
+																	<xsd:annotation>
+																		<xsd:documentation>VALIDO</xsd:documentation>
+																	</xsd:annotation>
+																</xsd:enumeration>
+																<xsd:enumeration value="1">
+																	<xsd:annotation>
+																		<xsd:documentation>ANNULLATO</xsd:documentation>
+																	</xsd:annotation>
+																</xsd:enumeration>
+															</xsd:restriction>
+														</xsd:simpleType>
+													</xsd:element>
+													<xsd:element name="beneficiari">
+														<xsd:annotation>
+															<xsd:documentation>Elenco dei beneficiari/versanti
+																dell'ordinativo</xsd:documentation>
+														</xsd:annotation>
+														<xsd:complexType>
+															<xsd:sequence>
+																<xsd:element name="beneficiario"
+																	minOccurs="1" maxOccurs="unbounded">
+																	<xsd:annotation>
+																		<xsd:documentation>Beneficiario dell'ordinativo
+																		</xsd:documentation>
+																	</xsd:annotation>
+																	<xsd:complexType>
+																		<xsd:sequence>
+																			<xsd:element name="nominativo"
+																				type="xsd:string" minOccurs="1" maxOccurs="1"
+																				nillable="false">
+																				<xsd:annotation>
+																					<xsd:documentation>Nominativo del
+																						beneficiario/versante</xsd:documentation>
+																				</xsd:annotation>
+																			</xsd:element>
+																			<xsd:element name="codice_fiscale"
+																				type="xsd:string" minOccurs="0" maxOccurs="1">
+																				<xsd:annotation>
+																					<xsd:documentation>Codice fiscale del
+																						beneficiario/versante
+																					</xsd:documentation>
+																				</xsd:annotation>
+																			</xsd:element>
+																			<xsd:element name="partita_iva"
+																				type="xsd:string" minOccurs="0" maxOccurs="1">
+																				<xsd:annotation>
+																					<xsd:documentation>Partita IVA del
+																						beneficiario/versante</xsd:documentation>
+																				</xsd:annotation>
+																			</xsd:element>
+																			<xsd:element name="importo_lordo"
+																				type="xsd:double" minOccurs="1" maxOccurs="1"
+																				nillable="false">
+																				<xsd:annotation>
+																					<xsd:documentation>Importo lordo
+																						beneficiario/versante</xsd:documentation>
+																				</xsd:annotation>
+																			</xsd:element>
+																			<xsd:element name="importo_ritenute"
+																				type="xsd:double" minOccurs="1" maxOccurs="1"
+																				nillable="false">
+																				<xsd:annotation>
+																					<xsd:documentation>Importo ritenute
+																						beneficiario/versante
+																					</xsd:documentation>
+																				</xsd:annotation>
+																			</xsd:element>
+																			<xsd:element name="importo_netto"
+																				type="xsd:double" minOccurs="1" maxOccurs="1"
+																				nillable="false">
+																				<xsd:annotation>
+																					<xsd:documentation>Importo netto
+																						beneficiario/versante</xsd:documentation>
+																				</xsd:annotation>
+																			</xsd:element>
+																			<xsd:element name="quietanze">
+																				<xsd:annotation>
+																					<xsd:documentation>Elenco delle quietanze del
+																						beneficiario/versante
+																					</xsd:documentation>
+																				</xsd:annotation>
+																				<xsd:complexType>
+																					<xsd:sequence>
+																						<xsd:element name="quietanza"
+																							minOccurs="0" maxOccurs="unbounded">
+																							<xsd:annotation>
+																								<xsd:documentation>Quietanza collegata al
+																									beneficiario/versante
+																								</xsd:documentation>
+																							</xsd:annotation>
+																							<xsd:complexType>
+																								<xsd:sequence>
+																									<xsd:element name="numero"
+																										type="xsd:long" minOccurs="1" maxOccurs="1"
+																										nillable="false">
+																										<xsd:annotation>
+																											<xsd:documentation>Numero della quietanza
+																											</xsd:documentation>
+																										</xsd:annotation>
+																									</xsd:element>
+																									<xsd:element name="anno"
+																										type="xsd:integer" minOccurs="1" maxOccurs="1"
+																										nillable="false">
+																										<xsd:annotation>
+																											<xsd:documentation>Anno della quietanza
+																											</xsd:documentation>
+																										</xsd:annotation>
+																									</xsd:element>
+																									<xsd:element name="data"
+																										type="xsd:date" minOccurs="1" maxOccurs="1"
+																										nillable="false">
+																										<xsd:annotation>
+																											<xsd:documentation>Data della quietanza
+																											</xsd:documentation>
+																										</xsd:annotation>
+																									</xsd:element>
+																									<xsd:element name="importo"
+																										type="xsd:double" minOccurs="1" maxOccurs="1"
+																										nillable="false">
+																										<xsd:annotation>
+																											<xsd:documentation>Importo quietanzato
+																											</xsd:documentation>
+																										</xsd:annotation>
+																									</xsd:element>
+																								</xsd:sequence>
+																							</xsd:complexType>
+																						</xsd:element>
+																					</xsd:sequence>
+																				</xsd:complexType>
+																			</xsd:element>
+																		</xsd:sequence>
+																	</xsd:complexType>
+																</xsd:element>
+															</xsd:sequence>
+														</xsd:complexType>
+													</xsd:element>
+												</xsd:sequence>
+											</xsd:complexType>
+										</xsd:element>
+									</xsd:sequence>
+								</xsd:complexType>
+							</xsd:element>
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+</xsd:schema>

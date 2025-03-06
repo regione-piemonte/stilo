@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Hybrid-api
+Bundle-SymbolicName: Hybrid-api
+Bundle-Version: 1.0.0.qualifier
+Export-Package: it.eng.areas.hybrid.module,
+ it.eng.areas.hybrid.module.util,
+ it.eng.areas.hybrid.module.util.json
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Import-Package: org.osgi.framework,
+ org.osgi.util.tracker;version="1.5.1"

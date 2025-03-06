@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<jaxb:bindings xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" version="2.1"
+	xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
+	jaxb:extensionBindingPrefixes="xjc">
+	<jaxb:globalBindings>
+		<xjc:javaType name="java.util.Calendar" xmlType="xs:dateTime" adapter="it.eng.utility.XSDateTimeCustomBinder" />
+		<xjc:javaType name="java.util.Calendar" xmlType="xs:date" adapter="it.eng.utility.XSDateCustomBinder" />
+		<xjc:javaType name="java.lang.Double" xmlType="xs:double" adapter="it.eng.utility.XSDoubleCustomBinder" />
+	</jaxb:globalBindings>
+</jaxb:bindings>

@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<properties>
+  <recentfiles/>
+  <showfirsttimepopup value="false"/>
+  <daysLeft value=""/>
+  <showrhinomessage value="false"/>
+  <showsaveformsmessage value="false"/>
+  <showitextmessage value="false"/>
+  <showddmessage value="false"/>
+  <searchWindowType value="1"/>
+  <borderType value="1"/>
+  <useHiResPrinting value="true"/>
+  <showDownloadWindow value="true"/>
+  <DPI value="96"/>
+  <allowCursorToChange value="true"/>
+  <autoScroll value="true"/>
+  <pageMode value="1"/>
+  <displaytipsonstartup value="false"/>
+  <automaticupdate value="true"/>
+  <currentversion value="4.74b27-OS"/>
+  <showtiffmessage value="true"/>
+  <maxmultiviewers value="20"/>
+  <MenuBarMenu value="false">
+    <FileMenu value="true">
+      <OpenMenu value="false">
+        <Open value="false"/>
+        <Openurl value="false"/>
+      </OpenMenu>
+      <Save value="true"/>
+      <Resaveasforms value="false"/>
+      <Find value="true"/>
+      <Documentproperties value="true"/>
+      <Sign value="true"/>
+      <Mark value="true"/>
+      <Print value="true"/>
+      <Timbro value="true">
+      	<TimbroWidth value="600"/>
+    	<TimbroHeight value="300"/>
+      </Timbro>
+      <Recentdocuments value="true"/>
+      <InvioLog value="true">
+      	<InvioLogWidth value="550"/>
+    	<InvioLogHeight value="600"/>
+      </InvioLog>
+      <Exit value="true"/>
+    </FileMenu>
+    <EditMenu value="true">
+      <Copy value="true"/>
+      <Selectall value="true"/>
+      <Deselectall value="true"/>
+      <Preferences value="false"/>
+    </EditMenu>
+    <ViewMenu value="true">
+      <GotoMenu value="true">
+        <Firstpage value="true"/>
+        <Backpage value="true"/>
+        <Forwardpage value="true"/>
+        <Lastpage value="true"/>
+        <Goto value="true"/>
+        <Previousdocument value="true"/>
+        <Nextdocument value="true"/>
+      </GotoMenu>
+      <PagelayoutMenu value="true">
+        <Single value="true"/>
+        <Continuous value="true"/>
+        <Facing value="true"/>
+        <Continuousfacing value="true"/>
+        <PageFlow value="true"/>
+      </PagelayoutMenu>
+      <separateCover value="false"/>
+      <textSelect value="true"/>
+      <panMode value="true"/>
+      <Fullscreen value="false"/>
+    </ViewMenu>
+    <WindowMenu value="false">
+      <Cascade value="true"/>
+      <Tile value="true"/>
+    </WindowMenu>
+    <ExportMenu value="false">
+      <PdfMenu value="false">
+        <Oneperpage value="false"/>
+        <Nup value="false"/>
+        <Handouts value="false"/>
+      </PdfMenu>
+      <ContentMenu value="false">
+        <Images value="false"/>
+        <Text value="false"/>
+      </ContentMenu>
+      <Bitmap value="false"/>
+    </ExportMenu>
+    <PagetoolsMenu value="false">
+      <Rotatepages value="true"/>
+      <Deletepages value="true"/>
+      <Addpage value="true"/>
+      <Addheaderfooter value="true"/>
+      <Stamptext value="true"/>
+      <Stampimage value="true"/>
+      <Crop value="true"/>
+    </PagetoolsMenu>
+    <HelpMenu value="false">
+      <Visitwebsite value="true"/>
+      <Tipoftheday value="true"/>
+      <Checkupdates value="true"/>
+      <About value="true"/>
+    </HelpMenu>
+    <PreferenceMenu value="true">
+    	<FirmaMarcaPreference value="true">
+    		<FirmaMarcaPreferenceWidth value="850"/>
+    		<FirmaMarcaPreferenceHeight value="450"/>
+    	</FirmaMarcaPreference>
+    	<TimbroPreference value="true">
+    		<TimbroPreferenceWidth value="600"/>
+    		<TimbroPreferenceHeight value="400"/>
+    	</TimbroPreference>
+    	<RetePreference value="true"/>
+    	<InvioLogPreference value="true">
+    		<InvioLogPreferenceWidth value="500"/>
+    		<InvioLogPreferenceHeight value="500"/>
+    	</InvioLogPreference>
+    </PreferenceMenu>
+  </MenuBarMenu>
+  <ButtonsMenu value="true">
+    <Openfilebutton value="true"/>
+    <Printbutton value="true"/>
+    <Searchbutton value="true"/>
+    <Savebutton value="true"/>
+    <Timbrobutton value="true"/>
+    <Signbutton value="true"/>
+    <Markbutton value="true"/>
+    <SignMarkbutton value="true"/>
+    <Propertiesbutton value="true"/>
+    <Aboutbutton value="true"/>
+    <Snapshotbutton value="true"/>
+    <CursorButton value="true"/>
+    <MouseModeButton value="true"/>
+    <InviaLogButton value="true"/>
+  </ButtonsMenu>
+  <DisplayOptionsMenu value="true">
+    <Scalingdisplay value="true"/>
+    <Rotationdisplay value="true"/>
+    <Imageopdisplay value="true"/>
+    <Progressdisplay value="true"/>
+    <Downloadprogressdisplay value="true"/>
+  </DisplayOptionsMenu>
+  <NavigationBarMenu value="true">
+    <Memorybottom value="false"/>
+    <Firstbottom value="true"/>
+    <Back10bottom value="true"/>
+    <Backbottom value="true"/>
+    <Gotobottom value="true"/>
+    <Forwardbottom value="true"/>
+    <Forward10bottom value="true"/>
+    <Lastbottom value="true"/>
+    <Singlebottom value="true"/>
+    <Continuousbottom value="true"/>
+    <Continuousfacingbottom value="true"/>
+    <Facingbottom value="true"/>
+    <PageFlowbottom value="true"/>
+  </NavigationBarMenu>
+  <SideTabBarMenu value="true">
+    <Pagetab value="true"/>
+    <Bookmarkstab value="true"/>
+    <Layerstab value="true"/>
+    <Signaturestab value="true"/>
+  </SideTabBarMenu>
+  <ShowMenubar value="true"/>
+  <ShowButtons value="true"/>
+  <ShowDisplayoptions value="true"/>
+  <ShowNavigationbar value="true"/>
+  <ShowSidetabbar value="true"/>
+  <highlightBoxColor value="-16777216"/>
+  <highlightTextColor value="16750900"/>
+  <highlightComposite value="0.35"/>
+  <invertHighlights value="false"/>
+  <openLastDocument value="false"/>
+  <lastDocumentPage value="1"/>
+  <pageInsets value="25"/>
+  <pageFlowPages value="8"/>
+  <pageFlowExtraCache value="10"/>
+  <pageFlowReflection value="true"/>
+  <pageFlowSideSize value="0.75"/>
+  <pageFlowReflectionHeight value="0.25"/>
+  <sideTabBarCollapseLength value="30"/>
+  <consistentTabBar value="false"/>
+  <allowRightClick value="true"/>
+  <allowScrollwheelZoom value="true"/>
+  <readOnly value="false"/>
+  <enhancedViewerMode value="true"/>
+  <enhancedFacingMode value="true"/>
+  <windowTitle value="Visualizzatore PDF"/>
+  <windowTitleVersion value="0.1"/>
+  <confirmClose value="false"/>
+  <iconLocation value="/org/jpedal/examples/simpleviewer/res/"/>
+  <enhancedGUI value="true"/>
+  <showpageflow3dsmessage value="true"/>
+  <defaultPrinter value=""/>
+  <debugPrinter value="true"/>
+  <defaultDPI value="600"/>
+  <defaultPagesize value=""/>
+  <printerBlacklist value=""/>
+  <useHinting value="false"/>
+  <voice value="kevin16(general domain)"/>
+  <previewOnSingleScroll value="true"/>
+  <showMouseSelectionBox value="true"/>
+  <separateCoverOn value="true"/>
+</properties>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Hybrid - Informazioni Client</title>
+<base href="${base}"> 
+<style>
+ .sample_image {
+ 	width:600px;
+ }
+</style>
+</head>
+<body>
+ <h1><img src="logo_48.png" /> Hybrid Client</h1>
+ <hr>
+ <h2>Informazioni sull'abilitazione della comunicazione in HTTPS del client Hybrid</h2>
+ Se il client Hybrid viene lanciato da una pagina pubblicata tramite protocollo sicuro (http<b>s</b>://), &egrave; necessario che la 
+ comunicazione tra la stessa pagina ed il client avvengano con lo stesso protocollo.<br>
+ Sfortunatamente non &egrave; possibile ottenere da una autorit&agrave; di certificazione un certificato riconosciuto dal browser 
+ per l'indirizzo https://localhost.<br>
+ La soluzione &egrave; che l'utente accetti esplicitamente il certificato che viene esposto dal client Hybrid.<br>
+ 
+ Di seguito la procedura da seguire per i browser pi&ugrave; diffusi: 
+ 
+ <h2>Chrome</h2>
+ <p>Aprire <a href="https://localhost:${portSSL}/info">questa pagina</a> e premere dove evidenziato:<br><br>
+ <img src="chrome-01.jpg" class="sample_image"><br>  
+ <img src="chrome-02.jpg" class="sample_image"><br>  
+ </p>
+ 
+ 
+ <h2>Firefox</h2>
+ <p>Aprire <a href="https://localhost:${portSSL}/info">questa pagina</a> e premere dove evidenziato:<br><br>
+ <img src="firefox-01.jpg" class="sample_image"><br>  
+ <img src="firefox-02.jpg" class="sample_image"><br>  
+ 
+ <h2>Iternet Explorer</h2>
+  <p>E' necessario aggiungre esplicitamente il certificato.<br>
+ Scarica il  <a href="localhost.cer">certificato pubblico</a> per la connessione in HTTPS in una cartella   
+ poi apri <a href="https://localhost:${portSSL}/info">questa pagina</a> e segui le indicazioni:<br><br>
+ <img src="ie-01.jpg" class="sample_image"><br>  
+ <img src="ie-02.jpg" class="sample_image"><br>  
+ <img src="ie-03.jpg" class="sample_image"><br>  
+ <img src="ie-04.jpg" class="sample_image"><br>  
+ <img src="ie-05.jpg" class="sample_image"><br>  
+ 
+</body>
+</html>

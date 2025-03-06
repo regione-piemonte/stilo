@@ -1,0 +1,173 @@
+package eng.storefunction.singleton;
+
+import java.util.*;
+
+import eng.storefunction.*;
+import eng.singleton.stores.StoredDefInterface;
+import eng.storefunction.singleton.StoreFunctionDefinitionError;
+import eng.database.exception.EngException;
+
+/**
+ * A T T E N Z I O N E A T T E N Z I O N E A T T E N Z I O N E
+ * 
+ * Rivoluzione nel singleton. Le definizioni delle stored function non
+ * avveengono piu` nel blocco statico.
+ * 
+ * Le definizioni vengono caricate al volo e sono contenute nelle classi del
+ * package STORFUNCTIONDEF_PACK, in piccole classi che implementano
+ * l'interfaccia StoredDefInterface ed hanno lo stesso nome logico dato alla
+ * stored function.
+ * 
+ * Il singletono ? stato ristrutturato in questo modo:
+ * 
+ * Viene definita una interfaccia, StoredDefInterface, che definisce il metodo
+ * addNewStoredFunction(java.util.Hashtable).
+ * 
+ * Tutte le varie put() nella Hashtable functions degli oggetti StoreFunction
+ * che erano messe in un blocco statico vengono trasportate in classi apposite
+ * che implementano l'interfaccia StoredDefInterface, e vengono inserite
+ * all'interno del metodo addNewStoredFunction(java.util.Hashtable). Se la
+ * stored function era associata alla chiave "NomeLogico" , allora deve essere
+ * inse- rita nella classe NomeLogico.java in modo da permetterne il caricamento
+ * dinamico. Tutte queste classi sono raggruppate nel package
+ * eng.protocollo.singleton.stores .
+ * 
+ * 
+ * Nel Singleton, il metodo searchFromName(String logicName) viene modificato in
+ * questo modo:
+ * 
+ * 1 Si verifica che la Hashtable contenga gi? una definizione associata alla
+ * chiave logicName
+ * 
+ * Se non ? presente:
+ * 
+ * 1.1 Si utilizza il caricamento e l'instanziazione di una classe dato il nome
+ * tramite il metodo forName(String) della classe Class. Il nome della classe da
+ * caricare ? dato dalla concatenando il nome del package che ospita queste
+ * nuove classi (eng.protocollo.singleton.stores) e la chiave pas- sata come
+ * parametro, logicName.
+ * 
+ * 1.2 Sulla istanza cos? ottenuta si invoca il metodo
+ * addNewStoredFunction(Hashtable) passando la vec- chia Hashtable functions. La
+ * presenza del metodo viene garantita dall'uso dell'interfaccia
+ * StoredDefInterface.
+ *  // A questo punto, anche se prima non c'era, la // Hashtable contiene la
+ * nuova definizione e quindi si // pu? fare quanto segue
+ * 
+ * 2 Si ritorna l'oggetto StoreFunction associato alla chiave logicName
+ * 
+ * Istruzioni per aggiungere una nuova StoreFunction creare la classe
+ * 
+ * eng.protocollo.singleton.stores.[Stored].java
+ * 
+ * dove [Stored] ? anche il nome logico che viene usato nella Hashtable. La
+ * classe deve assolutamente implementare l'interfaccia StoredDefInterface (pena
+ * ClassCastException a runtime).
+ * 
+ * La classe ha un solo metodo, addNewStoredFunction(Hashtable) e la sua
+ * implementazione ricalca questo scheletro:
+ * 
+ * 
+ * class Stored implements StoredDefInterface {
+ * 
+ * public Stored() {}
+ * 
+ * public final void addNewStoredFunction(final Hashtable functions) throws
+ * EngException { functions.put("Stored", new StoreFunction(... ...) ); }
+ *  }
+ * 
+ * Note implementative: ho mantenuto la Hashtable perch? ? sincronizzata, quindi
+ * ci garantisce "gratis" la robustezza ad accessi concor- renti. Questa
+ * robustezza non ? efficentissima in quanto esegue un lock sulla Hashtable ogni
+ * volta che si usa l'oggetto, se servisse ? il caso di implementare un
+ * meccanismo basato sul problema "dei lettori e degli scrittori" descritto in
+ * vari testi.
+ */
+public final class TableStoreFunctionDefinitionSingleton implements
+		StoreFunctionSearcher {
+	private static TableStoreFunctionDefinitionSingleton instance = new TableStoreFunctionDefinitionSingleton();
+
+	// Tengo la hashtable sincronizzata in quanto possono avvenire dei
+	// cambiamenti al volo. Un meccanismo di locking ad hoc potrebbe
+	// permettere letture piu` efficenti, ma va realizzato e debuggato.
+	private static final Hashtable functions = new Hashtable();
+
+	private TableStoreFunctionDefinitionSingleton() {
+		try {
+			jbInit();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+
+	public static TableStoreFunctionDefinitionSingleton getInstance() {
+		return instance;
+	}
+
+	public Object clone() throws CloneNotSupportedException {
+		throw new CloneNotSupportedException();
+	}
+
+	public StoreFunction searchFromName(String fullyLogicName) {
+		/*
+		 * Se la funzione non e` gia` nella hashtable allora caricala.
+		 */
+		if (!functions.containsKey(fullyLogicName)) {
+			try {
+				// System.out.println("@@@@@@@@@@@@@@@@@@@ Cerco:" + STORFUNCTIONDEF_PACK + "." + logicName);
+
+				StoredDefInterface sdi = (StoredDefInterface) Class.forName(fullyLogicName).newInstance();
+				sdi.addNewStoredFunction(functions);
+
+				if (functions.get(fullyLogicName) == null) {
+					StringBuffer erb = new StringBuffer("La classe ");
+					erb.append(fullyLogicName);
+					erb.append(" non aggiunge la stored function di nome logico ");
+					erb.append(fullyLogicName);
+					throw new StoreFunctionDefinitionError(erb.toString());
+				}
+			} catch (ClassNotFoundException e) {
+				throw new StoreFunctionDefinitionError(e);
+
+			} catch (ClassCastException e) {
+				throw new StoreFunctionDefinitionError(e);
+
+			} catch (EngException e) {
+				throw new StoreFunctionDefinitionError(e);
+
+			} catch (InstantiationException e) {
+				throw new StoreFunctionDefinitionError(e);
+
+			} catch (IllegalAccessException e) {
+				throw new StoreFunctionDefinitionError(e);
+
+			}
+
+		}
+
+		return (StoreFunction) functions.get(fullyLogicName);
+	}
+
+	public String toString() {
+		Iterator i = functions.values().iterator();
+		StoreFunction s;
+		StringBuffer sb = new StringBuffer(
+				"(TableStoreFunctionDefinitionSingleton:");
+
+		while (i.hasNext()) {
+			sb.append("\n" + i.next() + ",");
+		}
+
+		sb.append(")");
+		return sb.toString();
+	}
+
+	// Decommentare per attivare il reset al volo della Hashtable.
+
+	// public void clearTable() {
+	// functions.clear();
+	// }
+
+	private void jbInit() throws Exception {
+	}
+}

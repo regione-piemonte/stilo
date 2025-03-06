@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<!-- Generated 29-Apr-2010 14:57:22 by Hibernate Tools 3.2.4.GA -->
+<hibernate-mapping>
+    <class name="it.eng.utility.cryptosigner.storage.impl.database.hibernate.Crl" table="CRL" >
+        <id name="subjectdn" type="string">
+            <column name="SUBJECTDN" length="250" not-null="true"/>
+        </id>
+        <property name="updateData" type="timestamp">
+            <column name="UPDATE_DATA" length="26" not-null="true" />
+        </property>
+        <property name="crl" type="byte[]">
+            <column name="CRL" not-null="true" />
+        </property>
+    </class>
+</hibernate-mapping>

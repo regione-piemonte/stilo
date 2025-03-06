@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jaxws="http://cxf.apache.org/jaxws" xmlns:cxf="http://cxf.apache.org/core"
+	xmlns:http-conf="http://cxf.apache.org/transports/http/configuration"
+	xsi:schemaLocation="http://cxf.apache.org/core http://cxf.apache.org/schemas/core.xsd
+           http://cxf.apache.org/bindings/soap http://cxf.apache.org/schemas/configuration/soap.xsd
+           http://cxf.apache.org/jaxws http://cxf.apache.org/schemas/jaxws.xsd
+           http://cxf.apache.org/transports/http/configuration http://cxf.apache.org/schemas/configuration/http-conf.xsd
+           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+           http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="clientSIBDetermine" class="it.eng.utility.client.sib.determine.ClientSIBDetermine">
+		<property name="proxy" ref="proxySIBDetermine" />
+		<property name="credentials" ref="credentials" />
+	</bean>
+
+	<bean id="credentials" class="it.eng.utility.client.sib.CredenzialiAccessoSIB">
+		<property name="ente" value="${sib.determine.ente}" />
+		<property name="utente" value="${sib.determine.utente}" />
+		<property name="password" value="${sib.determine.password}" />
+	</bean>
+
+	<bean id="bearerSIBDetermine" class="it.eng.utility.client.sib.BearerAuthSupplier">
+		<property name="bearer" value="${sib.determine.bearer}" />
+	</bean>
+
+	<http-conf:conduit
+		name="{http://service.integrazioneAuriga.webservice.sib.datamanagement.it/}IntegrazioneAurigaV0Endpoint.http-conduit">
+		<!-- <http-conf:client ConnectionTimeout="5000" -->
+		<!-- ReceiveTimeout="5000" AllowChunking="true" CacheControl="no-cache" 
+			/> -->
+		<http-conf:client ConnectionTimeout="60000"
+			ReceiveTimeout="${sib.determine.timeout}" AllowChunking="true" CacheControl="no-cache"
+			ProxyServer="${sib.proxy.server}" ProxyServerPort="${sib.proxy.port}" />
+		<http-conf:authSupplier bean="bearerSIBDetermine" />
+	</http-conf:conduit>
+
+	<!-- The SOAP client bean -->
+	<jaxws:client id="proxySIBDetermine" serviceName="determine:IntegrazioneAurigaV0Service"
+		endpointName="determine:IntegrazioneAurigaV0Endpoint"
+		xmlns:determine="http://service.integrazioneAuriga.webservice.sib.datamanagement.it/"
+		serviceClass="it.datamanagement.sib.webservice.integrazioneauriga.service.IntegrazioneAurigaV0"
+		address="${sib.determine.endpoint}">
+		<jaxws:features>
+			<ref bean="loggingFeature" />
+		</jaxws:features>
+	</jaxws:client>
+
+</beans>

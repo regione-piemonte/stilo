@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<properties>
+		
+	<dynamicCodeDetector name="PDFExecutableDetector" class="it.eng.suiteutility.dynamiccodedetector.pdf.PDFExecutableDetector">
+		<mime-type>application/pdf</mime-type>
+		<mime-type>application/x-pdf</mime-type>
+		<mime-type>application/acrobat</mime-type>
+		<mime-type>applications/vnd.pdf</mime-type>
+		<mime-type>text/pdf</mime-type>
+		<mime-type>text/x-pdf</mime-type>		
+	</dynamicCodeDetector>
+	
+</properties>

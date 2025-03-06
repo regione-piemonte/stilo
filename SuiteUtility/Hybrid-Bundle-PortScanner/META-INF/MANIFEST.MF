@@ -1,0 +1,19 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: PortScannerHybridBundle
+Bundle-SymbolicName: PortScannerHybridBundle
+Bundle-Version: 1.0.0.qualifier
+Export-Package: it.eng.hybrid.module.portScanner,
+ it.eng.hybrid.module.portScanner.listener,
+ it.eng.hybrid.module.portScanner.resources,
+ it.eng.hybrid.module.portScanner.ui
+Import-Package:  it.eng.areas.hybrid.module,
+ it.eng.areas.hybrid.module.util,
+ it.eng.areas.hybrid.module.util.json,
+ org.apache.commons.lang;version="2.6",
+ org.apache.commons.logging,
+ org.apache.log4j,
+ org.osgi.framework
+Bundle-Activator: it.eng.hybrid.module.portScanner.Activator
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+

@@ -1,0 +1,10 @@
+Regole di generazione delle classi a partire dagli xsd
+1) Tasto destro sull' xsd e scegliere la voce genera classi jaxb
+2) Selezionare il progetto di SezioneCache
+3) specificare come package "it.eng.jaxb.variabili"
+4) premere finish
+
+Se la generazione termina con errori dovuti al fatto che non riesce a trovare le classi necessarie, provare a modificare la configurazione del progetto, ovvero
+1) proprietà del progetto
+2) Java Build Path -> Libraries -> Jre Systerm Library -> scegliere le librerie di una jdk con versione >= 1.6
+3) rilanciare la compilazione

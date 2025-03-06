@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<richiesta>
+	<impegno>
+		<progressivo>1</progressivo>
+		<testata>
+			<parte>U</parte>
+			<azione>0</azione>
+			<anno>2019</anno>
+			<dataregistrazione>2019-10-15</dataregistrazione>
+			<descrizione>Impegno da ws STILO</descrizione>
+			<esecutivo>1</esecutivo>
+		</testata>
+		<dettaglio>
+			<idcapitolo>971</idcapitolo>
+			<annocompetenza>2019</annocompetenza>
+			<datavaluta>2019-10-15</datavaluta>
+			<codprogetto>100</codprogetto>
+			<siglacpt>2.1.4.01.01.004</siglacpt>
+			<cig>A1B2C3D4E5</cig>
+			<importo>12.58</importo>
+		</dettaglio>
+	</impegno>
+</richiesta>

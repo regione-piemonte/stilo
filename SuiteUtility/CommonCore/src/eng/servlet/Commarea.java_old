@@ -1,0 +1,74 @@
+/*
+ * Commarea.java
+ *
+ * Created on 6 settembre 2004, 12.13
+ */
+
+package eng.servlet;
+import eng.storefunction.*;
+/**
+ *
+ * @author  Administrator
+ */
+public class Commarea {
+    
+    private java.util.Vector parameters = null;
+    /** Creates a new instance of Commarea */
+    public Commarea() {
+        parameters = new java.util.Vector();
+    }
+    
+    public eng.database.modal.EngConnectionForSelection connection               = null;
+    public eng.database.definition.ResultSelection           resultSelection           = null;
+    public javax.servlet.http.HttpServletRequest        request                   = null;
+    public javax.servlet.http.HttpServletResponse       response                  = null;
+
+    public String                    accessSchemaName          = null;
+    public eng.util.Properties       accessSchemaDefinition    = null;
+    
+    public void putParameter(eng.storefunction.Parameter  p, Object value) throws eng.database.exception.EngException
+    {
+        Parameter newParam = null;
+        newParam = p.cloneMe();
+        
+        newParam.makeValue( value );
+        eng.util.Logger.getLogger().info("Parametro " + newParam.getPosition() + " " + newParam.getName() + " value: " + newParam.getValuePrimitive());
+        parameters.add(newParam);
+    }
+        
+    public void putParameter(eng.storefunction.Parameter  p) throws eng.database.exception.EngException
+    {
+        Parameter newParam = null;
+        newParam = p.cloneMe();
+        
+        //eng.util.Logger.getLogger().info("Clonato parametro " + p.getPosition() + p.getName() + " Messo un posizione " + parameters.size());
+        parameters.add(newParam);
+    }
+    
+    public eng.storefunction.Parameter getParameter(int index) 
+    {
+        //eng.util.Logger.getLogger().info("Richiesto Param: " + index);
+        return (eng.storefunction.Parameter)parameters.elementAt(index);
+        //return null;
+    }
+    
+    public java.util.Iterator getParametersIterator()
+    {
+        return parameters.iterator();
+        
+    }
+    
+    public void pulisci()
+    {
+            if (parameters != null) parameters.removeAllElements();
+            parameters = null;
+            connection               = null;
+            resultSelection           = null;
+            request                   = null;
+            response                  = null;
+            accessSchemaName          = null;
+            accessSchemaDefinition    = null;
+    }
+    
+}
+

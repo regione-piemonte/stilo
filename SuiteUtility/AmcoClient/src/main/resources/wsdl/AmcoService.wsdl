@@ -1,0 +1,259 @@
+<?xml version="1.0" ?><wsdl:definitions name="AnagraficheGSA" targetNamespace="http://gsaws.finmatica.it/" xmlns:ns1="http://schemas.xmlsoap.org/soap/http" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://gsaws.finmatica.it/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <wsdl:types>
+<xs:schema elementFormDefault="unqualified" targetNamespace="http://gsaws.finmatica.it/" version="1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+<xs:element name="getContiCreditoDebito" type="ns1:getContiCreditoDebito" xmlns:ns1="http://gsaws.finmatica.it/"></xs:element>
+<xs:complexType name="getContiCreditoDebito">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="contiCreditoDebitoRequest" type="ns2:contiCreditoDebitoRequest" xmlns:ns2="http://gsaws.finmatica.it/"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:complexType name="contiCreditoDebitoRequest">
+    <xs:sequence>
+      <xs:element name="nomeTipoDoc" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="codiceBP" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="codiceCapitolo" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="entrataUscita" type="ns3:entrataUscitaType" xmlns:ns3="http://gsaws.finmatica.it/"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:element name="getContiCreditoDebitoResponse" type="ns4:getContiCreditoDebitoResponse" xmlns:ns4="http://gsaws.finmatica.it/"></xs:element>
+<xs:complexType name="getContiCreditoDebitoResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="contiCreditoDebitoResponse" type="ns5:contiCreditoDebitoResponse" xmlns:ns5="http://gsaws.finmatica.it/"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:complexType name="contiCreditoDebitoResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="contoCreditoDebito" nillable="true" type="ns6:contoCreditoDebito" xmlns:ns6="http://gsaws.finmatica.it/"></xs:element>
+      <xs:element minOccurs="0" name="descrizioneErrore" type="xs:string"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:complexType name="contoCreditoDebito">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="codice" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="descrizione" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="natura" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="tipologia" type="xs:string"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:element name="getContiImputazione" type="ns7:getContiImputazione" xmlns:ns7="http://gsaws.finmatica.it/"></xs:element>
+<xs:complexType name="getContiImputazione">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="contiImputazioneRequest" type="ns8:contiImputazioneRequest" xmlns:ns8="http://gsaws.finmatica.it/"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:complexType name="contiImputazioneRequest">
+    <xs:sequence>
+      <xs:element name="nomeTipoDoc" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="codiceCapitolo" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="codiceConto" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="descConto" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="entrataUscita" type="ns9:entrataUscitaType" xmlns:ns9="http://gsaws.finmatica.it/"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:element name="getContiImputazioneResponse" type="ns10:getContiImputazioneResponse" xmlns:ns10="http://gsaws.finmatica.it/"></xs:element>
+<xs:complexType name="getContiImputazioneResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="contiImputazioneResponse" type="ns11:contiImputazioneResponse" xmlns:ns11="http://gsaws.finmatica.it/"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:complexType name="contiImputazioneResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="contiImputazione" nillable="true" type="ns12:contiImputazione" xmlns:ns12="http://gsaws.finmatica.it/"></xs:element>
+      <xs:element minOccurs="0" name="descrizioneErrore" type="xs:string"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:complexType name="contiImputazione">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="codice" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="descrizione" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="tipologia" type="xs:string"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:element name="getTipiDocumento" type="ns13:getTipiDocumento" xmlns:ns13="http://gsaws.finmatica.it/"></xs:element>
+<xs:complexType name="getTipiDocumento">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="tipiDocumentoRequest" type="ns14:tipiDocumentoRequest" xmlns:ns14="http://gsaws.finmatica.it/"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:complexType name="tipiDocumentoRequest">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="nome" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="descrizione" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="finanziaria" type="ns15:finanziariaType" xmlns:ns15="http://gsaws.finmatica.it/"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:element name="getTipiDocumentoResponse" type="ns16:getTipiDocumentoResponse" xmlns:ns16="http://gsaws.finmatica.it/"></xs:element>
+<xs:complexType name="getTipiDocumentoResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="tipiDocumentoResponse" type="ns17:tipiDocumentoResponse" xmlns:ns17="http://gsaws.finmatica.it/"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:complexType name="tipiDocumentoResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="tipiDocumento" nillable="true" type="ns18:tipoDocumento" xmlns:ns18="http://gsaws.finmatica.it/"></xs:element>
+      <xs:element minOccurs="0" name="descrizioneErrore" type="xs:string"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:complexType name="tipoDocumento">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="nome" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="descrizione" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="finanziaria" type="ns19:finanziariaType" xmlns:ns19="http://gsaws.finmatica.it/"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:element name="getBusinessPartners" type="ns20:getBusinessPartners" xmlns:ns20="http://gsaws.finmatica.it/"></xs:element>
+<xs:complexType name="getBusinessPartners">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="businessPartnersRequest" type="ns21:businessPartnersRequest" xmlns:ns21="http://gsaws.finmatica.it/"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:complexType name="businessPartnersRequest">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="codiceFiscale" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="partitaIva" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="ragioneSociale" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="codiceFinanziaria" type="xs:string"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:element name="getBusinessPartnersResponse" type="ns22:getBusinessPartnersResponse" xmlns:ns22="http://gsaws.finmatica.it/"></xs:element>
+<xs:complexType name="getBusinessPartnersResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="businessPartnersResponse" type="ns23:businessPartnersResponse" xmlns:ns23="http://gsaws.finmatica.it/"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:complexType name="businessPartnersResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="businessPartners" nillable="true" type="ns24:businessPartners" xmlns:ns24="http://gsaws.finmatica.it/"></xs:element>
+      <xs:element minOccurs="0" name="descrizioneErrore" type="xs:string"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:complexType name="businessPartners">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="codiceFinanziaria" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="codiceAmco" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="ragioneSociale" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="codiceFiscale" type="xs:string"></xs:element>
+      <xs:element minOccurs="0" name="partitaIva" type="xs:string"></xs:element>
+    </xs:sequence>
+  </xs:complexType>
+<xs:simpleType name="entrataUscitaType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="u"></xs:enumeration>
+      <xs:enumeration value="e"></xs:enumeration>
+      <xs:enumeration value="U"></xs:enumeration>
+      <xs:enumeration value="E"></xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+<xs:simpleType name="finanziariaType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="n"></xs:enumeration>
+      <xs:enumeration value="y"></xs:enumeration>
+      <xs:enumeration value="N"></xs:enumeration>
+      <xs:enumeration value="Y"></xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>
+  </wsdl:types>
+  <wsdl:message name="getContiCreditoDebito">
+    <wsdl:part element="tns:getContiCreditoDebito" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getTipiDocumento">
+    <wsdl:part element="tns:getTipiDocumento" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getTipiDocumentoResponse">
+    <wsdl:part element="tns:getTipiDocumentoResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getBusinessPartnersResponse">
+    <wsdl:part element="tns:getBusinessPartnersResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getContiImputazioneResponse">
+    <wsdl:part element="tns:getContiImputazioneResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getBusinessPartners">
+    <wsdl:part element="tns:getBusinessPartners" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getContiCreditoDebitoResponse">
+    <wsdl:part element="tns:getContiCreditoDebitoResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getContiImputazione">
+    <wsdl:part element="tns:getContiImputazione" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="AnagraficheGSA">
+    <wsdl:operation name="getContiCreditoDebito">
+      <wsdl:input message="tns:getContiCreditoDebito" name="getContiCreditoDebito">
+    </wsdl:input>
+      <wsdl:output message="tns:getContiCreditoDebitoResponse" name="getContiCreditoDebitoResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getContiImputazione">
+      <wsdl:input message="tns:getContiImputazione" name="getContiImputazione">
+    </wsdl:input>
+      <wsdl:output message="tns:getContiImputazioneResponse" name="getContiImputazioneResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getTipiDocumento">
+      <wsdl:input message="tns:getTipiDocumento" name="getTipiDocumento">
+    </wsdl:input>
+      <wsdl:output message="tns:getTipiDocumentoResponse" name="getTipiDocumentoResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getBusinessPartners">
+      <wsdl:input message="tns:getBusinessPartners" name="getBusinessPartners">
+    </wsdl:input>
+      <wsdl:output message="tns:getBusinessPartnersResponse" name="getBusinessPartnersResponse">
+    </wsdl:output>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="AnagraficheGSASoapBinding" type="tns:AnagraficheGSA">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"></soap:binding>
+    <wsdl:operation name="getContiCreditoDebito">
+      <soap:operation soapAction="" style="document"></soap:operation>
+      <wsdl:input name="getContiCreditoDebito">
+        <soap:body use="literal"></soap:body>
+      </wsdl:input>
+      <wsdl:output name="getContiCreditoDebitoResponse">
+        <soap:body use="literal"></soap:body>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getContiImputazione">
+      <soap:operation soapAction="" style="document"></soap:operation>
+      <wsdl:input name="getContiImputazione">
+        <soap:body use="literal"></soap:body>
+      </wsdl:input>
+      <wsdl:output name="getContiImputazioneResponse">
+        <soap:body use="literal"></soap:body>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getTipiDocumento">
+      <soap:operation soapAction="" style="document"></soap:operation>
+      <wsdl:input name="getTipiDocumento">
+        <soap:body use="literal"></soap:body>
+      </wsdl:input>
+      <wsdl:output name="getTipiDocumentoResponse">
+        <soap:body use="literal"></soap:body>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getBusinessPartners">
+      <soap:operation soapAction="" style="document"></soap:operation>
+      <wsdl:input name="getBusinessPartners">
+        <soap:body use="literal"></soap:body>
+      </wsdl:input>
+      <wsdl:output name="getBusinessPartnersResponse">
+        <soap:body use="literal"></soap:body>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="AnagraficheGSA">
+    <wsdl:port binding="tns:AnagraficheGSASoapBinding" name="AnagraficheGSAImplPort">
+      <soap:address location="http://test-ide-amco:8488/ADInterface/services/AnagraficheGSA"></soap:address>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jnlp spec="1.0" xmlns:jfx="http://javafx.com" href="deploy/Hybrid.jnlp" codebase="${codebase}">
+  <information>
+    <title>Hybrid</title>
+    <vendor>Engineering Ingegneria Informatica S.p.A.</vendor>
+    <description>MultiSigner Hybrid</description>
+    <description kind="short">MultiSigner Hybrid</description>
+    <offline-allowed/>
+  </information>
+  <resources>
+    <j2se version="1.8+" href="http://java.sun.com/products/autodl/j2se"/>
+    ${resources}
+  </resources>
+<security>
+  <all-permissions/>
+</security>
+  <application-desc  width="640" height="480" main-class="it.eng.areas.hybrid.Main"  name="sHybrid">
+    <argument>${codebase}</argument>
+    <argument>${port}</argument>
+    <argument>${portSSL}</argument>
+    <argument>${workFolder}</argument>
+  </application-desc>  
+</jnlp>

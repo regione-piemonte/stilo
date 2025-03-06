@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<richiesta>
+	<impegno>
+		<testata>
+			<proposta>
+				<siglaTipoAtto>dlc</siglaTipoAtto>
+				<codSettore>aaa</codSettore>
+				<numatto>1</numatto>
+				<annoatto>2018</annoatto>
+				<dataatto>2018-06-01</dataatto>
+			</proposta>
+			<definitivo>
+				<siglaTipoAtto>dlg</siglaTipoAtto>
+				<codSettore>aa</codSettore>
+				<numatto>-362</numatto>
+				<annoatto>2011</annoatto>
+				<dataatto>2011-06-01</dataatto>
+			</definitivo>
+		</testata>
+	</impegno>
+</richiesta>

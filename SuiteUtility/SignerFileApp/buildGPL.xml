@@ -1,0 +1,149 @@
+<project name="signerapplet" default="build" basedir=".">
+
+	<!-- ===================== Initialize Property Values =================== -->
+	<property name="build.compiler"   value="modern"/>
+	<property name="build.dir"        location="build"/>
+	<property name="example.dir"        location="example"/>
+	<!-- the directory where your additional jar files are-->
+	<property name="lib.dir"          location="lib"/>
+	<property name="tosignlib.dir"          location="signLib"/>
+	<property name="dist.dir"         location="dist"/>
+	<property name="src.dir"          value="src"/>
+	<property name="bin.dir"          value="bin"/>
+	<property name="api.dir"          value="javadoc"/>
+	<property name="user.real"        value="${user.name}"/>
+	<property name="example_javadocs.dir"   value="example_javadocs"/>
+	<property name="debug"            value="off"/>
+	<property name="deprecation="     value="off"/>
+	<property name="optimize="        value="off"/>
+	<property name="classpath"        value="."/>
+	<property name="smartcard.jar"       value="smartcard.jar"/>
+
+
+	<!-- =================== INITIALIZE: =================================== -->
+	<target name="init" depends="">
+
+		<delete dir="${build.dir}"/>
+		<delete dir="${dist.dir}"/>
+		<delete dir="${api.dir}" />
+		<delete dir="${example_javadocs.dir}" />
+		<delete dir="examples" />
+		<delete dir="javadoc" />
+
+		<!-- useful if you want to add if constructs into build.xml
+			<taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+		-->
+
+		<mkdir dir="${dist.dir}"/>
+		<mkdir dir="${build.dir}"/>
+		<mkdir dir="${build.dir}/${bin.dir}"/>
+		<tstamp/>
+
+	</target>
+
+	<!-- ================ BUILD: Copy res Files ========================== -->
+	<target name="copy-res" depends="compile">
+		<copy todir="${build.dir}/${bin.dir}">
+			<fileset dir="${src.dir}/main/java">
+				<include name="it/eng/client/applet/*.png"/>
+				<exclude name="**/*~"/>
+				 
+			</fileset>
+		</copy>
+
+	</target>
+
+	<!-- ================ BUILD: Copy source Files ========================== -->
+	<target name="copy-src" depends="init">
+
+		<copy todir="${build.dir}/${src.dir}">
+			<fileset dir="${src.dir}/main/java">
+			</fileset>
+		</copy>
+
+	</target>
+
+	<!-- ======================= COMPILE: compile source ===================== -->
+	<target name="compile" depends="init,copy-src">
+
+		<javac srcdir="${build.dir}/${src.dir}" destdir="${build.dir}/${bin.dir}" >
+			<classpath>
+				<pathelement location="${lib.dir}/bcmail-jdk16-146.jar" />
+				<pathelement location="${lib.dir}/bcprov-jdk16-146.jar" />
+				<pathelement location="${lib.dir}/iText-5.0.2.jar" />
+				<pathelement location="${lib.dir}/bcpg-jdk16-146.jar" />
+				<pathelement location="${lib.dir}/bctsp-jdk16-146.jar" />
+				<pathelement location="${lib.dir}/capi-full-31-all14.jar" />
+				<pathelement location="${lib.dir}/commons-codec-1.4.jar" />
+				<pathelement location="${lib.dir}/commons-collections-3.1.jar" />
+				<pathelement location="${lib.dir}/commons-fileupload-1.2.1.jar" />
+				<pathelement location="${lib.dir}/commons-httpclient-3.1.jar" />
+				<pathelement location="${lib.dir}/commons-io.jar" />
+				<pathelement location="${lib.dir}/commons-lang-2.4.jar" />
+				<pathelement location="${lib.dir}/commons-logging.jar" />
+				<pathelement location="${lib.dir}/dwr3_eng.jar" />
+				<pathelement location="${lib.dir}/jcl-core-2.2.jar" />
+				<pathelement location="${lib.dir}/jcl-spring-2.2.jar" />
+				<pathelement location="${lib.dir}/log4j-1.2.14.jar" />
+				<pathelement location="${lib.dir}/nimrodlf.jar" />
+				<pathelement location="${lib.dir}/plugin.jar" />
+				<pathelement location="${lib.dir}/sunpkcs11.jar" />
+				<pathelement location="${lib.dir}/jsp-api-6.0.35.jar" />
+				<pathelement location="${lib.dir}/servlet-api-2.4.jar" />
+				<pathelement location="${lib.dir}/junit-4.10.jar" />
+				
+			</classpath>
+		</javac>
+	</target>
+
+	<!-- ================== DIST: Create .jar file and flush code=================== -->
+	<target name="jar" depends="init,copy-res,compile">
+
+		<!-- build the jar -->
+		<jar destfile="${dist.dir}/${smartcard.jar}" index="true" basedir="${build.dir}/${bin.dir}">
+			<!--zipgroupfileset dir="${lib.dir}" includes="*.jar" /--> 
+			<manifest>
+				<attribute name="Built-By" value="${user.real}" />
+				<!-- attribute name="Main-Class" value="org." / -->
+			</manifest>
+		</jar>
+		<signjar destDir="${dist.dir}"
+				    alias="jdc" keystore="testKeys"
+				    storepass="changeit"
+				    preservelastmodified="true">
+				  <path>
+				    <fileset dir="${dist.dir}" includes="**/*.jar" />
+				  	<fileset dir="${lib.dir}" includes="**/*.jar" />
+				  </path>
+				  <flattenmapper />
+				</signjar>
+		<!-- firmo anche le librerie per il client 
+		<signjar destDir="${tosignlib.dir}"
+						    alias="jdc" keystore="testKeys"
+						    storepass="changeit"
+						    preservelastmodified="true">
+						  <path>
+						    <fileset dir="${lib.dir}" includes="**/*.jar" />
+						  	 
+						  </path>
+						  <flattenmapper />
+						</signjar -->
+	</target>
+	<target name="sign" depends="jar">
+		<signjar destDir="${dist.dir}"
+						    alias="jdc" keystore="testKeys"
+						    storepass="changeit"
+						    preservelastmodified="true">
+						  <path>
+						    <fileset dir="${dist.dir}" includes="**/*.jar" />
+						  	 
+						  </path>
+						  <flattenmapper />
+		 </signjar>
+	</target>
+	<!-- ================== DIST: create a build =================== -->
+	<target name="buildFirmato" depends="sign">
+	</target>
+	<target name="build" depends="jar">
+		</target>
+</project>

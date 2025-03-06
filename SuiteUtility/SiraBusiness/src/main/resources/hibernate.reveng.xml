@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-reverse-engineering PUBLIC "-//Hibernate/Hibernate Reverse Engineering DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-reverse-engineering-3.0.dtd" >
+
+<hibernate-reverse-engineering>
+	<type-mapping>
+		<sql-type jdbc-type="OTHER" hibernate-type="java.util.Date" />
+		<sql-type jdbc-type="DATE" hibernate-type="java.util.Date" />
+		<sql-type jdbc-type="CLOB" hibernate-type="String"></sql-type>
+		<sql-type jdbc-type="BLOB" hibernate-type="String"></sql-type>
+	</type-mapping>
+	
+	<table-filter match-name="T_TASK_DEADLINE"></table-filter>	
+	<!-- <table-filter match-name="DMT_PROCESS_TYPES"></table-filter>	
+	<table-filter match-name="DMT_EVENT_TYPES"></table-filter>	 -->
+	
+</hibernate-reverse-engineering>

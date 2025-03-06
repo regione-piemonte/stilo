@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<properties>
+	
+	<dynamicCodeDetector name="Office2007MacroDetector" class="it.eng.suiteutility.dynamiccodedetector.macro.Office2007MacroDetector">
+		<mime-type>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</mime-type>
+		<mime-type>application/vnd.openxmlformats-officedocument.presentationml.presentation</mime-type>
+		<mime-type>application/vnd.openxmlformats-officedocument.wordprocessingml.document</mime-type>
+	</dynamicCodeDetector>
+	
+	<dynamicCodeDetector name="OfficeMacrodetector" class="it.eng.suiteutility.dynamiccodedetector.macro.OfficeMacroDetector">
+		<mime-type>application/vnd.ms-excel</mime-type>
+		<mime-type>application/msexcel</mime-type>
+		<mime-type>application/x-msexcel</mime-type>
+		<mime-type>application/x-ms-excel</mime-type>
+		<mime-type>application/vnd.ms-excel</mime-type>
+		<mime-type>application/x-excel</mime-type>
+		<mime-type>application/x-dos_ms_excel</mime-type>
+		<mime-type>application/xls</mime-type>
+		<mime-type>application/excel</mime-type>
+		<mime-type>application/vnd.ms-powerpoint</mime-type>
+		<mime-type>application/mspowerpoint</mime-type>
+		<mime-type>application/ms-powerpoint</mime-type>
+		<mime-type>application/mspowerpnt</mime-type>
+		<mime-type>application/vnd-mspowerpoint</mime-type>
+		<mime-type>application/powerpoint</mime-type>
+		<mime-type>application/x-powerpoint</mime-type>
+		<mime-type>application/msword</mime-type>
+		<mime-type>application/vnd.msword</mime-type>
+		<mime-type>application/vnd.ms-word</mime-type>
+		<mime-type>application/winword</mime-type>
+		<mime-type>application/word</mime-type>
+		<mime-type>application/x-msw6</mime-type>
+		<mime-type>application/x-msword</mime-type>
+	</dynamicCodeDetector>
+	
+	<dynamicCodeDetector name="OpenOfficeMacroDetector" class="it.eng.suiteutility.dynamiccodedetector.macro.OpenOfficeMacroDetector">
+		<mime-type>application/vnd.oasis.opendocument.graphics</mime-type>
+		<mime-type>application/vnd.oasis.opendocument.presentation</mime-type>
+		<mime-type>application/x-vnd.oasis.opendocument.presentation</mime-type>
+		<mime-type>application/vnd.oasis.opendocument.spreadsheet</mime-type>
+		<mime-type>application/x-vnd.oasis.opendocument.spreadsheet</mime-type>
+		<mime-type>application/vnd.oasis.opendocument.text</mime-type>
+		<mime-type>application/x-vnd.oasis.opendocument.text</mime-type>	
+		<mime-type>application/vnd.oasis.opendocument.spreadsheet-template</mime-type>	
+		<mime-type>application/x-vnd.oasis.opendocument.spreadsheet-template</mime-type>	
+		<mime-type>application/vnd.oasis.opendocument.text-template</mime-type>	
+		<mime-type>application/x-vnd.oasis.opendocument.text-template</mime-type>			
+	</dynamicCodeDetector>
+	
+	<dynamicCodeDetector name="ProjectMacroDetector" class="it.eng.suiteutility.dynamiccodedetector.macro.ProjectMacroDetector">
+		<mime-type>application/vnd.ms-project</mime-type>
+		<mime-type>application/msproj</mime-type>
+		<mime-type>application/msproject</mime-type>
+		<mime-type>application/x-msproject</mime-type>
+		<mime-type>application/x-ms-project</mime-type>
+		<mime-type>application/x-dos_ms_project</mime-type>
+		<mime-type>application/mpp</mime-type>
+		<mime-type>zz-application/zz-winassoc-mpp</mime-type>	
+	</dynamicCodeDetector>
+	
+	<dynamicCodeDetector name="VisioMacroDetector" class="it.eng.suiteutility.dynamiccodedetector.macro.VisioMacroDetector">
+		<mime-type>application/visio</mime-type>
+		<mime-type>application/x-visio</mime-type>
+		<mime-type>application/vnd.visio</mime-type>
+		<mime-type>application/visio.drawing</mime-type>
+		<mime-type>application/vsd</mime-type>
+		<mime-type>application/x-vsd</mime-type>
+		<mime-type>image/x-vsd</mime-type>	
+		<mime-type>zz-application/zz-winassoc-vsd</mime-type>		
+	</dynamicCodeDetector>
+	
+</properties>

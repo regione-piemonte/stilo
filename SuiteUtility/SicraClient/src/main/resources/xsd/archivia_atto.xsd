@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://sicraweb/ArchiviaAtto" xmlns="http://sicraweb/ArchiviaAtto"
+	elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<!-- <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"> -->
+	<xsd:element name="richiesta">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="EU" minOccurs="0" maxOccurs="1">
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:string">
+							<xsd:enumeration value="E">
+								<xsd:annotation>
+									<xsd:documentation>Entrate</xsd:documentation>
+								</xsd:annotation>
+							</xsd:enumeration>
+							<xsd:enumeration value="U">
+								<xsd:annotation>
+									<xsd:documentation>Uscite</xsd:documentation>
+								</xsd:annotation>
+							</xsd:enumeration>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+				<xsd:element name="atto">
+					<xsd:annotation>
+						<xsd:documentation>Contiene i dati dell'atto</xsd:documentation>
+					</xsd:annotation>
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="siglaTipoAtto" minOccurs="1"
+								maxOccurs="1">
+								<xsd:annotation>
+									<xsd:documentation>Identifica la sigla del tipo atto
+									</xsd:documentation>
+								</xsd:annotation>
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:string" />
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="codSettore" minOccurs="0"
+								maxOccurs="1">
+								<xsd:annotation>
+									<xsd:documentation>Identifica il settore dell'atto
+									</xsd:documentation>
+								</xsd:annotation>
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:string">
+										<xsd:maxLength value="10" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="numatto" type="xsd:integer"
+								minOccurs="1" maxOccurs="1" />
+							<xsd:element name="annoatto" type="xsd:integer"
+								minOccurs="1" maxOccurs="1" />
+							<xsd:element name="dataatto" type="xsd:date"
+								minOccurs="0" maxOccurs="1">
+								<xsd:annotation>
+									<xsd:documentation>Nel formato yyyy-MM-dd</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="solo_provvisori" minOccurs="0"
+					maxOccurs="1">
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:integer">
+							<xsd:enumeration value="0">
+								<xsd:annotation>
+									<xsd:documentation>NO (default se non presente): vengono
+										considerati tutti gli
+										impegni/accertamenti
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:enumeration>
+							<xsd:enumeration value="1">
+								<xsd:annotation>
+									<xsd:documentation>SI: vengono considerati solamente gli
+										impegni/accertamenti NON
+										ESECUTIVI
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:enumeration>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+				<xsd:element name="messaggio_xml" type="xsd:string"
+					minOccurs="0" maxOccurs="1" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="risultato">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="messaggi">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="tipo">
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:string">
+										<xsd:enumeration value="OK" />
+										<xsd:enumeration value="ERR" />
+										<xsd:enumeration value="WARN" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="descrizione" type="xsd:string" />
+							<xsd:element name="messaggio_xml" type="xsd:string" />
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+</xsd:schema>

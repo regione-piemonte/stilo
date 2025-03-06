@@ -1,0 +1,58 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>it.eng.utility</groupId>
+	<artifactId>mimeDb</artifactId>
+	<version>1.0.1</version>
+	<dependencies>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.16</version>
+		</dependency>
+<!-- 		<dependency> -->
+<!-- 			<groupId>org.apache.logging.log4j</groupId> -->
+<!-- 			<artifactId>log4j-api</artifactId> -->
+<!-- 			<version>2.0.2</version> -->
+<!-- 		</dependency> -->
+<!-- 		<dependency> -->
+<!-- 			<groupId>org.apache.logging.log4j</groupId> -->
+<!-- 			<artifactId>log4j-core</artifactId> -->
+<!-- 			<version>2.0.2</version> -->
+<!-- 		</dependency> -->
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-core</artifactId>
+			<version>3.6.10.Final</version>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-c3p0</artifactId>
+			<version>3.6.10.Final</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.reflections</groupId>
+			<artifactId>reflections</artifactId>
+			<version>0.9.7-SNAPSHOT</version>
+		</dependency>
+  		<dependency>
+			<groupId>com.oracle</groupId>
+			<artifactId>ojdbc6</artifactId>
+			<version>11.1.0</version>
+		</dependency>
+	</dependencies>
+
+	<distributionManagement>
+		<repository>
+			<id>CSI</id>
+			<name>CSI-releases</name>
+			<url>http://repart.csi.it/artifactory/maven2</url>
+		</repository>
+	</distributionManagement>
+
+</project>

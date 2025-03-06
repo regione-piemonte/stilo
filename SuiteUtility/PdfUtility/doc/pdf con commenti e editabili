@@ -1,0 +1,15 @@
+In fileop la gestione di files con commenti e editabili è legata alle seguenti properties
+nel file config.properties in FILEOP/WEB-INF/classes
+
+attivaVerificaPdfEditabili=true/false
+attivaVerificaPdfCommenti=true/false
+
+Se posti a false tutta la gestione è disabilitata, quindi: 
+1) non verranno chiamati i metodi di verifica sul file (se contiene commenti, se ' editabile)
+2) non verranno restituiti i flag corrispondenti nella response del riconoscimento formato
+3) non verrà staticizzato il file se necessario per le successive operazioni (quindi per esempio 
+in fase di timbro si perderà il commento)
+
+In AurigaWeb la gestione dei files con commenti e editabili è legata ai seguenti paramentri a db
+
+ 

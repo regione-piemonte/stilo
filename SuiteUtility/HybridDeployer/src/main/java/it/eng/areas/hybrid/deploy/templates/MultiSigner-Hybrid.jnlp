@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jnlp spec="1.0" xmlns:jfx="http://javafx.com" href="deploy/MultiSigner-Hybrid.jnlp" codebase="${codebase}">
+  <information>
+    <title>Hybrid</title>
+    <vendor>Engineering Ingegneria Informatica S.p.A.</vendor>
+    <description>MultiSigner Hybrid</description>
+    <description kind="short">MultiSigner Hybrid</description>
+    <icon kind="shortcut" href="${base}hybrid-logo.png" />
+    <icon kind="default" href="${base}hybrid-logo.png" />
+    <icon kind="splash" href="${base}hybrid-logo.png" />
+    <offline-allowed/>
+    <shortcut online="false">
+        <desktop/>
+        <menu submenu="AREAS">
+    		<menu submenu="Hybrid"/>
+    	</menu>
+    </shortcut>
+    <offline-allowed/>
+  </information>
+  <resources>
+    <j2se version="1.8+" href="http://java.sun.com/products/autodl/j2se"/>
+    ${resources}
+  </resources>
+<security>
+  <all-permissions/>
+</security>
+  <application-desc  width="640" height="480" main-class="it.eng.areas.hybrid.Main"  name="AREAS Hybrid">
+    <argument>${codebase}</argument>
+  </application-desc>  
+</jnlp>

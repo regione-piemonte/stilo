@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions targetNamespace="SibPeg" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:ns0="SibPeg" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://ws.wso2.org/dataservice" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/">
+<wsdl:documentation/>
+  <wsdl:types>
+    <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="SibPeg">
+            <xs:element name="getVociPeg">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="Entrate_Uscite" nillable="true" type="xs:string"/>
+                        <xs:element name="Esercizio" nillable="true" type="xs:decimal"/>
+                        <xs:element name="Capitolo" nillable="true" type="xs:decimal"/>
+                        <xs:element name="Articolo" nillable="true" type="xs:decimal"/>
+                        <xs:element name="Numero" nillable="true" type="xs:decimal"/>
+                        <xs:element name="CompetenzaPluriennale" nillable="true" type="xs:decimal"/>
+                        <xs:element name="Descrizione_Capitolo" nillable="true" type="xs:string"/>
+                        <xs:element name="Descrizione_Direzione_Competente" nillable="true" type="xs:string"/>
+                        <xs:element name="PDC_Livello_1" nillable="true" type="xs:decimal"/>
+                        <xs:element name="Missione" nillable="true" type="xs:decimal"/>
+                        <xs:element name="Programma" nillable="true" type="xs:decimal"/>
+                        <xs:element name="CDR" nillable="true" type="xs:decimal"/>
+                        <xs:element name="Descrizione_CDR" nillable="true" type="xs:string"/>
+                        <xs:element name="CAN" nillable="true" type="xs:decimal"/>
+                        <xs:element name="Descrizione_CAN" nillable="true" type="xs:string"/>
+                        <xs:element name="Disponibile" nillable="true" type="xs:decimal"/>
+                        <xs:element name="Foglia" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getVociPegResult" type="ns0:getVociPegResult"/>
+            <xs:complexType name="getVociPegResult">
+                <xs:sequence>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="VocePeg" type="ns0:VocePeg"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="VocePeg">
+                <xs:sequence>
+                    <xs:element name="ENTRATE_USCITE" nillable="true" type="xs:string"/>
+                    <xs:element name="ESERCIZIO" nillable="true" type="xs:decimal"/>
+                    <xs:element name="CAPITOLO" nillable="true" type="xs:decimal"/>
+                    <xs:element name="ARTICOLO" nillable="true" type="xs:decimal"/>
+                    <xs:element name="NUMERO" nillable="true" type="xs:decimal"/>
+                    <xs:element name="DESCRIZIONE_CAPITOLO" nillable="true" type="xs:string"/>
+                    <xs:element name="DESCRIZIONE_DC" nillable="true" type="xs:string"/>
+                    <xs:element name="DESCRIZIONE_CDR" nillable="true" type="xs:string"/>
+                    <xs:element name="DESCRIZIONE_CAN" nillable="true" type="xs:string"/>
+                    <xs:element name="COMPETENZA_PLURIENNALE" nillable="true" type="xs:decimal"/>
+                    <xs:element name="TITOLO" nillable="true" type="xs:decimal"/>
+                    <xs:element name="FUNZIONE" nillable="true" type="xs:decimal"/>
+                    <xs:element name="SERVIZIO" nillable="true" type="xs:decimal"/>
+                    <xs:element name="INTERVENTO" nillable="true" type="xs:decimal"/>
+                    <xs:element name="PDC_LIVELLO_1" nillable="true" type="xs:decimal"/>
+                    <xs:element name="PDC_LIVELLO_2" nillable="true" type="xs:decimal"/>
+                    <xs:element name="PDC_LIVELLO_3" nillable="true" type="xs:decimal"/>
+                    <xs:element name="PDC_LIVELLO_4" nillable="true" type="xs:decimal"/>
+                    <xs:element name="PDC_LIVELLO_5" nillable="true" type="xs:decimal"/>
+                    <xs:element name="PDC_ARMONIZZATO_ALF" nillable="true" type="xs:string"/>
+                    <xs:element name="MISSIONE" nillable="true" type="xs:decimal"/>
+                    <xs:element name="PROGRAMMA" nillable="true" type="xs:decimal"/>
+                    <xs:element name="CDR" nillable="true" type="xs:decimal"/>
+                    <xs:element name="CAN" nillable="true" type="xs:decimal"/>
+                    <xs:element name="DIREZIONE_CENTRALE" nillable="true" type="xs:string"/>
+                    <xs:element name="PROPOSTO" nillable="true" type="xs:double"/>
+                    <xs:element name="PREVISIONE" nillable="true" type="xs:double"/>
+                    <xs:element name="INIZIALE" nillable="true" type="xs:double"/>
+                    <xs:element name="APPROVATO" nillable="true" type="xs:decimal"/>
+                    <xs:element name="TOTALE_VARIAZIONI" nillable="true" type="xs:decimal"/>
+                    <xs:element name="ASSESTATO" nillable="true" type="xs:double"/>
+                    <xs:element name="IMPEGNATO_ACCERTATO" nillable="true" type="xs:double"/>
+                    <xs:element name="DISPONIBILE" nillable="true" type="xs:decimal"/>
+                    <xs:element name="MANDATI_REVERSALI_EMESSI" nillable="true" type="xs:double"/>
+                    <xs:element name="MANDATI_REVERSALI_PAGATI" nillable="true" type="xs:double"/>
+                    <xs:element name="FOGLIA" nillable="true" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:element name="getCapitolo">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="Entrate_Uscite" nillable="true" type="xs:string"/>
+                        <xs:element name="Esercizio" nillable="true" type="xs:decimal"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getCapitoloResult" type="ns0:getCapitoloResult"/>
+            <xs:complexType name="getCapitoloResult">
+                <xs:sequence>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="Capitolo" type="ns0:Capitolo"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="Capitolo">
+                <xs:sequence>
+                    <xs:element name="CAPITOLO" nillable="true" type="xs:decimal"/>
+                    <xs:element name="DESCRIZIONE_CAPITOLO" nillable="true" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+        </xs:schema>
+    <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="http://ws.wso2.org/dataservice">
+            <xs:element name="DataServiceFault">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="current_params" type="xs:string"/>
+                        <xs:element name="current_request_name" type="xs:string"/>
+                        <xs:element name="nested_exception" type="xs:string"/>
+                        <xs:element name="source_data_service">
+                            <xs:complexType>
+                                <xs:sequence>
+                                    <xs:element name="location" type="xs:string"/>
+                                    <xs:element name="default_namespace" type="xs:string"/>
+                                    <xs:element name="description" type="xs:string"/>
+                                    <xs:element name="data_service_name" type="xs:string"/>
+                                </xs:sequence>
+                            </xs:complexType>
+                        </xs:element>
+                        <xs:element name="ds_code" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="REQUEST_STATUS" type="xs:string"/>
+            <xs:element name="DATA_SERVICE_RESPONSE">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:any minOccurs="0"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:schema>
+  </wsdl:types>
+  <wsdl:message name="getCapitoloResponse">
+    <wsdl:part name="parameters" element="ns0:getCapitoloResult">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getCapitoloRequest">
+    <wsdl:part name="parameters" element="ns0:getCapitolo">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getVociPegRequest">
+    <wsdl:part name="parameters" element="ns0:getVociPeg">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="DataServiceFault">
+    <wsdl:part name="parameters" element="ns1:DataServiceFault">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getVociPegResponse">
+    <wsdl:part name="parameters" element="ns0:getVociPegResult">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="SibPegPortType">
+    <wsdl:operation name="getVociPeg">
+<wsdl:documentation/>
+      <wsdl:input message="ns0:getVociPegRequest" wsaw:Action="urn:getVociPeg">
+    </wsdl:input>
+      <wsdl:output message="ns0:getVociPegResponse" wsaw:Action="urn:getVociPegResponse">
+    </wsdl:output>
+      <wsdl:fault name="DataServiceFault" message="ns0:DataServiceFault" wsaw:Action="urn:getVociPegDataServiceFault">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getCapitolo">
+<wsdl:documentation/>
+      <wsdl:input message="ns0:getCapitoloRequest" wsaw:Action="urn:getCapitolo">
+    </wsdl:input>
+      <wsdl:output message="ns0:getCapitoloResponse" wsaw:Action="urn:getCapitoloResponse">
+    </wsdl:output>
+      <wsdl:fault name="DataServiceFault" message="ns0:DataServiceFault" wsaw:Action="urn:getCapitoloDataServiceFault">
+    </wsdl:fault>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="SibPegHttpBinding" type="ns0:SibPegPortType">
+    <http:binding verb="POST"/>
+    <wsdl:operation name="getVociPeg">
+      <http:operation location="getVociPeg"/>
+      <wsdl:input>
+        <mime:content part="parameters" type="text/xml"/>
+      </wsdl:input>
+      <wsdl:output>
+        <mime:content part="parameters" type="text/xml"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getCapitolo">
+      <http:operation location="getCapitolo"/>
+      <wsdl:input>
+        <mime:content part="parameters" type="text/xml"/>
+      </wsdl:input>
+      <wsdl:output>
+        <mime:content part="parameters" type="text/xml"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:binding name="SibPegSOAP11Binding" type="ns0:SibPegPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="getVociPeg">
+      <soap:operation soapAction="urn:getVociPeg" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="DataServiceFault">
+        <soap:fault name="DataServiceFault" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getCapitolo">
+      <soap:operation soapAction="urn:getCapitolo" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="DataServiceFault">
+        <soap:fault name="DataServiceFault" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:binding name="SibPegSOAP12Binding" type="ns0:SibPegPortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="getVociPeg">
+      <soap12:operation soapAction="urn:getVociPeg" style="document"/>
+      <wsdl:input>
+        <soap12:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="DataServiceFault">
+        <soap12:fault name="DataServiceFault" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getCapitolo">
+      <soap12:operation soapAction="urn:getCapitolo" style="document"/>
+      <wsdl:input>
+        <soap12:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="DataServiceFault">
+        <soap12:fault name="DataServiceFault" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="SibPeg">
+    <wsdl:port name="SecureSOAP11Endpoint" binding="ns0:SibPegSOAP11Binding">
+      <soap:address location="https://api.comune.milano.it:443/SIBPeg/1.0"/>
+    </wsdl:port>
+    <wsdl:port name="SecureHTTPEndpoint" binding="ns0:SibPegHttpBinding">
+      <http:address location="https://api.comune.milano.it:443/SIBPeg/1.0"/>
+    </wsdl:port>
+    <wsdl:port name="SecureSOAP12Endpoint" binding="ns0:SibPegSOAP12Binding">
+      <soap12:address location="https://api.comune.milano.it:443/SIBPeg/1.0"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

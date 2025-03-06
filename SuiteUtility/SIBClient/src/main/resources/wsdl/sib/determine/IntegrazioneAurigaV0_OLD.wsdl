@@ -1,0 +1,252 @@
+<definitions name='IntegrazioneAurigaV0Service' targetNamespace='http://service.integrazioneAuriga.webservice.sib.datamanagement.it/' xmlns='http://schemas.xmlsoap.org/wsdl/' xmlns:soap='http://schemas.xmlsoap.org/wsdl/soap/' xmlns:tns='http://service.integrazioneAuriga.webservice.sib.datamanagement.it/' xmlns:xsd='http://www.w3.org/2001/XMLSchema'>
+ <types>
+  <xs:schema targetNamespace='http://service.integrazioneAuriga.webservice.sib.datamanagement.it/' version='1.0' xmlns:tns='http://service.integrazioneAuriga.webservice.sib.datamanagement.it/' xmlns:xs='http://www.w3.org/2001/XMLSchema'>
+   <xs:element name='AggiornaAtto' type='tns:AggiornaAtto'/>
+   <xs:element name='AggiornaAttoResponse' type='tns:AggiornaAttoResponse'/>
+   <xs:element name='CreaProposta' type='tns:CreaProposta'/>
+   <xs:element name='CreaPropostaResponse' type='tns:CreaPropostaResponse'/>
+   <xs:element name='ElencoDettagliContabili' type='tns:ElencoDettagliContabili'/>
+   <xs:element name='ElencoDettagliContabiliResponse' type='tns:ElencoDettagliContabiliResponse'/>
+   <xs:element name='Esito' type='tns:esito'/>
+   <xs:element name='InputDettagliContabili' type='tns:inputDettagliContabiliV0'/>
+   <xs:element name='ListaRisultati' type='tns:listaRisultati'/>
+   <xs:element name='OutputAggiornaAtto' type='tns:outputAggiornaAttoV0'/>
+   <xs:element name='OutputCreaProposta' type='tns:outputCreaPropostaV0'/>
+   <xs:element name='OutputDettagliContabili' type='tns:outputDettagliContabiliV0'/>
+   <xs:element name='RecordCreaProposta' type='tns:recordCreaPropostaV0'/>
+   <xs:element name='RecordDettagliContabili' nillable='true' type='xs:anyType'/>
+   <xs:element name='RispostaCreaProposta' type='tns:rispostaCreaPropostaV0'/>
+   <xs:complexType name='CreaProposta'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='inputCreaProposta' type='tns:recordCreaPropostaV0'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='recordCreaPropostaV0'>
+    <xs:sequence>
+     <xs:element name='SiglaRegistroProposta' type='xs:string'/>
+     <xs:element name='AnnoProposta' type='xs:short'/>
+     <xs:element name='NumeroProposta' type='xs:long'/>
+     <xs:element minOccurs='0' name='DataProposta' type='xs:dateTime'/>
+     <xs:element minOccurs='0' name='IdUoCaricaProposta' type='xs:long'/>
+     <xs:element minOccurs='0' name='CodiceUoCaricaProposta' type='xs:string'/>
+     <xs:element minOccurs='0' name='DenomUoCaricaProposta' type='xs:string'/>
+     <xs:element minOccurs='0' name='IdUoProponente' type='xs:long'/>
+     <xs:element minOccurs='0' name='CodiceUoProponente' type='xs:string'/>
+     <xs:element minOccurs='0' name='DenomUoProponente' type='xs:string'/>
+     <xs:element minOccurs='0' name='Oggetto' type='xs:string'/>
+     <xs:element minOccurs='0' name='TipologiaProvvedimento' type='xs:string'/>
+     <xs:element minOccurs='0' name='Ente' type='xs:string'/>
+     <xs:element minOccurs='0' name='CodiceUtente' type='xs:string'/>
+     <xs:element minOccurs='0' name='Password' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='CreaPropostaResponse'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='return' type='tns:rispostaCreaPropostaV0'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='rispostaCreaPropostaV0'>
+    <xs:complexContent>
+     <xs:extension base='tns:listaRisultati'>
+      <xs:sequence>
+       <xs:element name='OutputCreaProposta' type='tns:outputCreaPropostaV0'/>
+      </xs:sequence>
+     </xs:extension>
+    </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name='listaRisultati'>
+    <xs:sequence>
+     <xs:element name='Esito' type='tns:esito'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='outputCreaPropostaV0'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='IdSib' type='xs:long'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='esito'>
+    <xs:sequence>
+     <xs:element name='Messaggio' type='xs:string'/>
+     <xs:element name='Esito' type='xs:int'/>
+     <xs:element name='AltreInformazioni' type='xs:int'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ElencoDettagliContabili'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='inputDettagliContabili' type='tns:inputDettagliContabiliV0'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='inputDettagliContabiliV0'>
+    <xs:sequence>
+     <xs:element name='SiglaRegistroProposta' type='xs:string'/>
+     <xs:element name='AnnoProposta' type='xs:short'/>
+     <xs:element name='NumeroProposta' type='xs:long'/>
+     <xs:element minOccurs='0' name='NumeroBloccoInformazioni' type='xs:int'/>
+     <xs:element minOccurs='0' name='Ente' type='xs:string'/>
+     <xs:element minOccurs='0' name='CodiceUtente' type='xs:string'/>
+     <xs:element minOccurs='0' name='Password' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ElencoDettagliContabiliResponse'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='return' type='tns:outputDettagliContabiliV0'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='outputDettagliContabiliV0'>
+    <xs:complexContent>
+     <xs:extension base='tns:listaRisultati'>
+      <xs:sequence>
+       <xs:element maxOccurs='unbounded' minOccurs='0' name='RecordDettagliContabili' type='tns:recordDettagliContabiliV0'/>
+      </xs:sequence>
+     </xs:extension>
+    </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name='recordDettagliContabiliV0'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='TipoDettaglio' type='xs:string'/>
+     <xs:element minOccurs='0' name='Tipo' type='xs:string'/>
+     <xs:element minOccurs='0' name='AnnoCompetenza' type='xs:short'/>
+     <xs:element minOccurs='0' name='NumeroDet' type='xs:int'/>
+     <xs:element minOccurs='0' name='SubNumero' type='xs:int'/>
+     <xs:element minOccurs='0' name='VarNumero' type='xs:int'/>
+     <xs:element minOccurs='0' name='AnnoCrono' type='xs:int'/>
+     <xs:element minOccurs='0' name='NumeroCrono' type='xs:int'/>
+     <xs:element minOccurs='0' name='Descrizione' type='xs:string'/>
+     <xs:element minOccurs='0' name='DescrizionePadre' type='xs:string'/>
+     <xs:element minOccurs='0' name='Capitolo' type='xs:int'/>
+     <xs:element minOccurs='0' name='Articolo' type='xs:int'/>
+     <xs:element minOccurs='0' name='Numero' type='xs:int'/>
+     <xs:element minOccurs='0' name='DescrizioneCapitolo' type='xs:string'/>
+     <xs:element minOccurs='0' name='PdcLivuno' type='xs:int'/>
+     <xs:element minOccurs='0' name='TipoTitolo' type='xs:string'/>
+     <xs:element minOccurs='0' name='PdcLivcin' type='xs:int'/>
+     <xs:element minOccurs='0' name='DescrizionePdc' type='xs:string'/>
+     <xs:element minOccurs='0' name='Importo' type='xs:decimal'/>
+     <xs:element minOccurs='0' name='DescrizioneSoggetto' type='xs:string'/>
+     <xs:element minOccurs='0' name='CodfisSoggetto' type='xs:string'/>
+     <xs:element minOccurs='0' name='Cup' type='xs:string'/>
+     <xs:element minOccurs='0' name='Cig' type='xs:string'/>
+     <xs:element minOccurs='0' name='CodiceCatalogazione' type='xs:string'/>
+     <xs:element minOccurs='0' name='CodFnz' type='xs:int'/>
+     <xs:element minOccurs='0' name='DesFnz' type='xs:string'/>
+     <xs:element minOccurs='0' name='DataInizioCmp' type='xs:dateTime'/>
+     <xs:element minOccurs='0' name='DataFineCmp' type='xs:dateTime'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='AggiornaAtto'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='inputAggiornaAtto' type='tns:recordAggiornaAttoV0'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='recordAggiornaAttoV0'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='SiglaRegistroProposta' type='xs:string'/>
+     <xs:element minOccurs='0' name='AnnoProposta' type='xs:short'/>
+     <xs:element minOccurs='0' name='NumeroProposta' type='xs:long'/>
+     <xs:element minOccurs='0' name='Evento' type='xs:string'/>
+     <xs:element minOccurs='0' name='TipoProvvedimento' type='xs:string'/>
+     <xs:element minOccurs='0' name='SiglaRegistroDefinitiva' type='xs:string'/>
+     <xs:element minOccurs='0' name='AnnoDefinitiva' type='xs:short'/>
+     <xs:element minOccurs='0' name='NumeroDefinitiva' type='xs:long'/>
+     <xs:element minOccurs='0' name='DataDefinitiva' type='xs:dateTime'/>
+     <xs:element minOccurs='0' name='Oggetto' type='xs:string'/>
+     <xs:element minOccurs='0' name='TipologiaProvvedimento' type='xs:string'/>
+     <xs:element minOccurs='0' name='NominativoFirmatario' type='xs:string'/>
+     <xs:element minOccurs='0' name='IdUoAdottante' type='xs:long'/>
+     <xs:element minOccurs='0' name='CodiceUoAdottante' type='xs:string'/>
+     <xs:element minOccurs='0' name='DenomUoAdottante' type='xs:string'/>
+     <xs:element minOccurs='0' name='IdUoDirAdottante' type='xs:long'/>
+     <xs:element minOccurs='0' name='CodiceUoDirAdottante' type='xs:string'/>
+     <xs:element minOccurs='0' name='DenomUoDirAdottante' type='xs:string'/>
+     <xs:element minOccurs='0' name='DataVisto' type='xs:dateTime'/>
+     <xs:element minOccurs='0' name='NominativoVisto' type='xs:string'/>
+     <xs:element minOccurs='0' name='DataArchiviazione' type='xs:dateTime'/>
+     <xs:element minOccurs='0' name='Ente' type='xs:string'/>
+     <xs:element minOccurs='0' name='CodiceUtente' type='xs:string'/>
+     <xs:element minOccurs='0' name='Password' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='AggiornaAttoResponse'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='return' type='tns:outputAggiornaAttoV0'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='outputAggiornaAttoV0'>
+    <xs:complexContent>
+     <xs:extension base='tns:listaRisultati'>
+      <xs:sequence>
+       <xs:element maxOccurs='unbounded' minOccurs='0' name='RecordAggiornaAtto' type='tns:recordAggiornaAttoV0'/>
+      </xs:sequence>
+     </xs:extension>
+    </xs:complexContent>
+   </xs:complexType>
+  </xs:schema>
+ </types>
+ <message name='IntegrazioneAurigaV0_CreaPropostaResponse'>
+  <part element='tns:CreaPropostaResponse' name='CreaPropostaResponse'></part>
+ </message>
+ <message name='IntegrazioneAurigaV0_CreaProposta'>
+  <part element='tns:CreaProposta' name='CreaProposta'></part>
+ </message>
+ <message name='IntegrazioneAurigaV0_AggiornaAttoResponse'>
+  <part element='tns:AggiornaAttoResponse' name='AggiornaAttoResponse'></part>
+ </message>
+ <message name='IntegrazioneAurigaV0_ElencoDettagliContabili'>
+  <part element='tns:ElencoDettagliContabili' name='ElencoDettagliContabili'></part>
+ </message>
+ <message name='IntegrazioneAurigaV0_ElencoDettagliContabiliResponse'>
+  <part element='tns:ElencoDettagliContabiliResponse' name='ElencoDettagliContabiliResponse'></part>
+ </message>
+ <message name='IntegrazioneAurigaV0_AggiornaAtto'>
+  <part element='tns:AggiornaAtto' name='AggiornaAtto'></part>
+ </message>
+ <portType name='IntegrazioneAurigaV0'>
+  <operation name='AggiornaAtto' parameterOrder='AggiornaAtto'>
+   <input message='tns:IntegrazioneAurigaV0_AggiornaAtto'></input>
+   <output message='tns:IntegrazioneAurigaV0_AggiornaAttoResponse'></output>
+  </operation>
+  <operation name='CreaProposta' parameterOrder='CreaProposta'>
+   <input message='tns:IntegrazioneAurigaV0_CreaProposta'></input>
+   <output message='tns:IntegrazioneAurigaV0_CreaPropostaResponse'></output>
+  </operation>
+  <operation name='ElencoDettagliContabili' parameterOrder='ElencoDettagliContabili'>
+   <input message='tns:IntegrazioneAurigaV0_ElencoDettagliContabili'></input>
+   <output message='tns:IntegrazioneAurigaV0_ElencoDettagliContabiliResponse'></output>
+  </operation>
+ </portType>
+ <binding name='IntegrazioneAurigaV0Binding' type='tns:IntegrazioneAurigaV0'>
+  <soap:binding style='document' transport='http://schemas.xmlsoap.org/soap/http'/>
+  <operation name='AggiornaAtto'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+  </operation>
+  <operation name='CreaProposta'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+  </operation>
+  <operation name='ElencoDettagliContabili'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+  </operation>
+ </binding>
+ <service name='IntegrazioneAurigaV0Service'>
+  <port binding='tns:IntegrazioneAurigaV0Binding' name='IntegrazioneAurigaV0Port'>
+   <soap:address location='http://sibdev.datamanagementitalia.it:80/sib/IntegrazioneAurigaV0'/>
+  </port>
+ </service>
+</definitions>

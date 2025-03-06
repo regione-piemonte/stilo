@@ -1,0 +1,4 @@
+#FilePreferences
+#Wed May 15 16:54:02 CEST 2013
+it.eng.proxyselector.hi=true
+it.eng.proxyselector.Number=1368629642378

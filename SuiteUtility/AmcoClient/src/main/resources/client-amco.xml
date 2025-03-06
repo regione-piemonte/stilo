@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:sec="http://cxf.apache.org/configuration/security"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jaxws="http://cxf.apache.org/jaxws" xmlns:cxf="http://cxf.apache.org/core"
+	xmlns:http-conf="http://cxf.apache.org/transports/http/configuration"
+	xsi:schemaLocation="http://cxf.apache.org/core http://cxf.apache.org/schemas/core.xsd
+	       http://cxf.apache.org/configuration/security http://cxf.apache.org/schemas/configuration/security.xsd
+           http://cxf.apache.org/bindings/soap http://cxf.apache.org/schemas/configuration/soap.xsd
+           http://cxf.apache.org/jaxws http://cxf.apache.org/schemas/jaxws.xsd
+           http://cxf.apache.org/transports/http/configuration http://cxf.apache.org/schemas/configuration/http-conf.xsd
+           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+           http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="clientAmco" class="it.eng.utility.amco.client.ClientAmco">
+		<property name="proxy" ref="proxyAmco" />
+	</bean>
+	
+	<bean id="basicAuth" class="it.eng.utility.amco.client.BasicAuthSupplier">
+		<property name="username" value="${amco.user}" />
+		<property name="password" value="${amco.password}" />
+	</bean>
+	
+	<!-- bean
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations" value="classpath:client-amco.properties" />
+	</bean-->
+	
+	<http-conf:conduit name="{http://gsaws.finmatica.it/}AmcoEndpoint.http-conduit">
+		<http-conf:client ConnectionTimeout="60000"
+			ReceiveTimeout="${amco.timeout}" AllowChunking="true" CacheControl="no-cache" />
+		<http-conf:authSupplier bean="basicAuth" />
+	</http-conf:conduit>
+
+	<!-- The SOAP client bean -->
+	<jaxws:client id="proxyAmco" serviceName="amcoService:AnagraficheGSA"
+		endpointName="amcoService:AmcoEndpoint" xmlns:amcoService="http://gsaws.finmatica.it/"
+		serviceClass="it.finmatica.gsaws.AnagraficheGSA" address="${amco.endpoint}">
+		<jaxws:features>
+			<ref bean="loggingFeature" />
+		</jaxws:features>
+	</jaxws:client>
+
+</beans>

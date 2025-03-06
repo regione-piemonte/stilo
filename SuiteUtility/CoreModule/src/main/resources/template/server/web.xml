@@ -1,0 +1,41 @@
+<!DOCTYPE web-app PUBLIC
+ "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+ "http://java.sun.com/dtd/web-app_2_3.dtd" >
+
+<web-app>
+	<display-name>Iris Business</display-name>
+
+   <listener>
+        <listener-class>com.sun.xml.ws.transport.http.servlet.WSServletContextListener</listener-class>
+   </listener>
+    
+   <listener>
+     	<listener-class>it.eng.iris.listener.ContextListener</listener-class>
+   </listener>
+    
+    <servlet>
+        <servlet-name>jax-ws</servlet-name>
+        <servlet-class>com.sun.xml.ws.transport.http.servlet.WSServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    
+    <servlet>
+    	<servlet-name>jax-rs</servlet-name>
+   		 <servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class>
+    	<init-param>
+      		<param-name>com.sun.jersey.config.property.packages</param-name>
+      		<param-value>it.eng.iris.service.rest</param-value>
+    	</init-param>
+    	<load-on-startup>2</load-on-startup>
+  	</servlet>
+    
+    <servlet-mapping>
+   		<servlet-name>jax-rs</servlet-name>
+   	 	<url-pattern>/rest/*</url-pattern>
+  	</servlet-mapping>
+        
+    <servlet-mapping>
+        <servlet-name>jax-ws</servlet-name>
+        <url-pattern>/business/soap/*</url-pattern>
+    </servlet-mapping>
+</web-app>

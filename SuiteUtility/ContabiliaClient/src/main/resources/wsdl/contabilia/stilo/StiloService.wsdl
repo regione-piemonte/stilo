@@ -1,0 +1,476 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://siac.csi.it/stilo/svc/1.0" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:ns1="http://schemas.xmlsoap.org/soap/http" name="StiloService" targetNamespace="http://siac.csi.it/stilo/svc/1.0">
+  <wsdl:types>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://siac.csi.it/integ/data/1.0" xmlns:ns0="http://siac.csi.it/documenti/svc/1.0" xmlns="http://siac.csi.it/stilo/svc/1.0" attributeFormDefault="unqualified" elementFormDefault="unqualified" targetNamespace="http://siac.csi.it/stilo/svc/1.0">
+  <xs:import namespace="http://siac.csi.it/integ/data/1.0"/>
+  <xs:import namespace="http://siac.csi.it/documenti/svc/1.0"/>
+  <xs:complexType name="ricercaMovimentoGestioneStilo">
+    <xs:complexContent>
+      <xs:extension base="ns1:baseRequest">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="annoProvvedimento" type="xs:int"/>
+          <xs:element minOccurs="0" name="codiceStruttura" type="xs:string"/>
+          <xs:element minOccurs="0" name="codiceTipoProvvedimento" type="xs:string"/>
+          <xs:element minOccurs="0" name="codiceTipoStruttura" type="xs:string"/>
+          <xs:element minOccurs="0" name="numeroProvvedimento" type="xs:int"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="ricercaMovimentoGestioneStiloResponse">
+    <xs:complexContent>
+      <xs:extension base="ns1:baseResponse">
+        <xs:sequence>
+          <xs:element maxOccurs="unbounded" minOccurs="0" name="movimentiGestione" nillable="true" type="ns1:movimentoGestioneStilo"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:element name="elaboraAttiAmministrativiAsync" nillable="true" type="ns0:elaboraAttiAmministrativi"/>
+  <xs:element name="elaboraAttiAmministrativiAsyncResponse" nillable="true" type="ns0:elaboraAttiAmministrativiAsyncResponse"/>
+  <xs:element name="elaboraAttiAmministrativi" nillable="true" type="ns0:elaboraAttiAmministrativi"/>
+  <xs:element name="elaboraAttiAmministrativiResponse" nillable="true" type="ns0:elaboraAttiAmministrativiResponse"/>
+  <xs:element name="ricercaMovimentoGestione" nillable="true" type="ricercaMovimentoGestioneStilo"/>
+  <xs:element name="ricercaMovimentoGestioneResponse" nillable="true" type="ricercaMovimentoGestioneStiloResponse"/>
+</xs:schema>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://siac.csi.it/integ/data/1.0" targetNamespace="http://siac.csi.it/integ/data/1.0" version="1.0">
+
+  <xs:complexType abstract="true" name="baseRequest">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="annoBilancio" type="xs:int"/>
+      <xs:element minOccurs="0" name="codiceEnte" type="xs:string"/>
+      <xs:element minOccurs="0" name="codiceFruitore" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType abstract="true" name="baseAsyncResponse">
+    <xs:complexContent>
+      <xs:extension base="tns:baseResponse">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="idOperazioneAsincrona" type="xs:int"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType abstract="true" name="baseResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="ente" type="tns:ente"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="errori" nillable="true" type="tns:errore"/>
+      <xs:element minOccurs="0" name="esito" type="tns:esito"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="messaggi" nillable="true" type="tns:messaggio"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ente">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType abstract="true" name="entitaCodificataBase">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaBase">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="descrizione" type="xs:string"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType abstract="true" name="entitaBase">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="codice" type="xs:string"/>
+      <xs:element minOccurs="0" name="stato" type="tns:stato"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="stato">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="errore">
+    <xs:complexContent>
+      <xs:extension base="tns:messaggioBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType abstract="true" name="messaggioBase">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="messaggio">
+    <xs:complexContent>
+      <xs:extension base="tns:messaggioBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="movimentoGestioneStilo">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="annoCompetenza" type="xs:int"/>
+      <xs:element minOccurs="0" name="annoCompetenzaModifica" type="xs:int"/>
+      <xs:element minOccurs="0" name="annoCompetenzaSubAccertamento" type="xs:int"/>
+      <xs:element minOccurs="0" name="annoCompetenzaSubImpegno" type="xs:int"/>
+      <xs:element minOccurs="0" name="capitolo" type="tns:capitolo"/>
+      <xs:element minOccurs="0" name="categoria" type="tns:categoria"/>
+      <xs:element minOccurs="0" name="cig" type="xs:string"/>
+      <xs:element minOccurs="0" name="classeSoggetto" type="tns:classeSoggettoStilo"/>
+      <xs:element minOccurs="0" name="classeSoggettoIniziale" type="tns:classeSoggettoStilo"/>
+      <xs:element minOccurs="0" name="classseSoggettoFinale" type="tns:classeSoggettoStilo"/>
+      <xs:element minOccurs="0" name="codUE" type="tns:classificatoreGenerico"/>
+      <xs:element minOccurs="0" name="cofog" type="tns:classificatoreGenerico"/>
+      <xs:element minOccurs="0" name="cup" type="xs:string"/>
+      <xs:element minOccurs="0" name="descrizioneAccertamento" type="xs:string"/>
+      <xs:element minOccurs="0" name="descrizioneImpegno" type="xs:string"/>
+      <xs:element minOccurs="0" name="descrizioneModifica" type="xs:string"/>
+      <xs:element minOccurs="0" name="descrizioneSubAccertamento" type="xs:string"/>
+      <xs:element minOccurs="0" name="descrizioneSubImpegno" type="xs:string"/>
+      <xs:element minOccurs="0" name="gsa" type="tns:classificatoreGenerico"/>
+      <xs:element minOccurs="0" name="importoAttualeAccertamento" type="xs:decimal"/>
+      <xs:element minOccurs="0" name="importoAttualeImpegno" type="xs:decimal"/>
+      <xs:element minOccurs="0" name="importoAttualeSubAccertamento" type="xs:decimal"/>
+      <xs:element minOccurs="0" name="importoAttualeSubImpegno" type="xs:decimal"/>
+      <xs:element minOccurs="0" name="importoInizialeAccertamento" type="xs:decimal"/>
+      <xs:element minOccurs="0" name="importoInizialeImpegno" type="xs:decimal"/>
+      <xs:element minOccurs="0" name="importoInizialeSubAccertamento" type="xs:decimal"/>
+      <xs:element minOccurs="0" name="importoInizialeSubImpegno" type="xs:decimal"/>
+      <xs:element minOccurs="0" name="importoModifica" type="xs:decimal"/>
+      <xs:element minOccurs="0" name="macroaggregato" type="tns:macroaggregato"/>
+      <xs:element minOccurs="0" name="missione" type="tns:missione"/>
+      <xs:element minOccurs="0" name="motivoAssenzaCig" type="xs:string"/>
+      <xs:element minOccurs="0" name="naturaRicorrente" type="tns:classificatoreGenerico"/>
+      <xs:element minOccurs="0" name="numeroAccertamento" type="xs:decimal"/>
+      <xs:element minOccurs="0" name="numeroImpegno" type="xs:decimal"/>
+      <xs:element minOccurs="0" name="numeroModifica" type="xs:int"/>
+      <xs:element minOccurs="0" name="numeroSubAccertamento" type="xs:decimal"/>
+      <xs:element minOccurs="0" name="numeroSubImpegno" type="xs:decimal"/>
+      <xs:element minOccurs="0" name="pianoDeiContiFinanziario" type="tns:pianoDeiContiFinanziario"/>
+      <xs:element minOccurs="0" name="prenotazione" type="xs:string"/>
+      <xs:element minOccurs="0" name="prenotazioneLiquidabile" type="xs:string"/>
+      <xs:element minOccurs="0" name="progetto" type="tns:progettoStilo"/>
+      <xs:element minOccurs="0" name="programma" type="tns:programma"/>
+      <xs:element minOccurs="0" name="soggetto" type="tns:soggettoStilo"/>
+      <xs:element minOccurs="0" name="soggettoFinale" type="tns:soggettoStilo"/>
+      <xs:element minOccurs="0" name="soggettoIniziale" type="tns:soggettoStilo"/>
+      <xs:element minOccurs="0" name="tipoDebitoSiope" type="tns:tipoDebitoSiopeStilo"/>
+      <xs:element minOccurs="0" name="tipoFinanziamento" type="tns:tipoFinanziamento"/>
+      <xs:element minOccurs="0" name="tipoMovimentoGestione" type="xs:string"/>
+      <xs:element minOccurs="0" name="tipologia" type="tns:tipologia"/>
+      <xs:element minOccurs="0" name="titolo" type="tns:titolo"/>
+      <xs:element minOccurs="0" name="vincoli" type="tns:vincoliStilo"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="capitolo">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaBase">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="annoEsercizio" type="xs:int"/>
+          <xs:element maxOccurs="unbounded" minOccurs="0" name="classificatoriGenerici" nillable="true" type="tns:classificatoreGenerico"/>
+          <xs:element minOccurs="0" name="descrizione" type="xs:string"/>
+          <xs:element minOccurs="0" name="descrizioneArticolo" type="xs:string"/>
+          <xs:element minOccurs="0" name="numeroArticolo" type="xs:int"/>
+          <xs:element minOccurs="0" name="numeroCapitolo" type="xs:int"/>
+          <xs:element minOccurs="0" name="numeroUEB" type="xs:int"/>
+          <xs:element minOccurs="0" name="pianoDeiContiFinanziario" type="tns:pianoDeiContiFinanziario"/>
+          <xs:element minOccurs="0" name="rilevanteIva" type="xs:boolean"/>
+          <xs:element minOccurs="0" name="sac" type="tns:strutturaAmministrativa"/>
+          <xs:element minOccurs="0" name="tipoFinanziamento" type="tns:tipoFinanziamento"/>
+          <xs:element minOccurs="0" name="tipoFondo" type="tns:tipoFondo"/>
+          <xs:element minOccurs="0" name="titolo" type="tns:titolo"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="classificatoreGenerico">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="tipoCodifica" type="xs:string"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="pianoDeiContiFinanziario">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="strutturaAmministrativa">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="codiceTipoStruttura" type="xs:string"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="tipoFinanziamento">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="tipoFondo">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="titolo">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="categoria">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="classeSoggettoStilo">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="macroaggregato">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="missione">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="progettoStilo">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="programma">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="soggettoStilo">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="tipoDebitoSiopeStilo">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="tipologia">
+    <xs:complexContent>
+      <xs:extension base="tns:entitaCodificataBase">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="vincoliStilo">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="vincolo" nillable="true" type="tns:vincoloImpegnoStilo"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="vincoloImpegnoStilo">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="annoAccertamento" type="xs:int"/>
+      <xs:element minOccurs="0" name="importo" type="xs:decimal"/>
+      <xs:element minOccurs="0" name="numeroAccertamento" type="xs:decimal"/>
+      <xs:element minOccurs="0" name="tipo" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:simpleType name="esito">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="SUCCESSO"/>
+      <xs:enumeration value="FALLIMENTO"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://siac.csi.it/documenti/svc/1.0" xmlns:ns1="http://siac.csi.it/integ/data/1.0" targetNamespace="http://siac.csi.it/documenti/svc/1.0" version="1.0">
+
+  <xs:import namespace="http://siac.csi.it/integ/data/1.0"/>
+
+  <xs:complexType name="elaboraAttiAmministrativi">
+    <xs:complexContent>
+      <xs:extension base="ns1:baseRequest">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="contenutoDocumento" type="xs:string"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="elaboraAttiAmministrativiAsyncResponse">
+    <xs:complexContent>
+      <xs:extension base="tns:elaboraDocumentoAsyncResponse">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="elaboraDocumentoAsyncResponse">
+    <xs:complexContent>
+      <xs:extension base="ns1:baseAsyncResponse">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="elaboraAttiAmministrativiResponse">
+    <xs:complexContent>
+      <xs:extension base="tns:elaboraDocumentoResponse">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="elaboraDocumentoResponse">
+    <xs:complexContent>
+      <xs:extension base="ns1:baseResponse">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="responseElaborazione" type="xs:string"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+</xs:schema>
+  </wsdl:types>
+  <wsdl:message name="ricercaMovimentoGestione">
+    <wsdl:part element="tns:ricercaMovimentoGestione" name="ricercaMovimentoGestione">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="elaboraAttiAmministrativiResponse">
+    <wsdl:part element="tns:elaboraAttiAmministrativiResponse" name="elaboraAttiAmministrativiResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="elaboraAttiAmministrativiAsyncResponse">
+    <wsdl:part element="tns:elaboraAttiAmministrativiAsyncResponse" name="elaboraAttiAmministrativiAsyncResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="elaboraAttiAmministrativiAsync">
+    <wsdl:part element="tns:elaboraAttiAmministrativiAsync" name="elaboraAttiAmministrativiAsync">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="elaboraAttiAmministrativi">
+    <wsdl:part element="tns:elaboraAttiAmministrativi" name="elaboraAttiAmministrativi">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="ricercaMovimentoGestioneResponse">
+    <wsdl:part element="tns:ricercaMovimentoGestioneResponse" name="ricercaMovimentoGestioneResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="StiloService">
+    <wsdl:operation name="elaboraAttiAmministrativiAsync">
+      <wsdl:input message="tns:elaboraAttiAmministrativiAsync" name="elaboraAttiAmministrativiAsync">
+    </wsdl:input>
+      <wsdl:output message="tns:elaboraAttiAmministrativiAsyncResponse" name="elaboraAttiAmministrativiAsyncResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="elaboraAttiAmministrativi">
+      <wsdl:input message="tns:elaboraAttiAmministrativi" name="elaboraAttiAmministrativi">
+    </wsdl:input>
+      <wsdl:output message="tns:elaboraAttiAmministrativiResponse" name="elaboraAttiAmministrativiResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ricercaMovimentoGestione">
+      <wsdl:input message="tns:ricercaMovimentoGestione" name="ricercaMovimentoGestione">
+    </wsdl:input>
+      <wsdl:output message="tns:ricercaMovimentoGestioneResponse" name="ricercaMovimentoGestioneResponse">
+    </wsdl:output>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="StiloServiceSoapBinding" type="tns:StiloService">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="elaboraAttiAmministrativiAsync">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="elaboraAttiAmministrativiAsync">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="elaboraAttiAmministrativiAsyncResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="elaboraAttiAmministrativi">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="elaboraAttiAmministrativi">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="elaboraAttiAmministrativiResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ricercaMovimentoGestione">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="ricercaMovimentoGestione">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="ricercaMovimentoGestioneResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="StiloService">
+    <wsdl:port binding="tns:StiloServiceSoapBinding" name="StiloServicePort">
+      <soap:address location="http://localhost:8080/siacbilser/StiloService"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

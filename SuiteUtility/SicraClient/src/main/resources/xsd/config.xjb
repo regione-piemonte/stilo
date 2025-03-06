@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<jaxb:bindings version="2.1" xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+	xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+	<jaxb:bindings schemaLocation="ricerca_voci_bilancio.xsd"
+		node="//xs:schema">
+		<jaxb:schemaBindings>
+			<jaxb:package
+				name="it.eng.utility.sicra.contabilita.xsd.ricerca_voci_bilancio" />
+		</jaxb:schemaBindings>
+		<jaxb:bindings node="//xs:element[@name='richiesta']//xs:element[@name='parte']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="Parte" />
+		</jaxb:bindings>
+		<jaxb:bindings node="//xs:element[@name='tipo_risultato']//xs:element[@name='nome']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="NomeTipoRisultato" />
+		</jaxb:bindings>
+		<jaxb:bindings node="//xs:element[@name='budget']//xs:element[@name='parte']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="Parte" />
+		</jaxb:bindings>
+		<jaxb:bindings node="//xs:element[@name='esito']//xs:element[@name='tipo']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="TipoEsito" />
+		</jaxb:bindings>
+	</jaxb:bindings>
+
+	<jaxb:bindings schemaLocation="set_movimenti_atto_v1_1.xsd"
+		node="//xs:schema">
+		<jaxb:schemaBindings>
+			<jaxb:package
+				name="it.eng.utility.sicra.contabilita.xsd.set_movimenti_atto" />
+		</jaxb:schemaBindings>
+		<jaxb:bindings node="//xs:element[@name='tipoatto']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="TipoAtto" />
+		</jaxb:bindings>
+		<jaxb:bindings node="//xs:element[@name='tipoattoOri']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="TipoAttoOri" />
+		</jaxb:bindings>
+		<jaxb:bindings node="//xs:element[@name='testata']//xs:element[@name='parte']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="Parte" />
+		</jaxb:bindings>
+		<jaxb:bindings node="//xs:element[@name='messaggi']//xs:element[@name='tipo']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="TipoMessaggi" />
+		</jaxb:bindings>
+	</jaxb:bindings>
+	 
+	<jaxb:bindings schemaLocation="set_movimenti_atto_v1_0.xsd"
+		node="//xs:schema">
+		<jaxb:schemaBindings>
+			<jaxb:package
+				name="it.eng.utility.sicra.contabilita.xsd.set_movimenti_atto_v1_0" />
+		</jaxb:schemaBindings>
+		<jaxb:bindings node="//xs:element[@name='tipoatto']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="TipoAtto" />
+		</jaxb:bindings>
+		<jaxb:bindings node="//xs:element[@name='testata']//xs:element[@name='parte']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="Parte" />
+		</jaxb:bindings>
+		<jaxb:bindings node="//xs:element[@name='messaggi']//xs:element[@name='tipo']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="TipoMessaggi" />
+		</jaxb:bindings>
+	</jaxb:bindings>
+
+	<jaxb:bindings schemaLocation="set_esecutivita_atto.xsd"
+		node="//xs:schema">
+		<jaxb:schemaBindings>
+			<jaxb:package
+				name="it.eng.utility.sicra.contabilita.xsd.set_esecutivita_atto" />
+		</jaxb:schemaBindings>
+		<jaxb:bindings node="//xs:element[@name='testata']//xs:element[@name='EU']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="TipoEU" />
+		</jaxb:bindings>
+		<jaxb:bindings node="//xs:element[@name='messaggi']//xs:element[@name='tipo']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="TipoMessaggi" />
+		</jaxb:bindings>
+	</jaxb:bindings>
+	
+	<jaxb:bindings schemaLocation="archivia_atto.xsd"
+		node="//xs:schema">
+		<jaxb:schemaBindings>
+			<jaxb:package
+				name="it.eng.utility.sicra.contabilita.xsd.archivia_atto" />
+		</jaxb:schemaBindings>
+		<jaxb:bindings node="//xs:element[@name='richiesta']//xs:element[@name='EU']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="TipoEU" />
+		</jaxb:bindings>
+		<jaxb:bindings node="//xs:element[@name='messaggi']//xs:element[@name='tipo']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="TipoMessaggi" />
+		</jaxb:bindings>
+	</jaxb:bindings>
+	
+	<jaxb:bindings schemaLocation="aggiorna_rif_atto_liquidazione.xsd"
+		node="//xs:schema">
+		<jaxb:schemaBindings>
+			<jaxb:package
+				name="it.eng.utility.sicra.contabilita.xsd.aggiorna_rif_atto_liquidazione" />
+		</jaxb:schemaBindings>
+		<jaxb:bindings node="//xs:element[@name='esito']//xs:element[@name='tipo']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="TipoEsito" />
+		</jaxb:bindings>
+	</jaxb:bindings>
+	
+	<jaxb:bindings schemaLocation="ricerca_anagrafica.xsd"
+		node="//xs:schema">
+		<jaxb:schemaBindings>
+			<jaxb:package
+				name="it.eng.utility.sicra.contabilita.xsd.ricerca_anagrafica" />
+		</jaxb:schemaBindings>
+		<jaxb:bindings node="//xs:element[@name='esito']//xs:element[@name='tipo']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="TipoEsito" />
+		</jaxb:bindings>
+	</jaxb:bindings>
+	
+	<jaxb:bindings schemaLocation="ricerca_atto_liquidazione.xsd"
+		node="//xs:schema">
+		<jaxb:schemaBindings>
+			<jaxb:package
+				name="it.eng.utility.sicra.contabilita.xsd.ricerca_atto_liquidazione" />
+		</jaxb:schemaBindings>
+		<jaxb:bindings node="//xs:element[@name='esito']//xs:element[@name='tipo']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="TipoEsito" />
+		</jaxb:bindings>
+	</jaxb:bindings>
+	
+	<jaxb:bindings schemaLocation="ricerca_ordinativo_atto_liquidazione.xsd"
+		node="//xs:schema">
+		<jaxb:schemaBindings>
+			<jaxb:package
+				name="it.eng.utility.sicra.contabilita.xsd.ricerca_ordinativo_atto_liquidazione" />
+		</jaxb:schemaBindings>
+		<jaxb:bindings node="//xs:element[@name='esito']//xs:element[@name='tipo']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="TipoEsito" />
+		</jaxb:bindings>
+		<jaxb:bindings node="//xs:element[@name='ordinativo']//xs:element[@name='tipo']/xs:simpleType" >
+			<jaxb:typesafeEnumClass name="TipoOrdinativo" />
+		</jaxb:bindings>
+	</jaxb:bindings>
+
+</jaxb:bindings>

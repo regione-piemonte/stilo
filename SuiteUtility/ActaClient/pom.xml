@@ -1,0 +1,77 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>it.eng.utility</groupId>
+	<artifactId>ActaClient</artifactId>
+	<version>1.0.8</version>
+	<name>ActaClient</name>
+	<description>ActaClient</description>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.19</version> 
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>1.7.9</version>
+		</dependency>
+	</dependencies>
+	<distributionManagement>
+		<repository>
+			<id>CSI</id>
+			<name>CSI-releases</name>
+			<url>http://repart.csi.it/artifactory/maven2</url>
+		</repository>
+	</distributionManagement>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>jaxws-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>acta</id>
+						<goals>
+							<goal>wsimport</goal>
+						</goals>
+						<configuration>
+							<args>
+								<arg>-B-XautoNameResolution</arg>
+							</args>
+							<wsdlUrls>
+								<!--<wsdlUrl>http://tst-applogic.reteunitaria.piemonte.it/actasrv/navigationWS?wsdl</wsdlUrl> -->
+								<!-- <wsdlUrl>http://tst-applogic.reteunitaria.piemonte.it/actasrv/backofficeWS?wsdl</wsdlUrl> 
+									<wsdlUrl> http://tst-applogic.reteunitaria.piemonte.it/actasrv/repositoryWS?wsdl</wsdlUrl> 
+									<wsdlUrl>http://tst-applogic.reteunitaria.piemonte.it/actasrv/objectWS?wsdl</wsdlUrl> 
+									<wsdlUrl>http://tst-applogic.reteunitaria.piemonte.it/actasrv/managementWS?wsdl</wsdlUrl> 
+									<wsdlUrl>http://tst-applogic.reteunitaria.piemonte.it/actasrv/smsWS?wsdl</wsdlUrl> -->
+								<wsdlUrl>http://tst-applogic.reteunitaria.piemonte.it/actasrv/multifillingWS?wsdl</wsdlUrl>
+
+							</wsdlUrls>
+							<packageName>it.doqui.acta.acaris.multifilling</packageName>
+							<sourceDestDir>src/main/java</sourceDestDir>
+							<extension>true</extension>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<configuration>
+						<source>1.8</source>
+						<target>1.8</target>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
+</project>

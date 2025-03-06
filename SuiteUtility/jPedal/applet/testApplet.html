@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Test JPedal</title>
+</head>
+<body>
+<!-- copia la cartella applet nella folder dell'Application server -->
+ <h1>Web Start JPedal</h1>
+ <!-- 
+ <a href="jPedal.jnlp">JPEDAL test</a>
+  -->
+ <br/>
+ <br/>
+ 
+ <applet code = "org.jpedal.examples.viewer.AppletViewer.class" 
+    archive = "jPedal-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    width = "800"
+    height = "500" >
+   <PARAM name="directUrl" value="http://192.168.11.52:8080/FileopWar/carta.pdf">
+   <PARAM name="filename" value="miofile">
+   <PARAM name="tipoApplet" value="X">
+   <PARAM name="readOnly" value="false">
+   
+    </applet>
+   
+   <!-- 
+ 
+    os_jpedal.jar, 
+    lib/bcmail-jdk15on-1.48.jar,
+     lib/bcpkix-jdk15on-1.48.jar,
+      lib/bcprov-jdk15on-1.48.jar,
+      lib/velocity-1.7.jar,
+       lib/commons-httpclient-3.1.jar,
+        lib/commons-configuration-1.9.jar,
+         lib/commons-lang3-3.1.jar, lib/commons-lang-2.6.jar, 
+         lib/commons-logging-1.1.1.jar, lib/itextpdf-5.4.0.jar,
+         lib/commons-io-2.3.jar, lib/commons-codec-1.6.jar,lib/commons-collections-3.1.jar"
+     --> 
+</body>
+</html>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:sec="http://cxf.apache.org/configuration/security"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jaxws="http://cxf.apache.org/jaxws" xmlns:cxf="http://cxf.apache.org/core"
+	xmlns:http-conf="http://cxf.apache.org/transports/http/configuration"
+	xsi:schemaLocation="http://cxf.apache.org/core http://cxf.apache.org/schemas/core.xsd
+	       http://cxf.apache.org/configuration/security http://cxf.apache.org/schemas/configuration/security.xsd
+           http://cxf.apache.org/bindings/soap http://cxf.apache.org/schemas/configuration/soap.xsd
+           http://cxf.apache.org/jaxws http://cxf.apache.org/schemas/jaxws.xsd
+           http://cxf.apache.org/transports/http/configuration http://cxf.apache.org/schemas/configuration/http-conf.xsd
+           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+           http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="clientContabiliaRicerche" class="it.eng.utility.client.contabilia.ricerche.ClientContabiliaRicerche">
+		<property name="proxy" ref="proxyContabiliaRicerche" />
+		<property name="property" ref="customPropertyPlaceholderConfigurer" />
+		<property name="numElementiPagina" value="${contabilia.paginazione.numElementiPagina}" />
+		<property name="contabiliaAccertamentoFruitore" value="${contabilia.accertamento.fruitore}" />
+		<property name="contabiliaImpegnoFruitore" value="${contabilia.impegno.fruitore}" />
+		<property name="contabiliaAccertamentoEnte" value="${contabilia.accertamento.ente}" />
+		<property name="contabiliaImpegnoEnte" value="${contabilia.impegno.ente}" />
+	</bean>
+	
+	<bean id="bearerContabiliaRicerche" class="it.eng.utility.client.contabilia.BearerAuthSupplier">
+		<property name="apiTokenRetry" value="${csi.endpoint.apiTokenRetry}" />
+		<property name="consumerKey" value="${csi.consumer.key}" />
+		<property name="consumerSecret" value="${csi.consumer.secret}" />
+	</bean>
+	
+	<bean id="customPropertyPlaceholderConfigurer" class="it.eng.utility.client.contabilia.CustomPropertyPlaceholderConfigurer">
+		<property name="locations">
+			<array>
+				<value>classpath:client-contabilia.properties</value>
+			</array>
+		</property>
+	</bean>
+	
+	<http-conf:conduit name="{http://siac.csi.it/ricerche/svc/1.0}ContabiliaRicercheEndpoint.http-conduit">
+		<http-conf:client ConnectionTimeout="60000"
+			ReceiveTimeout="${contabilia.timeout}" AllowChunking="true" CacheControl="no-cache" />
+		<http-conf:authSupplier bean="bearerContabiliaRicerche" />
+	</http-conf:conduit>
+
+	<!-- The SOAP client bean -->
+	<jaxws:client id="proxyContabiliaRicerche" serviceName="contabiliaRicerche:RicercaService"
+		endpointName="contabiliaRicerche:ContabiliaRicercheEndpoint" xmlns:contabiliaRicerche="http://siac.csi.it/ricerche/svc/1.0"
+		serviceClass="it.csi.siac.ricerche.svc._1_0.RicercaService" address="${contabilia.ricerca.endpoint}">
+		<jaxws:features>
+			<ref bean="loggingFeature" />
+		</jaxws:features>
+	</jaxws:client>
+	
+</beans>

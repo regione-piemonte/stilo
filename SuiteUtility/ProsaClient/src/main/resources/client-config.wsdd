@@ -1,0 +1,13 @@
+<deployment
+    xmlns="http://xml.apache.org/axis/wsdd/"
+    xmlns:java="http://xml.apache.org/axis/wsdd/providers/java">
+    <globalConfiguration>
+        <requestFlow>
+            <handler name="log" type="java:it.eng.utility.client.protocollo.AxisLogHandler"/>
+        </requestFlow>
+        <responseFlow>
+            <handler name="log" type="java:it.eng.utility.client.protocollo.AxisLogHandler"/>
+        </responseFlow>
+    </globalConfiguration>
+    <transport name="http" pivot="java:org.apache.axis.transport.http.HTTPSender"/>
+</deployment>

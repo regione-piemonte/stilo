@@ -1,0 +1,535 @@
+package eng.servlet;
+
+
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Vector;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+
+import eng.database.definition.ResultSelection;
+import eng.database.exception.EngException;
+import eng.database.exception.EngFormException;
+import eng.database.exception.EngSqlNoApplException;
+import eng.database.modal.EngResultSet;
+import eng.database.tablemanager.TableManagerDb;
+import eng.database.tablemanager.TableManagerDbProgress;
+import eng.storefunction.Action;
+import eng.storefunction.ActionForward;
+import eng.storefunction.ActionScript;
+import eng.storefunction.ConnectionToken;
+import eng.storefunction.EnteCode;
+import eng.storefunction.ErrorCode;
+import eng.storefunction.ErrorContext;
+import eng.storefunction.ErrorMessage;
+import eng.storefunction.HttpArray;
+import eng.storefunction.HttpClob;
+import eng.storefunction.SezioneCacheClob;
+import eng.storefunction.HttpPrimitive;
+import eng.storefunction.Parameter;
+import eng.storefunction.StoreFunction;
+import eng.storefunction.UserCode;
+import eng.storefunction.UserLavoro;
+import eng.util.Costanti;
+
+public class TableManagerProgress extends TableManager
+{
+	
+	public static final String _GENERIC_RETURN_VALUE  ="0";
+	public static final String _GENERIC_ERROR_CONTEXT  ="";
+	public static final String _GENERIC_ERROR_CODE  ="0";
+	public static final String _GENERIC_ERROR_MESSAGE  ="";
+
+	public static final String _RETURN_VALUE_ATTRIBUTE  = "returnValue";
+	public static final String _ERROR_CONTEXT_ATTRIBUTE  = "errorContext";
+	public static final String _ERROR_CODE_ATTRIBUTE  = "errorCode";
+	public static final String _ERROR_MESSAGE_ATTRIBUTE  = "errorMessage";
+
+	public static final String _INFO_MESSAGE  = "infoMessage";
+	public static final String _WARNING_MESSAGE  = "WarningMessage";
+	
+	public static final String _PN_OLD_INOUT_PARAM_PREFIX = "OLD_INOUT_";
+	public static final String _PN_EXECUTED_SINGLETON_CLASSNAME = "EXEC_SINGLETON_CLASSNAME";
+	
+	public static String STORFUNCTIONDEF_PACK = "";
+  /*
+  NON si può inserire nessuna variabile di istanza.
+
+  Per una spiegazione più dettagliata leggere le note analoghe nella classe base, TableManager.
+  */
+
+  protected TableManagerDb  createTableManagerDb() throws EngSqlNoApplException
+  {
+    return(new TableManagerDbProgress());
+  }
+
+  protected TableManagerDb  createTableManagerDb(int a) throws EngSqlNoApplException
+  {
+    return(new TableManagerDbProgress(a));
+  }
+  
+  protected TableManagerDb  createTableManagerDb(String a) throws EngSqlNoApplException
+  {
+    return(new TableManagerDbProgress(Integer.parseInt(a)));
+  }
+
+  public void init() throws ServletException{
+	  super.init();
+	  String  name = getServletConfig().getInitParameter("storeDefClasspath");
+	  if (name!=null) 
+		  TableManagerProgress.STORFUNCTIONDEF_PACK = name + ".";
+  }
+  protected eng.util.Properties makeProperty(Commarea commarea, String accessSchemaName, String classname) throws EngSqlNoApplException, EngFormException
+  {
+	  int noValidNumberParam = 0;
+	  String noValidNumberParamName = "";
+	  
+	  int requiredParam = 0;
+	  String requiredParamName = "";
+	  
+	  String exMsg = "";
+	  
+	  StringBuffer fullyQualifiedName = new StringBuffer();
+	  fullyQualifiedName.append(TableManagerProgress.STORFUNCTIONDEF_PACK);
+	  fullyQualifiedName.append(accessSchemaName);
+	  
+	  StoreFunction sf = null;
+	  try {
+		  sf = eng.storefunction.singleton.TableStoreFunctionDefinitionSingleton.getInstance().searchFromName(fullyQualifiedName.toString());
+	  } catch (Exception ex) {
+
+		  eng.util.Logger.getLogger().error(ex.getMessage(),ex);
+		  ex.printStackTrace();
+	  }
+	  if (sf == null)
+	  {
+		  throw new EngSqlNoApplException("Store function progress non trovata in TableStoreFunctionDefinitionSingleton(" + fullyQualifiedName.toString() + ")");
+	  }
+
+	  Parameter     p;
+	  try
+	  {
+		  for (int i=0; i<sf.getParametersNumber(); i++)
+		  {
+			  p = sf.getParameter(i);
+			  if (p.isModeIn() || p.isModeInOut())
+			  {
+				  if (p instanceof UserCode)
+				  {
+					  commarea.putParameter(p,  eng.util.GetProperties.getUserProperty("UP_ID_UTENTE",commarea.request));
+				  }
+				  else if (p instanceof EnteCode)
+				  {
+					  commarea.putParameter(p, eng.util.GetProperties.getUserProperty("UP_ID_ENTE",commarea.request));
+				  }
+				  /**
+				   * Antonio: 18/10/2006 
+				   * aggiunta gestione classe ConnectionToken
+				   */
+				  else if (p instanceof ConnectionToken)
+				  {
+					  commarea.putParameter(p, (String)commarea.request.getSession().getAttribute( Costanti.SESSION_CONNECTION_TOKEN) );
+				  }
+				  /**
+				   * Antonio: 17/11/2006 
+				   * aggiunta gestione classe Userlavoro
+				   */
+				  else if (p instanceof UserLavoro)
+				  {
+					  commarea.putParameter(p, (String)commarea.request.getSession().getAttribute( Costanti.SESSION_USER_LAVORO) );
+				  }
+
+				  /**
+				   * Antonio 11/09/2006
+				   * aggiunto HttpClob
+				   */
+
+				  else if (p instanceof HttpPrimitive || p instanceof HttpClob || p instanceof SezioneCacheClob || p instanceof HttpArray)
+				  {
+					  String pValue = null;
+					  
+					  if (p instanceof HttpPrimitive) {
+						  pValue=commarea.request.getParameter(p.getName())==null?"":commarea.request.getParameter(p.getName());
+						  if (pValue.equals("")) pValue = commarea.request.getAttribute(p.getName())==null?"":(String)commarea.request.getAttribute(p.getName());
+					  }  
+					  // Parametri obbligatori
+					  if ((p instanceof HttpPrimitive) && (p.isRequired()))
+					  {
+						  if (pValue.equals(""))
+						  {
+							  requiredParam++;
+							  if (requiredParam==1)
+								  requiredParamName = p.getExtendedName();
+							  else
+								  requiredParamName += ", " + p.getExtendedName();
+						  }  
+					  }
+					  // Parametri interi
+					  if ((p instanceof HttpPrimitive) && (p.getType() == java.sql.Types.INTEGER))
+					  {
+						  if (!pValue.equals(""))
+						  {
+							  int tmpIntValue = 0;
+							  try
+							  {
+								  tmpIntValue = Integer.parseInt(pValue);
+							  }
+							  catch(Exception ex)
+							  {
+								  noValidNumberParam++;
+								  String tmpName = p.getExtendedName();
+								  if (tmpName.equals("")) tmpName = p.getName();
+								  if (noValidNumberParam==1)
+									  noValidNumberParamName = tmpName;
+								  else
+									  noValidNumberParamName += ", " + tmpName;
+							  }
+						  }
+					  }
+					  // Parametri numerici
+					  if ((p instanceof HttpPrimitive) && (p.getType() == java.sql.Types.NUMERIC))
+					  {
+						  if (!pValue.equals(""))
+						  {
+							  double tmpIntValue = 0;
+							  try
+							  {
+								  tmpIntValue = Double.parseDouble(pValue);
+							  }
+							  catch(Exception ex)
+							  {
+								  noValidNumberParam++;
+								  String tmpName = p.getExtendedName();
+								  if (tmpName.equals("")) tmpName = p.getName();
+								  if (noValidNumberParam==1)
+									  noValidNumberParamName = tmpName;
+								  else
+									  noValidNumberParamName += ", " + tmpName;
+							  }
+						  }
+					  }
+					  
+					  commarea.putParameter(p, commarea.request);
+				  }
+				  else
+				  {
+					  throw new EngSqlNoApplException("tipo parametro non previsto(" + p.getClass().getName() + ")");
+				  }
+			  }
+			  else
+			  {
+				  commarea.putParameter(p);
+			  }
+		  }
+		  
+		  // Se ho trovato parametro obbligatorio non valorizzato, costruisco il messaggio di eccezione
+		  if (requiredParam>0) 
+		  {
+			  if (requiredParam==1)
+				  exMsg = "E' necessario inserire il valore del campo ' " + eng.util.XMLUtil.xmlEscape(requiredParamName,2) + "'";
+			  else
+				  exMsg = "E' necessario inserire il valore dei campi ' " + eng.util.XMLUtil.xmlEscape(requiredParamName,2) + "'";
+		  }
+		  // Se ho trovato un valore non valido, costruisco il messaggio di eccezione
+		  if (noValidNumberParam>0) 
+			  if (noValidNumberParam==1)
+				  exMsg = "Il campo '" + eng.util.XMLUtil.xmlEscape(noValidNumberParamName,2) + "' deve essere un numerico";
+			  else
+				  exMsg = "I campi '" + eng.util.XMLUtil.xmlEscape(noValidNumberParamName,2) + "' devono essere dei numerici";
+		  // Lancio l'eccezione
+		  if ((requiredParam>0) || (noValidNumberParam>0)) throw new EngFormException(exMsg);
+	  }
+	  catch(EngFormException ex)
+	  {
+		  throw ex;
+	  }
+	  catch(EngException ex)
+	  {
+		  //System.out.println(accessSchemaName + ">>> valorizzazione parametri in errore ("+ex.getMessage());
+		  //ex.printStackTrace();
+		  throw new EngSqlNoApplException("valorizzazione parametri in errore");
+	  }
+
+	  return(sf);
+  }
+
+  protected void myServiceLife(Commarea commarea, String singletonName) throws ServletException, IOException, EngSqlNoApplException
+  {
+    try
+    {
+    	String ente = (String)commarea.request.getSession().getAttribute( Costanti.SESSION_ID_ENTE );
+    	eng.util.Logger.getLogger().info("Creazione connessione con ente :"+ente);
+    	//commarea.connection = createTableManagerDb(Integer.parseInt(ente));
+    	// MRK 13/12/2007
+    	// adesso passo sempre una stringa per creare la connessione
+    	// TableManagarProgress continuerà ad usare il DbManager
+    	// TableManagarProgressPool continuerà ad usare il DbManagerPool
+    	commarea.connection = createTableManagerDb(ente);
+    	commarea.accessSchemaDefinition = makeProperty(commarea, commarea.accessSchemaName, singletonName);
+    	StoreFunction storeFunction = (StoreFunction)commarea.accessSchemaDefinition;
+      	commarea.accessSchemaDefinition.put("COMMAREA",commarea);
+      	//EBR 04/04/2008: salvo in request il valore dei parametri di tipo INOUT prima di eseguire la store
+      	//Salvo anche il classname completo del singleton che deve essere eseguito.
+      	//Questo mi serve se voglio replicare la chiamata al singleton in caso per esempio di errore
+      	//di overflow, magari utilizzando un batcher
+      	saveInOutParametersInRequest(commarea);
+      	commarea.resultSelection = commarea.connection.execute(commarea.accessSchemaDefinition);
+      	if (commarea.resultSelection == null)
+      	{
+      		adminErrorApplicative(commarea, commarea.accessSchemaDefinition, commarea.resultSelection);
+      	}
+      	else
+      	{
+      		storeFunction.createOutputInRequest(commarea, commarea.request);
+      		adminSuccess(commarea, commarea.accessSchemaDefinition, commarea.resultSelection);
+      	}
+    }
+    catch(EngSqlNoApplException ex2)
+    {
+    	adminErrorSystem(commarea, commarea.accessSchemaDefinition, commarea.resultSelection, ex2);
+    }
+    catch(EngFormException ex1)
+    {
+        commarea.request.setAttribute("ErrorMessage", ex1.getMessage());
+        //aggiungo prefisso al nome della classe del singleton da istanziare rmo 14/06/07
+        StringBuffer fullyQualifiedName = new StringBuffer();
+  	  	fullyQualifiedName.append(TableManagerProgress.STORFUNCTIONDEF_PACK);
+  	  	fullyQualifiedName.append(commarea.accessSchemaName);
+        StoreFunction sf = eng.storefunction.singleton.TableStoreFunctionDefinitionSingleton.getInstance().searchFromName(fullyQualifiedName.toString());
+        //Parameter p = new Parameter
+        //adminErrorApplicative(commarea, commarea.response.getWriter(), sf, commarea.resultSelection);
+        adminErrorSystem(commarea, sf, commarea.resultSelection, ex1);
+    }
+    catch(Exception ex)
+    {
+    	adminErrorSystem(commarea, commarea.accessSchemaDefinition, commarea.resultSelection, ex);
+    }
+  }
+
+  /*
+   * Salva i parametri di tipo INOUT all'interno della attribute, utilizzando il prefisso corretto
+   * Salva anche il classname del singleton da eseguire
+   */
+  protected void saveInOutParametersInRequest(Commarea commarea) throws EngSqlNoApplException
+  {
+	  Iterator  it = commarea.getParametersIterator();
+	  Parameter p;
+	  HttpServletRequest request = commarea.request;
+	  //Passo 1: salvo il nome del singleton
+	  request.setAttribute(_PN_EXECUTED_SINGLETON_CLASSNAME, TableManagerProgress.STORFUNCTIONDEF_PACK + commarea.accessSchemaName);
+	  //Passo 2: salvo i parametri INOUT
+	  while(it.hasNext())
+	  {
+		  p = (Parameter)it.next();
+	      if (p.isModeInOut())
+	      {
+	    	  String name = p.getName();
+
+	    	  if (name != null)
+	    	  {
+	    		  if (p instanceof HttpPrimitive)
+	    		  {
+	    			  request.setAttribute(_PN_OLD_INOUT_PARAM_PREFIX + name, p.getValuePrimitive());
+	    		  }
+	    		  else if (p instanceof HttpArray)
+	    		  {
+	    			  EngResultSet result = new EngResultSet();
+	    			  if (p.getValueArray() != null)
+	    			  {
+	    				  Iterator lines = p.getValueArray().iterator();
+	    				  String line;
+
+	    				  int cline = 0;
+	    				  while (lines.hasNext()) 
+	    				  {
+	    					  line = (String) lines.next();
+	    					  Vector columns = HttpArray.makeColumns(line);
+	    					  for (int i = 0; i < columns.size(); i++) 
+	    					  {
+	    						  result.addColumn( (String) columns.elementAt(i));
+	    					  }
+	    					  result.addRow();
+	    					  cline++;
+	    				  }
+	    			  }
+	    			  request.setAttribute(_PN_OLD_INOUT_PARAM_PREFIX + name, result);
+	    		  }
+
+	    		  else if (p instanceof HttpClob)
+	    		  {
+	    			  EngResultSet result = new EngResultSet();
+	    			  if (p.getValueArray() != null)
+	    			  {
+	    				  Iterator lines = p.getValueArray().iterator();
+
+	    				  int cline = 0;
+	    				  while (lines.hasNext()) 
+	    				  {
+	    					  String[] line = (String[]) lines.next();
+	    					  for (int i = 0; i < line.length; i++) 
+	    					  {
+	    						  result.addColumn( line[i]);
+	    					  }
+	    					  result.addRow();
+	    					  cline++;
+	    				  }
+	    			  }
+	    			  request.setAttribute(_PN_OLD_INOUT_PARAM_PREFIX + name, result);
+	    		  }
+	    		  else
+	    		  {
+	    			  throw new EngSqlNoApplException("Tipo parametro illogico." + p + ".");
+	    		  }
+	    	  }
+	      }
+	  }
+  }
+  
+  protected void      myServiceEnd(Commarea commarea) throws ServletException, IOException, EngSqlNoApplException
+  {
+  }
+
+  protected void adminSuccess(Commarea commarea, eng.util.Properties p, ResultSelection rs) throws EngSqlNoApplException
+  {
+    StoreFunction storeFunction = (StoreFunction)p;
+    
+    Parameter errorMessage  =  commarea.getParameter( storeFunction.getParameterIndex(ErrorMessage.class));
+    //if ((errorMessage!=null) && (!errorMessage.getValuePrimitive().equals("")))
+    	//commarea.request.setAttribute(_INFO_MESSAGE, errorMessage.getValuePrimitive());
+    
+    //Action action = storeFunction.getActionSuccess();
+    /*if (action.isMultiple())
+    {
+      int multipleOutputNames  = action.getMultipleOutputNames();
+      int multipleOutputValues = action.getMultipleOutputValues();
+
+      Parameter parameterOutputNames  = commarea.getParameter(multipleOutputNames - 1);
+      Parameter parameterOutputValues = commarea.getParameter(multipleOutputValues - 1);
+      
+      if (! (parameterOutputNames  instanceof HttpArray)
+       || ! (parameterOutputValues instanceof HttpArray))
+      {
+          throw new EngSqlNoApplException("Errore illogico(546)");
+      }
+
+      Vector        namesOutput     = parameterOutputNames.getValueArray();
+      Vector        valuesOutput    = parameterOutputValues.getValueArray();
+
+      StringBuffer  command = new StringBuffer();
+      String        value;
+      for(int i=0; i<namesOutput.size(); i++)
+      {
+        value = (String)valuesOutput.elementAt(i);
+        if (value == null || value.length()<= 3)
+        {
+          value = "";
+        }
+        else
+        {
+        	value=value.substring(0,value.length() - 3);
+        }
+        String name = (String)namesOutput.elementAt(i);
+        if (name != null && name.length()>=3) name=name.substring(0,name.length() - 3);
+
+        command.append("window.opener.document." + name + ".value = \"" + value + "\";");
+      }
+      ((ActionScript)action).executeSingleCommand(out, command.toString());
+
+    }*/
+    adminActionX(commarea, storeFunction.getActionSuccess(), p);
+
+  }
+
+  protected void adminErrorApplicative(Commarea commarea,  eng.util.Properties p, ResultSelection rs) throws EngSqlNoApplException
+  {
+
+	  StoreFunction storeFunction = (StoreFunction)p;
+
+	  Parameter      returnValue  =  commarea.getParameter( 0 );
+	  Parameter      errorContext  =  commarea.getParameter( storeFunction.getParameterIndex(ErrorContext.class));
+	  Parameter      errorCode  =  commarea.getParameter( storeFunction.getParameterIndex(ErrorCode.class));
+	  Parameter      errorMessage  =  commarea.getParameter( storeFunction.getParameterIndex(ErrorMessage.class));
+
+	  String 			value;
+	  String 			context;
+	  String         code;
+	  String         message;
+
+	  if (returnValue == null) value = this._GENERIC_RETURN_VALUE; else value= returnValue.getValuePrimitive();
+	  if (errorContext == null) context = this._GENERIC_ERROR_CONTEXT; else context= errorContext.getValuePrimitive();
+	  if (errorCode == null) code = this._GENERIC_ERROR_CODE; else code= errorCode.getValuePrimitive();
+	  if (errorMessage == null) message = this._GENERIC_ERROR_MESSAGE; else message = errorMessage.getValuePrimitive();
+
+	  adminActionErrorX(commarea, storeFunction.getActionErrorApplicative(), value, context, code, message, p);
+
+  }
+
+  protected void adminErrorSystem(Commarea commarea, eng.util.Properties p, ResultSelection rs, Exception ex) throws EngSqlNoApplException
+  {
+
+    StoreFunction storeFunction = (StoreFunction)p;
+    //adminActionErrorX(commarea, storeFunction.getActionErrorSystem(), this._GENERIC_RETURN_VALUE, this._GENERIC_ERROR_CONTEXT, this._GENERIC_ERROR_CODE ,ex.getClass().getName() + "," + ex.getMessage(), out, p);
+    adminActionErrorX(commarea, storeFunction.getActionErrorSystem(), this._GENERIC_RETURN_VALUE, this._GENERIC_ERROR_CONTEXT, this._GENERIC_ERROR_CODE ,ex.getMessage(), p);
+
+  }
+
+
+  private void adminActionErrorX(Commarea commarea, Action action, String returnValue, String errorContext, String errorCode, String errorMessage, eng.util.Properties p) throws EngSqlNoApplException
+  {
+    if (action instanceof ActionScript)
+    {
+    	// Antonio 27/10/2006
+    	// nel progetto del commercio nono dovremmo piu' avere ActionAScript
+
+    	//((ActionScript)action).executeSingleCommand(out, "alert(\"" + errorMessage + "\");");
+    }
+    else if (action instanceof ActionForward)
+    {
+    	// Antonio 26/10/2006
+    	// in caso di errore applicativo portiamo avanti:
+    	// return value della stored
+    	// ErrorContext
+    	// ErrorCode
+    	// ErrorMessage
+    	
+    	eng.util.Logger.getLogger().error("Errore stored");
+    	eng.util.Logger.getLogger().error("--- Return Value: " + returnValue);
+    	eng.util.Logger.getLogger().error("--- Error Context: " + errorContext);
+    	eng.util.Logger.getLogger().error("--- Error Code: " + errorCode);
+    	eng.util.Logger.getLogger().error("--- Error Message: " + errorMessage);
+    	
+    	commarea.request.setAttribute(this._RETURN_VALUE_ATTRIBUTE, returnValue);
+    	commarea.request.setAttribute(this._ERROR_CONTEXT_ATTRIBUTE, errorContext);
+    	commarea.request.setAttribute(this._ERROR_CODE_ATTRIBUTE, errorCode);
+    	commarea.request.setAttribute(this._ERROR_MESSAGE_ATTRIBUTE, errorMessage);
+    	
+    }
+    adminActionX(commarea, action, p);
+
+  }
+
+  private   void adminActionX(Commarea commarea, Action action, eng.util.Properties p) throws EngSqlNoApplException
+  {
+
+    if  (action != null)
+    {
+      StoreFunction storeFunction = (StoreFunction)p;
+
+      //if (action instanceof ActionScript)
+      //{
+      //  ((ActionScript)action).execute(out);
+      //}
+      if (action instanceof ActionForward)
+      {
+        storeFunction.createOutputInRequest(commarea, commarea.request);
+        ((ActionForward)action).execute(getServletContext(), commarea.request, commarea.response);
+      }
+      else
+      {
+        throw new EngSqlNoApplException("Errore illogico(234)");
+      }
+    }
+
+  }
+}

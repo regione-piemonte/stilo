@@ -1,0 +1,89 @@
+package eng.servlet;
+
+import  eng.database.modal.EngConnectionForSelection;
+
+import  java.io.IOException;
+import  java.io.PrintWriter;
+import  java.util.Date;
+
+import  javax.servlet.http.HttpServletRequest;
+import  javax.servlet.http.HttpServletResponse;
+
+public class TableErrorManager
+{
+	//private static  final String    LOCATION_SESSIONE_SCADUTA  = "/jsp/comuni/SessioneScaduta.jsp?Finestra=0";
+	//private static  final String    LOCATION_DISPATCHER        = "/jsp/comuni/SessioneScaduta.jsp?Finestra=0";
+	private static  final String    LOCATION_SESSIONE_SCADUTA  = "/jsp/comuni/VerificaSessione.jsp?errore=interno";
+	private static  final String    LOCATION_DISPATCHER        = "/jsp/comuni/VerificaSessioneScaduta.jsp?errore=interno";
+
+	private static  final String    SCRIPT_ALERT_ERROR_1       = "<script> alert(\"";
+	private static  final String    SCRIPT_ALERT_ERROR_2       = "\"); opener.document.form1.submit(); window.history.go(-1);</script>";
+
+	public  static  void  executeSessioneScaduta(EngConnectionForSelection  connection,
+			HttpServletRequest request, HttpServletResponse response,
+			Exception ex)
+	throws IOException
+	{
+		request.setAttribute("sessioneScaduta", "1");
+		execute(connection, request, response, ex, LOCATION_SESSIONE_SCADUTA);
+	}
+
+	public  static  void  executeDispatcher(EngConnectionForSelection  connection,
+			HttpServletRequest request, HttpServletResponse response,
+			Exception ex)
+	throws IOException
+	{
+		execute(connection, request, response, ex, LOCATION_DISPATCHER);
+	}
+
+	public  static  void  viewAlert(HttpServletRequest request, HttpServletResponse response, Exception ex)
+	throws IOException
+	{
+		PrintWriter out     = response.getWriter();
+		String     message;
+
+		message = ex.getMessage();
+		out.println(SCRIPT_ALERT_ERROR_1 + message + SCRIPT_ALERT_ERROR_2);
+	}
+
+	private static  void  execute(EngConnectionForSelection  connection,
+			HttpServletRequest request, HttpServletResponse response,
+			Exception ex,
+			String redirectLocation)
+	throws IOException
+	{
+		if  (connection != null)
+		{
+			try
+			{
+				connection.rollback();
+			}
+			catch(Exception ex2)
+			{
+				//Qui è giusto che non vi sia alcuna istruzione.
+			}
+		}
+
+		String  message;
+
+		message = eng.util.XMLUtil.nvl(ex.getMessage(),"Errore sconosciuto, probabilmente NullPointerException.");
+
+		(request.getSession()).setAttribute("errore",message);
+		response.sendRedirect(request.getContextPath() + redirectLocation);
+	}
+
+	private static  String  makeMessage(HttpServletRequest req, Exception ex)
+	{
+		StringBuffer  m = new StringBuffer();
+
+		m.append(new Date().toString());
+		m.append("\n - Method: " + req.getMethod());
+		m.append("\n - Request URI: " + req.getRequestURI());
+		m.append("\n - PathInfo: " + req.getPathInfo());
+		m.append("\n - Remote Address: " + req.getRemoteAddr());
+		m.append("\n - Exception: " + ex.getMessage());
+		m.append("\n* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+
+		return(m.toString());
+	}
+}

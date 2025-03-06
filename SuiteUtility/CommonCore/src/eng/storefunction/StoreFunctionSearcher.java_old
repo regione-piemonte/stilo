@@ -1,0 +1,6 @@
+package eng.storefunction;
+
+public interface StoreFunctionSearcher
+{
+  StoreFunction searchFromName(String logicName);
+}

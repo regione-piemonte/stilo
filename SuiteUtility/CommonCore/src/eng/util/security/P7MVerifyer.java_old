@@ -1,0 +1,229 @@
+/*
+ * P7MVerifyer.java
+ *
+ * Created on 15 marzo 2005, 15.19
+ */
+
+package eng.util.security;
+
+import it.eng.utility.FileUtil;
+
+import java.io.*;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.bouncycastle.cms.CMSProcessable;
+import org.bouncycastle.cms.CMSSignedData;
+import org.bouncycastle.cms.CMSSignedDataParser;
+import org.bouncycastle.cms.CMSTypedStream;
+/**
+ *
+ * @author  Administrator
+ */
+public class P7MVerifyer {
+	
+	private static final int _MAX_P7M_ENVELOPES = 50;
+
+	/**
+	 * **************************************************************************
+	 *  classe helper per sbustare un p7m
+	 * **************************************************************************
+	 * @param inFile
+	 * @param outFile
+	 * @return
+	 * @throws VersionHandlerException
+	 */
+	public static void extractP7M(java.io.File inFile, java.io.File outFile) throws EngSecurityException
+	{
+		extractP7M( inFile, outFile, 0);
+	}
+
+	/**
+	 * **************************************************************************
+	 *  classe helper per sbustare un p7m
+	 * **************************************************************************
+	 * @param inFile
+	 * @param outFile
+	 * @param recursion_level Livello di ricorsione (0 = sbusta e fermati)
+	 * @return
+	 * @throws VersionHandlerException
+	 */
+	public static void extractP7M(java.io.File inFile, java.io.File outFile, int recursion_level) throws EngSecurityException
+	{
+		// Controlliamo che il file sia buono
+		boolean certificato_verificato = false;
+
+		try {
+			Object p[] = java.security.Security.getProviders();
+
+			eng.util.Logger.getLogger().info("quanti provider ho? ->"+p.length);
+			for (int i=0; i<p.length; i++)
+			{
+				eng.util.Logger.getLogger().info("Provider"+ i + " ->"+p[i]);
+			}
+			FileInputStream fis = new FileInputStream(inFile);
+
+			iaik.pkcs.pkcs7.ContentInfo ci = new iaik.pkcs.pkcs7.ContentInfo(fis);
+			iaik.pkcs.pkcs7.SignedData signed_data = (iaik.pkcs.pkcs7.SignedData)ci.getContent(); 
+
+			if (ci.getContent() instanceof iaik.pkcs.pkcs7.EnvelopedData ) {
+
+				iaik.pkcs.pkcs7.EnvelopedData enveloped_data = (iaik.pkcs.pkcs7.EnvelopedData)ci.getContent(); 
+
+				// salviamo il file in outfile....
+				FileOutputStream fos = new FileOutputStream( outFile );
+				fos.write( enveloped_data.getContent() );
+				fos.close();
+
+			}
+			else {
+
+
+				iaik.pkcs.pkcs7.SignerInfo[] signer_infos = signed_data.getSignerInfos();
+
+				for (int i=0; i<signer_infos.length && !certificato_verificato; i++)
+				{
+					iaik.x509.X509Certificate signer_cert = signed_data.verify(i); //ATTENZIONE QUESTA LINEA DI CODICE DEVE ESSERE RIPRISTINATA DOPO I TEST PER  IL MERGE DEI DOCUEMENTI!!!!!!
+
+					// if the signature is OK the certificate of the signer is returned
+
+					/*  VERIFICA DEI CERTIFICATI....
+			signer_cert.verify(caCert.getPublicKey());
+			certificato_verificato = true;
+					 */
+				}
+				eng.util.Logger.getLogger().info("dopo for"); 
+				// salviamo il file in outfile....
+				FileOutputStream fos = new FileOutputStream( outFile );
+				fos.write( signed_data.getContent() );
+				fos.close();
+
+				if (recursion_level > 0)
+				{
+					FileUtil.deleteFile(inFile);
+					File new_out_file = new File( outFile.getPath());
+					outFile.renameTo( inFile );
+					outFile = new_out_file;
+					extractP7M(inFile, outFile, recursion_level - 1);
+				}
+			}
+		} catch (Exception  ex) {
+			// if the signature is not OK a SignatureException is thrown
+			ex.printStackTrace();
+			throw new EngSecurityException(ex.getMessage());
+		}
+	}
+
+	/*
+	private static InputStream openP7M(InputStream is, int counter) throws EngSecurityException
+	{
+		
+		InputStream isOut = null;
+		try {
+			
+			if (counter > _MAX_P7M_ENVELOPES)
+				throw new EngSecurityException("Superato il numero massimo di buste b7m ("+_MAX_P7M_ENVELOPES+")");
+			
+			try {
+				CMSSignedData sd = new CMSSignedData(is);
+				CMSProcessable process = sd.getSignedContent();
+				isOut = new ByteArrayInputStream((byte[])process.getContent());
+			}
+			catch (org.bouncycastle.cms.CMSException e) {
+				if (counter == 0) {
+					throw new EngSecurityException(e.getMessage());
+				}
+				else {
+					is.reset();
+					return is;
+				}	
+			}
+			isOut = openP7M(isOut, ++counter);
+			return isOut;
+		}
+		catch (Exception ex) {
+			ex.printStackTrace();
+			throw new EngSecurityException(ex.getMessage());
+		}
+	
+	}
+	*/
+	
+	private static InputStream openP7M(InputStream is, int counter) throws EngSecurityException
+	{	
+		CMSSignedDataParser sd = null;
+		InputStream isOut = null;
+		File content = null;
+		try {
+			
+			if (counter > _MAX_P7M_ENVELOPES)
+				throw new EngSecurityException("Superato il numero massimo di buste p7m ("+_MAX_P7M_ENVELOPES+")");
+			
+			try {
+				content = File.createTempFile("content", null);
+				FileUtil.writeStreamToFile(is, content);
+				
+				sd = new CMSSignedDataParser(FileUtils.openInputStream(content));	
+				isOut = sd.getSignedContent().getContentStream();
+			}
+			catch (org.bouncycastle.cms.CMSException e) {
+				if (counter == 0) {
+					throw new EngSecurityException(e.getMessage());
+				}
+				else {					
+					return FileUtils.openInputStream(content);
+				}	
+			}			
+			isOut = openP7M(isOut, ++counter);
+			return isOut;
+		}
+		catch (Exception ex) {
+			ex.printStackTrace();
+			throw new EngSecurityException(ex.getMessage());
+		}
+		finally {
+			try { sd.close(); } catch(Exception e) {}
+			FileUtil.deleteFile(content);				
+		}
+	
+	}
+	
+	
+	public static InputStream openP7M(InputStream is) throws EngSecurityException
+	{
+		return openP7M(is, 0);
+	}
+	
+	
+	/*
+	 * main di test
+	 */
+	public static void main(String argv[]) throws Exception{
+		
+//        InputStream is = null;
+//		  String filename = "c:\\tmp\\test-files\\signedfile.pdf.p7m.p7m";
+//        
+//        is = openP7M(new FileInputStream(filename));
+//        
+//        FileOutputStream fos = new FileOutputStream("c:\\tmp\\test-files\\unsignedfile.pdf");
+//        byte[] buffer = new byte[2048];
+//        int byte_count = 0;
+//        while ( (byte_count = is.read(buffer)) > 0)
+//        {
+//            fos.write(buffer,0,byte_count);
+//        }
+//        is.close();
+//        fos.close();
+		
+		File inFile = new File("c:\\tmp\\test-files\\signedfile.pdf.p7m.p7m");
+		File outFile = new File("c:\\tmp\\test-files\\unsignedfile.pdf");
+        extractP7M(inFile, outFile);
+        System.out.println("Fine!!!");
+	}
+
+
+}
+
+
+
+

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<bean id="intertematiciProxy" class="com.hyperborea.sira.ws.SearchIntertematiciWSProxy">
+		<property name="endpoint"
+			value="http://siranet.sardegnaambiente.it/sira/services/cbda?wsdl"></property>
+	</bean>
+
+	<bean id="mguProxy" class="it.eng.sira.mgu.ws.MguServiceEndPointProxy">
+		<property name="endpoint"
+			value="http://siranet.sardegnaambiente.it/mgu-ws/MguService?wsdl"></property>
+	</bean>
+
+	<bean id="proxySetter" class="it.eng.dm.sira.service.util.ProxySetter">
+		<property name="host" value="proxy.eng.it" />
+		<property name="port" value="3128" />
+		<property name="user" value="mravagna" />
+		<property name="password" value="silh7519" />
+	</bean>
+
+	<bean id="proxyManager" class="it.eng.dm.sira.service.util.ProxyManager">
+		<property name="needProxy" value="true"/>
+	</bean>
+
+	<bean id="siraService" class="it.eng.dm.sira.service.SiraService">
+		<property name="catastiProxy" ref="intertematiciProxy"></property>
+		<property name="mguProxy" ref="mguProxy"></property>
+		<property name="proxyManager" ref="proxyManager"></property>
+		<property name="proxySetter" ref="proxySetter"></property>
+	</bean>
+	
+	<bean id="processManager" class="it.eng.dm.sira.service.variables.ProcessesManager">
+	</bean>
+	
+	<bean id="connectionConfig" class="it.eng.dm.sira.service.util.ConnectionConfig">
+		<property name="dbUrl" value="jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=sira2-dbt-scan)(PORT=1521))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=SIRADBS)))" />
+		<property name="user" value="auri_owner_1" />
+		<property name="password" value="auri_owner_1" />
+		<property name="dbDriver" value="oracle.jdbc.driver.OracleDriver" />
+	</bean>
+	
+	<bean id="SiraHibernate" class="it.eng.dm.sira.service.hibernate.SiraHibernate">
+	</bean>
+
+</beans>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:sec="http://cxf.apache.org/configuration/security"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jaxws="http://cxf.apache.org/jaxws" xmlns:cxf="http://cxf.apache.org/core"
+	xmlns:http-conf="http://cxf.apache.org/transports/http/configuration"
+	xsi:schemaLocation="http://cxf.apache.org/core http://cxf.apache.org/schemas/core.xsd
+	       http://cxf.apache.org/configuration/security http://cxf.apache.org/schemas/configuration/security.xsd
+           http://cxf.apache.org/bindings/soap http://cxf.apache.org/schemas/configuration/soap.xsd
+           http://cxf.apache.org/jaxws http://cxf.apache.org/schemas/jaxws.xsd
+           http://cxf.apache.org/transports/http/configuration http://cxf.apache.org/schemas/configuration/http-conf.xsd
+           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+           http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="clientContabiliaDocumenti" class="it.eng.utility.client.contabilia.documenti.ClientContabiliaDocumenti">
+		<property name="proxy" ref="proxyContabiliaDocumenti" />
+		<property name="property" ref="customPropertyPlaceholderConfigurer" />
+		<property name="contabiliaFruitore" value="${contabilia.fruitore}" />
+		<property name="contabiliaEnte" value="${contabilia.ente}" />
+	</bean>
+	
+	<bean id="bearerContabiliaDocumenti" class="it.eng.utility.client.contabilia.BearerAuthSupplier">
+		<property name="apiTokenRetry" value="${csi.endpoint.apiTokenRetry}" />
+		<property name="consumerKey" value="${csi.consumer.key}" />
+		<property name="consumerSecret" value="${csi.consumer.secret}" />
+	</bean>
+	
+	<bean id="customPropertyPlaceholderConfigurer" class="it.eng.utility.client.contabilia.CustomPropertyPlaceholderConfigurer">
+		<property name="locations">
+			<array>
+				<value>classpath:client-contabilia-fallback.properties</value>
+			</array>
+		</property>
+	</bean>
+	
+	<http-conf:conduit name="{http://siac.csi.it/stilo/svc/1.0}ContabiliaDocumentiEndpoint.http-conduit">
+		<http-conf:client ConnectionTimeout="60000"
+			ReceiveTimeout="${contabilia.timeout}" AllowChunking="true" CacheControl="no-cache" />
+		<http-conf:authSupplier bean="bearerContabiliaDocumenti" />
+	</http-conf:conduit>
+
+	<!-- The SOAP client bean -->
+	<jaxws:client id="proxyContabiliaDocumenti" serviceName="contabiliaDocumenti:StiloService"
+		endpointName="contabiliaDocumenti:ContabiliaDocumentiEndpoint" xmlns:contabiliaDocumenti="http://siac.csi.it/stilo/svc/1.0"
+		serviceClass="it.csi.siac.stilo.svc._1_0.StiloService" address="${contabilia.stilo.endpoint}">
+		<jaxws:features>
+			<ref bean="loggingFeature" />
+		</jaxws:features>
+	</jaxws:client>
+
+</beans>

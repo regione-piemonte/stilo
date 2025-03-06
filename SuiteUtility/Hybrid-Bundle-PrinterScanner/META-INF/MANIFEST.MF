@@ -1,0 +1,19 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: PrinterScannerHybridBundle
+Bundle-SymbolicName: PrinterScannerHybridBundle
+Bundle-Version: 1.0.0.qualifier
+Export-Package: it.eng.hybrid.module.printerScanner, 
+ it.eng.hybrid.module.printerScanner.listener,
+ it.eng.hybrid.module.printerScanner.resources,
+ it.eng.hybrid.module.printerScanner.ui
+Import-Package: it.eng.areas.hybrid.module,
+ it.eng.areas.hybrid.module.util,
+ it.eng.areas.hybrid.module.util.json,
+ org.apache.commons.lang;version="2.6",
+ org.apache.commons.logging,
+ org.apache.log4j,
+ org.osgi.framework
+Bundle-Activator: it.eng.hybrid.module.printerScanner.Activator
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+

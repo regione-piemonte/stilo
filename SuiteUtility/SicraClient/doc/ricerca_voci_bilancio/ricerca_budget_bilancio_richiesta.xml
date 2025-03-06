@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<richiesta>
+	<parte>U</parte>
+	<tipo_risultato>
+		<nome>XML</nome>
+	</tipo_risultato>
+	<codifica>01111.01.228164</codifica>
+	<annocompetenza>2019</annocompetenza>
+	<datavaluta>2019-04-12</datavaluta>
+	<flraggruppacentrocosto>1</flraggruppacentrocosto>
+</richiesta>

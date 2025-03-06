@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<richiesta>
+	<atto>
+		<siglaTipoAtto>ddg</siglaTipoAtto>
+		<numatto>1</numatto>
+		<annoatto>2019</annoatto>
+	</atto>
+	<solo_provvisori>1</solo_provvisori>
+</richiesta>

@@ -1,0 +1,64 @@
+<!-- Ant build file per RF -->
+<!-- $Id: build.xml,v 1.14 2009/04/30 15:49:48 str Exp $ -->
+<project default="build" name="COMMONCORE" basedir=".">
+	<description>Ant build file per 
+		ENG.DATABASE, 
+		ENG.TABLEMANAGER, 
+		ENTEPROPERTIES, 
+		ENG.STOREFUNCTION,
+		ENG.STOREPROCEDURE,
+		ENG.UTIL
+	</description>
+		
+	<!-- Proprietà globali -->
+	<property name="src" location="src"></property>
+	<property name="build" location="build"></property>
+	<property name="lib" location="lib"></property>
+	<property name="jar.version" value="1.3.8"></property>
+	<property name="jar.filename" value="eng-common-core-${jar.version}.jar"></property>
+	
+	<!-- Path per dare il classpath delle lib -->
+	<path id="lib.jar">
+	    <fileset dir="${lib}">
+	      <include name="*.jar"/>
+	    </fileset>
+	</path>
+		
+	<!-- Inizializzazioni -->
+	<target name="init">
+	    <!-- Crea il timestamp -->
+	    <tstamp/>
+	    <!-- Crea la directory di build per la compilazione -->
+	    <mkdir dir="${build}"/>
+	</target>
+	
+	<!-- Compila i sorgenti -->
+	<target name="build" depends="init, clean, copy-resources" description="Compile source ...">
+		<javac srcdir="${src}" destdir="${build}" debug="on">
+			<classpath refid="lib.jar"/>
+		</javac>
+	</target>
+	
+	<!-- Copia le risorse -->
+	<target name="copy-resources" description="Copy resources...">
+        <copy todir="${build}" verbose="true">
+	        <fileset dir="${src}">
+	            <exclude name="**/*.java"/>
+	            <exclude name="**/log4j.properties"/>
+	        </fileset>
+	    </copy>
+	</target>
+	
+	<!-- Pulisce la directory di build -->
+	<target name="clean" description="clean up" >
+	    <!-- Delete the ${build} directory trees -->
+	    <delete dir="${build}"/>
+	</target>
+	
+	<!-- Crea il war del bytecode -->
+	<target name="crea-jar" depends="build" description="Create bytecode jar">
+		<jar destfile="${build}/${jar.filename}" basedir="${build}">
+		</jar>
+	</target>
+	
+</project>

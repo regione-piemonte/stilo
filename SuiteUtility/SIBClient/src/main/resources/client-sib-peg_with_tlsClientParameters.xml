@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:sec="http://cxf.apache.org/configuration/security"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jaxws="http://cxf.apache.org/jaxws" xmlns:cxf="http://cxf.apache.org/core"
+	xmlns:http-conf="http://cxf.apache.org/transports/http/configuration"
+	xsi:schemaLocation="http://cxf.apache.org/core http://cxf.apache.org/schemas/core.xsd
+	       http://cxf.apache.org/configuration/security http://cxf.apache.org/schemas/configuration/security.xsd
+           http://cxf.apache.org/bindings/soap http://cxf.apache.org/schemas/configuration/soap.xsd
+           http://cxf.apache.org/jaxws http://cxf.apache.org/schemas/jaxws.xsd
+           http://cxf.apache.org/transports/http/configuration http://cxf.apache.org/schemas/configuration/http-conf.xsd
+           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+           http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="clientSIBPEG" class="it.eng.utility.client.sib.peg.ClientSIBPEG">
+		<property name="proxy" ref="proxySIBPEG" />
+	</bean>
+
+	<bean id="bearerSIBPEG" class="it.eng.utility.client.sib.BearerAuthSupplier">
+		<property name="bearer" value="${sib.peg.bearer}" />
+	</bean>
+
+	<http-conf:conduit
+		name="{SibPeg}SIBPegEndpoint.http-conduit">
+		<http-conf:client ConnectionTimeout="60000"
+			ReceiveTimeout="60000" AllowChunking="true" CacheControl="no-cache"
+			ProxyServer="${sib.proxy.server}" ProxyServerPort="${sib.proxy.port}" />
+		<http-conf:authSupplier bean="bearerSIBPEG" />
+		<!-- Specifies the parameters used to configure SSL/TLS -->
+		<http-conf:tlsClientParameters disableCNCheck="true">
+			<!-- 
+			   The Key Managers (to hold X509 certificates) is used to retrieve key information. 
+			   It is required when the Server requires Client Authentication.
+			-->
+			<!-- <sec:keyManagers keyPassword="ckpass"> -->
+			<!-- <sec:keyStore type="jks" password="cspass" file="src/main/config/clientKeystore.jks" or resource="clientKeystore.jks"  /> -->
+			<!-- </sec:keyManagers> -->
+			<!-- 
+			   The Trust Managers is used to validate trust in peer X.509 certificates. 
+			   It is required (default to JVM default Trust Managers).
+			-->			
+			<sec:trustManagers>
+			<!-- 
+			   The KeyStore used as a trust store.
+			   It represents the information needed to load a collection of key and certificate material from a desired location.
+			   @type:     The type of the keystore. Most common examples are "jks" "pkcs12".
+			   @password: The integrity password for the keystore.
+			   @provider: The keystore implementation provider. Most common examples are "SUN".
+			   The location of the keystore:
+			   1) @file: A properly accessible file from the working directory.
+			   2) @resource: A properly accessible on the classpath.
+			   3) @url: A properly accessible URL, such as "http://..." "file:///...", etc. 
+			-->
+
+			       <sec:keyStore type="JKS" password="cspass" file="${sib.keystore}"/> 
+
+            </sec:trustManagers>
+		</http-conf:tlsClientParameters>
+	</http-conf:conduit>
+
+	<!-- The SOAP client bean -->
+	<jaxws:client id="proxySIBPEG" serviceName="peg:SIBPeg"
+		endpointName="peg:SIBPegEndpoint" xmlns:peg="SibPeg"
+		serviceClass="sibpeg.SibPegPortType" address="${sib.peg.endpoint}">
+		<jaxws:features>
+			<ref bean="loggingFeature" />
+		</jaxws:features>
+	</jaxws:client>
+
+</beans>

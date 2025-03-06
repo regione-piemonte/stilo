@@ -1,0 +1,21 @@
+package eng.servlet;
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+
+import eng.database.exception.EngFormException;
+import eng.database.exception.EngSqlNoApplException;
+import eng.database.tablemanager.TableManagerDb;
+import eng.database.tablemanager.TableManagerDbProgress;
+import eng.storefunction.StoreFunction;
+import eng.util.Costanti;
+
+public class TableManagerProgressPool extends TableManagerProgress {
+	
+	protected TableManagerDb  createTableManagerDb(String a) throws EngSqlNoApplException
+	  {
+	    return(new TableManagerDbProgress(a));
+	  }
+
+}

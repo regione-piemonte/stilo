@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://sicraweb/RicercAttiLiquidazione"
+	elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<!-- <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"> -->
+	<xsd:element name="richiesta">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="numero_atto" type="xsd:integer"
+					minOccurs="1" maxOccurs="1" nillable="false">
+					<xsd:annotation>
+						<xsd:documentation>Numero dell'atto associato alle liquidazioni
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="anno_atto" type="xsd:integer"
+					minOccurs="1" maxOccurs="1" nillable="false">
+					<xsd:annotation>
+						<xsd:documentation>Anno dell'atto associato alle liquidazioni
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="sigla_tipo_atto" type="xsd:string"
+					minOccurs="1" maxOccurs="1" nillable="false">
+					<xsd:annotation>
+						<xsd:documentation>Sigla utente del tipo dell'atto Maggioli
+							associato alle
+							liquidazioni
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="data_atto" type="xsd:date"
+					minOccurs="0" maxOccurs="1">
+					<xsd:annotation>
+						<xsd:documentation>Data dell'atto associato alle liquidazioni
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="settore_atto" type="xsd:string"
+					minOccurs="0" maxOccurs="1">
+					<xsd:annotation>
+						<xsd:documentation>Codice del settore dell'atto associato alle
+							liquidazioni</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="tipo_liquidazione" minOccurs="0"
+					maxOccurs="1">
+					<xsd:annotation>
+						<xsd:documentation>Se indicato restituisce per ogni liquidazione
+							solamente il file corrispondente (se
+							presente), altrimenti vengono sempre restituiti entrambi (se presenti)
+						</xsd:documentation>
+					</xsd:annotation>
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:integer">
+							<xsd:enumeration value="0">
+								<xsd:annotation>
+									<xsd:documentation>LIQUIDAZIONE TECNICA</xsd:documentation>
+								</xsd:annotation>
+							</xsd:enumeration>
+							<xsd:enumeration value="1">
+								<xsd:annotation>
+									<xsd:documentation>LIQUIDAZIONE CONTABILE</xsd:documentation>
+								</xsd:annotation>
+							</xsd:enumeration>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="risultato">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="esito">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="tipo">
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:string">
+										<xsd:enumeration value="OK" />
+										<xsd:enumeration value="ERR" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="descrizione" type="xsd:string" />
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="liquidazione" minOccurs="0"
+					maxOccurs="unbounded">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="codice" type="xsd:long"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Codice univoco della liquidazione
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="codice_annuale" type="xsd:long"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Codice annuale della liquidazione
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="anno" type="xsd:integer"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Anno della liquidazione</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="data" type="xsd:date"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Data della liquidazione</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="oggetto" type="xsd:string"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Oggetto della liquidazione
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="tipo_liquidazione" minOccurs="1"
+								maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Indica il tipo della liquidazione
+									</xsd:documentation>
+								</xsd:annotation>
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:integer">
+										<xsd:enumeration value="0">
+											<xsd:annotation>
+												<xsd:documentation>LIQUIDAZIONE TECNICA</xsd:documentation>
+											</xsd:annotation>
+										</xsd:enumeration>
+										<xsd:enumeration value="1">
+											<xsd:annotation>
+												<xsd:documentation>LIQUIDAZIONE CONTABILE
+												</xsd:documentation>
+											</xsd:annotation>
+										</xsd:enumeration>
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="atto_liq_tecnica" minOccurs="0"
+								maxOccurs="1">
+								<xsd:annotation>
+									<xsd:documentation>Se presente contiene le informazioni
+										relative al documento PDF dell'atto di
+										liquidazione tecnica
+									</xsd:documentation>
+								</xsd:annotation>
+								<xsd:complexType>
+									<xsd:sequence>
+										<xsd:element name="nome_file_atto_liq"
+											type="xsd:string" minOccurs="1" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Nome del file PDF dell'atto di
+													liquidazione tecnica</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+										<xsd:element name="contenuto_file_atto_liq"
+											type="xsd:string" minOccurs="1" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Contenuto in Base64 del file PDF
+													dell'atto di liquidazione
+													tecnica
+												</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+									</xsd:sequence>
+								</xsd:complexType>
+							</xsd:element>
+							<xsd:element name="atto_liq_contabile" minOccurs="0"
+								maxOccurs="1">
+								<xsd:annotation>
+									<xsd:documentation>Se presente contiene le informazioni
+										relative al documento PDF dell'atto di
+										liquidazione contabile
+									</xsd:documentation>
+								</xsd:annotation>
+								<xsd:complexType>
+									<xsd:sequence>
+										<xsd:element name="nome_file_atto_liq"
+											type="xsd:string" minOccurs="1" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Nome del file PDF dell'atto di
+													liquidazione contabile</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+										<xsd:element name="contenuto_file_atto_liq"
+											type="xsd:string" minOccurs="1" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Contenuto in Base64 del file PDF
+													dell'atto di liquidazione
+													contabile
+												</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+									</xsd:sequence>
+								</xsd:complexType>
+							</xsd:element>
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+</xsd:schema>

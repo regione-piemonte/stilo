@@ -1,0 +1,10 @@
+<!-- Ant build file per Applet_Scansione_EGR -->
+<!-- $Id: build.xml,v 1.5 2011/11/29 08:35:02 mca Exp $ -->
+<project default="sign" name="ProxySelector" basedir=".">
+		
+	
+   <target name="sign" >
+      <signjar jar="D:\Work\ProxySelector\target\ProxySelector-0.0.1-SNAPSHOT-jar-with-dependencies.jar" keystore="myKeystore" alias="myself" storepass="password"/>
+   </target>
+	
+</project>

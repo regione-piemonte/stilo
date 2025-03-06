@@ -1,0 +1,220 @@
+<!-- Use this file to deploy some handlers/chains and services      -->
+<!-- Two ways to do this:                                           -->
+<!--   java org.apache.axis.client.AdminClient deploy.wsdd          -->
+<!--      after the axis server is running                          -->
+<!-- or                                                             -->
+<!--   java org.apache.axis.utils.Admin client|server deploy.wsdd   -->
+<!--      from the same directory that the Axis engine runs         -->
+
+<deployment
+    xmlns="http://xml.apache.org/axis/wsdd/"
+    xmlns:java="http://xml.apache.org/axis/wsdd/providers/java">
+
+  <!-- Services from ProtocolloWebServiceService WSDL service -->
+
+  <service name="ProtocolloWebService" provider="java:RPC" style="rpc" use="encoded">
+      <parameter name="wsdlTargetNamespace" value="urn:ProtocolloWebService"/>
+      <parameter name="wsdlServiceElement" value="ProtocolloWebServiceService"/>
+      <parameter name="schemaUnqualified" value="http://ws.folium.agora,urn:ProtocolloWebService,http://xml.apache.org/xml-soap,http://type.ws.folium.agora"/>
+      <parameter name="wsdlServicePort" value="ProtocolloWebService"/>
+      <parameter name="className" value="it.eng.utility.client.prosa.ProtocolloWebServiceSoapBindingImpl"/>
+      <parameter name="wsdlPortType" value="ProtocolloWebService"/>
+      <parameter name="typeMappingVersion" value="1.2"/>
+      <operation name="getContenutoAllegato" qname="operNS:getContenutoAllegato" xmlns:operNS="urn:ProtocolloWebService" returnQName="getContenutoAllegatoReturn" returnType="rtns:base64Binary" xmlns:rtns="http://schemas.xmlsoap.org/soap/encoding/" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:long" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <operation name="rimuoviAllegato" qname="operNS:rimuoviAllegato" xmlns:operNS="urn:ProtocolloWebService" returnQName="rimuoviAllegatoReturn" returnType="rtns:Allegato" xmlns:rtns="http://type.ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:long" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <operation name="estraiFlussiLavorazioneDocumento" qname="operNS:estraiFlussiLavorazioneDocumento" xmlns:operNS="urn:ProtocolloWebService" returnQName="estraiFlussiLavorazioneDocumentoReturn" returnType="rtns:Vector" xmlns:rtns="http://xml.apache.org/xml-soap" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:long" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <operation name="inserisciContenutoDaDocumentale" qname="operNS:inserisciContenutoDaDocumentale" xmlns:operNS="urn:ProtocolloWebService" returnQName="inserisciContenutoDaDocumentaleReturn" returnType="rtns:WSEsito" xmlns:rtns="http://ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:long" xmlns:tns="http://schemas.xmlsoap.org/soap/encoding/"/>
+        <parameter qname="in2" type="tns:long" xmlns:tns="http://schemas.xmlsoap.org/soap/encoding/"/>
+        <parameter qname="in3" type="tns:boolean" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <operation name="inserisciAllegatoDaFascicolo" qname="operNS:inserisciAllegatoDaFascicolo" xmlns:operNS="urn:ProtocolloWebService" returnQName="inserisciAllegatoDaFascicoloReturn" returnType="rtns:WSEsito" xmlns:rtns="http://ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:long" xmlns:tns="http://schemas.xmlsoap.org/soap/encoding/"/>
+        <parameter qname="in2" type="tns:Allegato" xmlns:tns="http://type.ws.folium.agora"/>
+      </operation>
+      <operation name="inserisciAllegatoZip" qname="operNS:inserisciAllegatoZip" xmlns:operNS="urn:ProtocolloWebService" returnQName="inserisciAllegatoZipReturn" returnType="rtns:WSEsito" xmlns:rtns="http://ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:Allegato" xmlns:tns="http://type.ws.folium.agora"/>
+      </operation>
+      <operation name="protocollaProfilo" qname="operNS:protocollaProfilo" xmlns:operNS="urn:ProtocolloWebService" returnQName="protocollaProfiloReturn" returnType="rtns:WSEsito" xmlns:rtns="http://ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:DatiProtocollo" xmlns:tns="http://type.ws.folium.agora"/>
+      </operation>
+      <operation name="protocolla" qname="operNS:protocolla" xmlns:operNS="urn:ProtocolloWebService" returnQName="protocollaReturn" returnType="rtns:DocumentoProtocollato" xmlns:rtns="http://type.ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:DocumentoProtocollato" xmlns:tns="http://type.ws.folium.agora"/>
+      </operation>
+      <operation name="assegna" qname="operNS:assegna" xmlns:operNS="urn:ProtocolloWebService" returnQName="assegnaReturn" returnType="rtns:Assegnazione" xmlns:rtns="http://type.ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:Assegnazione" xmlns:tns="http://type.ws.folium.agora"/>
+      </operation>
+      <operation name="recuperaContenuto" qname="operNS:recuperaContenuto" xmlns:operNS="urn:ProtocolloWebService" returnQName="recuperaContenutoReturn" returnType="rtns:ImmagineDocumentale" xmlns:rtns="http://type.ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:long" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <operation name="getContenutoDocumento" qname="operNS:getContenutoDocumento" xmlns:operNS="urn:ProtocolloWebService" returnQName="getContenutoDocumentoReturn" returnType="rtns:base64Binary" xmlns:rtns="http://schemas.xmlsoap.org/soap/encoding/" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:long" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <operation name="inserisciAllegato" qname="operNS:inserisciAllegato" xmlns:operNS="urn:ProtocolloWebService" returnQName="inserisciAllegatoReturn" returnType="rtns:Allegato" xmlns:rtns="http://type.ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:Allegato" xmlns:tns="http://type.ws.folium.agora"/>
+      </operation>
+      <operation name="getAllegati" qname="operNS:getAllegati" xmlns:operNS="urn:ProtocolloWebService" returnQName="getAllegatiReturn" returnType="rtns:ArrayOf_tns3_Allegato" xmlns:rtns="urn:ProtocolloWebService" returnItemType="tns2:Allegato" xmlns:tns2="http://type.ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:long" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <operation name="getAllegato" qname="operNS:getAllegato" xmlns:operNS="urn:ProtocolloWebService" returnQName="getAllegatoReturn" returnType="rtns:Allegato" xmlns:rtns="http://type.ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:long" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <operation name="ricercaTitolarioPerCodiceDescrizione" qname="operNS:ricercaTitolarioPerCodiceDescrizione" xmlns:operNS="urn:ProtocolloWebService" returnQName="ricercaTitolarioPerCodiceDescrizioneReturn" returnType="rtns:ArrayOf_tns3_VoceTitolario" xmlns:rtns="urn:ProtocolloWebService" returnItemType="tns2:VoceTitolario" xmlns:tns2="http://type.ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:VoceTitolario" xmlns:tns="http://type.ws.folium.agora"/>
+      </operation>
+      <operation name="inserisciContenuto" qname="operNS:inserisciContenuto" xmlns:operNS="urn:ProtocolloWebService" returnQName="inserisciContenutoReturn" returnType="rtns:ImmagineDocumentale" xmlns:rtns="http://type.ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:ImmagineDocumentale" xmlns:tns="http://type.ws.folium.agora"/>
+        <parameter qname="in2" type="tns:boolean" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <operation name="testLogin" qname="operNS:testLogin" xmlns:operNS="urn:ProtocolloWebService" returnQName="testLoginReturn" returnType="rtns:WSEsito" xmlns:rtns="http://ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+      </operation>
+      <operation name="testStato" qname="operNS:testStato" xmlns:operNS="urn:ProtocolloWebService" returnQName="testStatoReturn" returnType="rtns:WSEsito" xmlns:rtns="http://ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+      </operation>
+      <operation name="ricercaProtocolli" qname="operNS:ricercaProtocolli" xmlns:operNS="urn:ProtocolloWebService" returnQName="ricercaProtocolliReturn" returnType="rtns:ArrayOf_tns3_DocumentoProtocollato" xmlns:rtns="urn:ProtocolloWebService" returnItemType="tns2:DocumentoProtocollato" xmlns:tns2="http://type.ws.folium.agora" soapAction="" >
+        <parameter qname="in0" type="tns:WSAuthentication" xmlns:tns="http://ws.folium.agora"/>
+        <parameter qname="in1" type="tns:Ricerca" xmlns:tns="http://type.ws.folium.agora"/>
+      </operation>
+      <parameter name="allowedMethods" value="inserisciAllegatoDaFascicolo recuperaContenuto rimuoviAllegato inserisciAllegato ricercaTitolarioPerCodiceDescrizione assegna protocolla testLogin protocollaProfilo getAllegati inserisciContenuto testStato ricercaProtocolli getAllegato inserisciContenutoDaDocumentale getContenutoDocumento getContenutoAllegato estraiFlussiLavorazioneDocumento inserisciAllegatoZip"/>
+      <parameter name="scope" value="Session"/>
+
+      <typeMapping
+        xmlns:ns="http://type.ws.folium.agora"
+        qname="ns:DocumentoProtocollato"
+        type="java:it.eng.utility.client.prosa.DocumentoProtocollato"
+        serializer="org.apache.axis.encoding.ser.BeanSerializerFactory"
+        deserializer="org.apache.axis.encoding.ser.BeanDeserializerFactory"
+        encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+      />
+      <typeMapping
+        xmlns:ns="http://type.ws.folium.agora"
+        qname="ns:VoceTitolario"
+        type="java:it.eng.utility.client.prosa.VoceTitolario"
+        serializer="org.apache.axis.encoding.ser.BeanSerializerFactory"
+        deserializer="org.apache.axis.encoding.ser.BeanDeserializerFactory"
+        encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+      />
+      <typeMapping
+        xmlns:ns="http://type.ws.folium.agora"
+        qname="ns:Ricerca"
+        type="java:it.eng.utility.client.prosa.Ricerca"
+        serializer="org.apache.axis.encoding.ser.BeanSerializerFactory"
+        deserializer="org.apache.axis.encoding.ser.BeanDeserializerFactory"
+        encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+      />
+      <typeMapping
+        xmlns:ns="http://type.ws.folium.agora"
+        qname="ns:MittenteDestinatario"
+        type="java:it.eng.utility.client.prosa.MittenteDestinatario"
+        serializer="org.apache.axis.encoding.ser.BeanSerializerFactory"
+        deserializer="org.apache.axis.encoding.ser.BeanDeserializerFactory"
+        encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+      />
+      <arrayMapping
+        xmlns:ns="urn:ProtocolloWebService"
+        qname="ns:ArrayOf_tns3_DocumentoProtocollato"
+        type="java:it.eng.utility.client.prosa.DocumentoProtocollato[]"
+        innerType="cmp-ns:DocumentoProtocollato" xmlns:cmp-ns="http://type.ws.folium.agora"
+        encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+      />
+      <arrayMapping
+        xmlns:ns="urn:ProtocolloWebService"
+        qname="ns:ArrayOf_tns3_Allegato"
+        type="java:it.eng.utility.client.prosa.Allegato[]"
+        innerType="cmp-ns:Allegato" xmlns:cmp-ns="http://type.ws.folium.agora"
+        encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+      />
+      <typeMapping
+        xmlns:ns="http://ws.folium.agora"
+        qname="ns:WSAuthentication"
+        type="java:it.eng.utility.client.prosa.WSAuthentication"
+        serializer="org.apache.axis.encoding.ser.BeanSerializerFactory"
+        deserializer="org.apache.axis.encoding.ser.BeanDeserializerFactory"
+        encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+      />
+      <arrayMapping
+        xmlns:ns="urn:ProtocolloWebService"
+        qname="ns:ArrayOf_soapenc_string"
+        type="java:java.lang.String[]"
+        innerType="cmp-ns:string" xmlns:cmp-ns="http://schemas.xmlsoap.org/soap/encoding/"
+        encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+      />
+      <arrayMapping
+        xmlns:ns="urn:ProtocolloWebService"
+        qname="ns:ArrayOf_tns3_VoceTitolario"
+        type="java:it.eng.utility.client.prosa.VoceTitolario[]"
+        innerType="cmp-ns:VoceTitolario" xmlns:cmp-ns="http://type.ws.folium.agora"
+        encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+      />
+      <typeMapping
+        xmlns:ns="http://type.ws.folium.agora"
+        qname="ns:Assegnazione"
+        type="java:it.eng.utility.client.prosa.Assegnazione"
+        serializer="org.apache.axis.encoding.ser.BeanSerializerFactory"
+        deserializer="org.apache.axis.encoding.ser.BeanDeserializerFactory"
+        encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+      />
+      <typeMapping
+        xmlns:ns="http://ws.folium.agora"
+        qname="ns:WSEsito"
+        type="java:it.eng.utility.client.prosa.WSEsito"
+        serializer="org.apache.axis.encoding.ser.BeanSerializerFactory"
+        deserializer="org.apache.axis.encoding.ser.BeanDeserializerFactory"
+        encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+      />
+      <typeMapping
+        xmlns:ns="http://type.ws.folium.agora"
+        qname="ns:ImmagineDocumentale"
+        type="java:it.eng.utility.client.prosa.ImmagineDocumentale"
+        serializer="org.apache.axis.encoding.ser.BeanSerializerFactory"
+        deserializer="org.apache.axis.encoding.ser.BeanDeserializerFactory"
+        encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+      />
+      <arrayMapping
+        xmlns:ns="urn:ProtocolloWebService"
+        qname="ns:ArrayOf_tns3_MittenteDestinatario"
+        type="java:it.eng.utility.client.prosa.MittenteDestinatario[]"
+        innerType="cmp-ns:MittenteDestinatario" xmlns:cmp-ns="http://type.ws.folium.agora"
+        encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+      />
+      <typeMapping
+        xmlns:ns="http://type.ws.folium.agora"
+        qname="ns:Allegato"
+        type="java:it.eng.utility.client.prosa.Allegato"
+        serializer="org.apache.axis.encoding.ser.BeanSerializerFactory"
+        deserializer="org.apache.axis.encoding.ser.BeanDeserializerFactory"
+        encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+      />
+      <typeMapping
+        xmlns:ns="http://type.ws.folium.agora"
+        qname="ns:DatiProtocollo"
+        type="java:it.eng.utility.client.prosa.DatiProtocollo"
+        serializer="org.apache.axis.encoding.ser.BeanSerializerFactory"
+        deserializer="org.apache.axis.encoding.ser.BeanDeserializerFactory"
+        encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+      />
+  </service>
+</deployment>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<deployment name="client-sicra" xmlns="http://xml.apache.org/axis/wsdd/"
+	xmlns:java="http://xml.apache.org/axis/wsdd/providers/java">
+	<globalConfiguration>
+		<parameter name="disablePrettyXML" value="true" />
+		<parameter name="enableNamespacePrefixOptimization" value="false" />
+		<requestFlow>
+			<handler name="reqLogHandler" type="java:it.eng.utility.AxisLogHandler" />
+		</requestFlow>
+		<responseFlow>
+			<handler name="resLogHandler" type="java:it.eng.utility.AxisLogHandler" />
+		</responseFlow>
+	</globalConfiguration>
+	<transport name="http"
+		pivot="java:org.apache.axis.transport.http.HTTPSender" />
+</deployment>

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Hybrid" default="do-deploy" basedir="."  xmlns:fx="javafx:com.sun.javafx.tools.ant">
+	
+	<property name="src.dir" value="${basedir}/../src" />
+	<property name="src-api.dir" value="${basedir}/../../Hybrid-api/src" />
+	<property name="lib.dir" value="${basedir}/../lib" />
+	<property name="temp.dir" value="${basedir}/temp" />
+	<property name="deploy.dir" value="${basedir}/../../HybridDeployer/src/main/java/it/eng/areas/hybrid/deploy/assets/lib" />
+	
+	<target name="init-fx-tasks">
+		<path id="fxant">
+			<filelist>
+				<file name="${java.home}\..\lib\ant-javafx.jar"/>
+				<file name="${java.home}\lib\jfxrt.jar"/>
+			</filelist>
+		</path>
+	
+		<taskdef resource="com/sun/javafx/tools/ant/antlib.xml"
+			uri="javafx:com.sun.javafx.tools.ant"
+			classpathref="fxant"/>
+	</target>
+	<target name='do-compile'>
+		<delete dir="${temp.dir}/classes" />
+		<mkdir  dir="${temp.dir}/classes" />
+	
+	
+		<javac includeantruntime="false" source="1.7" target="1.7" destdir="${temp.dir}/classes" encoding="Cp1252">
+			<src path="${src.dir}"/>
+			<src path="${src-api.dir}"/>
+			<classpath>
+				<fileset dir="${lib.dir}">
+					<include name="*"/>
+				</fileset>
+			</classpath>
+		</javac>
+	
+	</target>
+
+	<!--
+	Usare se vengono modificate le librerie
+	-->
+	<target name="sign-lib">
+		<echo>Firmo jar librerie in ${lib.dir}</echo>
+		<signjar
+			verbose="true"
+			force="true"
+			keystore="../security/EngineeringIngegneriaInformaticaSpa.jks"
+			alias="server"
+			keypass="pelllo123"
+			storepass="pelllo123"
+			destDir="${deploy.dir}">
+			<fileset dir='${lib.dir}'>
+				<include name='*.jar' />
+			</fileset>
+		</signjar>
+	</target>
+	
+	<target name="do-deploy" depends="do-compile, init-fx-tasks">
+		<delete dir="${temp.dir}/jar" />
+		<mkdir  dir="${temp.dir}/jar" />
+	
+	
+		<jar destfile="${temp.dir}/jar/Hybrid-v0001.jar">
+			<fileset dir="${temp.dir}/classes" />
+			<fileset dir="${src.dir}">
+				<exclude name="**/*.java"/>
+			</fileset>
+			<fileset dir="${src-api.dir}">
+				<exclude name="**/*.java"/>
+			</fileset>
+	
+			<manifest>
+				<attribute name="Implementation-Vendor" value="Engineering Ingegneria Informatica S.p.A."/>
+				<attribute name="Implementation-Title" value="Hybrid"/>
+				<attribute name="Implementation-Version" value="1"/>
+				<attribute name="SplashScreen-Image" value=""/>
+				<attribute name="Permissions" value="all-permissions"/>
+				<attribute name="Application-Name" value="Hybrid"/>
+				<attribute name="Caller-Allowable-Codebase" value="*"/>
+				<attribute name="Application-Library-Allowable-Codebase" value="*"/>
+				<attribute name="Codebase" value="*"/>
+				<attribute name="Trusted-Only" value="true"/>
+				<attribute name="Trusted-Library" value="false"/>
+			</manifest>
+		</jar>
+		
+		<echo>Firmo jar principale</echo>
+		<signjar
+			keystore="../security/EngineeringIngegneriaInformaticaSpa.jks"
+			alias="server"
+			keypass="pelllo123"
+			storepass="pelllo123"
+			destDir="${deploy.dir}">
+			<fileset dir='${temp.dir}/jar'>
+				<include name='*.jar' />
+			</fileset>
+		</signjar>
+	</target>
+</project>

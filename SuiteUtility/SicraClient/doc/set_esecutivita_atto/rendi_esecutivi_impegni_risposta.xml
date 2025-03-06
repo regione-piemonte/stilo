@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<risultato>
+	<messaggi>
+		<tipo>OK</tipo>
+		<descrizione />
+		<messaggio_xml />
+	</messaggi>
+	<impegno>
+		<idimpegno>150970</idimpegno>
+		<codice>122930</codice>
+		<codannuale>1</codannuale>
+		<anno>2019</anno>
+	</impegno>
+</risultato>

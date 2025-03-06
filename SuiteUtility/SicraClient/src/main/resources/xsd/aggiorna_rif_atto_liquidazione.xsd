@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://sicraweb/AggiornaRifAttoLiquidazione"
+	elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<!-- <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"> -->
+	<xsd:element name="richiesta">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="proposta">
+					<xsd:annotation>
+						<xsd:documentation>Filtri relativi alla proposta di liquidazione
+							utilizzati
+							per individuare tutte le
+							liquidazioni da aggiornare
+						</xsd:documentation>
+					</xsd:annotation>
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="numero_atto" type="xsd:integer"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Numero della proposta</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="anno_atto" type="xsd:integer"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Anno della proposta</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="sigla_tipo_atto" type="xsd:string"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Sigla utente del tipo della proposta
+										Maggioli</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="data_atto" type="xsd:date"
+								minOccurs="0" maxOccurs="1">
+								<xsd:annotation>
+									<xsd:documentation>Data della proposta</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="settore_atto" type="xsd:string"
+								minOccurs="0" maxOccurs="1">
+								<xsd:annotation>
+									<xsd:documentation>Codice del settore della proposta
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="atto_definitivo">
+					<xsd:annotation>
+						<xsd:documentation>Questi sono i riferimenti che verranno
+							valorizzati su tutte
+							le liquidazioni collegate
+							alla proposta
+						</xsd:documentation>
+					</xsd:annotation>
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="numero_atto" type="xsd:integer"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Numero dell'atto definitivo
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="anno_atto" type="xsd:integer"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Anno dell'atto definitivo
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="sigla_tipo_atto" type="xsd:string"
+								minOccurs="1" maxOccurs="1" nillable="false">
+								<xsd:annotation>
+									<xsd:documentation>Sigla utente del tipo dell'atto Maggioli
+										definitivo</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="data_atto" type="xsd:date"
+								minOccurs="0" maxOccurs="1">
+								<xsd:annotation>
+									<xsd:documentation>Data dell'atto definitivo.
+										Se non indicata viene impostata a NULL
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="settore_atto" type="xsd:string"
+								minOccurs="0" maxOccurs="1">
+								<xsd:annotation>
+									<xsd:documentation>Codice del settore dell'atto definitivo.
+										Se non indicato viene impostato a NULL
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="risultato">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="esito">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="tipo">
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:string">
+										<xsd:enumeration value="OK" />
+										<xsd:enumeration value="ERR" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="descrizione" type="xsd:string" />
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="tot_liquidazioni_aggiornate"
+					type="xsd:integer" minOccurs="0" maxOccurs="1">
+					<xsd:annotation>
+						<xsd:documentation>Numero totale delle liquidazioni aggiornate
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+</xsd:schema>

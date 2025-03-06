@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+		<bean id="ContentServerSettings" class="it.eng.auriga.opentext.config.ContentServerSettings" scope="singleton">
+		<property name="authenticationUser" value="XXX"/>
+		<property name="authenticationPassword" value="XXX"/>
+		<property name="authException" value=""/>
+		<property name="cwsConfigMTOMchunkSize" value="10240"/>
+		<property name="enterpriseRootType" value="Enterprise"/>
+		<property name="documentTypeNode" value="Document"/>
+		<property name="folderTypeNode" value="Folder"/>
+		<property name="csDurataToken" value="60"/>
+		<property name="authenticationWsdl" value="XXX"/>
+		<property name="docManagementWsdl" value="XXX"/>
+		<property name="contentServiceWsdl" value="XXX"/>
+		<property name="memberServiceWsdl" value=""/>
+		<property name="searchServiceWsdl" value=""/>
+		<property name="folderContainerName" value="Protocolli"/>
+		<property name="confidentialityLevel" value=""/>
+		<property name="categorieOT" ref="categoryMapByType"/>
+	</bean>
+
+	<bean id="categoryMapByType" class="java.util.HashMap" scope="prototype" >
+	    <constructor-arg>
+	        <map key-type="java.lang.String" value-type="java.lang.Long">
+	            <entry key="documento_protocollato" value="28306" />
+	            <entry key="documento_protocollato_allegato" value="28746" />
+	        </map>
+	    </constructor-arg>
+	</bean>
+
+	<bean id="SoapHeaderServiceImpl" class="it.eng.auriga.opentext.service.cs.impl.SoapHeaderServiceImpl" scope="singleton"/>
+	
+	<bean id="AbstractManageCSService" abstract="true" class="it.eng.auriga.opentext.service.cs.implAbstractManageCSService">
+ 		<property name="settingcs" ref="ContentServerSettings"></property>
+		<property name="contentService" ref="ContentServiceImpl"></property>
+		<property name="managementCSClient" ref="ManagementCSClientImpl"></property>
+		<property name="soapHeaderService" ref="SoapHeaderServiceImpl"></property>
+	</bean>
+	
+	<bean id="AuthenticationCSServiceImpl" class="it.eng.auriga.opentext.service.cs.impl.AuthenticationCSServiceImpl" scope="singleton" parent="AbstractManageCSService"/>
+	
+	<bean id="DocumentServiceImpl" class="it.eng.auriga.opentext.service.cs.impl.DocumentServiceImpl" scope="singleton" parent="AbstractManageCSService">
+		<property name="endpointCS" value="XXX"/>
+		<property name="endpointDM" value="XXX"/>	
+	</bean>
+	
+	<bean id="ContentServiceImpl" class="it.eng.auriga.opentext.service.cs.impl.ContentServiceImpl" scope="singleton" parent="AbstractManageCSService">
+		<property name="endpointCS" value="XXX"/>
+		<property name="endpointDM" value="XXX"/>	
+	</bean>
+
+	
+	<bean id="ManagementCSClientImpl" class="it.eng.auriga.opentext.service.cs.impl.ManagementCSClientImpl" scope="singleton" parent="AbstractManageCSService"/>
+	
+</beans>

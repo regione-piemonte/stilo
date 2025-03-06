@@ -1,0 +1,22 @@
+ <?xml version="1.0" encoding="utf-8"?>
+<!-- JNLP File for Swing Counter Application -->
+ <jnlp spec="1.0+" codebase="." href="jPedal.jnlp">
+ <information>
+    <title>JPedal Web Start</title>
+    <vendor>Eng</vendor>
+    <description>JPedal Web Start</description>
+  </information>
+ <resources>
+  <java version="1.5+"/>
+  <jar href="dist/SJPedal.jar"/>
+</resources>
+<applet-desc main-class="org.jpedal.examples.simpleviewer.AppletViewer" name="AppletViewer" width="625" height="595">
+     <param name="archive" value="lib/bcprov-jdk16-146.jar, lib/itextpdf-5.2.1.jar, lib/l2fprod-common-7.3-20070317.jar"/>
+	 <param name="code" value="org.jpedal.examples.simpleviewer.AppletViewer"/>
+	 <param name="openURL" value="C:\\workspaceUbaldo\\JPedal\\dist\\Cartella-Clinica.pdf" />
+</applet-desc>
+</jnlp> 
+
+  
+
+ 

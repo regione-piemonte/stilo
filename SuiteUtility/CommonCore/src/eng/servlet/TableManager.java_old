@@ -1,0 +1,346 @@
+package eng.servlet;
+
+import  eng.database.definition.ResultSelection;
+import  eng.database.exception.EngSqlNoApplException;
+import  eng.database.exception.EngFormException;
+import  eng.database.tablemanager.TableManagerDb;
+import  eng.storefunction.Parameter;
+
+import  java.io.IOException;
+import  java.io.PrintWriter;
+
+import  javax.servlet.ServletException;
+import  javax.servlet.http.HttpServlet;
+import  javax.servlet.http.HttpServletRequest;
+import  javax.servlet.http.HttpServletResponse;
+import  javax.servlet.http.HttpSession;
+
+/**
+ * L'insieme delle classi eng.servlet.crmesel.utility.Table*.java e
+ * eng.database.sql.protocollo.utility.Table*.java sono state scritte
+ * con l'obiettivo di risolvere in maniera generalizzata
+ * la tematica della tabelle generalizzate nell'ambito del progetto Engineering "protocollonew".
+ *
+ * I vincoli di progetto sono stati:
+ * - rispetto abbastanza stretto dell'architettura ereditata dal progetto precedente ("protocollo").
+ *   Tale vincolo da una parte ha portato vantaggi nella fase di analisi presentandosi
+ *   come modello già analizzato e funzionante (e sopratutto già integrato con l'infrastruttura
+ *   di appartenenza), dall'altra parte ha impedito un approccio più pulito all'analisi.
+ * - tempi molto stretti sia per la fase di analisi, sia per la fase implementativa.
+ *
+ * L'obiettivo è stato raggiunto nei seguenti termini:
+ * - se una tabella generalizzata rispetta determinati vincoli (documentati qui di seguito)
+ *   il software Java da scrivere è nullo.
+ * - se una tabella generalizzata non rispetta i sopra citati determinati vincoli
+ *   il software Java da scrivere dovrebbe essere poco e isolato alle sole differenze
+ *   specifiche della tabella "fuori standard".
+ *   Tale eventualità non si è però mai presentata nel progetto è la sua attuabilità
+ *   dovrebbe essere verificata.
+ *   E' stato quindi abbozzata l'implementazione del pattern Factory.
+ * - se si volesse modificare il comportamento della gestione di una tabella generalizzata
+ *   (es. la gestione dell'errore, oppure il passaggio dei parametri) il codice da modificare
+ *   è centralizzato.
+ *
+ * Le classi sono:
+ * - in eng.servlet.crmesel.utility
+ *   - TableManager : classe astratta base di gestione tabella generalizzata
+ *                    in cui è definito tutto il comportamento logico
+ *                    e che demanda le effettive operazioni sul database fisico
+ *                    ad un oggetto di tipo TableManagerDb.
+ *   - TableManagerStandard : classe concreta di gestione tabella generalizzata.
+ *                    Considerando che tutta la gestione di una tabella generalizzata
+ *                    che rispetta i determinati vincoli viene svolta da TableManager,
+ *                    è una classe che si limita ad estendere TableManager
+ *                    e a ridefinire il metodo di factory createTableManagerDb().
+ *   - TableAccessSchema: classe concreta di utility contenente esclusivamente metodi statici
+ *                    che valorizza la definizione di una tabella generalizzata.
+ *                    Tale classe deve essere aggiornate ogni volta che il sistema deve
+ *                    gestire una nuova tabella generalizzata (od un suo accesso)
+ *                    se quest'ultima rispetta i determinati vincoli (altrimenti
+ *                    bisognerebbe creare una nuova classe concreta di estensione
+ *                    di TableManager.
+ *                    Al suo interno è definita una classe statica Definition
+ *                    (e quindi si chiama a livello di Jvm TableAccessSchema$Definition
+ *                    che contiene tutta la definizione di una tabella generalizzata).
+ *   - TableDescriptor: classe concreta di utility contenente esclusivamente metodi statici
+ *                    che permette la scrittura/lettura di stringhe
+ *                    (che vengono adoperate come "value" di un oggetto di tipo Properties)
+ *                    contenenti distinte informazioni (tale oggetto si è reso necessario
+ *                    per mantenere l'architettura ereditata dal progetto precedente
+ *                    in cui la comunicazione tra servlet di comportamento e servlet di accesso database
+ *                    avviene con un oggetto di tipo Properties (oggetto che pur essendo di tipo Hashtable
+ *                    "esige" che il "value" sia di tipo String).
+ *                    Per ulteriore documentazione riferirsi alle note successive del paragrafo "TableDescriptor Note".
+ *   - TableErrorManager: classe concreta di utility contenente esclusivamente metodi statici
+ *                    che gestisce la messaggistica di errore.
+ *
+ *  - in eng.database.sql.protocollo.utility
+ *    - TableManagerDb: classe astratta base di accesso database di una tabella generalizzata.
+ *                      Viene istanziata da un oggetto di tipo TableManager secondo un modello
+ *                      semplificato del pattern Factory.
+ *    - TableManagerDbStandard: classe concreta di accesso database di una tabella generalizzata.
+ *                    Considerando che tutto l'accesso database di una tabella generalizzata
+ *                    che rispetta i determinati vincoli viene svolta da TableManagerDb,
+ *                    è una classe che si limita ad estendere TableManagerDb.
+ *
+ * L'interfacciamento con la parte Jsp è il seguente:
+ * - un modulo Jsp istanzia un oggetto di tipo TableManager (che sarà TableManagerStandard
+ *   nel caso di tabella generalizzata che rispetta i determinati vincoli, altrimenti
+ *   la corrispondente classe concreta di estensione) passandoli i seguenti parametri
+ *   nella richiesta http:
+ *   - "accessoSchema"  -> nome logico dell'accesso al database (tale nome deve avere
+ *                         una corrispondenza di TableAccessSchema).
+ *                         Allo stato attuale è stato deciso di adoperare lo stesso nome
+ *                         della Store Function del database, ma non vi è alcuna relazione
+ *                         a livello software con esso.
+ *                         La corrispondenza è case sensitive.
+ *    - "..."           -> nomi parametri che riceverà la Store Function.
+ *                         DEVONO avere una corrispondeza in TableAccessSchema.
+ *                         LA corrispondenza è case sensitive.
+ *                         Non può essere adoperato come nome "storedFunctionSqlName"
+ *                         in quanto riservato per TableManager.
+ *
+ * I determinati vincoli che una tabella di database deve rispettare per essere considerata
+ * "tabella generalizzata che rispetta i determinati vincoli" (e quindi essere gestita
+ * da TabellaManagerStandard e TabellaManagerStandardDb) sono:
+ * - avere una Store Function o Store Procedure (e quindi non due o più).
+ * - avere l'utente come terz'ultimo parametro (di tipo stringa) nello statement di call (e l'ultimo di input).
+ * - avere un codice errore (di tipo javax.sql.NUMERIC) e un messaggio di errore (di tipo javax.sql.VARCHAR)
+ *   come valori di output nel penultimo e ultimo parametro nello statemen di call (e quindi
+ *   il primo e il secondo (o il secondo e il terzo a seconda sia function o procedure)
+ *   parametro di output.
+ *
+ * =============================================================================================
+ * PARAGRAFO "TableDescriptor Note"
+ * =============================================================================================
+ * La classe TableDescriptor è una classe di servizio che gestisce la formattazione dei parametri
+ * passati da TableManager a TableManagerDb.
+ *
+ * Il flusso dei parametri è il seguente:
+ * - il Jsp di interfaccia utente (generalmente di inserimento/modifica/cancellazione tabella base)
+ *   lancia un comando Http di post settando dei parametri contenenti i valori immessi dall'utente.
+ *   Nel comando Http viene anche inserito come primo parametro (nome "accessoSchema")
+ *   il nome logico della Store procedure (definito in TableAccessSchema, che non deve necessariamente
+ *   essere uguale al nome fisico della Store procedure in database).
+ *   I nomi dei parametri devono essere quelli specificati in TableAccessSchema.
+ *   Ad esempio il comando
+ *   "http://<hostname>/<servlet context>/TableManagerStandard?accessoSchema=ModTipiAllegati&codice=101&descrizione=Fattura"
+ *   indica che l'utente sta modificando il TipiAllegati di codice 101 con la nuova descrizione Fattura
+ *   (e quindi l'applicazione eseguirà la Store procedure abbinata in TableAccessSchema al nome logico "ModTipiAllegati").
+ * - L'oggetto TableManager.java, nel metodo "makeProperty()" popola un oggetto eng.util.Properties
+ *   con i seguenti elementi:
+ *   - "storedFunctionSqlName", "nome fisico della store procedure/function definita nel database";
+ *   - "n,m,nomeParametro", "valore parametro" dove
+ *    - n è un numero intero progressivo a partire da 1 che indica la posizionalità del parametro
+ *      nella store/function procedure (corrisponde alla posizione del punto interrogativo nel comando Sql
+ *      gestito in TableManagerDb). DEVE corrispondere all'ordine in cui è definito in TableAccessSchema.
+ *    - m è un numero che indica il tipo del parametro così come è mappato da java.sql.Types.
+ *    - nomeParametro è il nome del parametro così come definito (con lo stesso valore in maniera case sensitive)
+ *      sia in TableAccessSchema e sia nel comando Http lanciato dal Jsp.
+ *    - valore parametro è il valore del parametro (quello immesso dall'utente) settato nel comando Http
+ *      lanciato dal Jsp. Nel caso di valore nullo (e quindi nel comando Http non ci sarà nulla dopo
+ *      il carattere =) viene adoperato per convenzione il valore "_VALUE_NULL" (definito in TableDescriptor).
+ * - Riprendendo l'esempio precedente:
+ *   avendo il seguente comando Http lanciato dal Jsp
+ *   "http://<hostname>/<servlet context>/TableManagerStandard?accessoSchema=ModTipiAllegati&codice=101&descrizione=Fattura"
+ *   ed avendo in TableAccessSchema l'elemento
+ *   ""ModTipiAllegati", new Definition(true, "PTPK_BASE_TABLES.ModTipiAllegati", new String[]  {"codice", "descrizione"},  new int[] {Types.NUMERIC, Types.VARCHAR}, MESSAGE_SUCCESS_MODIFY)"
+ *   l'oggetto eng.util.Properties creato da majeProperty() avrà i seguenti elementi:
+ *   - "storedFunctionSqlName", "PTPK_BASE_TABLES.ModTipiAllegati"
+ *   - "1,<intero definito in java.sql.Types.NUMERIC>,codice", "101"
+ *   - "2,<intero definito in java.sql.Types.VARCHAR>,descrizione", "Fattura"
+ *   Essendo l'oggetto eng.util.Properties un estensione di java.util.Properties
+ *   (a sua volta estensione di java.util.Hashtable)
+ *   l'ordine degli elementi non è significativo (ed è per questo che è stato inserito nella chiave
+ *   l'ordine posizionale nella query Sql).
+ * - In TableManagerDb verranno letti tutti gli elementi dell'oggetto eng.util.Properties
+ *  (che quindi NON deve avere altri elementi che non facciano parte direttamente del comando Sql)
+ *  e con questi valori, mediante le utility di TableDescriptor, verrà creato il comando Sql
+ *  da eseguire come statement.
+ */
+public abstract class TableManager  extends HttpServlet
+{
+  //ALL'OCCHIO_BEGIN!!!
+  //ALL'OCCHIO_BEGIN!!!
+  //ALL'OCCHIO_BEGIN!!!
+  /*
+  =============
+  Lettera aperta a tutti i programmatori implementatori di TableManager*
+
+  =============
+  Premesso che:
+
+  normalmente c'è solamente una istanza di un servlet (il servlet engine usa differenti Thread
+  per ogni richiesta cosicchè le variabili di instanza possono essere accessibili da una request
+  in qualsiasi momento).
+  Usare le variabili di istanza può degradare le prestazioni e causare fatali problemi.
+  Invece la variabili che sono creata all'interno di un metodo sono visibili solamente
+  al Thread eseguente questo metodo, che non può essere modificato da altre request.
+
+  ===============
+  Si informa che:
+
+  NON bisogna creare instance variable nella classe TableManager e nelle sue classi figlie.
+
+  =================
+  Si suggerisce di:
+
+  nel caso si abbia bisogno di creare una variabile condivisa ai vari metodi di TableManager (e classi figlie),
+  creare la variabile come membro dalla classe interna Commarea.
+
+  =================
+  Addì 04-11-2003, Bel Sognar E Oziar (BSEO)
+
+  //ALL'OCCHIO_END!!!
+  */
+
+  //PRIVATE_FIELDS_BEGIN
+  private   static  final String      PROPERTIES_NAME_ACCESS_SCHEMA_NAME        = "accessoSchema";
+  //private   static  final String      LOCATION_SESSIONE_SCADUTA_FINESTRA_2      = "/jsp/comuni/SessioneScaduta.jsp?Finestra=2";
+  private   static  final String      LOCATION_SESSIONE_SCADUTA_FINESTRA_2      = "/jsp/comuni/VerificaSessioneScaduta.jsp?errore=interno";
+  //PRIVATE_FIELDS_END
+
+  //PROTECTED_FIELDS_BEGIN
+  protected static  final String      SCRIPT_ALERT_SUCCESS_1                    = "<script> alert(\"";
+  protected static  final String      SCRIPT_ALERT_SUCCESS_2                    = "\"); opener.document.form1.submit(); window.close();</script>";
+  //PROTECTED_FIELDS_END
+
+  static
+  {
+    eng.util.Logger.getLogger().info("BSEO.TableManager.block initializer static:");
+  }
+
+  //CONSTRUCTORS_BEGIN
+  public    TableManager()
+  {
+    eng.util.Logger.getLogger().info("BSEO.TableManager.constructor:");
+  }
+  //CONSTRUCTORS_END
+
+  //ABSTRACT_METHODS_BEGIN
+  protected abstract  TableManagerDb  createTableManagerDb()  throws EngSqlNoApplException;
+  protected abstract  TableManagerDb  createTableManagerDb(int a)  throws EngSqlNoApplException;
+  protected abstract  eng.util.Properties makeProperty(Commarea commarea, String accessSchemaName, String classname) throws EngSqlNoApplException,EngFormException;
+  //ABSTRACT_METHODS_END
+
+  //PUBLIC_METHODS_BEGIN
+  public  void        init() throws ServletException
+  {
+    eng.util.Logger.getLogger().info("BSEO.TableManager.init:");
+    // ghf 04/11/2003
+    //TableDebug.setServletContext(this.getServletContext());
+  }
+
+  public    void      service(HttpServletRequest request, HttpServletResponse response)
+                              throws ServletException, IOException
+  {
+    eng.util.Logger.getLogger().info("BSEO.request=" + request + ".");
+
+    Commarea  commarea = new Commarea();
+
+    commarea.request        = request;
+    commarea.response       = response;
+
+    try
+    {
+      eng.util.Logger.getLogger().info("-------------------------------------- Esecuzione di " + this.getServletName() + " >>> accessoSchema=" + request.getParameter("accessoSchema") );
+      myServiceBegin(commarea);
+      myServiceLife(commarea, "eng.commercio.singleton.TableStoreFunctionDefinitionSingleton");
+      myServiceEnd(commarea);
+      eng.util.Logger.getLogger().info("-------------------------------------- Fine di " + this.getServletName() + " >>> accessoSchema=" + request.getParameter("accessoSchema") );
+    }
+    catch(Exception ex)
+    {
+    	ex.printStackTrace();
+    	TableErrorManager.executeSessioneScaduta(commarea.connection, commarea.request, commarea.response, ex);
+    }
+    finally
+    {
+        //ghf  04/11/2003
+        // per sicurezza ripuliamo la commarea
+        eng.util.Logger.getLogger().info("------>Finally di TableManager");
+        
+        if (commarea != null)
+        {
+          commarea.pulisci();
+          commarea = null;
+        }
+        
+        
+    }
+  }
+  //PUBLIC_METHODS_END
+
+  //PROTECTED_METHODS_BEGIN
+  protected void adminSuccess(Commarea commarea, eng.util.Properties p, ResultSelection rs) throws EngSqlNoApplException
+  {
+  }
+
+  protected void adminErrorApplicative(Commarea commarea, PrintWriter out, eng.util.Properties p, ResultSelection rs) throws EngSqlNoApplException
+  {
+  }
+
+  protected void adminErrorSystem(Commarea commarea, PrintWriter out, eng.util.Properties p, ResultSelection rs, Exception ex) throws EngSqlNoApplException
+  {
+  }
+  //PROTECTED_METHODS_END
+
+  //PRIVATE_METHODS_BEGIN
+  protected void    myServiceBegin(Commarea commarea) throws ServletException, IOException, EngSqlNoApplException
+  {
+    HttpSession session = commarea.request.getSession(true);
+
+    commarea.resultSelection     = null;
+    commarea.connection          = null;
+
+    commarea.accessSchemaName    = commarea.request.getParameter(PROPERTIES_NAME_ACCESS_SCHEMA_NAME);
+    if  (commarea.accessSchemaName==null)
+    {
+      throw new ServletException();
+    }
+  }
+
+  protected void myServiceLife(Commarea commarea, String singletonName) throws ServletException, IOException, EngSqlNoApplException
+  {
+    commarea.connection = createTableManagerDb(-1);
+
+    try
+    {
+      commarea.accessSchemaDefinition = makeProperty(commarea, commarea.accessSchemaName, singletonName);
+    }
+    catch(EngSqlNoApplException ex)
+    {
+        TableErrorManager.executeSessioneScaduta(commarea.connection, commarea.request, commarea.response, ex);
+    }
+    catch(Exception ex)
+    {
+      commarea.response.sendRedirect(LOCATION_SESSIONE_SCADUTA_FINESTRA_2);
+    }
+
+    try
+    {
+      commarea.resultSelection = commarea.connection.execute(commarea.accessSchemaDefinition);
+      //connection.commit();
+    }
+    catch(eng.database.exception.EngSqlNoApplException ex)
+    {
+      TableErrorManager.viewAlert(commarea.request, commarea.response, ex);
+    }
+    catch(eng.database.exception.EngSqlApplException ex)
+    {
+      TableErrorManager.viewAlert(commarea.request, commarea.response, ex);
+    }
+  }
+
+  protected   void      myServiceEnd(Commarea commarea) throws ServletException, IOException, EngSqlNoApplException
+  {
+    //PrintWriter out     = commarea.response.getWriter();
+
+    while(commarea.resultSelection != null
+      &&  commarea.resultSelection.next())
+    {
+      adminSuccess(commarea, commarea.accessSchemaDefinition, commarea.resultSelection);
+    }
+  }
+
+}

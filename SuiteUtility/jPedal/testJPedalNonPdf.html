@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Test JPedal</title>
+</head>
+<body>
+
+
+<!--[if !IE]> Firefox and others will use outer object -->
+
+  <object align="center" height="800" width="100%" 
+
+  classid="java:org.jpedal.examples.simpleviewer.AppletViewer"
+
+  type="application/x-java-applet"  
+
+  archive="dist/jpedal-eng-2.0.jar, 
+           lib/bcprov-jdk16-146.jar, 
+           lib/itextpdf-5.2.1.jar,
+           lib/l2fprod-common-7.3-20070317.jar" >
+  <param name="openURL" value="C:\\workspaceUbaldo\\JPedal\\dist\\Cartella-Clinica.pdf" />
+  <param name="tipoApplet" value="B" />
+  <!--<![endif]-->
+  
+
+  <!-- MSIE (Microsoft Internet Explorer) will use inner object -->
+
+  <object align="center" height="800" width="100%" classid="clsid:8AD9C840-044E-11D1-B3E9-00805F499D93" >
+  	 <param name="archive" value="dist/jpedal-eng-2.0.jar, lib/bcprov-jdk16-146.jar, lib/itextpdf-5.2.1.jar, lib/l2fprod-common-7.3-20070317.jar">
+	 <param name="code" value="org.jpedal.examples.simpleviewer.AppletViewer">
+	 <param name="openURL" value="C:\\workspaceUbaldo\\JPedal\\dist\\Cartella-Clinica.pdf" />
+	 <param name="tipoApplet" value="B">
+ </object>
+
+ <!--[if !IE]> close outer object -->
+
+ </object>
+
+ <!--<![endif]-->
+
+</body>
+</html>
+
+
+  
+

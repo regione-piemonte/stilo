@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/util 
+    http://www.springframework.org/schema/util/spring-util.xsd">
+
+	<bean id="clientSicra" class="it.eng.utility.sicra.contabilita.ClientSicra">
+		<property name="proxyServer" value="${sicra.proxy.server}" />
+		<property name="proxyPort" value="${sicra.proxy.port}" />
+		<property name="timeout" value="${sicra.timeout}" />
+		<property name="alias" value="${sicra.alias}" />
+		<property name="xmlEncoding">
+		     <util:constant static-field="java.nio.charset.StandardCharsets.ISO_8859_1"/>
+		</property>
+		<property name="service">
+			<bean
+				class="it.eng.utility.sicra.contabilita.wsdl.CmnWSSGatewayServiceLocator">
+				<property name="cmnWSSGatewayEndpointAddress" value="${sicra.endpoint}" />
+			</bean>
+		</property>
+		<property name="marshallerRicercaVociBilancio" ref="marshallerRicercaVociBilancio" />
+		<property name="unmarshallerRicercaVociBilancio" ref="marshallerRicercaVociBilancio" />
+		<property name="marshallerSetMovimentiAtto" ref="marshallerSetMovimentiAtto" />
+		<property name="unmarshallerSetMovimentiAtto" ref="marshallerSetMovimentiAtto" />
+		<property name="marshallerSetEsecutivitaAtto" ref="marshallerSetEsecutivitaAtto" />
+		<property name="unmarshallerSetEsecutivitaAtto" ref="marshallerSetEsecutivitaAtto" />
+		<property name="marshallerArchiviaAtto" ref="marshallerArchiviaAtto" />
+		<property name="unmarshallerArchiviaAtto" ref="marshallerArchiviaAtto" />
+		<property name="marshallerAggiornaRifAttoLiquidazione" ref="marshallerAggiornaRifAttoLiquidazione" />
+		<property name="unmarshallerAggiornaRifAttoLiquidazione" ref="marshallerAggiornaRifAttoLiquidazione" />
+		<property name="marshallerRicercaAnagrafica" ref="marshallerRicercaAnagrafica" />
+		<property name="unmarshallerRicercaAnagrafica" ref="marshallerRicercaAnagrafica" />
+		<property name="marshallerRicercaAttoLiquidazione" ref="marshallerRicercaAttoLiquidazione" />
+		<property name="unmarshallerRicercaAttoLiquidazione" ref="marshallerRicercaAttoLiquidazione" />
+		<property name="marshallerRicercaOrdinativoAttoLiquidazione" ref="marshallerRicercaOrdinativoAttoLiquidazione" />
+		<property name="unmarshallerRicercaOrdinativoAttoLiquidazione" ref="marshallerRicercaOrdinativoAttoLiquidazione" />
+	</bean>
+
+	<util:map id="marshallerProperties">
+		<entry key="jaxb.fragment">
+			<value type="boolean">true</value>
+		</entry>
+<!-- 		<entry key="jaxb.encoding" value="ISO-8859-1" /> -->
+	</util:map>
+	
+	<bean id="marshallerRicercaVociBilancio" class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
+		<property name="contextPath"
+			value="it.eng.utility.sicra.contabilita.xsd.ricerca_voci_bilancio" />
+		<property name="marshallerProperties" ref="marshallerProperties" />
+		<!-- <property name="schema" value="classpath:xsd/*.xsd" /> -->
+	</bean>
+
+	<bean id="marshallerSetMovimentiAtto" class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
+		<property name="contextPath"
+			value="it.eng.utility.sicra.contabilita.xsd.set_movimenti_atto" />
+		<property name="marshallerProperties" ref="marshallerProperties" />
+		<!-- <property name="schema" value="classpath:xsd/*.xsd" /> -->
+	</bean>
+
+	<bean id="marshallerSetEsecutivitaAtto" class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
+		<property name="contextPath"
+			value="it.eng.utility.sicra.contabilita.xsd.set_esecutivita_atto" />
+		<property name="marshallerProperties" ref="marshallerProperties" />
+		<!-- <property name="schema" value="classpath:xsd/*.xsd" /> -->
+	</bean>
+
+	<bean id="marshallerArchiviaAtto" class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
+		<property name="contextPath"
+			value="it.eng.utility.sicra.contabilita.xsd.archivia_atto" />
+		<property name="marshallerProperties" ref="marshallerProperties" />
+		<!-- <property name="schema" value="classpath:xsd/*.xsd" /> -->
+	</bean>
+	
+	
+	<bean id="marshallerAggiornaRifAttoLiquidazione" class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
+		<property name="contextPath"
+			value="it.eng.utility.sicra.contabilita.xsd.aggiorna_rif_atto_liquidazione" />
+		<property name="marshallerProperties" ref="marshallerProperties" />
+		<!-- <property name="schema" value="classpath:xsd/*.xsd" /> -->
+	</bean>
+	
+	<bean id="marshallerRicercaAnagrafica" class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
+		<property name="contextPath"
+			value="it.eng.utility.sicra.contabilita.xsd.ricerca_anagrafica" />
+		<property name="marshallerProperties" ref="marshallerProperties" />
+		<!-- <property name="schema" value="classpath:xsd/*.xsd" /> -->
+	</bean>
+	
+	<bean id="marshallerRicercaAttoLiquidazione" class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
+		<property name="contextPath"
+			value="it.eng.utility.sicra.contabilita.xsd.ricerca_atto_liquidazione" />
+		<property name="marshallerProperties" ref="marshallerProperties" />
+		<!-- <property name="schema" value="classpath:xsd/*.xsd" /> -->
+	</bean>
+	
+	<bean id="marshallerRicercaOrdinativoAttoLiquidazione" class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
+		<property name="contextPath"
+			value="it.eng.utility.sicra.contabilita.xsd.ricerca_ordinativo_atto_liquidazione" />
+		<property name="marshallerProperties" ref="marshallerProperties" />
+		<!-- <property name="schema" value="classpath:xsd/*.xsd" /> -->
+	</bean>
+	
+	<bean
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations" value="classpath:client-sicra.properties" />
+	</bean>
+
+</beans>

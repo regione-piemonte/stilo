@@ -1,0 +1,465 @@
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+	
+
+	
+	<!--  Utilizzato per accedere al contesto Spring -->
+	<bean id="applicationContextProvider" class="it.eng.utility.cryptosigner.context.CryptoSignerApplicationContextProvider"></bean> 
+
+	<!-- bean messaggi i18 spring-->
+	<bean id="messageSource"
+    class="org.springframework.context.support.ResourceBundleMessageSource">
+   	  <property name="basenames" value="cryptoMessages" />
+   	  <property name="useCodeAsDefaultMessage" value="true"/>
+	</bean>
+
+	<bean id="timeStampValidityDateFormat" class="java.text.SimpleDateFormat">
+		<constructor-arg value="dd-MM-yyyy" />
+	</bean>
+
+	<bean id="customEditorConfigurer"
+		class="org.springframework.beans.factory.config.CustomEditorConfigurer">
+		<property name="customEditors">
+			<map>
+				<entry key="java.util.Date">
+					<bean class="org.springframework.beans.propertyeditors.CustomDateEditor">
+						<constructor-arg index="0">
+							<bean class="java.text.SimpleDateFormat">
+								<constructor-arg value="dd-MM-yyyy" />
+							</bean>
+						</constructor-arg>
+						<constructor-arg index="1" value="false" />
+					</bean>
+				</entry>
+			</map>
+		</property>
+	</bean>
+
+
+	<bean id="MasterTimeStamp" class="it.eng.utility.cryptosigner.controller.MasterTimeStampController" scope="prototype">
+		<property name="controllers">
+			<list>
+				<bean class="it.eng.utility.cryptosigner.controller.impl.timestamp.TimeStampExtraction"
+					scope="prototype">
+					<property name="critical" value="true" />
+				</bean>
+
+				<bean class="it.eng.utility.cryptosigner.controller.impl.timestamp.TSAReliability"
+					scope="prototype">
+					<property name="critical" value="false" />
+				</bean>
+
+<!-- 				Controllo tramite Web Service -->
+				
+<!-- 				<bean class="it.eng.utility.cryptosigner.controller.impl.timestamp.ws.TSAReliabilityWS" -->
+<!-- 					scope="prototype"> -->
+<!-- 					<property name="critical" value="false" /> -->
+<!-- 					<property name="endPoint" value="http://localhost:9180/cryptoSignerServices/services/CertificateReliabilityService" /> -->
+<!-- 				</bean> -->
+
+				<bean class="it.eng.utility.cryptosigner.controller.impl.timestamp.TSARevocation"
+					scope="prototype">
+					<property name="critical" value="false" />
+				</bean>
+				
+				<!-- Controllo tramite Web Service -->
+<!-- 				<bean class="it.eng.utility.cryptosigner.controller.impl.timestamp.ws.TSARevocationWS" -->
+<!-- 					scope="prototype"> -->
+<!-- 					<property name="critical" value="false" /> -->
+<!-- 					<property name="endPoint" value="http://localhost:9180/cryptoSignerServices/services/CertificateRevocationService" /> -->
+<!-- 				</bean> -->
+
+			</list>
+		</property>
+		
+		<property name="checks">
+			<map>
+
+				<!--
+					Flag per indicare di effettuare il controllo di attendibilità dei
+					certificati di firma (rispetto a quelli accreditati da CNIPA)
+				-->
+				<entry key="performTSAReliability" value="true" />
+
+				<!--
+					Flag per indicare di effettuare il controllo di validità dei
+					certificati rispetto alla scadenza
+				-->
+				<entry key="performTSARevocation" value="true" />
+
+			</map>
+		</property>
+		
+		<property name="timeStampValidity">
+			<list>
+				<bean class="it.eng.utility.cryptosigner.controller.bean.TimeStampValidityBean">
+					<property name="end" 	value="03-12-2009" />
+					<property name="years" 	value="100" />
+				</bean>
+				<bean class="it.eng.utility.cryptosigner.controller.bean.TimeStampValidityBean">
+					<property name="begin" 	value="04-12-2009" />
+					<property name="years" 	value="100" />
+				</bean>
+			</list>
+		</property>
+		<property name="timeStampValidator">
+			<bean class="it.eng.utility.cryptosigner.controller.impl.timestamp.TimeStampValidator"/>
+		</property>
+	</bean>
+
+
+	<bean id="MasterSigner" class="it.eng.utility.cryptosigner.controller.MasterSignerController"
+		scope="prototype">
+		<property name="controllers">
+			<list>
+				<bean class="it.eng.utility.cryptosigner.controller.impl.signature.FormatValidity"
+					scope="prototype">
+					<property name="critical" value="false" />
+					<property name="validityProperties">
+						<props>
+							<!--
+								CAdES_BES,CAdES_T,CAdES_C,CAdES_X_Long, XAdES, XAdES_BES,
+								XAdES_T, XAdES_C, XAdES_X, XAdES_XL, PAdES, TSR,P7M,M7M
+							-->
+							
+						</props>
+					</property>
+				</bean>
+				<bean class="it.eng.utility.cryptosigner.controller.impl.signature.ContentExtraction"
+					scope="prototype">
+					<property name="critical" value="true" />
+<!--					<property name="performCounterSignaturesCheck" value="true" />-->
+				</bean>
+				<bean class="it.eng.utility.cryptosigner.controller.impl.signature.SignatureExtraction"
+					scope="prototype">
+					<property name="critical" value="true" />
+					<property name="performCounterSignaturesCheck" value="true" />
+				</bean>
+				<bean class="it.eng.utility.cryptosigner.controller.impl.signature.SignatureAssociation"
+					scope="prototype">
+					<property name="critical" value="false" />
+					<property name="performCounterSignaturesCheck" value="true" />
+				</bean>
+				<bean class="it.eng.utility.cryptosigner.controller.impl.signature.CertificateReliability"
+					scope="prototype">
+					<property name="critical" value="false" />
+					<property name="performCounterSignaturesCheck" value="true" />
+				</bean>
+
+				<!-- Controllo tramite Web Service -->
+<!-- 				<bean class="it.eng.utility.cryptosigner.controller.impl.signature.ws.CertificateReliabilityWS" -->
+<!-- 					scope="prototype"> -->
+<!-- 					<property name="critical" value="false" /> -->
+<!-- 					<property name="performCounterSignaturesCheck" value="true" /> -->
+<!-- 					<property name="endPoint" value="http://localhost:9180/cryptoSignerServices/services/CertificateReliabilityService" />					 -->
+<!-- 				</bean> -->
+
+				<bean class="it.eng.utility.cryptosigner.controller.impl.signature.CertificateExpiration"
+					scope="prototype">
+					<property name="critical" value="false" />
+					<property name="performCounterSignaturesCheck" value="true" />
+				</bean>
+				<bean class="it.eng.utility.cryptosigner.controller.impl.signature.CertificateAssociation"
+					scope="prototype">
+					<property name="critical" value="false" />
+					<property name="performCounterSignaturesCheck" value="true" />
+				</bean>
+				
+				<bean class="it.eng.utility.cryptosigner.controller.impl.signature.CertificateRevocation"
+					scope="prototype">
+					<property name="critical" value="false" />
+					<property name="performCounterSignaturesCheck" value="true" />
+				</bean>
+
+				<!-- Controllo tramite Web Service -->
+<!-- 				<bean class="it.eng.utility.cryptosigner.controller.impl.signature.ws.CertificateRevocationWS" -->
+<!-- 					scope="prototype"> -->
+<!-- 					<property name="critical" value="false" /> -->
+<!-- 					<property name="performCounterSignaturesCheck" value="true" /> -->
+<!-- 					<property name="endPoint" value="http://localhost:9180/cryptoSignerServices/services/CertificateRevocationService" /> -->
+<!-- 				</bean> -->
+
+			</list>
+		</property>
+
+		<property name="checks">
+			<map>
+
+				<!--
+					Flag per indicare di effettuare il controllo di validità
+					del formato di firma rispetto alla data di riferimento
+				-->
+				<entry key="performFormatValidity" value="true" />
+
+				<!--
+					Flag per indicare di effettuare il controllo di attendibilità dei
+					certificati di firma (rispetto a quelli accreditati da CNIPA)
+				-->
+				<entry key="performCertificateReliability" value="true" />
+
+				<!--
+					Flag per indicare di effettuare il controllo di validità dei
+					certificati rispetto alla scadenza
+				-->
+				<entry key="performCertificateExpiration" value="true" />
+
+				<!--
+					Flag per indicare di effettuare il controllo di corretta 
+					associazione tra certificato di firma e certificato di certificazione
+				-->
+				<entry key="performCertificateAssociation" value="true" />
+
+				<!--
+					Flag per indicare di saltare il controllo di validità dei
+					certificati rispetto alle CRL
+				-->
+				<entry key="performCertificateRevocation" value="true" />
+				
+			</map>
+		</property>
+
+	</bean>
+
+	<bean id="CryptoConfiguration" class="it.eng.utility.cryptosigner.CryptoConfiguration"
+		scope="singleton">
+		<property name="scheduleCARevoke" value="* * 10 * *" />
+		<property name="scheduleCAUpdate" value="* * 10 * *" />
+		<property name="proxyUser" value="cosrusso" />
+		<property name="proxyPassword" value="xxxxx" />
+		<property name="proxyHost" value="proxy.eng.it" />
+		<property name="proxyPort" value="3128" />
+		<property name="qualifiedCertificatesURL"
+			value="httpsxx://applicazioni.cnipa.gov.it/TSL/IT_TSL_signed.xml" />
+		<property name="useSchedule" value="false" />
+		<property name="initCAStorage" value="${initCAStorage:}" />
+		<!-- numero giorni da attendere per scaricare nuovamente la lista della CA -->
+		<property name="dayDownloadCAList" value="1" />
+		<!-- --> <property name="passwordCifrata" value="false" />
+	</bean>
+
+
+	<bean id="CAStorage"
+		class="it.eng.utility.cryptosigner.storage.impl.filesystem.FileSystemCAStorage"
+		scope="prototype">
+		<property name="directory" value="c:/tmp/CAStorage" />
+	</bean>
+
+	<bean id="CRLStorage"
+		class="it.eng.utility.cryptosigner.storage.impl.filesystem.FileSystemCRLStorage"
+		scope="prototype">
+		<property name="directory" value="c:/tmp/CAStorage" />
+	</bean>
+
+	<bean id="ConfigStorage"
+		class="it.eng.utility.cryptosigner.storage.impl.filesystem.FileSystemConfigStorage"
+		scope="prototype">
+		<property name="directory" value="c:/tmp/CAStorage" />
+	</bean>
+	<!--	-->
+	<!--
+		<bean id="CAStorage"
+		class="it.eng.utility.cryptosigner.storage.impl.database.DBCAStorage"
+		scope="prototype">
+	-->
+	<!--
+		<property name="hibernate_conf" value="/hibernate.mysql.cfg.xml"/>
+	-->
+	<!--	</bean>-->
+	<!--	-->
+	<!--
+		<bean id="CRLStorage"
+		class="it.eng.utility.cryptosigner.storage.impl.database.DBCRLStorage"
+		scope="prototype">
+	-->
+	<!--
+		<property name="hibernate_conf" value="/hibernate.mysql.cfg.xml"/>
+	-->
+	<!--	</bean>-->
+<!---->
+	<!--
+		<bean id="ConfigStorage"
+		class="it.eng.utility.cryptosigner.storage.impl.database.DBConfigStorage"
+		scope="prototype">
+	-->
+	<!--
+		<property name="hibernate_conf" value="/hibernate.mysql.cfg.xml"/>
+	-->
+	<!--	</bean>-->
+	
+	
+
+	<bean id="CertificateAuthorityUpdate" class="it.eng.utility.cryptosigner.ca.impl.SimpleTSLCertificateAuthority"
+		scope="prototype">
+		<!--  property name="serviceStatusFilter" >
+		 <util:list value-type="java.lang.String">
+    		<value>http://uri.etsi.org/TrstSvc/eSigDir-1999-93-EC-TrustedList/Svcstatus/accredited</value> 
+		</util:list>
+		</property -->
+		<property name="policy">
+			<bean class="it.eng.utility.cryptosigner.ca.impl.IntervalDownloadPolicy"></bean>
+		</property>
+		<property name="timeout">
+			<value>${timeout:}</value>
+		</property> 
+	</bean>	
+	
+	 
+	 
+	<bean id="DataSigner" class="it.eng.utility.cryptosigner.data.DataSigner"
+		scope="prototype">
+		<property name="signersManager">
+			<list>
+ 				<!-- <bean class="it.eng.utility.cryptosigner.data.M7MSigner" scope="prototype" />   
+ 				<bean class="it.eng.utility.cryptosigner.data.TsrSigner" scope="prototype" />  -->
+
+ 				<bean class="it.eng.utility.cryptosigner.data.XMLSigner" scope="prototype" /> 
+ 				
+ 				<!-- <bean class="it.eng.utility.cryptosigner.data.TsdSigner" scope="prototype" /> -->
+ 				  
+				<bean class="it.eng.utility.cryptosigner.data.P7MSigner" scope="prototype" />
+				<!-- <bean class="it.eng.utility.cryptosigner.data.P7SSigner" scope="prototype" />-->
+				<bean class="it.eng.utility.cryptosigner.data.CAdESSigner" scope="prototype" /> 
+				<bean class="it.eng.utility.cryptosigner.data.PdfSigner" scope="prototype" />
+		</list>
+		</property>
+	</bean>
+
+	<bean id="TimeStampController" class="it.eng.utility.cryptosigner.controller.impl.timestamp.TimeStampController"
+		scope="prototype">
+		<property name="timeStampValidity">
+			<list>
+				<bean class="it.eng.utility.cryptosigner.controller.bean.TimeStampValidityBean">
+					<property name="end" 	value="03-12-2009" />
+					<property name="years" 	value="1" />
+				</bean>
+				<bean class="it.eng.utility.cryptosigner.controller.bean.TimeStampValidityBean">
+					<property name="begin" 	value="04-12-2009" />
+					<property name="years" 	value="1" />
+				</bean>
+			</list>
+		</property>
+		<property name="timeStampValidator">
+			<bean class="it.eng.utility.cryptosigner.controller.impl.timestamp.TimeStampValidator"/>
+		</property>
+	</bean>
+
+	<bean id="SignatureManager" class="it.eng.utility.cryptosigner.manager.SignatureManager"
+		scope="prototype">
+<!--		<property name="timeStampController" ref="TimeStampController" />-->
+		<property name="masterTimeStampController" ref="MasterTimeStamp" />
+		<property name="masterSignerController" ref="MasterSigner" />
+	</bean>
+
+	<!-- Inizializzo il cryptoSygner
+	 se lo scheduler è attivo si configurano anche i task per lo scaricamento delle CA e CRL 
+	 altrimenti viene scaricato l'elenco solo una volta -->
+	<bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetClass">
+			<value>it.eng.utility.cryptosigner.FactorySigner</value>
+		</property>
+		<property name="targetMethod">
+			<value>setup</value>
+		</property>
+	</bean>
+	
+	
+	<!-- controller per verificare i certificati -->
+	<bean id="MasterCertController"
+		class="it.eng.utility.cryptosigner.controller.MasterCertController"
+		scope="prototype">
+		<property name="controllers">
+			<list>
+				<bean
+					class="it.eng.utility.cryptosigner.controller.impl.cert.CertificateExpiration"
+					scope="prototype">
+					<property name="critical" value="false" />
+				</bean>
+				<bean class="it.eng.utility.cryptosigner.controller.impl.cert.CertificateReliability"
+					scope="prototype">
+					<property name="critical" value="false" />
+					<property name="performCounterSignaturesCheck" value="true" />
+				</bean>
+				<bean class="it.eng.utility.cryptosigner.controller.impl.cert.CertificateRevocation"
+					scope="prototype">
+					<property name="critical" value="false" />
+					<property name="performCounterSignaturesCheck" value="true" />
+				</bean>
+				
+			</list>
+		</property>
+		<property name="checks">
+			<map>
+			<!--
+					Flag per indicare di effettuare il controllo di validità dei
+					certificati rispetto alla scadenza
+				-->
+				<entry key="performCertificateExpiration" value="true" />
+				<entry key="performCertificateRevocation" value="true" />
+				<entry key="performCertificateReliability" value="true" />
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="CRL_UTIL" class="it.eng.utility.cryptosigner.data.CRLUtil" scope="prototype">
+		<property name="timeout">
+			<value>${timeout:}</value>
+		</property> 
+	</bean>
+
+	<bean id="CAUpdateJob" class="it.eng.utility.cryptosigner.job.UpdateCAJob">
+		<property name="active">
+			<value type="java.lang.Boolean">${scheduleCAUpdate:}</value>
+		</property>
+	</bean>
+
+	<bean id="runCAUpdateJob"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="CAUpdateJob" />
+		<property name="targetMethod" value="updateCA" />
+		<property name="concurrent" value="false" />
+	</bean>
+
+	<bean id="cronCAUpdateTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="runCAUpdateJob" />
+		<!-- run every morning at 6 AM 0 0 6 * * ? -->
+		<property name="cronExpression" value="${updateCAJob.cronExpression:}" />
+	</bean>
+	
+	<!-- <bean id="CARevokeJob" class="it.eng.utility.cryptosigner.job.RevokeCAJob">
+		<property name="active">
+			<value type="java.lang.Boolean">${scheduleCARevoke:}</value>
+		</property>
+	</bean>-->
+
+	<!-- <bean id="runCARevokeJob"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="CARevokeJob" />
+		<property name="targetMethod" value="verifyRevokeCA" />
+		<property name="concurrent" value="false" />
+	</bean> -->
+
+	<!-- <bean id="cronCARevokeTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="runCARevokeJob" />
+		<property name="cronExpression" value="${revokeJob.cronExpression:}" />
+	</bean> -->
+
+	<!--<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="jobDetails">
+			<list>
+				<ref bean="runCAUpdateJob" />
+		</list>
+		</property>
+
+		<property name="triggers">
+			<list>
+				<ref bean="cronCAUpdateTrigger" />
+				 <ref bean="cronCARevokeTrigger" /> 
+			</list>
+		</property>
+	</bean>-->
+	
+</beans>

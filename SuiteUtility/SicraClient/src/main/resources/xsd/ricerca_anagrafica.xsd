@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://sicraweb/RicercaAnagrafica"
+	elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xsd:element name="richiesta">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element minOccurs="0" name="codice" type="xsd:long">
+					<xsd:annotation>
+						<xsd:documentation>Codice identificativo dell'anagrafica
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element minOccurs="0" name="stringa_ricerca">
+					<xsd:annotation>
+						<xsd:documentation>Filtra sul nominativo e sulla ragione sociale
+							(anche su stringa parziale)
+						</xsd:documentation>
+					</xsd:annotation>
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:string">
+							<xsd:minLength value="3" />
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+				<xsd:element minOccurs="0" name="applicazione"
+					type="xsd:string" />
+				<xsd:element minOccurs="0" name="codice_trasco"
+					type="xsd:string" />
+				<xsd:element minOccurs="0" name="num_max_risultati"
+					type="xsd:integer">
+					<xsd:annotation>
+						<xsd:documentation>Se presente indica il numero massimo di
+							risultati da restituire
+							per la chiamata
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element minOccurs="0" name="codice_fiscale">
+					<xsd:annotation>
+						<xsd:documentation>Ricerca sul codice fiscale (anche su stringa
+							parziale)</xsd:documentation>
+					</xsd:annotation>
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:string">
+							<xsd:minLength value="3" />
+							<xsd:maxLength value="16" />
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+				<xsd:element minOccurs="0" name="partita_iva">
+					<xsd:annotation>
+						<xsd:documentation>Ricerca sulla partita iva (anche su stringa
+							parziale)</xsd:documentation>
+					</xsd:annotation>
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:string">
+							<xsd:minLength value="3" />
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+				<xsd:element minOccurs="0" name="escludi_da_bonificare"
+					maxOccurs="1">
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:integer">
+							<xsd:enumeration value="0">
+								<xsd:annotation>
+									<xsd:documentation>Non applica il filtro (DEFAULT se non
+										indicato)</xsd:documentation>
+								</xsd:annotation>
+							</xsd:enumeration>
+							<xsd:enumeration value="1">
+								<xsd:annotation>
+									<xsd:documentation>Esclude le anagrafiche marcate come "DA
+										BONIFICARE"
+										in Sicr@Web
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:enumeration>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+				<xsd:element minOccurs="0"
+					name="escludi_nominativo_falso" maxOccurs="1">
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:integer">
+							<xsd:enumeration value="0">
+								<xsd:annotation>
+									<xsd:documentation>Non applica il filtro (DEFAULT se non
+										indicato)</xsd:documentation>
+								</xsd:annotation>
+							</xsd:enumeration>
+							<xsd:enumeration value="1">
+								<xsd:annotation>
+									<xsd:documentation>Esclude le anagrafiche marcate come
+										"NOMINATIVO FALSO" in Sicr@Web
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:enumeration>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+				<xsd:element minOccurs="0"
+					name="escludi_soggetto_irriconoscibile" maxOccurs="1">
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:integer">
+							<xsd:enumeration value="0">
+								<xsd:annotation>
+									<xsd:documentation>Non applica il filtro (DEFAULT se non
+										indicato)</xsd:documentation>
+								</xsd:annotation>
+							</xsd:enumeration>
+							<xsd:enumeration value="1">
+								<xsd:annotation>
+									<xsd:documentation>Esclude le anagrafiche marcate come
+										"IRRICONOSCIBILE" in Sicr@Web
+									</xsd:documentation>
+								</xsd:annotation>
+							</xsd:enumeration>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+				<xsd:element minOccurs="0" name="data_fine_attivita"
+					type="xsd:date" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="risultato">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="esito">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="tipo">
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:string">
+										<xsd:enumeration value="OK" />
+										<xsd:enumeration value="ERR" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="descrizione" type="xsd:string" />
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="lista_anagrafiche">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element maxOccurs="unbounded" minOccurs="0"
+								name="anagrafica">
+								<xsd:complexType>
+									<xsd:sequence>
+										<xsd:element name="pkid" type="xsd:integer" />
+										<xsd:element name="rag_sociale" type="xsd:string" />
+										<xsd:element minOccurs="0" name="cf"
+											type="xsd:string" />
+										<xsd:element minOccurs="0" name="piva"
+											type="xsd:string" />
+										<xsd:element maxOccurs="1" minOccurs="0"
+											name="residenza">
+											<xsd:complexType>
+												<xsd:sequence>
+													<xsd:element maxOccurs="1" minOccurs="0"
+														name="comune" type="xsd:string" />
+													<xsd:element maxOccurs="1" minOccurs="0"
+														name="cap" type="xsd:string" />
+													<xsd:element maxOccurs="1" minOccurs="0"
+														name="sigla_provincia" type="xsd:string" />
+													<xsd:element maxOccurs="1" minOccurs="0"
+														name="specie" type="xsd:string" />
+													<xsd:element maxOccurs="1" minOccurs="0"
+														name="area" type="xsd:string" />
+													<xsd:element maxOccurs="1" minOccurs="0"
+														name="civico" type="xsd:string" />
+													<xsd:element maxOccurs="1" minOccurs="0"
+														name="email" type="xsd:string" />
+													<xsd:element maxOccurs="1" minOccurs="0"
+														name="telefono" type="xsd:string" />
+													<xsd:element maxOccurs="1" minOccurs="0"
+														name="cellulare" type="xsd:string" />
+													<xsd:element maxOccurs="1" minOccurs="0"
+														name="lettera" type="xsd:string" />
+													<xsd:element maxOccurs="1" minOccurs="0"
+														name="corte" type="xsd:string" />
+													<xsd:element maxOccurs="1" minOccurs="0"
+														name="scala" type="xsd:string" />
+													<xsd:element maxOccurs="1" minOccurs="0"
+														name="interno" type="xsd:string" />
+													<xsd:element maxOccurs="1" minOccurs="0"
+														name="piano" type="xsd:string" />
+												</xsd:sequence>
+											</xsd:complexType>
+										</xsd:element>
+										<xsd:element maxOccurs="1" minOccurs="0"
+											name="rif_import">
+											<xsd:complexType>
+												<xsd:sequence>
+													<xsd:element maxOccurs="unbounded"
+														minOccurs="0" name="codici">
+														<xsd:complexType>
+															<xsd:sequence>
+																<xsd:element name="applicazione"
+																	type="xsd:string" />
+																<xsd:element name="codice_trasco"
+																	type="xsd:string" />
+															</xsd:sequence>
+														</xsd:complexType>
+													</xsd:element>
+												</xsd:sequence>
+											</xsd:complexType>
+										</xsd:element>
+										<xsd:element maxOccurs="1" minOccurs="0"
+											name="da_bonificare">
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:integer">
+													<xsd:enumeration value="0">
+														<xsd:annotation>
+															<xsd:documentation>FALSO</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="1">
+														<xsd:annotation>
+															<xsd:documentation>VERO</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element maxOccurs="1" minOccurs="0"
+											name="nominativo_falso">
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:integer">
+													<xsd:enumeration value="0">
+														<xsd:annotation>
+															<xsd:documentation>FALSO</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="1">
+														<xsd:annotation>
+															<xsd:documentation>VERO</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element maxOccurs="1" minOccurs="0"
+											name="irriconoscibile">
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:integer">
+													<xsd:enumeration value="0">
+														<xsd:annotation>
+															<xsd:documentation>FALSO</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="1">
+														<xsd:annotation>
+															<xsd:documentation>VERO</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element maxOccurs="1" minOccurs="0"
+											name="data_fine_attivita" type="xsd:date" />
+										<xsd:element maxOccurs="1" minOccurs="0"
+											name="nome" type="xsd:string" />
+										<xsd:element maxOccurs="1" minOccurs="0"
+											name="cognome" type="xsd:string" />
+										<xsd:element name="forme_pagamento">
+											<xsd:complexType>
+												<xsd:sequence>
+													<xsd:element maxOccurs="unbounded"
+														minOccurs="0" name="forma_pagamento">
+														<xsd:complexType>
+															<xsd:sequence>
+																<xsd:element name="codice"
+																	type="xsd:integer">
+																	<xsd:annotation>
+																		<xsd:documentation>Codifica utente della forma
+																			di pagamento
+																		</xsd:documentation>
+																	</xsd:annotation>
+																</xsd:element>
+																<xsd:element name="descrizione"
+																	type="xsd:string" />
+																<xsd:element minOccurs="0"
+																	name="codice_tipo_pagamento" type="xsd:string">
+																	<xsd:annotation>
+																		<xsd:documentation>Codice identificativo del tipo
+																			pagamento
+																			come indicato nal tracciato FatturaPA
+																		</xsd:documentation>
+																	</xsd:annotation>
+																</xsd:element>
+																<xsd:element minOccurs="0" name="iban"
+																	type="xsd:string" />
+																<xsd:element minOccurs="0" name="bic_swift"
+																	type="xsd:string" />
+															</xsd:sequence>
+														</xsd:complexType>
+													</xsd:element>
+												</xsd:sequence>
+											</xsd:complexType>
+										</xsd:element>
+									</xsd:sequence>
+								</xsd:complexType>
+							</xsd:element>
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+</xsd:schema>

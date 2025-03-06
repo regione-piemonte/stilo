@@ -1,0 +1,189 @@
+package eng.database.modal;
+import it.eng.dbpoolmanager.DBPoolManager;
+
+import com.engiweb.mcframework.kernel.*;
+
+public abstract class EngConnectionForSelection implements eng.database.definition.SQLTransaction
+{
+    protected java.sql.Connection con = null;
+    protected DBManager dbMan = null;
+    protected int idComune = -1;
+    protected String idComuneStr = "";
+
+    //ghf 01/11/2003
+    protected EngConnectionForSelection(int nIdComune) throws eng.database.exception.EngSqlNoApplException
+    {
+        idComune = nIdComune;
+    }
+    
+    // MRK 13/12/2007
+    protected EngConnectionForSelection(String nIdComune) throws eng.database.exception.EngSqlNoApplException
+    {
+    	idComuneStr = nIdComune;
+    }
+
+    protected EngConnectionForSelection() throws eng.database.exception.EngSqlNoApplException
+    {
+      //ghf 01/11/2003
+      /*
+      try
+      {
+        con=DataBaseConnection.getDataBaseConnection();
+      }
+      catch (Exception e)
+      {
+        throw new eng.database.exception.EngSqlNoApplException (e.getMessage());
+      }
+      */
+      //ghf 01/11/2003
+      idComune = -1;
+    }
+
+//DEBUG:WRONG:BSEO:BEGIN
+    protected EngConnectionForSelection(boolean debug) throws eng.database.exception.EngSqlNoApplException
+    {
+		con=null;
+    }
+//DEBUG:WRONG:BSEO:END
+
+
+	public void commit() throws eng.database.exception.EngSqlNoApplException
+	{
+		try {
+		   con.commit();
+		}catch(java.sql.SQLException sqle){
+		   throw new eng.database.exception.EngSqlNoApplException("Engineering. Command SQL = commit. Exception=" + sqle.getMessage());
+		}
+	}
+
+	public void rollback()  throws eng.database.exception.EngSqlNoApplException
+	{
+		try {
+		   con.rollback();
+		}catch(java.sql.SQLException sqle){
+		   throw new eng.database.exception.EngSqlNoApplException("Engineering. Command SQL = rollback. Exception=" + sqle.getMessage());
+		}
+
+	}
+
+
+        //ghf 01/11/2003
+        public void getPooledConnection() throws eng.database.exception.EngSqlNoApplException
+	{
+        	// Opero in maniera diversa a seconda del dbmanager utilizzato
+        	if (isDbPoolActive())
+        	{
+	        	try
+	            {
+	                // ricava la connessione dal DBMANAGERPOOL
+	                con = DBPoolManager.createDBPoolManagerConnection(idComuneStr);
+	            }
+	            catch (Exception e)
+	            {
+	              // rilascio la connessione
+	              if (con != null)
+	              {
+	                 try
+	                 {
+	                	 con.close();
+	                 }
+	                 catch(Exception e1)
+	                 {
+	                    throw new eng.database.exception.EngSqlNoApplException (e1.getMessage());
+	                 }
+	              }
+	              throw new eng.database.exception.EngSqlNoApplException (e.getMessage());
+	            }
+        	}
+        	else
+        	{
+        		try
+	            {
+	                // PROVA AD ISTANZIARE IL DBMANAGER
+	                dbMan = DBManager.createDBManager(idComune);
+	                // ricava la connessione dal DBMANAGER
+	                con = dbMan.getConnection();
+	            }
+	            catch (Exception e)
+	            {
+	              // se il dbmanager e' stato istanziato, allora devo rilasciare la connessione
+	              if (dbMan != null)
+	              {
+	                 try
+	                 {
+	                    //rilascio la connessione
+	                    dbMan.closeConnection();
+	                    // solo per debug. Visualizzo quante connessioni sono in uso
+	                    DBManager.showAllConnections();
+	                    // solo per scrupolo...
+	                    con = null;
+	                    dbMan = null;
+	                 }
+	                 catch(Exception e1)
+	                 {
+	                    throw new eng.database.exception.EngSqlNoApplException (e1.getMessage());
+	                 }
+	              }
+	              throw new eng.database.exception.EngSqlNoApplException (e.getMessage());
+	            }
+        	}
+
+	}
+
+        //ghf 01/11/2003
+	public void releasePooledConnection()  throws eng.database.exception.EngSqlNoApplException
+	{
+		// Opero in maniera diversa a seconda del dbmanager utilizzato
+    	if (isDbPoolActive())
+    	{  
+    		// rilascio la connessione
+            if (con != null)
+            {
+               try
+               {
+              	 con.close();
+               }
+               catch(Exception e)
+               {
+                  throw new eng.database.exception.EngSqlNoApplException (e.getMessage());
+               }
+            }
+    	}
+    	else
+    	{
+    		if (dbMan != null)
+	          {
+	              try
+	              {
+	                //con.rollback();
+	
+	                //rilascio la connessione
+	                dbMan.closeConnection();
+	                // solo per debug. Visualizzo quante connessioni sono in uso
+	                DBManager.showAllConnections();
+	                // solo per scrupolo...
+	                con = null;
+	                dbMan = null;
+	              }
+	              catch(Exception e)
+	              {
+	                 throw new eng.database.exception.EngSqlNoApplException("Engineering. Fallito rilascio connessione al DBManager. Exception=" + e.getMessage());
+	              }
+	          }
+    	}
+       }
+  public int getIdComune() {
+    return idComune;
+  }
+  public void setIdComune(int idComune) {
+    this.idComune = idComune;
+  }
+  
+  private boolean isDbPoolActive()
+  {
+	  boolean res = false;
+	  // Se idComuneStr è valorizzato, allora sto usando la nuova vesrione del DbManager
+	  if (!idComuneStr.equals("")) res = true;
+	  return res;
+  }
+}

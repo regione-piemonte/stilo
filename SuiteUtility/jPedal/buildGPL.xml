@@ -1,0 +1,156 @@
+<project name="jpedal" default="build" basedir=".">
+
+	<!-- ===================== Initialize Property Values =================== -->
+	<property name="build.compiler"   value="modern"/>
+	<property name="build.dir"        location="build"/>
+	<property name="example.dir"        location="example"/>
+	<!-- the directory where your additional jar files are-->
+	<property name="lib.dir"          location="lib"/>
+	<property name="libbc.dir"          location="libbc"/>
+	
+	<property name="dist.dir"         location="dist"/>
+	<property name="src.dir"          value="src"/>
+	<property name="bin.dir"          value="bin"/>
+	<property name="api.dir"          value="javadoc"/>
+	<property name="user.real"        value="${user.name}"/>
+	<property name="example_javadocs.dir"   value="example_javadocs"/>
+	<property name="debug"            value="off"/>
+	<property name="deprecation="     value="off"/>
+	<property name="optimize="        value="off"/>
+	<property name="classpath"        value="."/>
+	<property name="jpedal.jar"       value="os_jpedal.jar"/>
+
+
+	<!-- =================== INITIALIZE: =================================== -->
+	<target name="init" depends="">
+
+		<delete dir="${build.dir}"/>
+		<delete dir="${dist.dir}"/>
+		<delete dir="${api.dir}" />
+		<delete dir="${example_javadocs.dir}" />
+		<delete dir="examples" />
+		<delete dir="javadoc" />
+
+		<!-- useful if you want to add if constructs into build.xml
+			<taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+		-->
+
+		<mkdir dir="${dist.dir}"/>
+		<mkdir dir="${build.dir}"/>
+		<mkdir dir="${build.dir}/${bin.dir}"/>
+		<tstamp/>
+
+	</target>
+
+	<!-- ================ BUILD: Copy res Files ========================== -->
+	<target name="copy-res" depends="compile">
+		<copy todir="${build.dir}/${bin.dir}">
+			<fileset dir="${src.dir}">
+				<include name="**/**/res/**"/>
+				<include name="*.properties"/>
+				<exclude name="**/*~"/>
+				<include name="**/international/*.properties" />
+				<include name="**/*.gif"/>
+				<include name="**/*.txt"/>
+				<exclude name="**/*.class"/>
+				<exclude name="**/*.xslt"/>
+				<exclude name="**/*.java"/>
+				<include name="**/examples/**/*.gif"/>
+				<include name="**/examples/**/**/*.gif"/>
+				<exclude name="**/.~[0-9]+~"/>
+			</fileset>
+		</copy>
+
+	</target>
+
+	<!-- ================ BUILD: Copy source Files ========================== -->
+	<target name="copy-src" depends="init">
+
+		<copy todir="${build.dir}/${src.dir}">
+			<fileset dir="${src.dir}">
+			</fileset>
+		</copy>
+
+	</target>
+
+	<!-- ======================= COMPILE: compile source ===================== -->
+	<target name="compile" depends="init,copy-src">
+
+		<javac srcdir="${build.dir}/${src.dir}" destdir="${build.dir}/${bin.dir}" >
+			<classpath>
+				<pathelement location="${lib.dir}/jai_codec.jar" />
+				<pathelement location="${lib.dir}/jai_core.jar" />
+				<pathelement location="${lib.dir}/jai_imageio_idrsolutionsBuild.jar" />
+				<pathelement location="${lib.dir}/js.jar" />
+				<pathelement location="${lib.dir}/l2fprod-common-7.3-20070317.jar" />
+				<pathelement location="${lib.dir}/j3dcore.jar" />
+				<pathelement location="${lib.dir}/j3dutils.jar" />
+				<pathelement location="${lib.dir}/vecmath.jar" />
+				<pathelement location="${lib.dir}/jaxp-ri.jar" />
+				<pathelement location="${lib.dir}/commons-io-2.3.jar" />
+				<pathelement location="${lib.dir}/commons-configuration-1.9.jar" />
+				<pathelement location="${lib.dir}/commons-lang-2.6.jar" />
+				<pathelement location="${lib.dir}/commons-logging-1.1.1.jar" />
+				<pathelement location="${lib.dir}/commons-codec-1.6.jar" />
+				<pathelement location="${lib.dir}/axis-1.4.jar" />
+				<pathelement location="${lib.dir}/velocity-1.7.jar" />
+				<pathelement location="${lib.dir}/commons-collections-3.1.jar" />
+				<pathelement location="${lib.dir}/commons-lang3-3.1.jar" />
+				<pathelement location="${lib.dir}/commons-io-2.3.jar" />
+				
+				<pathelement location="${lib.dir}/itextpdf-5.4.0.jar" />
+				
+				<pathelement location="${libbc.dir}/bcmail-jdk15on-1.48.jar" />
+				<pathelement location="${libbc.dir}/bcprov-jdk15on-1.48.jar" />
+				<pathelement location="${libbc.dir}/bcpkix-jdk15on-1.48.jar" />
+				
+				<pathelement location="${lib.dir}/commons-httpclient-3.1.jar" />
+				<pathelement location="${lib.dir}/wsClient.jar" />
+				<pathelement location="${lib.dir}/plugin.jar" />
+			</classpath>
+		</javac>
+	</target>
+
+	<!-- ================== DIST: Create .jar file and flush code=================== -->
+	<target name="jar" depends="init,copy-res,compile">
+
+		<!-- build the jar -->
+		<jar destfile="${dist.dir}/${jpedal.jar}" index="true" basedir="${build.dir}/${bin.dir}">
+			<!--zipgroupfileset dir="${lib.dir}" includes="*.jar" /--> 
+			<manifest>
+				<attribute name="Built-By" value="${user.real}" />
+				<attribute name="Main-Class" value="org.jpedal.examples.viewer.Viewer" />
+			</manifest>
+		</jar>
+		<!--
+		<signjar destDir="${dist.dir}"
+				    alias="ks" keystore="keystore"
+				    storepass="test01"
+				    preservelastmodified="true">
+				  <path>
+				    <fileset dir="${dist.dir}" includes="**/*.jar" />
+				  	 
+				  </path>
+				  <flattenmapper />
+				</signjar>
+			-->
+	</target>
+	<target name="sign" depends="jar">
+		<signjar destDir="${dist.dir}"
+						    alias="tstkey" keystore="tstkey.jks"
+						    storepass="test01"
+						    preservelastmodified="false"
+							verbose="false">
+						  <path>
+						    <fileset dir="${dist.dir}" includes="**/*.jar" />
+						  	<fileset dir="${lib.dir}" includes="**/*.jar" />
+						  </path>
+						  <flattenmapper />
+		 </signjar>
+	</target>
+	<!-- ================== DIST: create a build =================== -->
+	<target name="buildFirmato" depends="sign">
+	</target>
+	<target name="build" depends="jar">
+		</target>
+</project>

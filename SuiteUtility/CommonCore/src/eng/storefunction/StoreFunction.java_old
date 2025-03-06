@@ -1,0 +1,750 @@
+package eng.storefunction;
+
+import java.sql.CallableStatement;
+import java.sql.Clob;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.text.DecimalFormat;
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
+import java.util.Iterator;
+import java.util.Vector;
+
+import javax.servlet.http.HttpServletRequest;
+
+import oracle.sql.ARRAY;
+import oracle.sql.CLOB;
+import eng.database.exception.EngSqlNoApplException;
+import eng.database.modal.EngResultSet;
+import eng.util.XMLUtil;
+
+public class StoreFunction  extends  eng.util.Properties
+{
+  /**
+	 * 
+	 */
+	private static final long serialVersionUID = -5460509444665956471L;
+private static  final String            DATE_FORMAT_PATTERN = "dd/MM/yyyy"; //ATTENZIONE! Questo pattern deve essere definito cosi' come richiesto dalla classe java.text.SimpleDateFormat
+  private static  final SimpleDateFormat  DATE_FORMAT_SIMPLE  = new SimpleDateFormat(DATE_FORMAT_PATTERN);
+
+  private         final Vector      parameters;
+  private         final String      functionName;
+  private         final boolean     isFunction;
+  private         final String      messageSuccess;
+  private         final String      urlRedirect;
+  private         final Action      actionSuccess;
+  private         final Action      actionErrorApplicative;
+  private         final Action      actionErrorSystem;
+
+  private               String      sqlCommand = "";
+
+  public  StoreFunction(String  functionName, boolean isFunction, String  messageSuccess, Parameter[] parameters)
+  {
+    this(functionName, isFunction, messageSuccess, null, null, null, null, parameters);
+  }
+
+  public  StoreFunction(String  functionName, boolean isFunction, String  messageSuccess,  String urlRedirect, Parameter[] parameters)
+  {
+    this(functionName, isFunction, messageSuccess, urlRedirect, null, null, null, parameters);
+  }
+
+  public  StoreFunction(String  functionName, Action actionSuccess, Action actionErrorApplicative, Action actionErrorSystem, Parameter[] parameters)
+  {
+    this(functionName, parameters.length > 0 && parameters[0] instanceof ReturnCode, null, null, actionSuccess, actionErrorApplicative, actionErrorSystem, parameters);
+  }
+
+  public  StoreFunction(String  functionName, boolean isFunction, String  messageSuccess, String urlRedirect, Action actionSuccess, Action actionErrorApplicative, Action actionErrorSystem, Parameter[] parameters)
+  {
+    this.functionName           = functionName;
+    this.isFunction             = isFunction;
+    this.messageSuccess         = messageSuccess;
+    this.urlRedirect            = urlRedirect;
+    this.actionSuccess          = actionSuccess;
+    this.actionErrorApplicative = actionErrorApplicative;
+    this.actionErrorSystem      = actionErrorSystem;
+    this.parameters      = new Vector();
+
+    for(int i=0; i<parameters.length; i++)
+    {
+      addParameter(parameters[i]);
+    }
+  }
+
+  public void addParameter(Parameter parameter)
+  {
+    parameters.add(parameter);
+  }
+
+  public void createOutputInRequest(eng.servlet.Commarea commarea, HttpServletRequest request)
+                throws EngSqlNoApplException
+  {
+    Iterator  it = commarea.getParametersIterator();
+    Parameter p;
+
+    while(it.hasNext())
+    {
+      p = (Parameter)it.next();
+      if (p.isModeInOut() || p.isModeOut())
+      {
+        String name = p.getName();
+
+        if (name != null)
+        {
+          if (p instanceof HttpPrimitive)
+          {
+        	  request.setAttribute(name, p.getValuePrimitive());
+          }
+          else if (p instanceof HttpArray)
+          {
+            EngResultSet result = new EngResultSet();
+            if (p.getValueArray() != null)
+            {
+              Iterator lines = p.getValueArray().iterator();
+              String line;
+
+              int cline = 0;
+              while (lines.hasNext()) {
+                line = (String) lines.next();
+                Vector columns = ( (HttpArray) p).makeColumns(line);
+                for (int i = 0; i < columns.size(); i++) {
+                  result.addColumn( (String) columns.elementAt(i));
+                }
+                result.addRow();
+                cline++;
+              }
+            }
+            request.setAttribute(name, result);
+          }
+          
+          /**
+           * Antonio 11/09/2006
+           * aggiunto HttpClob
+           */
+
+          else if (p instanceof HttpClob)
+          {
+              EngResultSet result = new EngResultSet();
+              if (p.getValueArray() != null)
+              {
+                Iterator lines = p.getValueArray().iterator();
+
+                int cline = 0;
+                while (lines.hasNext()) {
+                  String[] line = (String[]) lines.next();
+//                  Vector columns = ( (HttpClob) p).makeColumns(line);
+                  for (int i = 0; i < line.length; i++) {
+                    result.addColumn( line[i]);
+                	//result.addColumn( eng.util.XMLUtil.xmlEscape((String) columns.elementAt(i),1));
+                  }
+                  result.addRow();
+                  cline++;
+                }
+              }
+              request.setAttribute(name, result);
+          }
+          else
+          {
+            throw new EngSqlNoApplException("Tipo parametro illogico." + p + ".");
+          }
+        }
+      }
+    }
+  }
+
+  public  Action    getActionSuccess()
+  {
+    return  actionSuccess;
+  }
+
+  public  Action    getActionErrorApplicative()
+  {
+    return  actionErrorApplicative;
+  }
+
+  public  Action    getActionErrorSystem()
+  {
+    return  actionErrorSystem;
+  }
+
+  public  int       getParametersNumber()
+  {
+    return parameters.size();
+  }
+
+  public  Parameter getParameter(int index)
+  {
+    return (Parameter)parameters.elementAt(index);
+  }
+
+  public  int getParameterIndex(Class classParameterSearched)
+  {
+    Parameter p = null;
+
+    for (int i=0; i<parameters.size(); i++)
+    {
+      p = (Parameter)parameters.elementAt(i);
+      if (p.getClass() == classParameterSearched)
+      {
+        return i;
+      }
+    }
+
+    return -1;
+  }
+
+  public  String    getFunctionName()
+  {
+    return functionName;
+  }
+
+  public  String    getMessageSuccess()
+  {
+    return messageSuccess;
+  }
+
+  public  String    getSqlCommand()
+  {
+    return sqlCommand;
+  }
+
+  public  String    getUrlRedirect()
+  {
+    return  urlRedirect;
+  }
+
+  public  boolean   isFunction()
+  {
+    return isFunction;
+  }
+
+  public  boolean   isInErrorApplicative(eng.servlet.Commarea commarea, CallableStatement statement)
+  {
+    try
+    {
+      ReturnCode  returnCode     = (ReturnCode)commarea.getParameter(  getParameterIndex(ReturnCode.class) );
+      if (returnCode != null)
+      {
+        if (statement.getInt(returnCode.getPosition()) == 0)
+        {
+          return  true;
+        }
+      }
+      else
+      {
+        ErrorCode  errorCode     = (ErrorCode)commarea.getParameter(  getParameterIndex(ErrorCode.class) );
+        if (errorCode != null)
+        {
+          if (statement.getInt(errorCode.getPosition()) != 0)
+          {
+            return  true;
+          }
+        }
+      }
+    }
+    catch(SQLException ex)
+    {
+      return  true;
+    }
+
+    return  false;
+  }
+
+/*
+ * Metodo per la preparazione della stringa che invoca la stored procedure
+ * Es. "{call ? := DDPK_STAMPE.generadocumento(?,?,?,?,?,?,?,?,?,?)}"
+ */
+  private String makeSql()
+  {
+    StringBuffer  sql = new StringBuffer();
+
+    int questionMarksNumber = this.getParametersNumber();
+
+    sql.append("{call ");
+    if (this.isFunction())
+    {
+       sql.append("? := ");
+      questionMarksNumber--;
+    }
+
+    sql.append(this.getFunctionName() + " (");
+
+    for(int i=0; i<questionMarksNumber - 1; i++)
+    {
+      sql.append("?,");
+    }
+    sql.append("?)");
+    sql.append("}");
+
+    return sql.toString();
+  }
+
+  /*
+   * Prepara la chiamata alla stored procedure creando la stringa di chiamata e 
+   * aggiungendo tutti i parametri con relative proprietà di input o uotput
+   */
+  public  CallableStatement makeCallableStatement(eng.servlet.Commarea commarea, Connection connection)
+                            throws  SQLException, EngSqlNoApplException
+  {
+    CallableStatement   cs;
+    Parameter           p;
+    int                 pos;
+    String              sqlCommand;
+
+    sqlCommand = makeSql();
+
+    cs = connection.prepareCall(sqlCommand);
+
+    // si cicla su tutti i paraemtri da passare alla stored
+    for(int i=0; i<this.getParametersNumber(); i++)
+    {
+      p = commarea.getParameter(i);
+      pos = p.getPosition();
+
+      // se è un parametro di INPUT
+      if (p.isModeIn())
+      {
+        if (p.isValueNull())
+        {
+          cs.setNull(pos, p.getType());
+        }
+        else
+        {
+          if (p.isPrimitive())
+          {
+
+            String  value = p.getValuePrimitive();
+
+            switch(p.getType())
+            {
+              case(Types.INTEGER):
+                if (value.indexOf(".") >= 0) { value = eng.util.XMLUtil.string_replace(".","",value);  }
+                if (value.indexOf(",") >= 0) { value = eng.util.XMLUtil.string_replace(",",".",value); }
+                cs.setInt(pos, Integer.parseInt(value));
+                break;
+              case(Types. NUMERIC):
+                if (value.indexOf(".") >= 0) { value = eng.util.XMLUtil.string_replace(".","",value);  }
+                if (value.indexOf(",") >= 0) { value = eng.util.XMLUtil.string_replace(",",".",value); }
+                cs.setDouble(pos, Double.parseDouble(value));
+                break;
+              case(Types.TIMESTAMP):
+
+                  SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.ITALY);
+                  boolean converted = false;
+                  java.util.Date date = null;
+                  try {
+                      if (!converted) {
+                            sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.ITALY);
+                            date = sdf.parse( value );
+                            converted = true;
+                      }
+                  } catch (Exception ex) {  }
+                  try {
+                      if (!converted) {
+                            sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.ITALY);
+                            date = sdf.parse( value );
+                            converted = true;
+                      }
+                  } catch (Exception ex) {  }
+                  try {
+                      if (!converted) {
+                            sdf = new SimpleDateFormat("dd/MM/yyyy", java.util.Locale.ITALY);
+                            date =sdf.parse( value );
+                            converted = true;
+                      }
+                  } catch (Exception ex) {  }
+
+                  if (converted)
+                  {
+                      cs.setTimestamp(pos, new java.sql.Timestamp( date.getTime()  ));
+                  }
+                  else
+                  {
+                      throw new EngSqlNoApplException("Errore. Il TImeStamp alla posizione "+pos+" non e' in uno dei seguenti formati:\ndd/MM/yyyy hh:mm:ss\ndd/MM/yyyy hh:mm\ndd/MM/yyyy");
+                  }
+
+                break;
+              case(Types.DECIMAL):
+                // Strippiamo via i punti e mettiamo le virgole...
+                if (value.indexOf(".") >= 0) { value = XMLUtil.string_replace(".","",value);  }
+                if (value.indexOf(",") >= 0) { value = XMLUtil.string_replace(",",".",value); }
+
+                cs.setDouble(pos, Double.parseDouble(value));
+                break;
+              case(Types.VARCHAR):
+                cs.setString(pos, value);
+                break;
+              case(Types.DATE):
+
+                cs.setDate(pos, new java.sql.Date(DATE_FORMAT_SIMPLE.parse(value, new ParsePosition(0)).getTime()));
+                break;
+              default:
+                throw new EngSqlNoApplException("Errore interno (111)");
+            }
+          }
+          else if (p.isArray())
+          {
+
+            {
+
+              Vector v = p.getValueArray();
+
+		for (int xi =0; xi < v.size(); ++xi)
+	    {
+	    	System.out.println(v.elementAt(xi)+"");
+	    	System.out.flush();
+	    }
+
+              ARRAY ar = HttpArray.makeARRAY(connection, v);
+
+              cs.setArray(pos, ar);
+
+            }
+            cs.setArray(pos, HttpArray.makeARRAY(connection, p.getValueArray()));
+
+          }
+          
+          else if (p.getType()==Types.CLOB)
+          {
+        	  if (p instanceof HttpClob)
+        	  {
+	        	  Vector v = p.getValueArray();
+	              for (int xi =0; xi < v.size(); ++xi)
+	              {
+	            	  System.out.println("StoreFunction.makeCallableStatement:case CLOB" + v.elementAt(xi)+"");
+	            	  System.out.flush();
+	              }
+	              cs.setClob(pos, HttpClob.makeCLOB(connection, p.getValueArray()));
+        	  }
+        	  else if (p instanceof SezioneCacheClob)
+        	  {
+	              cs.setClob(pos, SezioneCacheClob.makeCLOB(connection, p.getValueSezioneCache()));
+        	  }
+          }
+         else
+          {
+            throw new EngSqlNoApplException("Errore interno (101)");
+          }
+        }
+      }
+
+      // se e' un parametro di OUTPUT
+      else if (p.isModeOut())
+      {
+        if (p.isPrimitive())
+        {
+
+          cs.registerOutParameter(pos, p.getType());
+        }
+        else if (p.isArray())
+        {
+            cs.registerOutParameter(pos, Types.ARRAY, HttpArray.getArrayDescriptorName());
+        }
+        else if (p.getType()==Types.CLOB)
+        {
+        	cs.registerOutParameter(pos, Types.CLOB);
+        }
+        else
+        {
+          throw new EngSqlNoApplException("Errore interno (102)");
+        }
+      }
+      else if (p.isModeInOut())
+      {
+        if (p.isValueNull())
+        {
+
+          cs.setNull(pos, p.getType());
+          cs.registerOutParameter(pos, p.getType());
+        }
+        else
+        {
+          if (p.isPrimitive())
+          {
+
+              String  value = p.getValuePrimitive();
+
+            switch(p.getType())
+            {
+              case(Types.INTEGER):
+                if (value.indexOf(".") >= 0) { value = eng.util.XMLUtil.string_replace(".","",value);  }
+                if (value.indexOf(",") >= 0) { value = eng.util.XMLUtil.string_replace(",",".",value); }
+                cs.setInt(pos, Integer.parseInt(value));
+                break;
+              case(Types. NUMERIC):
+                if (value.indexOf(".") >= 0) { value = eng.util.XMLUtil.string_replace(".","",value);  }
+                if (value.indexOf(",") >= 0) { value = eng.util.XMLUtil.string_replace(",",".",value); }
+                cs.setDouble(pos, Double.parseDouble(value));
+                break;
+              case(Types.DECIMAL):
+                // Strippiamo via i punti e mettiamo le virgole...
+                if (value.indexOf(".") >= 0) { value = eng.util.XMLUtil.string_replace(".","",value);  }
+                if (value.indexOf(",") >= 0) { value = eng.util.XMLUtil.string_replace(",",".",value); }
+
+                cs.setDouble(pos, Double.parseDouble(value));
+                break;
+              case(Types.VARCHAR):
+                cs.setString(pos, value);
+                break;
+                            case(Types.TIMESTAMP):
+
+                  SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.ITALY);
+                  boolean converted = false;
+                  java.util.Date date = null;
+                  try {
+                      if (!converted) {
+                            sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.ITALY);
+                            date = sdf.parse( value );
+                            converted = true;
+                      }
+                  } catch (Exception ex) {  }
+                  try {
+                      if (!converted) {
+                            sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.ITALY);
+                            date = sdf.parse( value );
+                            converted = true;
+                      }
+                  } catch (Exception ex) {  }
+                  try {
+                      if (!converted) {
+                            sdf = new SimpleDateFormat("dd/MM/yyyy", java.util.Locale.ITALY);
+                            date =sdf.parse( value );
+                            converted = true;
+                      }
+                  } catch (Exception ex) {  }
+
+                  if (converted)
+                  {
+                      cs.setTimestamp(pos, new java.sql.Timestamp( date.getTime()  ));
+                  }
+                  else
+                  {
+                      throw new EngSqlNoApplException("Errore. Il TImeStamp alla posizione "+pos+" non e' in uno dei seguenti formati:\ndd/MM/yyyy hh:mm:ss\ndd/MM/yyyy hh:mm\ndd/MM/yyyy");
+                  }
+
+                break;
+              case(Types.DATE):
+
+                  cs.setDate(pos, new java.sql.Date(DATE_FORMAT_SIMPLE.parse(value, new ParsePosition(0)).getTime()));
+                  break;
+                default:
+                  throw new EngSqlNoApplException("Errore interno (113)");
+              }
+
+
+              cs.registerOutParameter(pos, p.getType());
+          }
+          else if (p.isArray())
+          {
+
+
+            Vector v = p.getValueArray();
+
+	    try {
+	    for (int xi =0; xi < v.size(); ++xi)
+	    {
+	    	System.out.println(v.elementAt(xi)+"");
+	    	System.out.flush();
+	    }
+            ARRAY ar = HttpArray.makeARRAY(connection, v);
+
+            cs.setArray(pos, ar);
+            cs.registerOutParameter(pos, Types.ARRAY, HttpArray.getArrayDescriptorName());
+
+           } catch (Exception ex)
+           {
+           	ex.printStackTrace();
+                System.out.flush();
+           }
+          }
+
+          else if (p.getType()==Types.CLOB)
+        	  {
+                   /* GLC: prova di entry point */
+                        Vector v = p.getValueArray();
+                        CLOB cl = HttpClob.makeCLOB(connection, v);
+                   /* GLC: FINE prova di entry point */
+              
+              
+                          Clob javaClob = (Clob)p.getValueArray();
+        		  CLOB oracleCLOB = (CLOB)javaClob;
+        		  try 
+        		  {
+        			  cs.setClob(pos, oracleCLOB);
+        			  cs.registerOutParameter(pos, Types.CLOB);
+        		  } 
+        		  catch (Exception ex)
+        		  {
+        			  ex.printStackTrace();
+        			  System.out.flush();
+        		  }
+        	  }
+        	  else
+        	  {
+        		  throw new EngSqlNoApplException("Errore interno (103) Giulio" + p.getName());
+        	  }
+        	}
+      }
+      else
+      {
+        throw new EngSqlNoApplException("Errore interno (104)");
+      }
+    }
+
+    return cs;
+  }
+
+
+  public  void  updateValuesErrorApplicative(eng.servlet.Commarea commarea,CallableStatement statement)
+                throws SQLException, EngSqlNoApplException
+  {
+      int index = getParameterIndex(ErrorCode.class);
+      if (index >= 0)
+      {
+          Parameter errorCode  = (ErrorCode)commarea.getParameter(  index );
+          errorCode.setValuePrimitive(statement.getString(errorCode.getPosition()));
+      }
+
+      index = getParameterIndex(ErrorMessage.class);
+      if (index >= 0)
+      {
+          Parameter errorMessage  = (ErrorMessage)commarea.getParameter(  index );
+          errorMessage.setValuePrimitive(statement.getString(errorMessage.getPosition()));
+      }
+  }
+
+  public  void  updateValuesParametersOutput(eng.servlet.Commarea commarea,CallableStatement statement)
+                throws SQLException, EngSqlNoApplException
+  {
+    Iterator  it = commarea.getParametersIterator();
+    Parameter p;
+    int       position;
+    String    name;
+    String    value;
+    DecimalFormat df = new DecimalFormat("######.######");
+
+    while(it.hasNext())
+    {
+      p = (Parameter)it.next();
+
+      if (p.isModeInOut() || p.isModeOut())
+      {
+        name = p.getName();
+        position = p.getPosition();
+
+        if (name != null)
+        {
+          if (p instanceof HttpPrimitive)
+          {
+            switch(p.getType())
+            {
+              case(Types.INTEGER):
+
+                value = "" + statement.getInt(position);
+                break;
+              case(Types.NUMERIC):
+
+                value = "" + statement.getLong(position);
+                break;
+              case(Types.DECIMAL):
+            	  try {
+            		  value = df.format(statement.getDouble(position));
+				} catch (Exception e) {
+					value = "";
+					e.printStackTrace();
+				}
+              break;
+              case(Types.VARCHAR):
+                //if ((p.getName()!=null) && ((p.getName().equals(eng.servlet.TableManagerProgress._ERROR_MESSAGE_ATTRIBUTE)) || (p.getName().equals(eng.servlet.TableManagerProgress._WARNING_MESSAGE))) )
+            	  if ((p.getName()!=null) && ((p.getName().equals("ErrorMessage")) || (p.getName().equals("WarningMessage"))))
+				{
+                	value = eng.util.XMLUtil.xmlEscape(statement.getString(position),1);
+				}
+				else
+				{
+					value = statement.getString(position);
+				}
+                break;
+              case(Types.DATE):
+
+                value = DATE_FORMAT_SIMPLE.format(statement.getDate(position)).toString();
+                break;
+              default:
+                throw new EngSqlNoApplException("Errore interno (142)");
+            }
+
+            if (statement.wasNull())
+            {
+              value = null;
+            }
+
+            p.setValuePrimitive(value);
+
+          }
+          else if (p instanceof HttpArray)
+          {
+            Object obj = statement.getArray(position).getArray(); // getArray(position).getArray();
+            String[] strings = (String[])obj; // statement.getArray(position).getArray();
+            Vector v = new Vector();
+            for(int i=0; i<strings.length; i++)
+            {
+              String s = strings[i];
+              v.add(strings[i]);
+            }
+            p.setValueArray(v);
+          }
+          else if (p instanceof HttpClob)
+          {
+                            
+                Clob c = statement.getClob(position);
+                Vector v = new Vector();
+                /*
+                 * Antonio 30/10/2006: se il Clob è nullo allora
+                 * ci deve essere stato un problema prima
+                 */
+                
+                if (c != null && (!isInErrorApplicative(commarea, statement)))
+                {	
+                	try {
+	                	v = HttpClob.getVectorFromClob(c);
+                	}
+                	catch (Exception e) {
+                		e.printStackTrace();
+               			throw new EngSqlNoApplException("Errore durante il l'elaborazione del codice XML");
+					}
+                }
+            	p.setValueArray(v);
+          }
+          else
+          {
+            throw new EngSqlNoApplException("Tipo parametro illogico." + p + ".");
+          }
+        }
+      }
+    }
+  }
+
+  public  String  toString()
+  {
+      StringBuffer  sb = new StringBuffer("(StoreFunction:");
+
+      sb.append(functionName + ","
+                + (isFunction?"function":"procedure")
+                + "," + messageSuccess
+                + "," + urlRedirect
+                + "\n");
+
+      sb.append("(ActionSuccess:" + actionSuccess + ")");
+      sb.append("(ActionErrorApplicative:" + actionErrorApplicative + ")");
+      sb.append("(ActionErrorSystem:" + actionErrorSystem + ")");
+
+      for (int i=0; i<parameters.size(); i++)
+      {
+        sb.append("\n" + parameters.elementAt(i) + ",");
+      }
+      sb.append("\n" + sqlCommand + ",");
+
+      sb.append(")");
+      return  sb.toString();
+  }
+}

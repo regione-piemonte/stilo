@@ -1,0 +1,726 @@
+package eng.util;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.Principal;
+import java.util.Enumeration;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Iterator;
+import java.util.Vector;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletInputStream;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
+import org.apache.commons.fileupload.*;
+import org.apache.commons.fileupload.servlet.*;
+import org.apache.commons.fileupload.disk.*;
+
+
+public class MultipartHttpServletRequest implements HttpServletRequest {
+
+	private boolean isMultiPart;
+	private Hashtable values = null;
+	private Hashtable files = null;
+	private HttpServletRequest l_req = null;
+	
+	public MultipartHttpServletRequest(HttpServletRequest req, String pathUpload) throws FileUploadException, IOException{
+		isMultiPart = ServletFileUpload.isMultipartContent(req);
+		l_req = req;
+		//Posizione files temporanei: parametro nel DB
+		java.io.File temp_dir = new java.io.File(pathUpload);
+		String temp_file_name="";
+		String fileName = "";
+		String pathFileName = "";
+		String extFile = "";
+		String tmpFileNameNoExt = "";
+		int idx = 0;
+		if (isMultiPart){
+			//inizializzo le tables
+			values = new Hashtable();
+			files = new Hashtable();
+			//Devo parsare
+			DiskFileItemFactory factory = new DiskFileItemFactory();
+			//Tutti i file devono essere salvati su disco
+			factory.setSizeThreshold(0);
+			ServletFileUpload upload = new ServletFileUpload(factory);
+			List items = upload.parseRequest(req);
+			//Scarico tutti i parametri nella hashtable
+			Iterator i = items.iterator();
+			DiskFileItem item = null;
+			java.io.File temp_f = null;
+			while(i.hasNext()){
+				item = (DiskFileItem)i.next();
+				if(item.isFormField()){
+					values.put(item.getFieldName(), item.getString());
+				}else{
+					//File, salvo il file nella cartella temporanea, e copio il riferimento al file
+					//Salvataggio in cartella temporanea,solo se il file non è vuoto
+					try{
+						if((temp_f = item.getStoreLocation()).length()>0)
+						{
+							//org.apache.commons.io.FileUtils.copyFileToDirectory(temp_f, temp_dir);
+							//temp_file_name=temp_f.getName();
+							// Estraggo l'estensione del file
+							extFile = "";
+							pathFileName = item.getName()==null?"":item.getName();
+							idx = pathFileName.lastIndexOf(".");
+							if (idx != -1) extFile = pathFileName.substring(idx);
+							// Estraggo il nome del file temporaneo senza estensione
+							tmpFileNameNoExt = temp_f.getName();
+							idx = temp_f.getName().lastIndexOf(".");
+							if (idx != -1) tmpFileNameNoExt = temp_f.getName().substring(0,idx);
+							// Genero il nuovo file nella cartella temporanea
+							fileName = tmpFileNameNoExt + extFile;
+							java.io.File newFile = new File(temp_dir,fileName);
+							org.apache.commons.io.FileUtils.copyFile(temp_f, newFile, true);
+							temp_file_name=fileName;
+						}else{
+							//File vuoto!!!
+							temp_file_name="";
+						}
+					}catch(IOException e){
+						//Impossibile salvare, lancio un'eccezione
+						throw new FileUploadException("MultipartHttpServletRequest: impossibile salvare allegato in cartella temporanea. Errore:" + e.getMessage());
+					}
+					//Salvo il nome del file
+					files.put(item.getFieldName(),new UploadedFile(org.apache.commons.io.FilenameUtils.getName(item.getName()),temp_file_name));
+				}
+				//Pulisco la directory di Apache, elimino gli elementi salvati da questo item
+				item.delete();
+			}
+			
+		}
+	}
+	
+	/**
+     * Method get
+     *
+     * @param name
+     *
+     */
+    public Object get(String name) {
+        Object result = null;
+
+        if (values != null) {
+            result = values.get(name);
+
+            if (result instanceof Vector) {
+                if (((Vector) result).size() == 1) {
+                    return ((Vector) result).elementAt(0);
+                } else {
+                    return result;
+                }
+            }
+        } else {
+            String[] array = l_req.getParameterValues(name);
+            Vector vec = new Vector();
+
+            if (array != null) {
+                for (int i = 0; i < array.length; i++) {
+                    vec.addElement(array[i]);
+                }
+
+                if (vec.size() == 1) {
+                    result = vec.elementAt(0);
+                } else {
+                    result = vec;
+                }
+            }
+        }
+
+        return result;
+    }
+	
+	/**
+     * Method getParameter
+     *
+     * @param name
+     *
+     */
+    public String getParameter(String name) {
+        if (values != null) {
+            Object value = get(name);
+            String result = null;
+    
+            if (value != null) {
+                if (value instanceof Vector) {
+                    value = ((Vector) value).elementAt(0);
+                }
+    
+                result = value.toString();
+            }
+            return result;
+        }else{
+        	return this.l_req.getParameter(name);
+        }
+    }
+    
+    /**
+     * Method getParameterValues
+     *
+     * @param name
+     *
+     */
+    public String[] getParameterValues(String name) {
+	        if (values != null) {
+	            Object value = get(name);
+	
+	            if (value != null) {
+	                if (value instanceof Vector) {
+	                    String[] results = new String[((Vector)value).size()];
+	                    for (int i=0;i<((Vector)value).size();i++) {
+	                        results[i] = ((Vector)value).elementAt(i).toString();
+	                    }
+	                    return results;
+	
+	                } else {
+	                    return new String[]{value.toString()};
+	                }
+	            }
+	
+	            return null;
+	    }else {
+	    	return l_req.getParameterValues(name);
+        }
+    }
+    
+    public Enumeration getFilesEnumeration(){
+    	return files.elements();
+    }
+    
+    public Map getParameterMap() {
+		return values;
+	}
+    
+    /**
+     * Method getParameterNames
+     *
+     */
+    public Enumeration getParameterNames() {
+        if (values != null) {
+            return values.keys();
+        } else {
+            return l_req.getParameterNames();
+        }
+    }
+    
+    public int countFiles(){
+    	if(files!=null){
+    		boolean allEmptyFiles = true;
+    		Enumeration e = files.elements();
+    		java.io.ByteArrayInputStream l_b_stream = null;
+    		while(e.hasMoreElements()){
+    			l_b_stream = (java.io.ByteArrayInputStream)((UploadedFile)e.nextElement()).getInputStream();
+    			allEmptyFiles = allEmptyFiles && l_b_stream.available()==0;
+    		}
+    		if(allEmptyFiles){
+    			return 0;
+    		}else{
+    			return files.size();
+    		}
+    			
+    	}else{
+    		return 0;
+    	}
+    }
+    
+    public HttpServletRequest getUnderlyingRequest(){
+    	
+    	return l_req;
+    }
+    /**
+     * Method getLocalAddr
+     *
+     *
+    public String getLocalAddr() {
+        return l_req.getLocalAddr();
+    }*/
+
+    /**
+     * Method getLocalName
+     *
+     *
+    public String getLocalName() {
+        return l_req.getLocalName();
+    }*/
+    
+    /**
+     * Method getLocalPort
+     *
+     *
+    public int getLocalPort() {
+        return l_req.getLocalPort();
+    }*/
+    
+    /**
+     * Method getRemotePort
+     *
+     *
+    public int getRemotePort() {
+        return l_req.getRemotePort();
+    }*/
+    
+    /**
+     * Method getAttribute
+     *
+     * @param name
+     *
+     */
+    public Object getAttribute(String name) {
+        return l_req.getAttribute(name);
+    }
+
+    /**
+     * Method getAttributeNames
+     *
+     */
+    public Enumeration getAttributeNames() {
+        return l_req.getAttributeNames();
+    }
+
+    /**
+     * Method getCharacterEncoding
+     *
+     */
+    public String getCharacterEncoding() {
+        return l_req.getCharacterEncoding();
+    }
+
+    /**
+     * Method getContentLength
+     *
+     */
+    public int getContentLength() {
+        return l_req.getContentLength();
+    }
+
+    /**
+     * Method getContentType
+     *
+     */
+    public String getContentType() {
+        return l_req.getContentType();
+    }
+
+    /**
+     * Method getInputStream
+     *
+     *
+     * @throws IOException
+     */
+    public ServletInputStream getInputStream() throws IOException {
+        return l_req.getInputStream();
+    }
+
+    /**
+     * Method getProtocol
+     *
+     */
+    public String getProtocol() {
+        return l_req.getProtocol();
+    }
+
+    /**
+     * Method getScheme
+     *
+     */
+    public String getScheme() {
+        return l_req.getScheme();
+    }
+
+    /**
+     * Method getServerName
+     *
+     */
+    public String getServerName() {
+        return l_req.getServerName();
+    }
+
+    /**
+     * Method getServerPort
+     *
+     */
+    public int getServerPort() {
+        return l_req.getServerPort();
+    }
+
+    /**
+     * Method getReader
+     *
+     *
+     * @throws IOException
+     */
+    public BufferedReader getReader() throws IOException {
+        return l_req.getReader();
+    }
+
+    /**
+     * Method getRemoteAddr
+     *
+     */
+    public String getRemoteAddr() {
+        return l_req.getRemoteAddr();
+    }
+
+    /**
+     * Method getRemoteHost
+     *
+     */
+    public String getRemoteHost() {
+        return l_req.getRemoteHost();
+    }
+
+    /**
+     * Method setAttribute
+     *
+     * @param name
+     * @param o
+     */
+    public void setAttribute(String name, Object o) {
+        l_req.setAttribute(name, o);
+    }
+
+    /**
+     * Method removeAttribute
+     *
+     * @param name
+     */
+    public void removeAttribute(String name) {
+        l_req.removeAttribute(name);
+    }
+
+    /**
+     * Method getLocale
+     *
+     */
+    public Locale getLocale() {
+        return l_req.getLocale();
+    }
+
+    /**
+     * Method getLocales
+     *
+     */
+    public Enumeration getLocales() {
+        return l_req.getLocales();
+    }
+
+    /**
+     * Method isSecure
+     *
+     */
+    public boolean isSecure() {
+        return l_req.isSecure();
+    }
+
+    /**
+     * Method getRequestDispatcher
+     *
+     * @param path
+     *
+     */
+    public RequestDispatcher getRequestDispatcher(String path) {
+        return l_req.getRequestDispatcher(path);
+    }
+
+    /**
+     * Method getRealPath
+     *
+     * @param path
+     *
+     */
+    public String getRealPath(String path) {
+        return l_req.getRealPath(path);
+    }
+
+    /**
+     * Method getAuthType
+     *
+     */
+    public String getAuthType() {
+        return l_req.getAuthType();
+    }
+
+    /**
+     * Method getCookies
+     *
+     */
+    public Cookie[] getCookies() {
+        return l_req.getCookies();
+    }
+
+    /**
+     * Method getDateHeader
+     *
+     * @param name
+     *
+     */
+    public long getDateHeader(String name) {
+        return l_req.getDateHeader(name);
+    }
+
+    /**
+     * Method getHeader
+     *
+     * @param name
+     *
+     */
+    public String getHeader(String name) {
+        return l_req.getHeader(name);
+    }
+
+    /**
+     * Method getHeaders
+     *
+     * @param name
+     *
+     */
+    public Enumeration getHeaders(String name) {
+        return l_req.getHeaders(name);
+    }
+
+    /**
+     * Method getHeaderNames
+     *
+     */
+    public Enumeration getHeaderNames() {
+        return l_req.getHeaderNames();
+    }
+
+    /**
+     * Method getIntHeader
+     *
+     * @param name
+     *
+     */
+    public int getIntHeader(String name) {
+        return l_req.getIntHeader(name);
+    }
+
+    /**
+     * Method getMethod
+     *
+     */
+    public String getMethod() {
+        return l_req.getMethod();
+    }
+
+    /**
+     * Method getPathInfo
+     *
+     */
+    public String getPathInfo() {
+        return l_req.getPathInfo();
+    }
+
+    /**
+     * Method getPathTranslated
+     *
+     */
+    public String getPathTranslated() {
+        return l_req.getPathTranslated();
+    }
+
+    /**
+     * Method getContextPath
+     *
+     */
+    public String getContextPath() {
+        return l_req.getContextPath();
+    }
+
+    /**
+     * Method getQueryString
+     *
+     */
+    public String getQueryString() {
+        return l_req.getQueryString();
+    }
+
+    /**
+     * Method getRemoteUser
+     *
+     */
+    public String getRemoteUser() {
+        return l_req.getRemoteUser();
+    }
+
+    /**
+     * Method isUserInRole
+     *
+     * @param role
+     *
+     */
+    public boolean isUserInRole(String role) {
+        return l_req.isUserInRole(role);
+    }
+
+    /**
+     * Method getUserPrincipal
+     *
+     */
+    public Principal getUserPrincipal() {
+        return l_req.getUserPrincipal();
+    }
+
+    /**
+     * Method getRequestedSessionId
+     *
+     */
+    public String getRequestedSessionId() {
+        return l_req.getRequestedSessionId();
+    }
+
+    /**
+     * Method getRequestURI
+     *
+     */
+    public String getRequestURI() {
+        return l_req.getRequestURI();
+    }
+
+    /**
+     * Method getServletPath
+     *
+     */
+    public String getServletPath() {
+        return l_req.getServletPath();
+    }
+
+    /**
+     * Method getSession
+     *
+     * @param create
+     *
+     */
+    public HttpSession getSession(boolean create) {
+        return l_req.getSession(create);
+    }
+
+    /**
+     * Method getSession
+     *
+     */
+    public HttpSession getSession() {
+        return l_req.getSession();
+    }
+
+    /**
+     * Method isRequestedSessionIdValid
+     *
+     */
+    public boolean isRequestedSessionIdValid() {
+        return l_req.isRequestedSessionIdValid();
+    }
+
+    /**
+     * Method isRequestedSessionIdFromCookie
+     *
+     */
+    public boolean isRequestedSessionIdFromCookie() {
+        return l_req.isRequestedSessionIdFromCookie();
+    }
+
+    /**
+     * Method isRequestedSessionIdFromURL
+     *
+     */
+    public boolean isRequestedSessionIdFromURL() {
+        return l_req.isRequestedSessionIdFromURL();
+    }
+
+    /**
+     * Method isRequestedSessionIdFromUrl
+     * @deprecated use {@link #isRequestedSessionIdFromURL()} instead
+     */
+    public boolean isRequestedSessionIdFromUrl() {
+        return l_req.isRequestedSessionIdFromURL();
+    }
+
+	/* (non-Javadoc)
+	 * @see javax.servlet.http.HttpServletRequest#getRequestURL()
+	 */
+	public StringBuffer getRequestURL() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	/* (non-Javadoc)
+	 * @see javax.servlet.ServletRequest#setCharacterEncoding(java.lang.String)
+	 */
+	public void setCharacterEncoding(String arg0)
+		throws UnsupportedEncodingException {
+		// TODO Auto-generated method stub
+
+	}	
+	public class UploadedFile{
+		private String l_name;
+		private String l_tempName;
+		private java.io.InputStream l_file = null;
+		
+		public UploadedFile(java.io.InputStream stream, String name, String tempName){
+			l_name = name;
+			l_tempName = tempName;
+			l_file = stream;
+		}
+		
+		public UploadedFile(String name, String tempName){
+			l_name = name;
+			l_tempName = tempName;
+			l_file = null;
+		}
+		
+		public void setName(String name){
+			l_name = name;
+		}
+		
+		public void setTempName(String name){
+			l_tempName = name;
+		}
+		
+		public void setInputStream(java.io.InputStream stream){
+			l_file = stream;
+		}
+		
+		public String getName(){
+			return l_name;
+		}
+		
+		public String getTempName(){
+			return l_tempName;
+		}
+		
+		public java.io.InputStream getInputStream(){
+			return l_file;
+		}
+	}
+	public String getLocalAddr() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public String getLocalName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public int getLocalPort() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	public int getRemotePort() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+}

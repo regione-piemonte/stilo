@@ -1,0 +1,639 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://sicraweb/SetMovimentiAttoV1_1" xmlns="http://sicraweb/SetMovimentiAttoV1_1"
+	elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<!-- <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"> -->
+	<xsd:element name="richiesta">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="impegno" maxOccurs="unbounded">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="progressivo" type="xsd:integer" />
+							<xsd:element name="testata" minOccurs="1" maxOccurs="1">
+								<xsd:complexType>
+									<xsd:sequence>
+										<xsd:element name="parte" nillable="false"
+											minOccurs="1" maxOccurs="1">
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:string">
+													<xsd:enumeration value="E" />
+													<xsd:enumeration value="U" />
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element name="azione" nillable="false"
+											minOccurs="1" maxOccurs="1">
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:string">
+													<xsd:enumeration value="0">
+														<xsd:annotation>
+															<xsd:documentation>Creazione impegno/accertamento
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="1">
+														<xsd:annotation>
+															<xsd:documentation>Cancellazione impegno/accertamento
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element name="codice" type="xsd:long"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="codannuale" type="xsd:integer"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="anno" type="xsd:integer"
+											minOccurs="0" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Se non valorizzato viene preso l'anno
+													corrente
+												</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+										<xsd:element name="dataregistrazione" type="xsd:date"
+											minOccurs="0" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Se non valorizzata viene presa la data
+													corrente
+												</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+										<xsd:element name="descrizione" type="xsd:string"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="idimpegno" type="xsd:long"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="numatto" type="xsd:integer"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="dataatto" type="xsd:date"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="annoatto" type="xsd:integer"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="tipoatto" minOccurs="0"
+											maxOccurs="1">
+											<xsd:simpleType>
+												<xsd:annotation>
+													<xsd:documentation>Utilizza i tipi atto standard previsti
+														dalle delibere. Se si vuole
+														indicare il tipo atto specifico non valorizzare questo elemento ma
+														utilizzare codTipoAtto o
+														SiglaTipoAtto.
+													</xsd:documentation>
+												</xsd:annotation>
+												<xsd:restriction base="xsd:string">
+													<xsd:enumeration value="DET">
+														<xsd:annotation>
+															<xsd:documentation>Determine</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DLC">
+														<xsd:annotation>
+															<xsd:documentation>Delibere di Consiglio
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DLG">
+														<xsd:annotation>
+															<xsd:documentation>Delibere di Giunta</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DLM">
+														<xsd:annotation>
+															<xsd:documentation>Commissariamento</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DLD">
+														<xsd:annotation>
+															<xsd:documentation>Decisioni</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="ORD">
+														<xsd:annotation>
+															<xsd:documentation>Ordinanze</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DEC">
+														<xsd:annotation>
+															<xsd:documentation>Decreti</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="LIQ">
+														<xsd:annotation>
+															<xsd:documentation>Liquidazioni</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DLP">
+														<xsd:annotation>
+															<xsd:documentation>Delibere del Presidente
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DPM">
+														<xsd:annotation>
+															<xsd:documentation>Delibere del Commissario
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DUP">
+														<xsd:annotation>
+															<xsd:documentation>Delibere dell'Uff.Presidenza
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="IDF">
+														<xsd:annotation>
+															<xsd:documentation>Impegni di fatto</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="LRE">
+														<xsd:annotation>
+															<xsd:documentation>Legge regionale</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="PRD">
+														<xsd:annotation>
+															<xsd:documentation>Provvedimento dirigenziale
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="ODS">
+														<xsd:annotation>
+															<xsd:documentation>Ordini di servizio</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element name="esecutivo" minOccurs="0"
+											maxOccurs="1">
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:integer">
+													<xsd:enumeration value="0">
+														<xsd:annotation>
+															<xsd:documentation>Proposta (Valore di default se nullo)
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="1">
+														<xsd:annotation>
+															<xsd:documentation>Esecutivo</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element name="autoincrementante" minOccurs="0"
+											maxOccurs="1">
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:integer">
+													<xsd:enumeration value="0">
+														<xsd:annotation>
+															<xsd:documentation>NO (Valore di default se nullo)
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="1">
+														<xsd:annotation>
+															<xsd:documentation>SI</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element name="idprenotazionepartenza" type="xsd:long"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="descrizione2" type="xsd:string"
+											minOccurs="0" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Descrizione secondo campo multilingua
+												</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+										<xsd:element name="descrizione3" type="xsd:string"
+											minOccurs="0" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Descrizione terzo campo multilingua
+												</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+										<xsd:element name="descrizioneEstesa" type="xsd:string"
+											minOccurs="0" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Descrizione estesa</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+										<xsd:element name="descrizioneEstesa2" type="xsd:string"
+											minOccurs="0" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Descrizione estesa secondo campo
+													multilingua
+												</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+										<xsd:element name="descrizioneEstesa3" type="xsd:string"
+											minOccurs="0" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Descrizione estesa terzo campo
+													multilingua
+												</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+										<xsd:element name="codSettore" minOccurs="0"
+											maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Identifica il settore dell'atto
+												</xsd:documentation>
+											</xsd:annotation>
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:string">
+													<xsd:maxLength value="10" />
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element name="codTipoAtto" type="xsd:long"
+											minOccurs="0" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Corrisponde al codice del tipo atto
+												</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+										<xsd:element name="siglaTipoAtto" minOccurs="0"
+											maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Corrisponde alla sigla del tipo atto
+													(CASE
+													SENSITIVE)
+												</xsd:documentation>
+											</xsd:annotation>
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:string">
+													<xsd:maxLength value="10" />
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element name="flgNoDodicesimiImp" minOccurs="0"
+											maxOccurs="1">
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:integer">
+													<xsd:enumeration value="0">
+														<xsd:annotation>
+															<xsd:documentation>NO (Valore di default se nullo)
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="1">
+														<xsd:annotation>
+															<xsd:documentation>SI (Permette di eludere il controllo
+																sui dodicesimi se
+																l'esercizio e' provvisorio)
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element name="numattoOri" type="xsd:integer"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="dataattoOri" type="xsd:date"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="annoattoOri" type="xsd:integer"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="tipoattoOri" minOccurs="0"
+											maxOccurs="1">
+											<xsd:simpleType>
+												<xsd:annotation>
+													<xsd:documentation>Utilizza i tipi atto standard previsti
+														dalle delibere. Se si vuole
+														indicare il tipo atto specifico
+														non valorizzare questo elemento ma utilizzare
+														codTipoAttoOri o SiglaTipoAttoOri.
+													</xsd:documentation>
+												</xsd:annotation>
+												<xsd:restriction base="xsd:string">
+													<xsd:enumeration value="DET">
+														<xsd:annotation>
+															<xsd:documentation>Determine</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DLC">
+														<xsd:annotation>
+															<xsd:documentation>Delibere di Consiglio
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DLG">
+														<xsd:annotation>
+															<xsd:documentation>Delibere di Giunta</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DLM">
+														<xsd:annotation>
+															<xsd:documentation>Commissariamento</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DLD">
+														<xsd:annotation>
+															<xsd:documentation>Decisioni</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="ORD">
+														<xsd:annotation>
+															<xsd:documentation>Ordinanze</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DEC">
+														<xsd:annotation>
+															<xsd:documentation>Decreti</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="LIQ">
+														<xsd:annotation>
+															<xsd:documentation>Liquidazioni</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DLP">
+														<xsd:annotation>
+															<xsd:documentation>Delibere del Presidente
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DPM">
+														<xsd:annotation>
+															<xsd:documentation>Delibere del Commissario
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="DUP">
+														<xsd:annotation>
+															<xsd:documentation>Delibere dell'Uff.Presidenza
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="IDF">
+														<xsd:annotation>
+															<xsd:documentation>Impegni di fatto</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="LRE">
+														<xsd:annotation>
+															<xsd:documentation>Legge regionale</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="PRD">
+														<xsd:annotation>
+															<xsd:documentation>Provvedimento dirigenziale
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="ODS">
+														<xsd:annotation>
+															<xsd:documentation>Ordini di servizio</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element name="codSettoreOri" minOccurs="0"
+											maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Identifica il settore dell'atto
+													(proposta)
+												</xsd:documentation>
+											</xsd:annotation>
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:string">
+													<xsd:maxLength value="10" />
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element name="codTipoAttoOri" type="xsd:long"
+											minOccurs="0" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Corrisponde al codice del tipo atto
+													(proposta)
+												</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+										<xsd:element name="siglaTipoAttoOri" minOccurs="0"
+											maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Corrisponde alla sigla del tipo atto
+													(proposta)
+												</xsd:documentation>
+											</xsd:annotation>
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:string">
+													<xsd:maxLength value="10" />
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element name="identificativoStilo" minOccurs="0" maxOccurs="1" nillable="false">
+											<xsd:annotation>
+												<xsd:documentation>Se indicato permette di verificare in fase di inserimento se esiste
+												gia' un impegno con questo codice (se presente non prosegue con l'inserimento ma restituisce le informazioni
+												dell'elemento presente in archivio)</xsd:documentation>
+											</xsd:annotation>
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:string">
+													<xsd:maxLength value="50" />
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+									</xsd:sequence>
+								</xsd:complexType>
+							</xsd:element>
+							<xsd:element name="dettaglio" minOccurs="0"
+								maxOccurs="unbounded">
+								<xsd:complexType>
+									<xsd:sequence>
+										<xsd:element name="idfornitore" type="xsd:long"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="idcapitolo" type="xsd:long"
+											minOccurs="0" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>OBBLIGATORIO se azione=0 e
+													codificacapitolo non
+													valorizzata
+												</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+										<xsd:element name="annocompetenza" type="xsd:integer"
+											minOccurs="1" maxOccurs="1" />
+										<xsd:element name="datavaluta" type="xsd:date"
+											minOccurs="0" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>Se non valorizzata viene presa la data
+													corrente
+												</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+										<xsd:element name="descrizione" type="xsd:string"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="codprogetto" type="xsd:integer"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="codcentrocosto" type="xsd:integer"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="siglacpt" type="xsd:string"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="cup" type="xsd:string"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="cig" type="xsd:string"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="importo" type="xsd:double"
+											nillable="false" />
+										<xsd:element name="cassa" type="xsd:string"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="copertofpv" minOccurs="0"
+											maxOccurs="1">
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:integer">
+													<xsd:enumeration value="0">
+														<xsd:annotation>
+															<xsd:documentation>NON coperto da FPV (Valore di default
+																se
+																nullo)
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="1">
+														<xsd:annotation>
+															<xsd:documentation>coperto da FPV</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element name="siglapianofin" type="xsd:string"
+											minOccurs="0" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>solo V livello</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+										<xsd:element name="codlavoro" type="xsd:long"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="codtipospesa" type="xsd:long"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="codtipofinanz" type="xsd:long"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="datavaliditadal" type="xsd:date"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="datavaliditaal" type="xsd:date"
+											minOccurs="0" maxOccurs="1" />
+										<xsd:element name="creditodebitopredefinito"
+											minOccurs="0" maxOccurs="1">
+											<xsd:simpleType>
+												<xsd:restriction base="xsd:integer">
+													<xsd:enumeration value="0">
+														<xsd:annotation>
+															<xsd:documentation>NON individua automaticamente il
+																credito debito predefinito
+																(Valore di default se nullo)
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+													<xsd:enumeration value="1">
+														<xsd:annotation>
+															<xsd:documentation>Individua automaticamente il credito
+																debito predefinito (se
+																presente) in base alla contropartita indicata
+															</xsd:documentation>
+														</xsd:annotation>
+													</xsd:enumeration>
+												</xsd:restriction>
+											</xsd:simpleType>
+										</xsd:element>
+										<xsd:element name="codificacapitolo" type="xsd:string"
+											minOccurs="0" maxOccurs="1">
+											<xsd:annotation>
+												<xsd:documentation>OBBLIGATORIO se azione=0 e idcapitolo non
+													valorizzato
+												</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+									</xsd:sequence>
+								</xsd:complexType>
+							</xsd:element>
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="messaggio_xml" type="xsd:string"
+					minOccurs="0" maxOccurs="1" />
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="risultato">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="messaggi">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="tipo">
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:string">
+										<xsd:enumeration value="OK" />
+										<xsd:enumeration value="ERR" />
+										<xsd:enumeration value="WARN" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="descrizione" type="xsd:string" />
+							<xsd:element name="messaggio_xml" type="xsd:string" />
+							<xsd:element name="avvisi" minOccurs="0" maxOccurs="1">
+								<xsd:annotation>
+									<xsd:documentation>Valorizzato se sono presenti messaggi di
+										tipo WARNING. Contiene solamente gli
+										AVVISI divisi singolarmente nell'elemento 'avviso'.
+									</xsd:documentation>
+								</xsd:annotation>
+								<xsd:complexType>
+									<xsd:sequence>
+										<xsd:element name="avviso" minOccurs="1"
+											maxOccurs="unbounded" type="xsd:string" />
+									</xsd:sequence>
+								</xsd:complexType>
+							</xsd:element>
+							<xsd:element name="errori" minOccurs="0" maxOccurs="1">
+								<xsd:annotation>
+									<xsd:documentation>Valorizzato se sono presenti messaggi di
+										tipo ERROR. Contiene solamente gli
+										ERRORI divisi singolarmente nell'elemento 'errore'.
+									</xsd:documentation>
+								</xsd:annotation>
+								<xsd:complexType>
+									<xsd:sequence>
+										<xsd:element name="errore" minOccurs="1"
+											maxOccurs="unbounded" type="xsd:string" />
+									</xsd:sequence>
+								</xsd:complexType>
+							</xsd:element>
+							<xsd:element name="informazioni" minOccurs="0" maxOccurs="1">
+ 								<xsd:annotation>
+ 									<xsd:documentation>Valorizzato se sono presenti messaggi di tipo INFORMATION. Contiene solamente
+									le notifiche divise singolarmente nell'elemento 'info'.</xsd:documentation>
+ 								</xsd:annotation>
+								<xsd:complexType>
+									<xsd:sequence>
+										<xsd:element name="info" minOccurs="1" maxOccurs="unbounded" type="xsd:string" />
+									</xsd:sequence>
+								</xsd:complexType>
+							</xsd:element>
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="impegno" minOccurs="0" maxOccurs="unbounded">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="progressivo" type="xsd:integer" />
+							<xsd:element name="idimpegno" type="xsd:integer" />
+							<xsd:element name="codice" type="xsd:integer" />
+							<xsd:element name="codannuale" type="xsd:integer" />
+							<xsd:element name="anno" type="xsd:integer" />
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+</xsd:schema>

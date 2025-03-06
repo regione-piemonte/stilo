@@ -1,0 +1,361 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>it.eng.iris</groupId>
+  <artifactId>irisbusinessclient</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>Client di integrazione per Iris</name>
+  <description>Client di integrazione per Iris</description>
+  <dependencies>
+   	
+
+  	<dependency>
+  		<groupId>org.reflections</groupId>
+  		<artifactId>reflections</artifactId>
+  		<version>0.9.8</version>
+  	</dependency>
+  	 <dependency>
+       	<groupId>com.googlecode</groupId>
+       	<artifactId>reflectasm</artifactId>
+       	<version>1.01</version>
+       </dependency>
+  	<dependency>
+  		<groupId>org.apache.commons</groupId>
+  		<artifactId>commons-lang3</artifactId>
+  		<version>3.1</version>
+  		<scope>compile</scope>
+  	</dependency>
+  	<dependency>
+  		<groupId>it.eng</groupId>
+  		<artifactId>annotation-module</artifactId>
+  		<version>0.0.1-SNAPSHOT</version>
+  	</dependency>
+  	 	
+  	<dependency>
+  		<groupId>it.eng.iris</groupId>
+  		<artifactId>corebusiness-module</artifactId>
+  		<version>0.0.1-SNAPSHOT</version>
+  		<classifier>sources</classifier>
+  		<scope>runtime</scope>
+  		<exclusions>
+  			<exclusion>
+  				<artifactId>core-module</artifactId>
+  				<groupId>it.eng</groupId>
+  			</exclusion>
+  		</exclusions>
+  	</dependency>
+  	<dependency>
+  		<groupId>it.eng.iris</groupId>
+  		<artifactId>archive-configurator</artifactId>
+  		<version>0.0.1-SNAPSHOT</version>
+  		<classifier>sources</classifier>
+  		<scope>runtime</scope>
+  		<exclusions>
+  			<exclusion>
+  				<artifactId>core-module</artifactId>
+  				<groupId>it.eng</groupId>
+  			</exclusion>
+  		</exclusions>
+  	</dependency>
+  	<dependency>
+  		<groupId>it.eng.iris</groupId>
+  		<artifactId>digital-preservation-controller</artifactId>
+  		<version>0.0.1-SNAPSHOT</version>
+  		<classifier>sources</classifier>
+  		<scope>runtime</scope>
+  	</dependency>
+  	<dependency>
+  		<groupId>it.eng.iris</groupId>
+  		<artifactId>digital-preservation-engine</artifactId>
+  		<version>0.0.1-SNAPSHOT</version>
+  		<classifier>sources</classifier>
+  		<scope>runtime</scope>
+  	</dependency>
+  	<dependency>
+  		<groupId>it.eng.iris</groupId>
+  		<artifactId>securitymanager-module</artifactId>
+  		<version>0.0.1-SNAPSHOT</version>
+  		<classifier>sources</classifier>
+  		<scope>runtime</scope>
+  	</dependency>
+  	 
+  	
+  	<dependency>
+  		<groupId>it.eng.iris</groupId>
+  		<!-- artifactId>synchronize-module</artifactId-->
+  		<artifactId>SyncroCoreModule</artifactId>
+  		<version>0.0.1-SNAPSHOT</version>
+  		<classifier>sources</classifier>
+  		<scope>runtime</scope>
+  		<exclusions>
+  			<exclusion>
+  				<artifactId>core-module</artifactId>
+  				<groupId>it.eng</groupId>
+  			</exclusion>
+  		</exclusions>
+  	</dependency>
+  	<dependency>
+  		<groupId>it.eng.iris</groupId>
+  		<artifactId>coregate-module</artifactId>
+  		<version>1.0.1</version>
+  		<classifier>sources</classifier>
+  		<scope>runtime</scope>
+  		<exclusions>
+  			<exclusion>
+  				<artifactId>core-module</artifactId>
+  				<groupId>it.eng.utility</groupId>
+  			</exclusion>
+  		</exclusions>
+  	</dependency>
+  	<dependency>
+  		<groupId>it.eng.utility</groupId>
+  		<artifactId>core-module</artifactId>
+  		<version>1.0.2</version>
+  		<type>jar</type>
+  		<scope>compile</scope>
+  	</dependency>
+  	<dependency>
+  		<groupId>com.sun.xml.ws</groupId>
+  		<artifactId>jaxws-rt</artifactId>
+  		<version>2.1.7</version>
+  		<type>jar</type>
+  		<scope>compile</scope>
+  	</dependency>
+  	<dependency>
+  		<groupId>com.sun.jersey</groupId>
+  		<artifactId>jersey-core</artifactId>
+  		<version>1.11</version>
+  	</dependency>
+	<dependency>
+		<groupId>com.sun.jersey.contribs</groupId>
+		<artifactId>jersey-multipart</artifactId>
+		<version>1.11</version>
+	</dependency> 	
+  	<dependency>
+  		<groupId>com.sun.jersey</groupId>
+  		<artifactId>jersey-bundle</artifactId>
+  		<version>1.11</version>
+  	</dependency>
+  	<dependency>
+  		 <groupId>com.google.code.gson</groupId>
+ 		 <artifactId>gson</artifactId>
+   		 <version>2.2.2</version>
+  	</dependency>
+  </dependencies>
+  
+    <distributionManagement>
+    <repository>
+        <id>Engineering</id>
+        <name>Engineering-releases</name>
+        <url>http://172.27.1.139:9090/artifactory/eng-document-local</url>
+    </repository>
+  </distributionManagement>
+  <build>
+  	<plugins>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-compiler-plugin</artifactId>
+			<configuration>
+				<target>1.6</target>
+				<source>1.6</source>
+			</configuration>
+		</plugin>
+		
+		
+		<plugin>  
+            <groupId>org.codehaus.mojo</groupId>  
+            <artifactId>jaxws-maven-plugin</artifactId>  
+            <configuration>  
+                <packageName>wsclient</packageName>  
+                <wsdlUrls>  
+                    <wsdlUrl>http://172.27.1.139:8081/business/soap/IrisServiceSoap?wsdl</wsdlUrl>  
+                </wsdlUrls>  
+            </configuration>  
+        </plugin>  
+        <!-- da cancellare non dovrebbe servire -->
+        <plugin>  
+            <groupId>org.codehaus.mojo</groupId>  
+            <artifactId>exec-maven-plugin</artifactId>  
+            <version>1.1</version>  
+            <executions>  
+                <execution>  
+                    <goals>  
+                        <goal>java</goal>  
+                    </goals>  
+                </execution>  
+            </executions>  
+            <configuration>  
+                <mainClass>client.WsClient</mainClass>  
+            </configuration>  
+        </plugin>  
+
+		
+		
+		<!-- le dipendenze (che quì sono jar) servono poichè il plugin va via reflection sui .class 
+		e gira nel classloader con le dipendenze specificate  -->
+		  <plugin>
+		  	<groupId>it.eng.maven.plugin</groupId>
+		  	<artifactId>velocityplugin</artifactId>
+		  	<version>1.0.4</version>
+		  	<configuration> 
+			          	<serviceclassname>ServiceRegistry</serviceclassname>
+				 		<output>${basedir}/src/main/java</output>
+				 		<scanpackage>it.eng</scanpackage>
+			</configuration>
+		  	<executions> 
+			     <execution> 
+			         <goals> 
+			             <goal>create</goal> 
+			         </goals> 
+			         
+				 </execution>
+			</executions> 
+			  	<dependencies>
+			  
+				 	<dependency>
+			  			<groupId>it.eng.iris</groupId>
+			  			<artifactId>corebusiness-module</artifactId>
+			  			<version>0.0.1-SNAPSHOT</version>
+			  			<type>jar</type>
+			  		</dependency>
+			  		
+			  		<dependency>
+			  			<groupId>it.eng.iris</groupId>
+			  			<artifactId>archive-configurator</artifactId>
+			  			<version>0.0.1-SNAPSHOT</version>
+			  			<type>jar</type>
+			  		</dependency>
+			  		
+			  		<dependency>
+			  			<groupId>it.eng.iris</groupId>
+			  			<artifactId>coregate-module</artifactId>
+			  			<version>0.0.1-SNAPSHOT</version>
+			  			<type>jar</type>
+			  		</dependency>
+			  		
+			  		<dependency>
+			  			<groupId>it.eng.iris</groupId>
+			  			<artifactId>digital-preservation-controller</artifactId>
+			  			<version>0.0.1-SNAPSHOT</version>
+			  			<type>jar</type>
+			  		</dependency>
+			  		
+			  		<dependency>
+			  			<groupId>it.eng.iris</groupId>
+			  			<artifactId>digital-preservation-engine</artifactId>
+			  			<version>0.0.1-SNAPSHOT</version>
+			  			<type>jar</type>
+			  		</dependency>
+			  		
+			  		<dependency>
+			  			<groupId>it.eng.iris</groupId>
+			  			<artifactId>securitymanager-module</artifactId>
+			  			<version>0.0.1-SNAPSHOT</version>
+			  			<type>jar</type>
+			  		</dependency>
+			  		
+			  		<dependency>
+			  			<groupId>it.eng.iris</groupId>
+			  			<artifactId>SyncroCoreModule</artifactId>
+			  			<version>0.0.1-SNAPSHOT</version>
+			  			<type>jar</type>
+			  		</dependency>
+			  		
+			  		
+			  	</dependencies>
+		</plugin>
+		<!--  -->
+	  	<plugin> 
+			<groupId>org.apache.maven.plugins</groupId>
+	        <artifactId>maven-dependency-plugin</artifactId>
+	        <version>2.4</version>
+	        <configuration> 
+	       		<groupId>it.eng.iris</groupId>
+	       		<type>jar</type>
+	      		<classifier>sources</classifier>
+	      		<outputDirectory>${basedir}/src/main/java</outputDirectory>
+				<artifactItems>
+				 <artifactItem>
+		               	<groupId>it.eng.iris</groupId>
+		               	<artifactId>archive-configurator</artifactId>
+		               	<overWrite>true</overWrite>
+		               	<includes>**/beans/**,**/enums/**,**/exception/**</includes>
+						<type>jar</type>
+	      				<classifier>sources</classifier>
+	      				<outputDirectory>${basedir}/src/main/java</outputDirectory>		               
+		            </artifactItem>
+		            <artifactItem>
+		               	<artifactId>corebusiness-module</artifactId>
+		               	<overWrite>true</overWrite>
+		    	       	<includes>**/beans/**,**/enums/**</includes>
+		    	       	<groupId>it.eng.iris</groupId>
+	       			   	<type>jar</type>
+	      			   	<classifier>sources</classifier>
+	      			  	<outputDirectory>${basedir}/src/main/java</outputDirectory>
+		            </artifactItem>
+		           
+		            <artifactItem>
+		               	<artifactId>coregate-module</artifactId>
+		               	<overWrite>true</overWrite>
+		    	       	<includes>**/beans/**,**/enums/**</includes>
+		    	       	<groupId>it.eng.iris</groupId>
+	       				<type>jar</type>
+	      				<classifier>sources</classifier>
+	      				<outputDirectory>${basedir}/src/main/java</outputDirectory>
+		            </artifactItem>
+		            <artifactItem>
+		               	<artifactId>digital-preservation-controller</artifactId>
+		               	<overWrite>true</overWrite>
+		    	       	<includes>**/beans/**,**/enums/**</includes>
+		    	       	<groupId>it.eng.iris</groupId>
+			       		<type>jar</type>
+			      		<classifier>sources</classifier>
+			      		<outputDirectory>${basedir}/src/main/java</outputDirectory>	
+		            </artifactItem>
+		            <artifactItem>
+		               	<artifactId>digital-preservation-engine</artifactId>
+		               	<overWrite>true</overWrite>
+		    	       	<includes>**/beans/**,**/enums/**</includes>
+		    	       	<groupId>it.eng.iris</groupId>
+	       				<type>jar</type>
+	      				<classifier>sources</classifier>
+	      				<outputDirectory>${basedir}/src/main/java</outputDirectory>
+		            </artifactItem>	
+		            <artifactItem>
+		               	<artifactId>securitymanager-module</artifactId>
+		               	<overWrite>true</overWrite>
+		    	       	<includes>**/beans/**,**/enums/**</includes>
+		    	       	<groupId>it.eng.iris</groupId>
+	       				<type>jar</type>
+	      				<classifier>sources</classifier>
+	      				<outputDirectory>${basedir}/src/main/java</outputDirectory>
+		            </artifactItem>	
+		            <artifactItem>
+		                <artifactId>SyncroCoreModule</artifactId>
+		               	<overWrite>true</overWrite>
+		    	       	<includes>**/beans/**,**/enums/**,**/bean/**</includes>
+		    	       	<groupId>it.eng.iris</groupId>
+	       				<type>jar</type>
+	      				<classifier>sources</classifier>
+	      				<outputDirectory>${basedir}/src/main/java</outputDirectory>
+		            </artifactItem>	
+		           <artifactItem>
+		               	<artifactId>core-module</artifactId>
+		               	<overWrite>true</overWrite>
+		    	       	<includes>**/beans/**,**/enums/**</includes>
+		    	       	<groupId>it.eng</groupId>
+	       				<type>jar</type>
+	      				<classifier>sources</classifier>
+	      				<outputDirectory>${basedir}/src/main/java</outputDirectory>
+		            </artifactItem>  
+		            
+		          		            		            	       
+		        </artifactItems>
+			</configuration> 
+       </plugin>   
+       
+       
+       
+       
+  	</plugins>
+  </build>
+</project>

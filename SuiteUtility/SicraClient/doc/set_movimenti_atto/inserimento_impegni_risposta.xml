@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<risultato>
+	<messaggi>
+		<tipo>OK</tipo>
+		<descrizione>Impegno inserito correttamente</descrizione>
+		<messaggio_xml></messaggio_xml>
+	</messaggi>
+	<impegno>
+		<progressivo>1</progressivo>
+		<idimpegno>129985</idimpegno>
+		<codice>1258</codice>
+		<codannuale>1001</codannuale>
+		<anno>2016</anno>
+	</impegno>
+</risultato>

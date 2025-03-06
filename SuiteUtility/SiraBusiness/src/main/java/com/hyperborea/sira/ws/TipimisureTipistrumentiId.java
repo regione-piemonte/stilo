@@ -1,0 +1,157 @@
+/**
+ * TipimisureTipistrumentiId.java
+ *
+ * This file was auto-generated from WSDL
+ * by the Apache Axis 1.4 Apr 22, 2006 (06:55:48 PDT) WSDL2Java emitter.
+ */
+
+package com.hyperborea.sira.ws;
+
+public class TipimisureTipistrumentiId  implements java.io.Serializable {
+    private com.hyperborea.sira.ws.TipiMisure tipiMisure;
+
+    private com.hyperborea.sira.ws.TipiStrumentimisura tipiStrumentimisura;
+
+    public TipimisureTipistrumentiId() {
+    }
+
+    public TipimisureTipistrumentiId(
+           com.hyperborea.sira.ws.TipiMisure tipiMisure,
+           com.hyperborea.sira.ws.TipiStrumentimisura tipiStrumentimisura) {
+           this.tipiMisure = tipiMisure;
+           this.tipiStrumentimisura = tipiStrumentimisura;
+    }
+
+
+    /**
+     * Gets the tipiMisure value for this TipimisureTipistrumentiId.
+     * 
+     * @return tipiMisure
+     */
+    public com.hyperborea.sira.ws.TipiMisure getTipiMisure() {
+        return tipiMisure;
+    }
+
+
+    /**
+     * Sets the tipiMisure value for this TipimisureTipistrumentiId.
+     * 
+     * @param tipiMisure
+     */
+    public void setTipiMisure(com.hyperborea.sira.ws.TipiMisure tipiMisure) {
+        this.tipiMisure = tipiMisure;
+    }
+
+
+    /**
+     * Gets the tipiStrumentimisura value for this TipimisureTipistrumentiId.
+     * 
+     * @return tipiStrumentimisura
+     */
+    public com.hyperborea.sira.ws.TipiStrumentimisura getTipiStrumentimisura() {
+        return tipiStrumentimisura;
+    }
+
+
+    /**
+     * Sets the tipiStrumentimisura value for this TipimisureTipistrumentiId.
+     * 
+     * @param tipiStrumentimisura
+     */
+    public void setTipiStrumentimisura(com.hyperborea.sira.ws.TipiStrumentimisura tipiStrumentimisura) {
+        this.tipiStrumentimisura = tipiStrumentimisura;
+    }
+
+    private java.lang.Object __equalsCalc = null;
+    public synchronized boolean equals(java.lang.Object obj) {
+        if (!(obj instanceof TipimisureTipistrumentiId)) return false;
+        TipimisureTipistrumentiId other = (TipimisureTipistrumentiId) obj;
+        if (obj == null) return false;
+        if (this == obj) return true;
+        if (__equalsCalc != null) {
+            return (__equalsCalc == obj);
+        }
+        __equalsCalc = obj;
+        boolean _equals;
+        _equals = true && 
+            ((this.tipiMisure==null && other.getTipiMisure()==null) || 
+             (this.tipiMisure!=null &&
+              this.tipiMisure.equals(other.getTipiMisure()))) &&
+            ((this.tipiStrumentimisura==null && other.getTipiStrumentimisura()==null) || 
+             (this.tipiStrumentimisura!=null &&
+              this.tipiStrumentimisura.equals(other.getTipiStrumentimisura())));
+        __equalsCalc = null;
+        return _equals;
+    }
+
+    private boolean __hashCodeCalc = false;
+    public synchronized int hashCode() {
+        if (__hashCodeCalc) {
+            return 0;
+        }
+        __hashCodeCalc = true;
+        int _hashCode = 1;
+        if (getTipiMisure() != null) {
+            _hashCode += getTipiMisure().hashCode();
+        }
+        if (getTipiStrumentimisura() != null) {
+            _hashCode += getTipiStrumentimisura().hashCode();
+        }
+        __hashCodeCalc = false;
+        return _hashCode;
+    }
+
+    // Type metadata
+    private static org.apache.axis.description.TypeDesc typeDesc =
+        new org.apache.axis.description.TypeDesc(TipimisureTipistrumentiId.class, true);
+
+    static {
+        typeDesc.setXmlType(new javax.xml.namespace.QName("http://ws.sira.hyperborea.com/", "tipimisureTipistrumentiId"));
+        org.apache.axis.description.ElementDesc elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("tipiMisure");
+        elemField.setXmlName(new javax.xml.namespace.QName("", "tipiMisure"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://ws.sira.hyperborea.com/", "tipiMisure"));
+        elemField.setMinOccurs(0);
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+        elemField = new org.apache.axis.description.ElementDesc();
+        elemField.setFieldName("tipiStrumentimisura");
+        elemField.setXmlName(new javax.xml.namespace.QName("", "tipiStrumentimisura"));
+        elemField.setXmlType(new javax.xml.namespace.QName("http://ws.sira.hyperborea.com/", "tipiStrumentimisura"));
+        elemField.setMinOccurs(0);
+        elemField.setNillable(false);
+        typeDesc.addFieldDesc(elemField);
+    }
+
+    /**
+     * Return type metadata object
+     */
+    public static org.apache.axis.description.TypeDesc getTypeDesc() {
+        return typeDesc;
+    }
+
+    /**
+     * Get Custom Serializer
+     */
+    public static org.apache.axis.encoding.Serializer getSerializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanSerializer(
+            _javaType, _xmlType, typeDesc);
+    }
+
+    /**
+     * Get Custom Deserializer
+     */
+    public static org.apache.axis.encoding.Deserializer getDeserializer(
+           java.lang.String mechType, 
+           java.lang.Class _javaType,  
+           javax.xml.namespace.QName _xmlType) {
+        return 
+          new  org.apache.axis.encoding.ser.BeanDeserializer(
+            _javaType, _xmlType, typeDesc);
+    }
+
+}
