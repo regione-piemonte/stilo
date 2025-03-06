@@ -1,0 +1,159 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>it.eng.utility</groupId>
+	<artifactId>SicraClient</artifactId>
+	<version>1.0.4</version>
+	<name>Maggioli Client Axis1</name>
+	<description>Client per chiamare i servizi di contabilità Maggioli (SICRA)</description>
+
+	<properties>
+		<maven.compiler.source>1.7</maven.compiler.source>
+		<maven.compiler.target>1.7</maven.compiler.target>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.8.2</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.axis</groupId>
+			<artifactId>axis</artifactId>
+			<version>1.4</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.axis</groupId>
+			<artifactId>axis-jaxrpc</artifactId>
+			<version>1.4</version>
+		</dependency>
+
+		<dependency>
+			<groupId>commons-discovery</groupId>
+			<artifactId>commons-discovery</artifactId>
+			<version>0.5</version>
+		</dependency>
+
+		<dependency>
+			<groupId>wsdl4j</groupId>
+			<artifactId>wsdl4j</artifactId>
+			<version>1.6.3</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-oxm</artifactId>
+			<version>3.1.0.RELEASE</version>
+		</dependency>
+
+<!-- 		<dependency>
+			<groupId>joda-time</groupId>
+			<artifactId>joda-time</artifactId>
+			<version>2.10</version>
+		</dependency> -->
+
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.16</version>
+		</dependency>
+
+	</dependencies>
+
+	<build>
+		<resources>
+			<resource>
+				<filtering>true</filtering>
+				<directory>${basedir}/src/main/resources</directory>
+				<excludes>
+					<!-- <exclude>**/*.properties</exclude> -->
+					<exclude>**/*.xsd</exclude>
+					<exclude>**/*.xjb</exclude>
+					<exclude>**/*.wsdl</exclude>
+				</excludes>
+			</resource>
+		</resources>
+		<plugins>
+			<plugin>
+				<groupId>org.jvnet.jaxb2.maven2</groupId>
+				<artifactId>maven-jaxb2-plugin</artifactId>
+				<version>0.14.0</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<forceRegenerate>false</forceRegenerate>
+					<schemaDirectory>src/main/resources/xsd</schemaDirectory>
+					<generateDirectory>${project.build.directory}/generated-sources</generateDirectory>
+					<addTestCompileSourceRoot>true</addTestCompileSourceRoot>
+					<packageLevelAnnotations>true</packageLevelAnnotations>
+					<episode>false</episode>
+					<debug>false</debug>
+					<verbose>true</verbose>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>axistools-maven-plugin</artifactId>
+				<version>1.4</version>
+				<configuration>
+					<outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+					<sourceDirectory>${basedir}/src/main/resources/wsdl</sourceDirectory>
+					<!-- <wsdlFiles></wsdlFiles> -->
+					<verbose>true</verbose>
+					<timeout>60</timeout> <!-- in secondi -->
+					<testCases>false</testCases>
+					<serverSide>false</serverSide>
+					<mappings>
+						<mapping>
+							<namespace>urn:CmnWSSGateway</namespace>
+							<targetPackage>it.eng.utility.sicra.contabilita.wsdl</targetPackage>
+						</mapping>
+					</mappings>
+					<debug>true</debug>
+					<wrapArrays>true</wrapArrays>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>javax.activation</groupId>
+						<artifactId>activation</artifactId>
+						<version>1.1.1</version>
+					</dependency>
+					<dependency>
+						<groupId>javax.mail</groupId>
+						<artifactId>javax.mail-api</artifactId>
+						<version>1.6.0</version>
+					</dependency>
+				</dependencies>
+				<executions>
+					<execution>
+						<goals>
+							<goal>wsdl2java</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.2.0</version>
+				<configuration>
+					<excludes>
+						<exclude>**/package-info.*</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+
+</project>

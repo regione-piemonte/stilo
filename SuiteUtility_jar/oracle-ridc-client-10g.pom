@@ -1,0 +1,263 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>it.eng.utility</groupId>
+    <artifactId>oracle-ridc-client</artifactId>
+    <packaging>jar</packaging>
+    <version>10g</version>
+    <name>Remote Intradoc Client (RIDC) ${version}</name>
+    <description>Client for communicating with the Content Server</description>
+    <url>http://www.oracle.com</url>
+    <organization>
+        <name>Oracle Corporation</name>
+        <url>http://www.oracle.com/</url>
+    </organization>
+    <developers>
+        <developer>
+            <id>astuenke</id>
+            <name>Adam Stuenkel</name>
+            <email>adam.stuenkel@oracle.com</email>
+            <roles>
+                <role>architect</role>
+                <role>developer</role>
+            </roles>
+        </developer>
+    </developers>
+    <inceptionYear>2008</inceptionYear>
+
+    <properties>
+        <!-- set as empty string by default, override via settings.xml file -->
+        <ridc.junit.idc.httpUrl/>
+        <ridc.junit.idc.idcUrl/>
+        <ridc.junit.idc.user/>
+        <ridc.junit.idc.password/>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>3.8.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-httpclient</groupId>
+            <artifactId>commons-httpclient</artifactId>
+            <version>3.1</version>
+        </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.13</version>
+        </dependency>
+    </dependencies>
+
+    <profiles>
+        <profile>
+            <id>distribution</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>2.4</version>
+                        <executions>
+                            <execution>
+                                <phase>process-classes</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/main/assembly/dist.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>attached</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- idcRelease profile to checkin the build to the build server -->
+        <profile>
+            <id>idcRelease</id>
+            <activation>
+                <property>
+                    <name>idcRelease</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <!-- check into Content Server -->
+                    <plugin>
+                        <groupId>oracle.stellent.mvnplugins</groupId>
+                        <artifactId>mvn-idc-plugin</artifactId>
+                        <version>1.0-SNAPSHOT</version>
+                        <configuration>
+                            <idcUrl>${build.idcUrl}</idcUrl>
+                            <username>${build.idcUser}</username>
+                            <password>${build.idcPassword}</password>
+                            <contentID>${project.artifactId}-${project.version}</contentID>
+                            <useDefaultArtifact>false</useDefaultArtifact>
+             	            <classifier>bin</classifier>
+                            <metadata>
+                                <dSecurityGroup>Secure</dSecurityGroup>
+                                <dDocAuthor>${build.idcUser}</dDocAuthor>
+                                <dDocType>Builds</dDocType>
+                                <dDocTitle>RIDC ${project.version}</dDocTitle>
+                                <xProduct>RIDC</xProduct>
+                                <xProductLabel>10gR4</xProductLabel>
+                                <xProductPath>ucm/ridc</xProductPath>
+                                <xSourceLocation>${project.scm.url}</xSourceLocation>
+                                <xSourceRevision>${buildNumber}</xSourceRevision>
+                                <xBuild>${buildNumber}</xBuild>
+                                <xComments>http://seasvn/trac/cis/browser/ridc/branches/ridc-10g?rev=${buildNumber}</xComments>
+                            </metadata>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>checkin</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.5</source>
+                    <target>1.5</target>
+                </configuration>
+            </plugin>
+            <!-- creates a build number using the current SVN revision -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <version>1.0-beta-2</version>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <doCheck>false</doCheck>
+                    <doUpdate>false</doUpdate>
+                </configuration>
+            </plugin>
+            <!-- this will add the build number entries to all jar files -->
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                        <manifestEntries>
+                            <Specification-Version>10gR3</Specification-Version>
+                            <Implementation-Version>10.1.3.3.3</Implementation-Version>
+                            <Implementation-Build>${buildNumber}</Implementation-Build>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <configuration>
+                    <useFile>false</useFile>
+                    <excludes>
+                        <exclude>**/test/localOnly/**.java</exclude>
+                    </excludes>
+                    <systemProperties>
+                        <property>
+                            <name>ridc.junit.idc.httpUrl</name>
+                            <value>${ridc.junit.idc.httpUrl}</value>
+                        </property>
+                        <property>
+                            <name>ridc.junit.idc.idcUrl</name>
+                            <value>${ridc.junit.idc.idcUrl}</value>
+                        </property>
+                        <property>
+                            <name>ridc.junit.idc.user</name>
+                            <value>${ridc.junit.idc.user}</value>
+                        </property>
+                        <property>
+                            <name>ridc.junit.idc.password</name>
+                            <value>${ridc.junit.idc.password}</value>
+                        </property>
+                    </systemProperties>
+                </configuration>
+            </plugin>
+        </plugins>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+    </build>
+
+    <distributionManagement>
+        <repository>
+            <id>internal.releases</id>
+            <name>Internal Releases</name>
+            <url>http://seabuild1:8870/nexus/content/repositories/releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>internal.snapshots</id>
+            <name>Internal Snapshots</name>
+            <url>http://seabuild1:8870/nexus/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <scm>
+        <connection>scm:svn:http://seasvn/svn/cis/ridc/branches/ridc-10g</connection>
+        <developerConnection>scm:svn:http://seasvn/svn/cis/ridc/branches/ridc-10g</developerConnection>
+        <url>http://seasvn/svn/cis/ridc/branches/ridc-10g</url>
+    </scm>
+    <issueManagement>
+        <system>Trac</system>
+        <url>http://seasvn/trac/cis/report</url>
+    </issueManagement>
+    <ciManagement>
+        <system>Continuum</system>
+        <url>http://seadevjava.us.oracle.com:8020/continuum</url>
+    </ciManagement>
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </reporting>
+
+    <!--
+     Example command lines:
+        mvn install -Dmaven.test.skip=true -Pdistribution
+    -->
+
+</project>
