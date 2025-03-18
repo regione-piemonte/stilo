@@ -1,4 +1,4 @@
-package com.hyperborea.sira.ws;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 public class SearchIntertematiciWSProxy implements com.hyperborea.sira.ws.SearchIntertematiciWS {
   private String _endpoint = null;

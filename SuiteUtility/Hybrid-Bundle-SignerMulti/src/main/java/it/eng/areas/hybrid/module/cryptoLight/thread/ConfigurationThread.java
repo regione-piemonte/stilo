@@ -1,4 +1,4 @@
-package it.eng.areas.hybrid.module.cryptoLight.thread;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 
 import javax.smartcardio.CardTerminals;

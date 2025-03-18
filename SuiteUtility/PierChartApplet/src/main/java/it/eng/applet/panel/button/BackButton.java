@@ -1,4 +1,4 @@
-package it.eng.applet.panel.button;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import it.eng.applet.menu.impl.LEVEL_BACK;
 

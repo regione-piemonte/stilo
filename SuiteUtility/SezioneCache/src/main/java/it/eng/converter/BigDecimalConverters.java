@@ -1,4 +1,4 @@
-package it.eng.converter;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import org.apache.commons.beanutils.locale.converters.BigDecimalLocaleConverter;
 import org.apache.commons.lang3.StringUtils;

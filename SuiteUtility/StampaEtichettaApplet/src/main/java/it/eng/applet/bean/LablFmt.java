@@ -1,4 +1,4 @@
-package it.eng.applet.bean;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 /**
  * Classe bean che contiene i parametri di formato dell'etichetta

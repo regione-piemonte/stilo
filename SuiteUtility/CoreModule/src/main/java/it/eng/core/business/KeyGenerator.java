@@ -1,4 +1,4 @@
-package it.eng.core.business;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 /**
  * Classe che espone un metodo per la generazione automatica di un identificativo univoco

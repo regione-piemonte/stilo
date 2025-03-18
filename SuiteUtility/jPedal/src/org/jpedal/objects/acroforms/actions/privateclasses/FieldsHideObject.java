@@ -1,4 +1,4 @@
-package org.jpedal.objects.acroforms.actions.privateclasses;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 public class FieldsHideObject {
 	private String[] fieldsToHide = new String[0];

@@ -1,4 +1,4 @@
-/*
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
  * XAdES4j - A Java library for generation and verification of XAdES signatures.
  * Copyright (C) 2011 Luis Goncalves.
  * 

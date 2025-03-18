@@ -1,4 +1,4 @@
-package eng.database.exception;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 public class EngFormException extends EngException {
 	public EngFormException(String message)	{

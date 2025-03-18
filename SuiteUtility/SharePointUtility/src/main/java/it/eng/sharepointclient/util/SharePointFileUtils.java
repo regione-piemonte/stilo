@@ -1,4 +1,4 @@
-package it.eng.sharepointclient.util;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import it.eng.sharepointclient.list.GetListAndViewResponse.GetListAndViewResult;
 import it.eng.sharepointclient.list.GetListItems;

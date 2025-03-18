@@ -1,4 +1,4 @@
-package it.eng.hybrid.module.wordOpener.file;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import it.eng.hybrid.module.wordOpener.config.WordOpenerConfigManager;
 import it.eng.hybrid.module.wordOpener.config.WordOpenerConfigManager.TIPO_ENCODING;

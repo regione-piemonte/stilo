@@ -1,4 +1,4 @@
-package eng.storefunction;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 /**
   Classe che permette l'esecuzione di una store procedure semplificando la creazione

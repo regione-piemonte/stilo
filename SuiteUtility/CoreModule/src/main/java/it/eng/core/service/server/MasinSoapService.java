@@ -1,4 +1,4 @@
-package it.eng.core.service.server;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import javax.xml.ws.Endpoint;
 import javax.xml.ws.soap.SOAPBinding;

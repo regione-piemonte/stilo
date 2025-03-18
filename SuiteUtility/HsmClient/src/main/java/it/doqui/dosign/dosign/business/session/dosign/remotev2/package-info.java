@@ -1,2 +1,2 @@
-@javax.xml.bind.annotation.XmlSchema(namespace = "http://remotev2.dosign.session.business.dosign.dosign.doqui.it/")
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 package it.doqui.dosign.dosign.business.session.dosign.remotev2;

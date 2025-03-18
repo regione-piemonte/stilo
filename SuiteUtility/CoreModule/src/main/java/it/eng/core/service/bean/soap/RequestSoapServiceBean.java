@@ -1,4 +1,4 @@
-package it.eng.core.service.bean.soap;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import it.eng.core.service.bean.AttachDescription.FileIdAssociation;
 

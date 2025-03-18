@@ -1,4 +1,4 @@
-package it.eng.suiteutility.mimedetector.implementations.mimeutils.detectors.util.signer;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import java.io.File;
 import java.util.ArrayList;

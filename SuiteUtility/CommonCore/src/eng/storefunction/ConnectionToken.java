@@ -1,4 +1,4 @@
-/*
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
  * Autore: Antonio Vendramini
  * data: 20/10/2006
  * 

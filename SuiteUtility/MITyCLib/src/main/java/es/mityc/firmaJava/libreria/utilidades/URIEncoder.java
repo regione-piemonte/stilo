@@ -1,4 +1,4 @@
- /*
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
   * Copyright 1995-2006 Sun Microsystems, Inc.  All Rights Reserved.
   * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
   *

@@ -1,4 +1,4 @@
-package eu.medsea.mimeutil.detector;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import java.util.HashMap;
 import java.util.Map;

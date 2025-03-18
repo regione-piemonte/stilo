@@ -1,4 +1,4 @@
-package org.jpedal.examples.images;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;

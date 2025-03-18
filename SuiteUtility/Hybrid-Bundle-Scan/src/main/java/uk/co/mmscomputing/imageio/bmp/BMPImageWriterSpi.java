@@ -1,4 +1,4 @@
-package uk.co.mmscomputing.imageio.bmp;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import java.io.IOException;
 import java.util.Locale;

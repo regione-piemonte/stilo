@@ -1,4 +1,4 @@
-package it.eng.proxyselector.jcfis;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

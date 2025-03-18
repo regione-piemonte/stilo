@@ -1,4 +1,4 @@
-package it.eng.utility.cryptosigner.ca;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import java.io.ByteArrayInputStream;
 import java.security.cert.X509CRL;

@@ -1,4 +1,4 @@
-package org.jpedal.examples.javafx;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 /**
  * A wrapper class for FXML in the interests of simplicity to

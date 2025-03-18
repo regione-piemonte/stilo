@@ -1,4 +1,4 @@
-package it.eng.areas.hybrid.osgi;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleEvent;

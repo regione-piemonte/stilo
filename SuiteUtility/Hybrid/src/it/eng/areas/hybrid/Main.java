@@ -1,4 +1,4 @@
-package it.eng.areas.hybrid;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import java.awt.TrayIcon.MessageType;
 import java.io.File;

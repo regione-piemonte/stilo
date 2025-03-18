@@ -1,4 +1,4 @@
-package it.eng.suiteutility.module.mimedb.beanconverters;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 import it.eng.core.business.converter.IBeanPopulate;
 import it.eng.suiteutility.module.mimedb.beans.FormatoDigitaleBean;
 import it.eng.suiteutility.module.mimedb.entity.TAnagFormatiDig;

@@ -1,4 +1,4 @@
-package it.eng.utility.jobmanager.quartz;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import static org.quartz.DateBuilder.futureDate;
 import static org.quartz.JobBuilder.newJob;

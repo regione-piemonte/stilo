@@ -1,4 +1,4 @@
-/**
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
  * A Base64 Encoder/Decoder.
  * <p>
  * This class is used to encode and decode data in Base64 format as described in

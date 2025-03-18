@@ -1,4 +1,4 @@
-package it.eng.auriga.opentext.aspect;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import java.net.MalformedURLException;
 import java.util.Date;

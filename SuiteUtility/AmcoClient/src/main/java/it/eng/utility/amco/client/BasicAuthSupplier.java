@@ -1,4 +1,4 @@
-package it.eng.utility.amco.client;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import java.net.URI;
 import java.util.Base64;

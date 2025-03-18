@@ -1,4 +1,4 @@
-/**
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
  * Questo editor è uguale a quello di default in org.springframework.beans.propertyeditors.CustomBooleanEditor, 
  * solamente che nel motodo setAsText(String text) è stato gestito il caso in cui text = "" restituendo false
  * La classe org.springframework.beans.propertyeditors.CustomBooleanEditor in questo caso caso invece solleva una eccezione

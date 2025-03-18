@@ -1,4 +1,4 @@
-package it.eng.utility.cryptosigner.task.caupdate;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import org.apache.log4j.Logger;
 

@@ -1,4 +1,4 @@
-package it.eng.core.business;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import it.eng.core.business.beans.EntityConstraint;
 import it.eng.core.business.beans.PropValue;

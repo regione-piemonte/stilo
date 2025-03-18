@@ -1,4 +1,4 @@
-package it.eng.auriga.opentext.service.cs.rest;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 //import java.time.Duration;
 //import java.util.Collections;

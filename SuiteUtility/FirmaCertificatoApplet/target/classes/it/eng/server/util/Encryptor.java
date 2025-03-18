@@ -1,4 +1,4 @@
-/**
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
  * La classe definisce e implementa i metodi utilizzati per eseguire la criptazione/decriptazione di un valore che viene fornito
  */
 package it.eng.server.util;

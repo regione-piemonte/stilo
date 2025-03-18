@@ -1,4 +1,4 @@
-package it.eng.dm.sira.service.processes;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import it.eng.dm.sira.service.bean.DmtProcess;
 import it.eng.spring.utility.SpringAppContext;

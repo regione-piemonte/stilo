@@ -1,4 +1,4 @@
-function show(type)
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 {
     count = 0;
     for (var key in methods) {

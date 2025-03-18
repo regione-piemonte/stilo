@@ -1,4 +1,4 @@
-package it.eng.client.applet;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 /**
  * tipo di widget possibili per la gestione da pannello di conf
  * @author Russo

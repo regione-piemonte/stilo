@@ -1,4 +1,4 @@
-package it.eng.client.applet.operation.pdf;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 /*
  * $Id: Chapter.java 3373 2008-05-12 16:21:24Z xlv $

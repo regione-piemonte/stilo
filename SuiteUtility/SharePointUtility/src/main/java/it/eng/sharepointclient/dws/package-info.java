@@ -1,2 +1,2 @@
-@javax.xml.bind.annotation.XmlSchema(namespace = "http://schemas.microsoft.com/sharepoint/soap/dws/", elementFormDefault = javax.xml.bind.annotation.XmlNsForm.QUALIFIED)
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 package it.eng.sharepointclient.dws;

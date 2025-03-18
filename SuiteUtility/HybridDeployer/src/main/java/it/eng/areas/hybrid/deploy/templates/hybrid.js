@@ -1,4 +1,4 @@
-var Hybrid = function() {
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 	
 	// Internet Explorer 6-11
 	var isIE = /*@cc_on!@*/false || !!document.documentMode;

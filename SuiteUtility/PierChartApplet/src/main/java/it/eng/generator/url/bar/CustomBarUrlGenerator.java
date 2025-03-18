@@ -1,4 +1,4 @@
-package it.eng.generator.url.bar;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import it.eng.applet.PieChartApplet;
 import it.eng.applet.dataset.BarChartBuilder;

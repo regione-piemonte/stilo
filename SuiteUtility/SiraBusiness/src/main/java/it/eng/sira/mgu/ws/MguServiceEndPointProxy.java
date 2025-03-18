@@ -1,4 +1,4 @@
-package it.eng.sira.mgu.ws;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 public class MguServiceEndPointProxy implements it.eng.sira.mgu.ws.MguServiceEndPoint {
   private String _endpoint = null;

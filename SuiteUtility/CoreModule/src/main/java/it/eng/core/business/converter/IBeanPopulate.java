@@ -1,4 +1,4 @@
-package it.eng.core.business.converter;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 /**
  * Interfaccia che espone il metodo per popolare i valori di un bean in maniera custom

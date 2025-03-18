@@ -1,4 +1,4 @@
-package it.eng.parameter;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 /**
  * Classe che rappresenta i parametri in ingresso per l'applet

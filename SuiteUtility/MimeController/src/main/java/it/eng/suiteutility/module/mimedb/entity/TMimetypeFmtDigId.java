@@ -1,4 +1,4 @@
-package it.eng.suiteutility.module.mimedb.entity;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 // Generated 29-gen-2013 12.50.59 by Hibernate Tools 3.4.0.CR1
 

@@ -1,4 +1,4 @@
-package it.eng.client.applet.connection;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import it.eng.client.applet.bean.ProxyBean;
 import it.eng.common.bean.HashFileBean;

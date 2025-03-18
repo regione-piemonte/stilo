@@ -1,4 +1,4 @@
-package it.eng.hsm.client.util;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import it.eng.hsm.client.config.ProxyConfig;
 import org.apache.commons.codec.binary.Base64;

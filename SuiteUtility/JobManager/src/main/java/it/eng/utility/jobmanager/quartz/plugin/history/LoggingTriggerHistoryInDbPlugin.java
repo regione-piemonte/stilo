@@ -1,4 +1,4 @@
-package it.eng.utility.jobmanager.quartz.plugin.history;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;

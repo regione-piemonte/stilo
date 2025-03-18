@@ -1,4 +1,4 @@
-package it.eng.suiteutility.mimedetector.implementations.aperture;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import org.semanticdesktop.aperture.mime.identifier.magic.MagicMimeTypeIdentifier;
 

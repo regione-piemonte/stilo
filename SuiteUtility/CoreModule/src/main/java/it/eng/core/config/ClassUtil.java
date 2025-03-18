@@ -1,4 +1,4 @@
-package it.eng.core.config;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 // package com.kupal.skypeCommand.util;
 
 import java.lang.annotation.Annotation;

@@ -1,4 +1,4 @@
-package uk.co.mmscomputing.concurrent;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 /*
 	Thread- und Netzwerk-Programmierung mit Java
 	ISBN 3-89864-133-3

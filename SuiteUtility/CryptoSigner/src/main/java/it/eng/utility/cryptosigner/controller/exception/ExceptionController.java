@@ -1,4 +1,4 @@
-package it.eng.utility.cryptosigner.controller.exception;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 /**
  * Eccezione specializzata per il processo di controllo dei file firmati

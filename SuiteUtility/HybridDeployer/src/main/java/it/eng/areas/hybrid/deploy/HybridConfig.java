@@ -1,4 +1,4 @@
-package it.eng.areas.hybrid.deploy;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import java.io.InputStream;
 import java.net.URL;

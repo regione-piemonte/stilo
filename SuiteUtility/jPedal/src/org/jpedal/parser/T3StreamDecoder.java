@@ -1,4 +1,4 @@
-package org.jpedal.parser;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import org.jpedal.exception.PdfException;
 import org.jpedal.fonts.glyph.T3Size;

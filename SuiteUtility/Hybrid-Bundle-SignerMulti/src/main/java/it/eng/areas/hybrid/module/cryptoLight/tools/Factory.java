@@ -1,4 +1,4 @@
-package it.eng.areas.hybrid.module.cryptoLight.tools;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import static sun.security.pkcs11.wrapper.PKCS11Constants.CKF_OS_LOCKING_OK;
 

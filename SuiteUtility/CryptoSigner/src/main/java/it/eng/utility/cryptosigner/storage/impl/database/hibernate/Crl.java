@@ -1,4 +1,4 @@
-package it.eng.utility.cryptosigner.storage.impl.database.hibernate;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 // Generated 29-Apr-2010 14:57:22 by Hibernate Tools 3.2.4.GA
 

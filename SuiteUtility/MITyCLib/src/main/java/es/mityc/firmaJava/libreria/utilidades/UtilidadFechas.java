@@ -1,4 +1,4 @@
-/**
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
  * Copyright 2013 Ministerio de Industria, Energía y Turismo
  *
  * Este fichero es parte de "Componentes de Firma XAdES".

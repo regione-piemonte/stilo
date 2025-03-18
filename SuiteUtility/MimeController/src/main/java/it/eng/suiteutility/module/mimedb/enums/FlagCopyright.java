@@ -1,4 +1,4 @@
-package it.eng.suiteutility.module.mimedb.enums;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 /**
  * Se 1 indica che e' un formato le cui specifiche sono coperte da copyright,
  * se 0 che � un formato aperto

@@ -1,4 +1,4 @@
-package it.eng.utility.pdf.barcode;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import java.awt.Color;
 import java.awt.Graphics2D;

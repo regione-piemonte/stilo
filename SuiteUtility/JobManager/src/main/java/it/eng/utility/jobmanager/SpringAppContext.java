@@ -1,4 +1,4 @@
-package it.eng.utility.jobmanager;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import org.springframework.context.ApplicationContext;
 

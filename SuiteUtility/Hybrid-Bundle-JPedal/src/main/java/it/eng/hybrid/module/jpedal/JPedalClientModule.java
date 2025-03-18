@@ -1,4 +1,4 @@
-package it.eng.hybrid.module.jpedal;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import it.eng.areas.hybrid.module.IClientHttpModule;
 import it.eng.areas.hybrid.module.IClientModuleContainer;

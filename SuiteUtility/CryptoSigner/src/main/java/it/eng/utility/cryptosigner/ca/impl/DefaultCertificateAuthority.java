@@ -1,4 +1,4 @@
-package it.eng.utility.cryptosigner.ca.impl;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import it.eng.utility.FileUtil;
 import it.eng.utility.cryptosigner.CryptoConfiguration;

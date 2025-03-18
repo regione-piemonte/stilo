@@ -1,4 +1,4 @@
-package it.eng.common.type;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 public enum SignerType {
 	CAdES_BES,

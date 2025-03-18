@@ -1,4 +1,4 @@
-package it.eng.dm.sira.entity;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 // Generated 23-gen-2014 14.37.53 by Hibernate Tools 3.4.0.CR1
 

@@ -1,4 +1,4 @@
-package it.eng.utility.cryptosigner.utils;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 /**
  * marker interface per i codici dei messaggi
  * @author Russo

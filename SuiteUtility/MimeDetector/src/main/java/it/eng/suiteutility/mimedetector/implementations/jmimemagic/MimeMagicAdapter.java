@@ -1,4 +1,4 @@
-package it.eng.suiteutility.mimedetector.implementations.jmimemagic;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import it.eng.suiteutility.mimedetector.AbstractMimeDetector;
 import it.eng.suiteutility.mimedetector.DetectorPrototype;

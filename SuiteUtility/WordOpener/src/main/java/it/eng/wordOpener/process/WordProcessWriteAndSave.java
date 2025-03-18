@@ -1,4 +1,4 @@
-package it.eng.wordOpener.process;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import it.eng.wordOpener.WriteAndSave;
 import it.eng.wordOpener.exception.UnableToEditFileException;

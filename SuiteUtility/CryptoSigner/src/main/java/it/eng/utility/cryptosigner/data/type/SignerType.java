@@ -1,4 +1,4 @@
-package it.eng.utility.cryptosigner.data.type;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 /**
  * Definisce la lista dei possibili formati di firma digitale

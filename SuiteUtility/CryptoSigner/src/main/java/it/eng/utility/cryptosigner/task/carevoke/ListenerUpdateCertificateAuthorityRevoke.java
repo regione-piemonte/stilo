@@ -1,4 +1,4 @@
-package it.eng.utility.cryptosigner.task.carevoke;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 //import it.sauronsoftware.cron4j.SchedulerListener;
 //import it.sauronsoftware.cron4j.TaskExecutor;

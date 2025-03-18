@@ -1,4 +1,4 @@
-package it.eng.proxyselector;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
 
 import it.eng.proxyselector.configuration.ProxyConfiguration;
 import it.eng.proxyselector.http.ProxyDefaultHttpClient;
