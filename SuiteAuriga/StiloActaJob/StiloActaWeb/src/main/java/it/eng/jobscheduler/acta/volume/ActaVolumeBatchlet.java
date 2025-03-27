@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.jobscheduler.acta.volume;
 
 import it.eng.stilo.logic.OperationResult;
 import it.eng.stilo.logic.service.GenericDataAccessEJB;

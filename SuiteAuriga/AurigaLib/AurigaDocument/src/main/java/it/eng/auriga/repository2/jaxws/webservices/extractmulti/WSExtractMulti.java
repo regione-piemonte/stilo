@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.extractmulti;
 
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsExtractfilesudBean;
 import it.eng.auriga.database.store.dmpk_ws.store.Extractfilesud;
@@ -8,6 +9,7 @@ import it.eng.auriga.module.business.beans.SpecializzazioneBean;
 import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
 import it.eng.document.function.RecuperoFile;
+import it.eng.document.function.StoreException;
 import it.eng.document.function.bean.FileExtractedOut;
 import it.eng.jaxb.context.SingletonJAXBContext;
 import it.eng.jaxb.variabili.Lista;
@@ -24,6 +26,8 @@ import javax.jws.HandlerChain;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -73,6 +77,7 @@ public class WSExtractMulti extends JAXWSAbstractAurigaService implements WSIExt
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
     	
     String risposta = null;
@@ -80,6 +85,7 @@ public class WSExtractMulti extends JAXWSAbstractAurigaService implements WSIExt
     WSExtractMultiBean outServizio = new WSExtractMultiBean();
     String errMsg = null;
     String xmlIn = null;
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
     
     try {
     	
@@ -116,7 +122,12 @@ public class WSExtractMulti extends JAXWSAbstractAurigaService implements WSIExt
  			 // Chiamo il servizio di AurigaDocument
  			 outServizio =  eseguiServizio(loginBean,outWS); 	 		
 	 		}
-	 	catch (Exception e){	 
+	 	catch (Exception e){
+	 		if (e instanceof StoreException) {
+	    		if(((StoreException) e).getError()!=null){
+	    			errCode = ((StoreException) e).getError().getErrorCode();
+	    		}
+	    	}
 	 		if(e.getMessage()!=null)
 	 			 errMsg = "Errore = " + e.getMessage();
 	 		 else
@@ -204,7 +215,7 @@ public class WSExtractMulti extends JAXWSAbstractAurigaService implements WSIExt
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 	 	 }
 	 	 else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	 }
 	 			        	
 	     aLogger.info("Fine WSExtractMulti");
@@ -226,7 +237,7 @@ public class WSExtractMulti extends JAXWSAbstractAurigaService implements WSIExt
     }
     
     private WSExtractMultiBean eseguiServizio(AurigaLoginBean loginBean, WSExtractMultiBean bean) throws Exception {
-    	aLogger.debug("Eseguo il servizio di AurigaDocument.");
+    	aLogger.debug("Eseguo il servizio RecuperoFile->extractFileByIdDoc.");
     	
     	List<File> extractedFileList = new ArrayList<File>(); 
     	     	
@@ -272,57 +283,54 @@ public class WSExtractMulti extends JAXWSAbstractAurigaService implements WSIExt
     }
     
     private WSExtractMultiBean callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-    	    	
-    	aLogger.debug("Eseguo il WS DmpkWsExtractMulti.");
+    	aLogger.debug("Eseguo il WS DMPK_WS->ExtractMulti.");
     	    	
     	String verDoctoExtractTab = null;
     	String xml                = null;    	
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsExtractfilesudBean input = new DmpkWsExtractfilesudBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		  
-    		  // Eseguo il servizio
-    		  Extractfilesud service = new Extractfilesud();
-    		  StoreResultBean<DmpkWsExtractfilesudBean> output = service.execute(loginBean, input);
+        		
+    	// Inizializzo l'INPUT    		
+    	DmpkWsExtractfilesudBean input = new DmpkWsExtractfilesudBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+	  
+    	// Eseguo il servizio
+    	Extractfilesud service = new Extractfilesud();
+    	StoreResultBean<DmpkWsExtractfilesudBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
+    	if (output.isInError()){
+    		aLogger.debug(output.getDefaultMessage());
+    		aLogger.debug(output.getErrorContext());
+    		aLogger.debug(output.getErrorCode());
+    		throw new StoreException(output);
+    	}	
 
-    		  // restituisco l'XML
-    		  if(output.getResultBean().getXmlout()!=null){
-    			  xml = output.getResultBean().getXmlout();  
-    		  }
-    		  if (xml== null || xml.equalsIgnoreCase(""))
-    			  throw new Exception("La store procedure ha ritornato XmlOut nullo");
-    		      		    		      		  
-    		  // restituisco la lista con i nro versioni
-    	      if (output.getResultBean().getVerdoctoextracttabout() != null){
-    	    	  verDoctoExtractTab = output.getResultBean().getVerdoctoextracttabout().toString();
-    	      }
-      	      if (verDoctoExtractTab == null) {
-      	    	    throw new Exception("La store procedure ExtractFilesUD ha ritornato una lista di documenti nulla");
-      	      }
-      	      
-      	      // popolo il bean di out
-    		  WSExtractMultiBean result = new WSExtractMultiBean();
-    		  result.setXml(xml);
-    		  
-    		  // leggo la lista dei documenti 
-    		  List<ExtractBean> listExtractBean = new ArrayList<ExtractBean>();    		  
-    		  listExtractBean =  getListDoc(verDoctoExtractTab);
-    		  
-    		  result.setDocumentlist(listExtractBean);
-    			  
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+    	// restituisco l'XML
+    	if(output.getResultBean().getXmlout()!=null){
+		  xml = output.getResultBean().getXmlout();  
+    	}
+    	if (xml== null || xml.equalsIgnoreCase(""))
+		  throw new Exception("La store procedure ha ritornato XmlOut nullo");
+	      		    		      		  
+    	// restituisco la lista con i nro versioni
+    	if (output.getResultBean().getVerdoctoextracttabout() != null){
+    	  verDoctoExtractTab = output.getResultBean().getVerdoctoextracttabout().toString();
+    	}
+    	if (verDoctoExtractTab == null) {
+    	    throw new Exception("La store procedure ExtractFilesUD ha ritornato una lista di documenti nulla");
+    	}
+      
+    	// popolo il bean di out
+    	WSExtractMultiBean result = new WSExtractMultiBean();
+    	result.setXml(xml);
+	  
+    	// leggo la lista dei documenti 
+    	List<ExtractBean> listExtractBean = new ArrayList<ExtractBean>();    		  
+    	listExtractBean =  getListDoc(verDoctoExtractTab);
+	  
+    	result.setDocumentlist(listExtractBean);
+		  
+    	return result;
     }
-    
     
 	/**
      * Genera il file XML contenente l'id del folder aggiunto
@@ -340,7 +348,7 @@ public class WSExtractMulti extends JAXWSAbstractAurigaService implements WSIExt
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             
             //xmlInEsc = xmlIn;

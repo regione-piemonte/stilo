@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean.sicra;
 
 import java.io.Serializable;
 
@@ -14,6 +15,7 @@ public class SicraMessaggio implements Serializable {
 	private String messaggioXml;
 	private SicraMessaggiAvviso messaggiAvviso;
 	private SicraMessaggiErrore messaggiErrore;
+	private SicraMessaggiInformazione messaggiInformazione;
 
 	public String getTipo() {
 		return tipo;
@@ -53,6 +55,14 @@ public class SicraMessaggio implements Serializable {
 
 	public void setMessaggiErrore(SicraMessaggiErrore messaggiErrore) {
 		this.messaggiErrore = messaggiErrore;
+	}
+
+	public SicraMessaggiInformazione getMessaggiInformazione() {
+		return messaggiInformazione;
+	}
+
+	public void setMessaggiInformazione(SicraMessaggiInformazione messaggiInformazione) {
+		this.messaggiInformazione = messaggiInformazione;
 	}
 
 }

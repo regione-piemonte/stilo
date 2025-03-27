@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -533,6 +534,7 @@ public class FirmaUtility extends FileOpUtility {
 
 						String controFirmatario = (subject.getC().equals(null) ? "" : "C=" + subject.getC())
 								+ (subject.getCn() == null ? "" : " CN=" + subject.getCn())
+								+ (subject.getCodiceFiscale() == null ? "" : " CF=" + subject.getCodiceFiscale())
 								+ (subject.getName() == null ? "" : " NAME=" + subject.getName())
 								+ (subject.getO() == null ? "" : " O=" + subject.getO())
 								+ (subject.getOu() == null ? "" : " OU=" + subject.getOu());
@@ -613,6 +615,7 @@ public class FirmaUtility extends FileOpUtility {
 			DnType subject = info.getCertificato().getSubject();
 	
 			String firmatario = (subject.getC() == null ? "" : "C=" + subject.getC()) + (subject.getCn() == null ? "" : " CN=" + subject.getCn())
+					+ (subject.getCodiceFiscale() == null ? "" : " CF=" + subject.getCodiceFiscale())
 					+ (subject.getName() == null ? "" : " NAME=" + subject.getName()) + (subject.getO() == null ? "" : " O=" + subject.getO())
 					+ (subject.getOu() == null ? "" : " OU=" + subject.getOu());
 	
@@ -629,6 +632,7 @@ public class FirmaUtility extends FileOpUtility {
 			firmatarioExt.setDataScadenza(sdf.format(info.getCertificato().getDataScadenza().toGregorianCalendar().getTime()));
 	
 			firmatarioExt.setSerialNumber(info.getCertificato().getSerialNumber());
+			firmatarioExt.setCfFirmatario(subject.getCodiceFiscale());
 			firmatarioExt.setQcStatements(info.getCertificato().getQcStatements().getQcStatement()
 					.toArray(new String[info.getCertificato().getQcStatements().getQcStatement().size()]));
 			firmatarioExt.setKeyUsages(info.getCertificato().getKeyUsages().getKeyUsage()

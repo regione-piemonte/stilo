@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -12,17 +13,16 @@ import org.apache.log4j.Logger;
 import it.eng.auriga.database.store.dmpk_load_combo.bean.DmpkLoadComboDmfn_load_comboBean;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
-import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.TipoDocumentoBean;
+import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.GruppiRepertorioBean;
 import it.eng.client.DmpkLoadComboDmfn_load_combo;
 import it.eng.utility.MessageUtil;
-import it.eng.utility.XmlUtility;
 import it.eng.utility.ui.module.core.server.bean.AdvancedCriteria;
 import it.eng.utility.ui.module.core.server.bean.OrderByBean;
 import it.eng.utility.ui.module.core.server.bean.PaginatorBean;
 import it.eng.utility.ui.module.core.server.datasource.AbstractFetchDataSource;
 import it.eng.utility.ui.module.core.server.datasource.annotation.Datasource;
-import it.eng.utility.ui.module.layout.shared.bean.SimpleKeyValueBean;
 import it.eng.utility.ui.user.AurigaUserUtil;
+import it.eng.xml.XmlListaUtility;
 
 /**
  * 
@@ -31,12 +31,12 @@ import it.eng.utility.ui.user.AurigaUserUtil;
  */
 
 @Datasource(id="LoadComboGruppiRepertorioSource")
-public class LoadComboGruppiRepertorioSource extends AbstractFetchDataSource<SimpleKeyValueBean> {
+public class LoadComboGruppiRepertorioSource extends AbstractFetchDataSource<GruppiRepertorioBean> {
 	
 	private static Logger mLogger = Logger.getLogger(LoadComboGruppiRepertorioSource.class);
 
 	@Override
-	public PaginatorBean<SimpleKeyValueBean> fetch(AdvancedCriteria criteria,
+	public PaginatorBean<GruppiRepertorioBean> fetch(AdvancedCriteria criteria,
 			Integer startRow, Integer endRow, List<OrderByBean> orderby)
 			throws Exception {
 		
@@ -48,7 +48,6 @@ public class LoadComboGruppiRepertorioSource extends AbstractFetchDataSource<Sim
 				? getExtraparams().get("flgTipoProv") : null;
 		boolean isAttivaAccessibilita = StringUtils.isNotBlank(getExtraparams().get("isAttivaAccessibilita")) && "true".equalsIgnoreCase(getExtraparams().get("isAttivaAccessibilita"));
 		
-		List<SimpleKeyValueBean> lListResult = new ArrayList<SimpleKeyValueBean>();
 		DmpkLoadComboDmfn_load_comboBean lDmpkLoadComboDmfn_load_comboBean = new DmpkLoadComboDmfn_load_comboBean();
 		
 		// Inizializzo l'INPUT
@@ -72,20 +71,22 @@ public class LoadComboGruppiRepertorioSource extends AbstractFetchDataSource<Sim
 		StoreResultBean<DmpkLoadComboDmfn_load_comboBean> lStoreResultBean =  lDmpkLoadComboDmfn_load_combo.execute(getLocale(), AurigaUserUtil.getLoginInfo(getSession()), lDmpkLoadComboDmfn_load_comboBean);
 		String xmlLista = lStoreResultBean.getResultBean().getListaxmlout();
 		
+		List<GruppiRepertorioBean> lListResult = new ArrayList<GruppiRepertorioBean>();
 		try {
-			lListResult = XmlUtility.recuperaListaSempliceSubstring(xmlLista);
+			lListResult = XmlListaUtility.recuperaLista(xmlLista, GruppiRepertorioBean.class);
 		} catch (Exception e) {
 			mLogger.warn(e);
 		}
-		if (isAttivaAccessibilita && lListResult.size()>1) {
-			SimpleKeyValueBean firstEmptyValue = new SimpleKeyValueBean();
+		if (isAttivaAccessibilita && lListResult.size() > 1) {
+			GruppiRepertorioBean firstEmptyValue = new GruppiRepertorioBean();
 			String userLanguage = getLocale().getLanguage();
 			HttpSession session = getSession();
 			String messaggio = MessageUtil.getValue(userLanguage, session, "protocollazione_select_repertorio_tipologia_empty_value");
 			firstEmptyValue.setValue(messaggio);
 			lListResult.add(0, firstEmptyValue);
 		}
-		PaginatorBean<SimpleKeyValueBean> lPaginatorBean = new PaginatorBean<SimpleKeyValueBean>();
+		
+		PaginatorBean<GruppiRepertorioBean> lPaginatorBean = new PaginatorBean<GruppiRepertorioBean>();
 		lPaginatorBean.setData(lListResult);
 		lPaginatorBean.setStartRow(0);
 		lPaginatorBean.setEndRow(lListResult.size());

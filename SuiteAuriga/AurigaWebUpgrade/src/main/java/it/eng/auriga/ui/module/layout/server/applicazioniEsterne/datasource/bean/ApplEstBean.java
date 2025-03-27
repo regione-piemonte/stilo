@@ -1,6 +1,8 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.applicazioniEsterne.datasource.bean;
 
 import java.util.Date;
+import java.util.Map;
 
 /**
  * 
@@ -21,7 +23,13 @@ public class ApplEstBean {
 	private Date dtUltimoAggiornamento;
 	private String utenteUltimoAggiornamento;
 	private Boolean flgSistema;
+	private String rowid;
 	
+	// Attributi dinamici
+	private Map<String, Object> valori;
+	private Map<String, String> tipiValori;
+
+	 
 	public String getCodApplicazione() {
 		return codApplicazione;
 	}
@@ -87,5 +95,23 @@ public class ApplEstBean {
 	}
 	public void setIdApplEsterna(String idApplEsterna) {
 		this.idApplEsterna = idApplEsterna;
+	}
+	public String getRowid() {
+		return rowid;
+	}
+	public void setRowid(String rowid) {
+		this.rowid = rowid;
+	}
+	public Map<String, Object> getValori() {
+		return valori;
+	}
+	public void setValori(Map<String, Object> valori) {
+		this.valori = valori;
+	}
+	public Map<String, String> getTipiValori() {
+		return tipiValori;
+	}
+	public void setTipiValori(Map<String, String> tipiValori) {
+		this.tipiValori = tipiValori;
 	}
 }

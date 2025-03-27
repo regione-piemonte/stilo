@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.frontoffice.items;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -496,13 +497,11 @@ public class AllegatoProcCanvas extends ReplicableCanvas {
 				altreOpMenu.addItem(downloadMenuItem);
 				
 				
-				//TIMBRA
-//				if() {     TODO: timbro
-					buildTimbraMenuItem(altreOpMenu, lInfoFileRecord);	
-//				}				
+				if(AurigaLayout.showOperazioniTimbratura()) {
+					buildTimbraMenuItem(altreOpMenu, lInfoFileRecord);
+				}
 					
-					
-				if (lInfoFileRecord != null && Layout.isPrivilegioAttivo("SCC")) {
+				if (lInfoFileRecord != null && AurigaLayout.showCopiaConformeCustom()) {
 					String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 					MenuItem timbroConformitaCustomMenuItem = new MenuItem(labelConformitaCustom, "file/copiaConformeCustom.png");
 					timbroConformitaCustomMenuItem.setEnabled(lInfoFileRecord != null && lInfoFileRecord.isConvertibile());

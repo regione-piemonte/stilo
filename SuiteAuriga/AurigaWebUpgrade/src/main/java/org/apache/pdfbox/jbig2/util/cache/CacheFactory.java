@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package org.apache.pdfbox.jbig2.util.cache;
 
 import java.util.Iterator;
 import org.apache.pdfbox.jbig2.util.ServiceLookup;

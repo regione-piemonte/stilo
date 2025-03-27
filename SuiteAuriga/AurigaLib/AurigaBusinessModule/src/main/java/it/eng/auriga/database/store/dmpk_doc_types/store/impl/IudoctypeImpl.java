@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.database.store.dmpk_doc_types.store.impl;
 
 import it.eng.auriga.database.store.dmpk_doc_types.bean.DmpkDocTypesIudoctypeBean;
 import it.eng.storeutil.HibernateStoreUtil;
@@ -7,7 +8,6 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Types;
-import oracle.jdbc.OracleTypes;
 
 import it.eng.core.business.HibernateUtil;
 import it.eng.core.business.subject.SubjectBean;
@@ -36,7 +36,7 @@ public class IudoctypeImpl  {
 	    CallableStatement call = null;			
 		try{
 			//Creo il Callbackstatement
-			call = connection.prepareCall("{? = call DMPK_DOC_TYPES.IUDOCTYPE(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");			
+			call = connection.prepareCall("{? = call DMPK_DOC_TYPES.IUDOCTYPE(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");			
 			SubjectBean subject =  SubjectUtil.subject.get();
 			if (StringUtils.isNotEmpty(subject.getUuidtransaction())){
 				HibernateUtil.addStatement(subject.getUuidtransaction(), call);
@@ -99,7 +99,9 @@ public class IudoctypeImpl  {
 			util.settingParameterOnStore(call,bean,wrapperBean,"idprocesstypein",47,Types.DECIMAL,connection); 	
 			util.settingParameterOnStore(call,bean,wrapperBean,"nomeprocesstypein",48,Types.VARCHAR,connection); 	
 			util.settingParameterOnStore(call,bean,wrapperBean,"abilitazionipubblin",49,Types.CLOB,connection); 	
-			util.settingParameterOnStore(call,bean,wrapperBean,"flgrichfirmadigitalein",50,Types.VARCHAR,connection); 	
+			util.settingParameterOnStore(call,bean,wrapperBean,"flgrichfilein",50,Types.DECIMAL,connection); 	
+			util.settingParameterOnStore(call,bean,wrapperBean,"flgrichfirmadigitalein",51,Types.DECIMAL,connection); 	
+			util.settingParameterOnStore(call,bean,wrapperBean,"flgrichfirmavalidain",52,Types.DECIMAL,connection); 	
 			
 			call.execute();
 			if (StringUtils.isNotEmpty(subject.getUuidtransaction())){

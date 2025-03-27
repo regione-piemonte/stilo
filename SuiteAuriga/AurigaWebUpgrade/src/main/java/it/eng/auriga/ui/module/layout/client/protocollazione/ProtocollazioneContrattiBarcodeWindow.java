@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.LinkedHashMap;
 
@@ -152,7 +153,7 @@ public class ProtocollazioneContrattiBarcodeWindow extends ModalWindow {
 			}
 		});
 		
-		timbraButton = new Button("Timbra");
+		timbraButton = new Button(getTitleTimbra());
 		timbraButton.setIcon("file/timbra.gif");
 		timbraButton.setIconSize(16);
 		timbraButton.setAutoFit(true);
@@ -163,17 +164,15 @@ public class ProtocollazioneContrattiBarcodeWindow extends ModalWindow {
 				if(formEstremi.validate()) {
 					
 					// Stampa etichetta
-					if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO")) {
+					//if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO")) {
 						clickStampaEtichetta(new DSCallback() {	
 							
 							@Override
-							public void execute(DSResponse response, Object rawData, DSRequest request) {
-								
+							public void execute(DSResponse response, Object rawData, DSRequest request) {							
 								newMode();
 							}																				
 						});
-					}
-						
+					//}		
 				}
 			}
 		});
@@ -357,7 +356,8 @@ public class ProtocollazioneContrattiBarcodeWindow extends ModalWindow {
 	 */
 	protected void manageStampaEtichettaTimbraturaCartaceo(final Record record) {
 		
-		if (AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO")) {
+		if (AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") &&
+			(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg") == null || "a".equalsIgnoreCase(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg")))) {
 			// Stampa con stampigliatrice
 			/**
 			 * Viene verificato che sia stata selezionata una porta in precedenza
@@ -508,6 +508,15 @@ public class ProtocollazioneContrattiBarcodeWindow extends ModalWindow {
 	 */
 	public boolean showSocietaItem() {
 		return AurigaLayout.getParametroDBAsBoolean("ATTIVA_MULTISOCIETA");
+	}
+	
+	private String getTitleTimbra() {
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") &&
+		   (AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg") == null || "a".equalsIgnoreCase(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg")))) {
+			return "Timbra";
+		} else {
+			return I18NUtil.getMessages().protocollazione_detail_stampaEtichettaButton_prompt();
+		}
 	}
 
 }

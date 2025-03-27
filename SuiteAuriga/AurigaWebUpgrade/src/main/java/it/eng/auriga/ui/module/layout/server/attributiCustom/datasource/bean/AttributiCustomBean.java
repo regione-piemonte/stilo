@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.attributiCustom.datasource.bean;
 
 import it.eng.auriga.ui.module.layout.server.attributiCustom.datasource.OpzioniListaSceltaBean;
 
@@ -50,6 +51,8 @@ public class AttributiCustomBean {
 	private String       uRLWSValoriPossibiliIn;
 	private String       xMLInWSValoriPossibiliIn;	
 	private String       tipoEditorHtml;
+	private String       tipoFiltroComboBox;
+	
 
 	public String getTipoLista() {
 		return tipoLista;
@@ -298,4 +301,11 @@ public class AttributiCustomBean {
 	public void setTipoEditorHtml(String tipoEditorHtml) {
 		this.tipoEditorHtml = tipoEditorHtml;
 	}
+	public String getTipoFiltroComboBox() {
+		return tipoFiltroComboBox;
+	}
+	public void setTipoFiltroComboBox(String tipoFiltroComboBox) {
+		this.tipoFiltroComboBox = tipoFiltroComboBox;
+	}
+	
 }

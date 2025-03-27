@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovapropostaatto2.items;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -36,7 +37,6 @@ import it.eng.utility.ui.module.layout.client.common.ReplicableItem;
 import it.eng.utility.ui.module.layout.client.common.items.DateItem;
 import it.eng.utility.ui.module.layout.client.common.items.ExtendedNumericItem;
 import it.eng.utility.ui.module.layout.client.common.items.FilteredSelectItemWithDisplay;
-import it.eng.utility.ui.module.layout.client.common.items.ImgButtonItem;
 import it.eng.utility.ui.module.layout.client.common.items.SelectItem;
 import it.eng.utility.ui.module.layout.client.common.items.TextItem;
 
@@ -44,6 +44,7 @@ public class DatiGSACanvas extends ReplicableCanvas {
 	
 	protected TextItem raggruppamentoItem;
 	protected TextItem progressivoItem;
+	protected SelectItem esercizioCreditoDebitoItem;
 	protected RadioGroupItem flgContoDebitoCreditoItem;
 	protected FilteredSelectItemWithDisplay codContoPrimaNotaItem;
 	protected HiddenItem desContoPrimaNotaItem;
@@ -51,8 +52,6 @@ public class DatiGSACanvas extends ReplicableCanvas {
 	protected SelectItem flgDareAvereItem;
 	protected DateItem dataCompetenzaDaItem;
 	protected DateItem dataCompetenzaAItem;
-	
-	protected ImgButtonItem lookupArchivioButton;
 	
 	private ReplicableCanvasForm mDynamicForm;
 
@@ -84,6 +83,13 @@ public class DatiGSACanvas extends ReplicableCanvas {
 		progressivoItem.setShowTitle(true);
 		progressivoItem.setWidth(50);	
 		progressivoItem.setCanEdit(false);
+		
+		esercizioCreditoDebitoItem = new SelectItem("esercizioCreditoDebito", "Esercizio credito/debito");
+		esercizioCreditoDebitoItem.setWidth(150);
+		esercizioCreditoDebitoItem.setColSpan(1);
+		esercizioCreditoDebitoItem.setDefaultValue(((DatiGSAItem) getItem()).getEsercizioCreditoDebitoDefaultValue());
+		esercizioCreditoDebitoItem.setValueMap(buildEsercizioCreditoDebitoValueMap());
+		esercizioCreditoDebitoItem.setRequired(true);
 				
 		flgContoDebitoCreditoItem = new RadioGroupItem("flgContoDebitoCredito", "Conto di debito/credito");
 		HashMap<String, String> flgContoDebitoCreditoValueMap = new HashMap<String, String>();
@@ -266,7 +272,7 @@ public class DatiGSACanvas extends ReplicableCanvas {
 		dataCompetenzaAItem.setDateFormatter(DateDisplayFormat.TOEUROPEANSHORTDATE);
 		dataCompetenzaAItem.setValidators(lPeriodoCompetenzaValidator);
 		
-		mDynamicForm.setFields(raggruppamentoItem, progressivoItem, flgContoDebitoCreditoItem, codContoPrimaNotaItem, desContoPrimaNotaItem, importoItem, flgDareAvereItem, dataCompetenzaDaItem, dataCompetenzaAItem);
+		mDynamicForm.setFields(raggruppamentoItem, progressivoItem, esercizioCreditoDebitoItem, flgContoDebitoCreditoItem, codContoPrimaNotaItem, desContoPrimaNotaItem, importoItem, flgDareAvereItem, dataCompetenzaDaItem, dataCompetenzaAItem);
 					
 		addChild(mDynamicForm);		
 	}
@@ -322,6 +328,15 @@ public class DatiGSACanvas extends ReplicableCanvas {
 				codContoPrimaNotaItem.setValueMap(valueMap);
 			}
 		}
+	}
+	
+	public static LinkedHashMap<String, String> buildEsercizioCreditoDebitoValueMap() {
+//		String annoCorrente = DateTimeFormat.getFormat("yyyy").format(new Date());
+		LinkedHashMap<String, String> annoEsercizioValueMap = new LinkedHashMap<String, String>();	
+		for(int anno = 2010; anno <= 2040; anno++) {
+			annoEsercizioValueMap.put("" + anno, "" + anno);
+		}
+		return annoEsercizioValueMap;
 	}
 		
 }

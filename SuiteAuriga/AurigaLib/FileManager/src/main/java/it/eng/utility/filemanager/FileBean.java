@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.filemanager;
 
 /**
  * Modella una directory remota presente in un ftp oppure una directory locale, accomunando le proprietà comuni agli oggetti utilizzati da fs, ftp e sftp

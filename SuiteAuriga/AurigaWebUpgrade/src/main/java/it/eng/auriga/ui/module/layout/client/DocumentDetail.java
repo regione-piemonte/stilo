@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -317,31 +318,35 @@ public abstract class DocumentDetail extends CustomDetail{
 	}
 	
 	public static void avviaProtocollaTimbraEFirma(final DocumentDetail detail, final Record recordDaProtocollare, final Map<String, String> mappaErrori, final ServiceCallback<DSResponse> callbackManageFirmaEProtocolla) {
-		
-		// Raccolgo le informzioni per la timbratura
-		boolean skipSceltaTimbratura = AurigaLayout.getImpostazioneTimbroAsBoolean("skipSceltaOpzioniTimbroSegnatura");
-		if (skipSceltaTimbratura) {
-			protocollaBeforeTimbraEFirma(detail, recordDaProtocollare, null, mappaErrori, callbackManageFirmaEProtocolla);
-		} else {
-			String rotazioneTimbroPref = AurigaLayout.getImpostazioneTimbro("rotazioneTimbro");
-			String posizioneTimbroPref = AurigaLayout.getImpostazioneTimbro("posizioneTimbro");
-			String tipoPaginaPref = AurigaLayout.getImpostazioneTimbro("tipoPagina");
-
-			Record record = new Record();
-			record.setAttribute("rotazioneTimbroPref", rotazioneTimbroPref);
-			record.setAttribute("posizioneTimbroPref", posizioneTimbroPref);
-			record.setAttribute("tipoPaginaPref", tipoPaginaPref);
-			record.setAttribute("skipPreview", true);
-
-			ApponiTimbroWindow apponiTimbroWindow = new ApponiTimbroWindow(record, new ServiceCallback<Record>() {
-
-				@Override
-				public void execute(Record impostazioniTimbro) {
-					protocollaBeforeTimbraEFirma(detail, recordDaProtocollare, impostazioniTimbro, mappaErrori, callbackManageFirmaEProtocolla);
-				}
-			});
-			apponiTimbroWindow.show();
-		}		
+		// Aggiorno la mappa degli errori
+		recordDaProtocollare.setAttribute("errorMessages", mappaErrori);
+		RecordList listaRecord = recordDaProtocollare.getAttributeAsRecordList("listaRecord");
+		if(listaRecord != null && listaRecord.getLength() > 0) {
+			// Raccolgo le informazioni per la timbratura
+			boolean skipSceltaTimbratura = AurigaLayout.getImpostazioneTimbroAsBoolean("skipSceltaOpzioniTimbroSegnatura");
+			if (skipSceltaTimbratura) {
+				protocollaBeforeTimbraEFirma(detail, recordDaProtocollare, null, mappaErrori, callbackManageFirmaEProtocolla);
+			} else {
+				String rotazioneTimbroPref = AurigaLayout.getImpostazioneTimbro("rotazioneTimbro");
+				String posizioneTimbroPref = AurigaLayout.getImpostazioneTimbro("posizioneTimbro");
+				String tipoPaginaPref = AurigaLayout.getImpostazioneTimbro("tipoPagina");
+	
+				Record record = new Record();
+				record.setAttribute("rotazioneTimbroPref", rotazioneTimbroPref);
+				record.setAttribute("posizioneTimbroPref", posizioneTimbroPref);
+				record.setAttribute("tipoPaginaPref", tipoPaginaPref);
+				record.setAttribute("skipPreview", true);
+	
+				ApponiTimbroWindow apponiTimbroWindow = new ApponiTimbroWindow(record, new ServiceCallback<Record>() {
+	
+					@Override
+					public void execute(Record impostazioniTimbro) {
+						protocollaBeforeTimbraEFirma(detail, recordDaProtocollare, impostazioniTimbro, mappaErrori, callbackManageFirmaEProtocolla);
+					}
+				});
+				apponiTimbroWindow.show();
+			}		
+		}
 	}
 	
 	private static void protocollaBeforeTimbraEFirma(final DocumentDetail detail, final Record recordDaProtocollare, final Record impostazioniTimbro, final Map<String, String> mappaErrori, final ServiceCallback<DSResponse> callbackManageFirmaEProtocolla) {
@@ -355,6 +360,10 @@ public abstract class DocumentDetail extends CustomDetail{
 			public void execute(final DSResponse response, Object rawData, DSRequest request) {
 				Layout.hideWaitPopup();
 				if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
+					// Aggiorno la mappa degli errori
+					Map errorMessages = response.getData()[0].getAttributeAsMap("errorMessages") != null ? response.getData()[0].getAttributeAsMap("errorMessages") : new HashMap<String, String>();
+					mappaErrori.putAll(errorMessages);
+					response.getData()[0].setAttribute("errorMessages", mappaErrori);
 					if(detail != null) {
 						detail.reload(new DSCallback() {
 							
@@ -367,23 +376,18 @@ public abstract class DocumentDetail extends CustomDetail{
 								} else {
 									detail.viewMode();
 								}								
-								afterProtocollaBeforeTimbraEFirma(response, recordDaProtocollare, impostazioniTimbro, mappaErrori, callbackManageFirmaEProtocolla);
+								afterProtocollaBeforeTimbraEFirma(response.getData()[0], recordDaProtocollare, impostazioniTimbro, mappaErrori, callbackManageFirmaEProtocolla);
 							}
 						});
 					} else {
-						afterProtocollaBeforeTimbraEFirma(response, recordDaProtocollare, impostazioniTimbro, mappaErrori, callbackManageFirmaEProtocolla);
+						afterProtocollaBeforeTimbraEFirma(response.getData()[0], recordDaProtocollare, impostazioniTimbro, mappaErrori, callbackManageFirmaEProtocolla);
 					}					
 				}
 			}
 		}, new DSRequest());
 	}
 	
-	private static void afterProtocollaBeforeTimbraEFirma(DSResponse response, Record recordDaProtocollare, final Record impostazioniTimbro, final Map<String, String> mappaErrori, final ServiceCallback<DSResponse> callbackManageFirmaEProtocolla) {
-		Record bozzeProtocollate = response.getData()[0]; 
-		// Aggiorno la mappa degli errori
-		Map errorMessages = response.getData()[0].getAttributeAsMap("errorMessages") != null ? response.getData()[0].getAttributeAsMap("errorMessages") : new HashMap<String, String>();
-		mappaErrori.putAll(errorMessages);
-		response.getData()[0].setAttribute("errorMessages", mappaErrori);
+	private static void afterProtocollaBeforeTimbraEFirma(Record bozzeProtocollate, Record recordDaProtocollare, final Record impostazioniTimbro, final Map<String, String> mappaErrori, final ServiceCallback<DSResponse> callbackManageFirmaEProtocolla) {
 		// Recupero i file da timbrare e firmare
 		Layout.showWaitPopup(I18NUtil.getMessages().archivio_list_recuperoFileDaTimbrareEFirmare_title());
 		final GWTRestDataSource lArchivioDatasource = new GWTRestDataSource("ArchivioDatasource", "idUdFolder", FieldType.TEXT);
@@ -397,10 +401,11 @@ public abstract class DocumentDetail extends CustomDetail{
 					Map errorMessages = response.getData()[0].getAttributeAsMap("errorMessages") != null ? response.getData()[0].getAttributeAsMap("errorMessages") : new HashMap<String, String>();
 					mappaErrori.putAll(errorMessages);
 					response.getData()[0].setAttribute("errorMessages", mappaErrori);
-					// Sono stati ritornati i file che devono essere timbrati e firmati firmati
+					// Sono stati ritornati i file che devono essere timbrati e firmati
 					if(response.getData()[0].getAttributeAsRecordList("files") != null && !response.getData()[0].getAttributeAsRecordList("files").isEmpty()) {
 						timbraBeforeFirma(response.getData()[0], impostazioniTimbro, mappaErrori, callbackManageFirmaEProtocolla);
 					} else {
+						// Se non ci sono file non fa nulla e alla fine mostra il messaggio di "Firma con segnatura di protocollo avvenuta con successo" e il documento rimane nella sezione della scrivania "Da firmare". Non devo dare errore?
 						callbackManageFirmaEProtocolla.execute(response);
 					}
 				}
@@ -410,7 +415,6 @@ public abstract class DocumentDetail extends CustomDetail{
 	
 	private static void timbraBeforeFirma (Record fileDaTimbrare, Record impostazioniTimbro, final Map<String, String> mappaErrori, final ServiceCallback<DSResponse> callbackManageFirmaEProtocolla) {
 		Layout.showWaitPopup(I18NUtil.getMessages().archivio_list_apposizioneTimbri_title());
-		
 		fileDaTimbrare.setAttribute("opzioniTimbro", impostazioniTimbro);
 		
 		final GWTRestDataSource lArchivioDatasource = new GWTRestDataSource("ArchivioDatasource", "idUdFolder", FieldType.TEXT);
@@ -453,7 +457,7 @@ public abstract class DocumentDetail extends CustomDetail{
 						Record[] files = fileDaFirmare.getAttributeAsRecordArray("files");
 						if (files != null) {
 							for (int i = 0; i < files.length; i++) {
-								mappaErrori.put(files[i].getAttribute("idUd"), "Il documento è stato protocollato. Non è stata tuttavia portata a termine l'operazione di firma.");
+								mappaErrori.put(files[i].getAttribute("idUd"), "Il documento risulta protocollato. Non è stato tuttavia possibile portare a termine l'operazione di firma.");
 							}
 						}
 						// Creo un DSREsponse per la compatibilità delle callback

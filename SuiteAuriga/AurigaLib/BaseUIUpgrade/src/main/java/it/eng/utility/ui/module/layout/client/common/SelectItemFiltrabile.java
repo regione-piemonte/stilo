@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common;
 
 import java.util.List;
 import java.util.Map;
@@ -68,7 +69,8 @@ public class SelectItemFiltrabile extends SelectItem implements HasChangeDepends
 	private Map initialValueMap;
 	private int idPosition;
 	private String primaryKey;
-
+	private ListGrid _pickListProperties;
+	
 	public SelectItemFiltrabile(JavaScriptObject jsObj) {
 		super(jsObj);
 	}
@@ -667,5 +669,14 @@ public class SelectItemFiltrabile extends SelectItem implements HasChangeDepends
 	public void setHoverField(String hoverField) {
 		this.hoverField = hoverField;
 	}
+	
+	public void setPickListProperties(ListGrid pickListProperties) {
+    	this._pickListProperties = pickListProperties;
+    	super.setPickListProperties(_pickListProperties);
+    }   
+    
+    public ListGrid getPickListProperties() {
+    	return _pickListProperties;
+    }
 
 }

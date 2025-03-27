@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -84,6 +85,9 @@ public class DocumentoXmlOutBean implements Serializable {
 	
 	@XmlVariabile(nome = "#DesOgg", tipo = TipoVariabile.SEMPLICE)
 	private String oggetto;
+	
+	@XmlVariabile(nome = "#PresentiFileConOmissis", tipo = TipoVariabile.SEMPLICE)
+	private Boolean flgPresentiFileConOmissis;
 
 	@XmlVariabile(nome = "#FlgTipoProv", tipo = TipoVariabile.SEMPLICE)
 	private TipoProvenienza flgTipoProv;
@@ -206,7 +210,13 @@ public class DocumentoXmlOutBean implements Serializable {
 
 	@XmlVariabile(nome = "#@DestinatariEsterni", tipo = TipoVariabile.LISTA)
 	private List<DestinatariOutBean> destinatari;
-
+	
+	@XmlVariabile(nome = "FLG_SEGNA_INVIO_MAIL_EXTRA_SISTEMA", tipo = TipoVariabile.SEMPLICE)
+	private Flag flgSegnaInvioMailExtraSistema;
+	
+	@XmlVariabile(nome = "FLG_INVIATA_MAIL_EXTRA_SISTEMA", tipo = TipoVariabile.SEMPLICE)
+	private Flag flgInviataMailExtraSistema;
+	
 	@XmlVariabile(nome = "#RegEmergenza", tipo = TipoVariabile.NESTED)
 	private RegEmergenzaOutBean regEmergenza;
 
@@ -218,6 +228,9 @@ public class DocumentoXmlOutBean implements Serializable {
 
 	@XmlVariabile(nome = "#@FolderCustom", tipo = TipoVariabile.LISTA)
 	private List<FolderCustom> folderCustom;
+	
+	@XmlVariabile(nome = "RelVsPraticheApplEsterne", tipo = TipoVariabile.LISTA)
+	private List<RelVsPraticheApplEsterneXmlBean> relVsPraticheApplEsterne;
 
 	@XmlVariabile(nome = "#PresentiAssPreselMitt", tipo = TipoVariabile.SEMPLICE)
 	private Boolean flgPresentiAssPreselMitt;
@@ -305,6 +318,9 @@ public class DocumentoXmlOutBean implements Serializable {
 
 	@XmlVariabile(nome = "#Abilitazioni.ModificaDati", tipo = TipoVariabile.SEMPLICE)
 	private Boolean abilModificaDati;
+	
+	@XmlVariabile(nome = "#Abilitazioni.Modifica", tipo = TipoVariabile.SEMPLICE)
+	private Boolean abilModifica;
 
 	@XmlVariabile(nome = "#Abilitazioni.AvvioIterWF", tipo = TipoVariabile.SEMPLICE)
 	private Boolean abilAvvioIterWF;
@@ -341,7 +357,10 @@ public class DocumentoXmlOutBean implements Serializable {
 
 	@XmlVariabile(nome = "#Abilitazioni.Restituzione", tipo = TipoVariabile.SEMPLICE)
 	private Boolean abilRestituzione;
-
+	
+	@XmlVariabile(nome = "#Abilitazioni.Rilascia", tipo = TipoVariabile.SEMPLICE)
+	private Boolean abilRilascia;
+	
 	@XmlVariabile(nome = "#Abilitazioni.InvioConferma", tipo = TipoVariabile.SEMPLICE)
 	private Boolean abilInvioConferma;
 
@@ -399,6 +418,9 @@ public class DocumentoXmlOutBean implements Serializable {
 	@XmlVariabile(nome = "#Abilitazioni.InvioEmailRicevuta", tipo = TipoVariabile.SEMPLICE)
 	private Boolean abilInvioEmailRicevuta;
 	
+	@XmlVariabile(nome = "#Abilitazioni.Pubblicazione", tipo = TipoVariabile.SEMPLICE)
+	private Boolean abilPubblicazione;
+	
 	@XmlVariabile(nome = "#Abilitazioni.Pubblicazione.Proroga", tipo = TipoVariabile.SEMPLICE)
 	private Boolean abilProrogaPubblicazione;
 	
@@ -407,6 +429,12 @@ public class DocumentoXmlOutBean implements Serializable {
 	
 	@XmlVariabile(nome = "#Abilitazioni.Pubblicazione.Rettifica", tipo = TipoVariabile.SEMPLICE)
 	private Boolean abilRettificaPubblicazione;
+	
+	@XmlVariabile(nome = "#Abilitazioni.IstruttoriaPubbl.CollegaComeIstConcorrente", tipo = TipoVariabile.SEMPLICE)
+	private Boolean abilIstruttoriaPubblCollegaComeIstConcorrente;
+	
+	@XmlVariabile(nome = "#Abilitazioni.IstruttoriaPubbl.ScollegaDaIstPadre", tipo = TipoVariabile.SEMPLICE)
+	private Boolean abilIstruttoriaPubblScollegaDaIstPadre;
 	
 	@XmlVariabile(nome = "#Abilitazioni.IstruttoriaPubbl.AvvioComparativo", tipo = TipoVariabile.SEMPLICE)
 	private Boolean abilIstruttoriaPubblAvvioComparativo;
@@ -425,6 +453,9 @@ public class DocumentoXmlOutBean implements Serializable {
 	
 	@XmlVariabile(nome = "#Abilitazioni.IstruttoriaPubbl.Pubblicazione", tipo = TipoVariabile.SEMPLICE)
 	private Boolean abilIstruttoriaPubblPubblicazione;	
+	
+	@XmlVariabile(nome = "#Abilitazioni.AvviaIterFirme", tipo = TipoVariabile.SEMPLICE)
+	private Boolean abilAvviaIterFirme;
 	
 	@XmlVariabile(nome = "#AnnAtto.IdProcessType", tipo = TipoVariabile.SEMPLICE)
 	private String idTipoProcRevocaAtto;
@@ -707,6 +738,9 @@ public class DocumentoXmlOutBean implements Serializable {
 	@XmlVariabile(nome = "#@Contraenti", tipo = TipoVariabile.LISTA)
 	private List<ContraentiOutBean> contraenti;
 
+	@XmlVariabile(nome = "#FlgPregresso", tipo = TipoVariabile.SEMPLICE)
+	private Flag flgPregresso;
+	
 	@XmlVariabile(nome = "#IsCompilazioneModulo", tipo = TipoVariabile.SEMPLICE)
 	private Flag flgCompilazioneModulo;
 	
@@ -798,7 +832,7 @@ public class DocumentoXmlOutBean implements Serializable {
 	
 	@XmlVariabile(nome = "#@Firmatari", tipo = TipoVariabile.LISTA)
 	private List<SoggettoEsternoBean> firmatari;
-
+	
 	@XmlVariabile(nome = "#@AltreUbicazioni", tipo = TipoVariabile.LISTA)
 	private List<AltreUbicazioniBean> altreUbicazioni;
 
@@ -1600,6 +1634,9 @@ public class DocumentoXmlOutBean implements Serializable {
 	
 	@XmlVariabile(nome = "TASK_RESULT_2_FONDI_PNRR_RIGEN", tipo = TipoVariabile.SEMPLICE)
 	private Flag flgFondiPNRRRigen;
+
+	@XmlVariabile(nome = "TASK_RESULT_2_MAAS_PNC", tipo = TipoVariabile.SEMPLICE)
+	private Flag flgLiquidazioneMAASPNC;
 	
 	@XmlVariabile(nome = "TASK_RESULT_2_FONDI_PRU", tipo = TipoVariabile.SEMPLICE)
 	private Flag flgFondiPRU;
@@ -1761,14 +1798,17 @@ public class DocumentoXmlOutBean implements Serializable {
 	@XmlVariabile(nome = "TASK_RESULT_2_VISTO_BILANCIO", tipo = TipoVariabile.SEMPLICE)
 	private String flgVistoBilancio;
 	
-	@XmlVariabile(nome = "#IdScrivaniaVistoAlternativoBil", tipo = TipoVariabile.SEMPLICE)
-	private String idScrivaniaRespVisAltBilancio;
-
-	@XmlVariabile(nome = "#LivelliUOScrivaniaVistoAlternativoBil", tipo = TipoVariabile.SEMPLICE)
-	private String livelliUOScrivaniaRespVisAltBilancio;
-
-	@XmlVariabile(nome = "#DesScrivaniaVistoAlternativoBil", tipo = TipoVariabile.SEMPLICE)
-	private String desScrivaniaRespVisAltBilancio;
+//	@XmlVariabile(nome = "#IdScrivaniaVistoAlternativoBil", tipo = TipoVariabile.SEMPLICE)
+//	private String idScrivaniaRespVisAltBilancio;
+//
+//	@XmlVariabile(nome = "#LivelliUOScrivaniaVistoAlternativoBil", tipo = TipoVariabile.SEMPLICE)
+//	private String livelliUOScrivaniaRespVisAltBilancio;
+//
+//	@XmlVariabile(nome = "#DesScrivaniaVistoAlternativoBil", tipo = TipoVariabile.SEMPLICE)
+//	private String desScrivaniaRespVisAltBilancio;
+	
+	@XmlVariabile(nome = "ID_SV_RESP_VISTO_ALTERNATIVO_BILANCIO", tipo = TipoVariabile.LISTA)
+	private List<ScrivaniaEstensoreBean> respVisAltBilancio;
 	
 	@XmlVariabile(nome = "TIPO_VISTO_BILANCIO", tipo = TipoVariabile.SEMPLICE)
 	private String tipoVistoBilancio;	
@@ -1880,6 +1920,30 @@ public class DocumentoXmlOutBean implements Serializable {
 	
 	@XmlVariabile(nome = "DEST_VANTAGGIO", tipo = TipoVariabile.LISTA)
 	List<DestinatarioVantaggioBean> destinatariVantaggio;
+	
+	@XmlVariabile(nome = "NORMA_ATTRIBUZIONE", tipo = TipoVariabile.SEMPLICE)	
+	private String normaAttribuzione;
+	
+	@XmlVariabile(nome = "DES_NORMA_ATTRIBUZIONE", tipo = TipoVariabile.SEMPLICE)	
+	private String desNormaAttribuzione;
+	
+	@XmlVariabile(nome = "RESP_PROC_ATTRIBUZIONE", tipo = TipoVariabile.SEMPLICE)	
+	private String idSvRespProcAttribuzione;
+	
+	@XmlVariabile(nome = "DES_RESP_PROC_ATTRIBUZIONE", tipo = TipoVariabile.SEMPLICE)	
+	private String desRespProcAttribuzione;
+	
+	@XmlVariabile(nome = "COD_RAPIDO_UO_RESP_PROC_ATTRIBUZIONE", tipo = TipoVariabile.SEMPLICE)	
+	private String codUoRespProcAttribuzione;
+	
+	@XmlVariabile(nome = "DES_UO_RESP_PROC_ATTRIBUZIONE", tipo = TipoVariabile.SEMPLICE)	
+	private String desUoRespProcAttribuzione;
+	
+	@XmlVariabile(nome = "MODALITA_ATTRIBUZIONE", tipo = TipoVariabile.SEMPLICE)	
+	private String modalitaAttribuzione;
+	
+	@XmlVariabile(nome = "DES_MODALITA_ATTRIBUZIONE", tipo = TipoVariabile.SEMPLICE)	
+	private String desModalitaAttribuzione;
 	
 	@XmlVariabile(nome = "TASK_RESULT_2_FLG_AFFIDAMENTO", tipo = TipoVariabile.SEMPLICE)	
 	private Flag flgAffidamento;
@@ -2031,6 +2095,9 @@ public class DocumentoXmlOutBean implements Serializable {
 	@XmlVariabile(nome = "PERIZIA_ADSP", tipo = TipoVariabile.LISTA)
 	private List<PeriziaXmlBean> listaPerizie;
 	
+	@XmlVariabile(nome = "CONCESSIONE", tipo = TipoVariabile.LISTA)
+	private List<ConcessioneXmlOutBean> listaConcessioni;
+	
 	@XmlVariabile(nome = "DATI_CONTABILI_ADSP", tipo = TipoVariabile.LISTA)
 	private List<DatiContabiliADSPXmlBean> listaDatiContabiliADSP;
 	
@@ -2052,6 +2119,8 @@ public class DocumentoXmlOutBean implements Serializable {
 	@XmlVariabile(nome = "DATI_CONTABILI_ATERSIR", tipo = TipoVariabile.LISTA)
 	private List<DatiContabiliATERSIRXmlBean> listaDatiContabiliATERSIR;
 	
+	@XmlVariabile(nome = "BODY_EMAIL", tipo = TipoVariabile.SEMPLICE)
+	private String bodyEmail;	
 	
 	// ***************** Nuova proposta atto 2 (completa) - FINE *******************//	
 	
@@ -2228,6 +2297,52 @@ public class DocumentoXmlOutBean implements Serializable {
 	
 	@XmlVariabile(nome = "#RichPubblicazione.Note", tipo = TipoVariabile.SEMPLICE)
 	private String notePubblicazione;
+	
+	@XmlVariabile(nome = "INDIRIZZO_MITT_EMAIL_ID", tipo = TipoVariabile.SEMPLICE)
+	private String idCasellaMittente;
+	
+	@XmlVariabile(nome = "INDIRIZZO_MITT_EMAIL", tipo = TipoVariabile.SEMPLICE)
+	private String desCasellaMittente;
+	
+	@XmlVariabile(nome = "#@FirmatariInterni", tipo = TipoVariabile.LISTA)
+	private List<FirmatariInterniBean> firmatariInterni;
+	
+	@XmlVariabile(nome = "#@CoRedattori", tipo = TipoVariabile.LISTA)
+	private List<CoredattoriBean> coredattori;
+
+	@XmlVariabile(nome = "OPZ_PROT_AUTO_IN_ITER_FIRMA", tipo = TipoVariabile.SEMPLICE)
+	private String opzProtAutoInIterFirma;
+	
+	@XmlVariabile(nome = "OPZ_REG_AUTO_IN_ITER_FIRMA", tipo = TipoVariabile.SEMPLICE)
+	private String opzRegAutoInIterFirma;
+	
+	@XmlVariabile(nome = "DES_REGISTRO_REG_AUTO_IN_ITER_FIRMA", tipo = TipoVariabile.SEMPLICE)
+	private String desRegistroRegAutoInIterFirma;
+	
+	@XmlVariabile(nome = "COD_CATEGORIA_REG_AUTO_IN_ITER_FIRMA", tipo = TipoVariabile.SEMPLICE)
+	private String codCategoriaRegAutoInIterFirma;
+	
+	@XmlVariabile(nome = "#IdUORegPostIterFirma", tipo = TipoVariabile.SEMPLICE)
+	private String idUoRegPostIterFirma;
+	
+	@XmlVariabile(nome = "#DesUORegPostIterFirma", tipo = TipoVariabile.SEMPLICE)
+	private String desUoRegPostIterFirma;
+	
+	@XmlVariabile(nome = "#NriLivelliUORegPostIterFirma", tipo = TipoVariabile.SEMPLICE)
+	private String nriLivelliUoRegPostIterFirma;
+	
+	@XmlVariabile(nome = "FLG_EMAIL_AUTO_TERMINE_ITER_FIRMA_REG", tipo = TipoVariabile.SEMPLICE)
+	private String flgEmailAutoTermineIterFirmaReg;	
+	
+	@XmlVariabile(nome = "#AutoreVerificaPreFirma", tipo = TipoVariabile.SEMPLICE)
+	private String autoreVerificaPreFirma;
+	
+	@XmlVariabile(nome = "#TsVerificaPreFirma", tipo = TipoVariabile.SEMPLICE)
+	@TipoData(tipo = Tipo.DATA)
+	private Date dataVerificaPreFirma;
+	
+	@XmlVariabile(nome = "#NoteVerificaPreFirma", tipo = TipoVariabile.SEMPLICE)
+	private String noteVerificaPreFirma;
 	
 	// ***************** Trasparenza AVB *******************//
 	
@@ -2433,6 +2548,68 @@ public class DocumentoXmlOutBean implements Serializable {
 	@XmlVariabile(nome = "#TimestampGetData", tipo = TipoVariabile.SEMPLICE)
 	private String timestampGetData;
 	
+	// *********** Istanze concessione ADSP ****************************//
+	@XmlVariabile(nome = "IdUdAvvioPraticheSUA", tipo = TipoVariabile.SEMPLICE)
+	private String idUdAvvioPraticheSUA;
+	
+	@XmlVariabile(nome = "PROC_CONC_ADSP_ID_DOC_AVVIO", tipo = TipoVariabile.SEMPLICE)
+	private String idDocAvvioPraticheSUA;
+	
+	@XmlVariabile(nome = "NomeFileDocAvvioPraticheSUA", tipo = TipoVariabile.SEMPLICE)
+	private String nomeFileDocAvvioPraticheSUA;
+	
+	@XmlVariabile(nome = "AllegatiAvvioPraticheSUA", tipo = TipoVariabile.LISTA)
+	private List<AllegatiAddDocOutBean> listaAllegatiAvvioPraticheSUA;
+	
+	@XmlVariabile(nome = "#DataFinePubblicazione", tipo = TipoVariabile.SEMPLICE)
+	@TipoData(tipo = Tipo.DATA)
+	private Date dataFinePubblicazione;
+	
+	@XmlVariabile(nome = "NroProtocolloAvvioPraticheSUA", tipo = TipoVariabile.SEMPLICE)
+	private String nroProtocolloAvvioPraticheSUA;
+	
+	@XmlVariabile(nome = "DataProtocolloAvvioPraticheSUA", tipo = TipoVariabile.SEMPLICE)
+	private String dataProtocolloAvvioPraticheSUA;
+	
+	@XmlVariabile(nome = "DatiIstanzeConcorrentiSUAADSP", tipo = TipoVariabile.LISTA)
+	private List<DatiIstanzeConcorrentiSUAADSPXmlBean> listaDatiIstanzeConcorrentiSUAADSP;
+	
+	@XmlVariabile(nome = "PROC_CONC_ADSP_GG_TERMINE", tipo = TipoVariabile.SEMPLICE)
+	private String sceltaGiorniTermineProcConcADSP;
+	
+	@XmlVariabile(nome = "CodPraticheConcorrSUAADSPDaVerificare", tipo = TipoVariabile.SEMPLICE)
+	private String codPraticheConcorrentiSUAADSPDaVerificare;
+	
+	@XmlVariabile(nome = "CodPraticheConcorrSUAADSP", tipo = TipoVariabile.SEMPLICE)
+	private String codPraticheConcorrentiSUAADSP;
+	
+	@XmlVariabile(nome = "NroProtIstanzaSUAPadre", tipo = TipoVariabile.SEMPLICE)
+	private String nroProtIstanzaSUAPadre;
+	
+	@XmlVariabile(nome = "CodPraticaSUAPadre", tipo = TipoVariabile.SEMPLICE)
+	private String codPraticaSUAPadre;
+	
+	//**************** Prossima Azione Firma ********************//	
+	@XmlVariabile(nome = "#ProssimaAzione", tipo = TipoVariabile.SEMPLICE)
+	private String prossimaAzione;
+	
+	@XmlVariabile(nome = "#ProssimaAzione.IdFirmatario", tipo = TipoVariabile.SEMPLICE)
+	private String prossimaAzioneIdFirmatario;
+	
+	@XmlVariabile(nome = "#ProssimaAzione.NomeFirmatario", tipo = TipoVariabile.SEMPLICE)
+	private String prossimaAzioneNomeFirmatario;
+	
+	@XmlVariabile(nome = "#ProssimaAzione.IdUOAss", tipo = TipoVariabile.SEMPLICE)
+	private String prossimaAzioneIdUOAss;
+	
+	@XmlVariabile(nome = "#ProssimaAzione.CodRapidoUOAss", tipo = TipoVariabile.SEMPLICE)
+	private String prossimaAzioneCodRapioUOAss;
+	
+	@XmlVariabile(nome = "#ProssimaAzione.DesUOAss", tipo = TipoVariabile.SEMPLICE)
+	private String prossimaAzioneDesUOAss;
+	
+
+	
 	// ***************** Getter and Setter *******************//
 
 	public String getCopiaExIdUD() {
@@ -2619,6 +2796,14 @@ public class DocumentoXmlOutBean implements Serializable {
 		this.oggetto = oggetto;
 	}
 	
+	public Boolean getFlgPresentiFileConOmissis() {
+		return flgPresentiFileConOmissis;
+	}
+
+	public void setFlgPresentiFileConOmissis(Boolean flgPresentiFileConOmissis) {
+		this.flgPresentiFileConOmissis = flgPresentiFileConOmissis;
+	}
+
 	public TipoProvenienza getFlgTipoProv() {
 		return flgTipoProv;
 	}
@@ -2922,7 +3107,15 @@ public class DocumentoXmlOutBean implements Serializable {
 	public void setDestinatari(List<DestinatariOutBean> destinatari) {
 		this.destinatari = destinatari;
 	}
-	
+
+	public Flag getFlgSegnaInvioMailExtraSistema() {
+		return flgSegnaInvioMailExtraSistema;
+	}
+
+	public void setFlgSegnaInvioMailExtraSistema(Flag flgSegnaInvioMailExtraSistema) {
+		this.flgSegnaInvioMailExtraSistema = flgSegnaInvioMailExtraSistema;
+	}
+
 	public RegEmergenzaOutBean getRegEmergenza() {
 		return regEmergenza;
 	}
@@ -2955,6 +3148,14 @@ public class DocumentoXmlOutBean implements Serializable {
 		this.folderCustom = folderCustom;
 	}
 	
+	public List<RelVsPraticheApplEsterneXmlBean> getRelVsPraticheApplEsterne() {
+		return relVsPraticheApplEsterne;
+	}
+
+	public void setRelVsPraticheApplEsterne(List<RelVsPraticheApplEsterneXmlBean> relVsPraticheApplEsterne) {
+		this.relVsPraticheApplEsterne = relVsPraticheApplEsterne;
+	}
+
 	public Boolean getFlgPresentiAssPreselMitt() {
 		return flgPresentiAssPreselMitt;
 	}
@@ -3187,6 +3388,14 @@ public class DocumentoXmlOutBean implements Serializable {
 		this.abilModificaDati = abilModificaDati;
 	}
 	
+	public Boolean getAbilModifica() {
+		return abilModifica;
+	}
+
+	public void setAbilModifica(Boolean abilModifica) {
+		this.abilModifica = abilModifica;
+	}
+
 	public Boolean getAbilAvvioIterWF() {
 		return abilAvvioIterWF;
 	}
@@ -3435,6 +3644,14 @@ public class DocumentoXmlOutBean implements Serializable {
 		this.abilInvioEmailRicevuta = abilInvioEmailRicevuta;
 	}
 	
+	public Boolean getAbilPubblicazione() {
+		return abilPubblicazione;
+	}
+
+	public void setAbilPubblicazione(Boolean abilPubblicazione) {
+		this.abilPubblicazione = abilPubblicazione;
+	}
+	
 	public Boolean getAbilProrogaPubblicazione() {
 		return abilProrogaPubblicazione;
 	}
@@ -3459,6 +3676,22 @@ public class DocumentoXmlOutBean implements Serializable {
 		this.abilRettificaPubblicazione = abilRettificaPubblicazione;
 	}
 	
+	public Boolean getAbilIstruttoriaPubblCollegaComeIstConcorrente() {
+		return abilIstruttoriaPubblCollegaComeIstConcorrente;
+	}
+
+	public void setAbilIstruttoriaPubblCollegaComeIstConcorrente(Boolean abilIstruttoriaPubblCollegaComeIstConcorrente) {
+		this.abilIstruttoriaPubblCollegaComeIstConcorrente = abilIstruttoriaPubblCollegaComeIstConcorrente;
+	}
+	
+	public Boolean getAbilIstruttoriaPubblScollegaDaIstPadre() {
+		return abilIstruttoriaPubblScollegaDaIstPadre;
+	}
+
+	public void setAbilIstruttoriaPubblScollegaDaIstPadre(Boolean abilIstruttoriaPubblScollegaDaIstPadre) {
+		this.abilIstruttoriaPubblScollegaDaIstPadre = abilIstruttoriaPubblScollegaDaIstPadre;
+	}
+
 	public Boolean getAbilIstruttoriaPubblAvvioComparativo() {
 		return abilIstruttoriaPubblAvvioComparativo;
 	}
@@ -3507,6 +3740,14 @@ public class DocumentoXmlOutBean implements Serializable {
 
 	public void setAbilIstruttoriaPubblPubblicazione(Boolean abilIstruttoriaPubblPubblicazione) {
 		this.abilIstruttoriaPubblPubblicazione = abilIstruttoriaPubblPubblicazione;
+	}
+
+	public Boolean getAbilAvviaIterFirme() {
+		return abilAvviaIterFirme;
+	}
+
+	public void setAbilAvviaIterFirme(Boolean abilAvviaIterFirme) {
+		this.abilAvviaIterFirme = abilAvviaIterFirme;
 	}
 
 	public String getIdTipoProcRevocaAtto() {
@@ -4117,6 +4358,14 @@ public class DocumentoXmlOutBean implements Serializable {
 		this.contraenti = contraenti;
 	}
 	
+	public Flag getFlgPregresso() {
+		return flgPregresso;
+	}
+
+	public void setFlgPregresso(Flag flgPregresso) {
+		this.flgPregresso = flgPregresso;
+	}
+
 	public Flag getFlgCompilazioneModulo() {
 		return flgCompilazioneModulo;
 	}
@@ -6391,6 +6640,14 @@ public class DocumentoXmlOutBean implements Serializable {
 		this.flgFondiPNRRRigen = flgFondiPNRRRigen;
 	}
 
+	public Flag getFlgLiquidazioneMAASPNC() {
+		return flgLiquidazioneMAASPNC;
+	}
+
+	public void setFlgLiquidazioneMAASPNC(Flag flgLiquidazioneMAASPNC) {
+		this.flgLiquidazioneMAASPNC = flgLiquidazioneMAASPNC;
+	}
+
 	public Flag getFlgFondiPRU() {
 		return flgFondiPRU;
 	}
@@ -6815,28 +7072,36 @@ public class DocumentoXmlOutBean implements Serializable {
 		this.flgVistoBilancio = flgVistoBilancio;
 	}
 
-	public String getIdScrivaniaRespVisAltBilancio() {
-		return idScrivaniaRespVisAltBilancio;
+//	public String getIdScrivaniaRespVisAltBilancio() {
+//		return idScrivaniaRespVisAltBilancio;
+//	}
+//
+//	public void setIdScrivaniaRespVisAltBilancio(String idScrivaniaRespVisAltBilancio) {
+//		this.idScrivaniaRespVisAltBilancio = idScrivaniaRespVisAltBilancio;
+//	}
+//
+//	public String getLivelliUOScrivaniaRespVisAltBilancio() {
+//		return livelliUOScrivaniaRespVisAltBilancio;
+//	}
+//
+//	public void setLivelliUOScrivaniaRespVisAltBilancio(String livelliUOScrivaniaRespVisAltBilancio) {
+//		this.livelliUOScrivaniaRespVisAltBilancio = livelliUOScrivaniaRespVisAltBilancio;
+//	}
+//
+//	public String getDesScrivaniaRespVisAltBilancio() {
+//		return desScrivaniaRespVisAltBilancio;
+//	}
+//
+//	public void setDesScrivaniaRespVisAltBilancio(String desScrivaniaRespVisAltBilancio) {
+//		this.desScrivaniaRespVisAltBilancio = desScrivaniaRespVisAltBilancio;
+//	}
+	
+	public List<ScrivaniaEstensoreBean> getRespVisAltBilancio() {
+		return respVisAltBilancio;
 	}
 
-	public void setIdScrivaniaRespVisAltBilancio(String idScrivaniaRespVisAltBilancio) {
-		this.idScrivaniaRespVisAltBilancio = idScrivaniaRespVisAltBilancio;
-	}
-
-	public String getLivelliUOScrivaniaRespVisAltBilancio() {
-		return livelliUOScrivaniaRespVisAltBilancio;
-	}
-
-	public void setLivelliUOScrivaniaRespVisAltBilancio(String livelliUOScrivaniaRespVisAltBilancio) {
-		this.livelliUOScrivaniaRespVisAltBilancio = livelliUOScrivaniaRespVisAltBilancio;
-	}
-
-	public String getDesScrivaniaRespVisAltBilancio() {
-		return desScrivaniaRespVisAltBilancio;
-	}
-
-	public void setDesScrivaniaRespVisAltBilancio(String desScrivaniaRespVisAltBilancio) {
-		this.desScrivaniaRespVisAltBilancio = desScrivaniaRespVisAltBilancio;
+	public void setRespVisAltBilancio(List<ScrivaniaEstensoreBean> respVisAltBilancio) {
+		this.respVisAltBilancio = respVisAltBilancio;
 	}
 
 	public String getTipoVistoBilancio() {
@@ -7135,6 +7400,70 @@ public class DocumentoXmlOutBean implements Serializable {
 		this.destinatariVantaggio = destinatariVantaggio;
 	}
 	
+	public String getNormaAttribuzione() {
+		return normaAttribuzione;
+	}
+
+	public void setNormaAttribuzione(String normaAttribuzione) {
+		this.normaAttribuzione = normaAttribuzione;
+	}
+
+	public String getDesNormaAttribuzione() {
+		return desNormaAttribuzione;
+	}
+
+	public void setDesNormaAttribuzione(String desNormaAttribuzione) {
+		this.desNormaAttribuzione = desNormaAttribuzione;
+	}
+
+	public String getIdSvRespProcAttribuzione() {
+		return idSvRespProcAttribuzione;
+	}
+
+	public void setIdSvRespProcAttribuzione(String idSvRespProcAttribuzione) {
+		this.idSvRespProcAttribuzione = idSvRespProcAttribuzione;
+	}
+
+	public String getDesRespProcAttribuzione() {
+		return desRespProcAttribuzione;
+	}
+
+	public void setDesRespProcAttribuzione(String desRespProcAttribuzione) {
+		this.desRespProcAttribuzione = desRespProcAttribuzione;
+	}
+
+	public String getCodUoRespProcAttribuzione() {
+		return codUoRespProcAttribuzione;
+	}
+
+	public void setCodUoRespProcAttribuzione(String codUoRespProcAttribuzione) {
+		this.codUoRespProcAttribuzione = codUoRespProcAttribuzione;
+	}
+
+	public String getDesUoRespProcAttribuzione() {
+		return desUoRespProcAttribuzione;
+	}
+
+	public void setDesUoRespProcAttribuzione(String desUoRespProcAttribuzione) {
+		this.desUoRespProcAttribuzione = desUoRespProcAttribuzione;
+	}
+
+	public String getModalitaAttribuzione() {
+		return modalitaAttribuzione;
+	}
+
+	public void setModalitaAttribuzione(String modalitaAttribuzione) {
+		this.modalitaAttribuzione = modalitaAttribuzione;
+	}
+
+	public String getDesModalitaAttribuzione() {
+		return desModalitaAttribuzione;
+	}
+
+	public void setDesModalitaAttribuzione(String desModalitaAttribuzione) {
+		this.desModalitaAttribuzione = desModalitaAttribuzione;
+	}
+
 	public Flag getFlgAffidamento() {
 		return flgAffidamento;
 	}
@@ -7975,6 +8304,126 @@ public class DocumentoXmlOutBean implements Serializable {
 		this.notePubblicazione = notePubblicazione;
 	}
 	
+	public String getIdCasellaMittente() {
+		return idCasellaMittente;
+	}
+
+	public void setIdCasellaMittente(String idCasellaMittente) {
+		this.idCasellaMittente = idCasellaMittente;
+	}
+
+	public String getDesCasellaMittente() {
+		return desCasellaMittente;
+	}
+
+	public void setDesCasellaMittente(String desCasellaMittente) {
+		this.desCasellaMittente = desCasellaMittente;
+	}
+
+	public List<FirmatariInterniBean> getFirmatariInterni() {
+		return firmatariInterni;
+	}
+
+	public void setFirmatariInterni(List<FirmatariInterniBean> firmatariInterni) {
+		this.firmatariInterni = firmatariInterni;
+	}
+
+	public List<CoredattoriBean> getCoredattori() {
+		return coredattori;
+	}
+
+	public void setCoredattori(List<CoredattoriBean> coredattori) {
+		this.coredattori = coredattori;
+	}
+
+	public String getOpzProtAutoInIterFirma() {
+		return opzProtAutoInIterFirma;
+	}
+
+	public void setOpzProtAutoInIterFirma(String opzProtAutoInIterFirma) {
+		this.opzProtAutoInIterFirma = opzProtAutoInIterFirma;
+	}
+
+	public String getOpzRegAutoInIterFirma() {
+		return opzRegAutoInIterFirma;
+	}
+
+	public void setOpzRegAutoInIterFirma(String opzRegAutoInIterFirma) {
+		this.opzRegAutoInIterFirma = opzRegAutoInIterFirma;
+	}
+
+	public String getDesRegistroRegAutoInIterFirma() {
+		return desRegistroRegAutoInIterFirma;
+	}
+
+	public void setDesRegistroRegAutoInIterFirma(String desRegistroRegAutoInIterFirma) {
+		this.desRegistroRegAutoInIterFirma = desRegistroRegAutoInIterFirma;
+	}
+
+	public String getCodCategoriaRegAutoInIterFirma() {
+		return codCategoriaRegAutoInIterFirma;
+	}
+
+	public void setCodCategoriaRegAutoInIterFirma(String codCategoriaRegAutoInIterFirma) {
+		this.codCategoriaRegAutoInIterFirma = codCategoriaRegAutoInIterFirma;
+	}
+
+	public String getIdUoRegPostIterFirma() {
+		return idUoRegPostIterFirma;
+	}
+
+	public void setIdUoRegPostIterFirma(String idUoRegPostIterFirma) {
+		this.idUoRegPostIterFirma = idUoRegPostIterFirma;
+	}
+
+	public String getDesUoRegPostIterFirma() {
+		return desUoRegPostIterFirma;
+	}
+
+	public void setDesUoRegPostIterFirma(String desUoRegPostIterFirma) {
+		this.desUoRegPostIterFirma = desUoRegPostIterFirma;
+	}
+
+	public String getNriLivelliUoRegPostIterFirma() {
+		return nriLivelliUoRegPostIterFirma;
+	}
+
+	public void setNriLivelliUoRegPostIterFirma(String nriLivelliUoRegPostIterFirma) {
+		this.nriLivelliUoRegPostIterFirma = nriLivelliUoRegPostIterFirma;
+	}
+
+	public String getFlgEmailAutoTermineIterFirmaReg() {
+		return flgEmailAutoTermineIterFirmaReg;
+	}
+
+	public void setFlgEmailAutoTermineIterFirmaReg(String flgEmailAutoTermineIterFirmaReg) {
+		this.flgEmailAutoTermineIterFirmaReg = flgEmailAutoTermineIterFirmaReg;
+	}
+
+	public String getAutoreVerificaPreFirma() {
+		return autoreVerificaPreFirma;
+	}
+
+	public void setAutoreVerificaPreFirma(String autoreVerificaPreFirma) {
+		this.autoreVerificaPreFirma = autoreVerificaPreFirma;
+	}
+
+	public Date getDataVerificaPreFirma() {
+		return dataVerificaPreFirma;
+	}
+
+	public void setDataVerificaPreFirma(Date dataVerificaPreFirma) {
+		this.dataVerificaPreFirma = dataVerificaPreFirma;
+	}
+
+	public String getNoteVerificaPreFirma() {
+		return noteVerificaPreFirma;
+	}
+
+	public void setNoteVerificaPreFirma(String noteVerificaPreFirma) {
+		this.noteVerificaPreFirma = noteVerificaPreFirma;
+	}
+
 	public String getFlgErogVantaggiEconomici() {
 		return flgErogVantaggiEconomici;
 	}
@@ -8656,6 +9105,14 @@ public class DocumentoXmlOutBean implements Serializable {
 	public void setListaDatiContabiliATERSIR(List<DatiContabiliATERSIRXmlBean> listaDatiContabiliATERSIR) {
 		this.listaDatiContabiliATERSIR = listaDatiContabiliATERSIR;
 	}
+	
+	public String getBodyEmail() {
+		return bodyEmail;
+	}
+
+	public void setBodyEmail(String bodyEmail) {
+		this.bodyEmail = bodyEmail;
+	}	
 
 	public List<KeyValueBean> getUfficiCompetentiRag() {
 		return ufficiCompetentiRag;
@@ -8680,5 +9137,181 @@ public class DocumentoXmlOutBean implements Serializable {
 	public void setTimestampGetData(String timestampGetData) {
 		this.timestampGetData = timestampGetData;
 	}
+
+	public String getIdUdAvvioPraticheSUA() {
+		return idUdAvvioPraticheSUA;
+	}
+
+	public void setIdUdAvvioPraticheSUA(String idUdAvvioPraticheSUA) {
+		this.idUdAvvioPraticheSUA = idUdAvvioPraticheSUA;
+	}
+
+	public String getIdDocAvvioPraticheSUA() {
+		return idDocAvvioPraticheSUA;
+	}
+
+	public void setIdDocAvvioPraticheSUA(String idDocAvvioPraticheSUA) {
+		this.idDocAvvioPraticheSUA = idDocAvvioPraticheSUA;
+	}
+
+	public String getNomeFileDocAvvioPraticheSUA() {
+		return nomeFileDocAvvioPraticheSUA;
+	}
+
+	public void setNomeFileDocAvvioPraticheSUA(String nomeFileDocAvvioPraticheSUA) {
+		this.nomeFileDocAvvioPraticheSUA = nomeFileDocAvvioPraticheSUA;
+	}
 	
+	public List<AllegatiAddDocOutBean> getListaAllegatiAvvioPraticheSUA() {
+		return listaAllegatiAvvioPraticheSUA;
+	}
+
+	public void setListaAllegatiAvvioPraticheSUA(List<AllegatiAddDocOutBean> listaAllegatiAvvioPraticheSUA) {
+		this.listaAllegatiAvvioPraticheSUA = listaAllegatiAvvioPraticheSUA;
+	}
+
+	public Date getDataFinePubblicazione() {
+		return dataFinePubblicazione;
+	}
+
+	public void setDataFinePubblicazione(Date dataFinePubblicazione) {
+		this.dataFinePubblicazione = dataFinePubblicazione;
+	}
+
+	public String getNroProtocolloAvvioPraticheSUA() {
+		return nroProtocolloAvvioPraticheSUA;
+	}
+
+	public void setNroProtocolloAvvioPraticheSUA(String nroProtocolloAvvioPraticheSUA) {
+		this.nroProtocolloAvvioPraticheSUA = nroProtocolloAvvioPraticheSUA;
+	}
+
+	public String getDataProtocolloAvvioPraticheSUA() {
+		return dataProtocolloAvvioPraticheSUA;
+	}
+
+	public void setDataProtocolloAvvioPraticheSUA(String dataProtocolloAvvioPraticheSUA) {
+		this.dataProtocolloAvvioPraticheSUA = dataProtocolloAvvioPraticheSUA;
+	}
+
+	public List<DatiIstanzeConcorrentiSUAADSPXmlBean> getListaDatiIstanzeConcorrentiSUAADSP() {
+		return listaDatiIstanzeConcorrentiSUAADSP;
+	}
+
+	public void setListaDatiIstanzeConcorrentiSUAADSP(
+			List<DatiIstanzeConcorrentiSUAADSPXmlBean> listaDatiIstanzeConcorrentiSUAADSP) {
+		this.listaDatiIstanzeConcorrentiSUAADSP = listaDatiIstanzeConcorrentiSUAADSP;
+	}
+
+	public String getSceltaGiorniTermineProcConcADSP() {
+		return sceltaGiorniTermineProcConcADSP;
+	}
+
+	public void setSceltaGiorniTermineProcConcADSP(String sceltaGiorniTermineProcConcADSP) {
+		this.sceltaGiorniTermineProcConcADSP = sceltaGiorniTermineProcConcADSP;
+	}
+	
+	public String getCodPraticheConcorrentiSUAADSPDaVerificare() {
+		return codPraticheConcorrentiSUAADSPDaVerificare;
+	}
+
+	public void setCodPraticheConcorrentiSUAADSPDaVerificare(String codPraticheConcorrentiSUAADSPDaVerificare) {
+		this.codPraticheConcorrentiSUAADSPDaVerificare = codPraticheConcorrentiSUAADSPDaVerificare;
+	}
+
+	public String getCodPraticheConcorrentiSUAADSP() {
+		return codPraticheConcorrentiSUAADSP;
+	}
+
+	public void setCodPraticheConcorrentiSUAADSP(String codPraticheConcorrentiSUAADSP) {
+		this.codPraticheConcorrentiSUAADSP = codPraticheConcorrentiSUAADSP;
+	}
+
+	public String getNroProtIstanzaSUAPadre() {
+		return nroProtIstanzaSUAPadre;
+	}
+
+	public void setNroProtIstanzaSUAPadre(String nroProtIstanzaSUAPadre) {
+		this.nroProtIstanzaSUAPadre = nroProtIstanzaSUAPadre;
+	}
+
+	public String getCodPraticaSUAPadre() {
+		return codPraticaSUAPadre;
+	}
+
+	public void setCodPraticaSUAPadre(String codPraticaSUAPadre) {
+		this.codPraticaSUAPadre = codPraticaSUAPadre;
+	}
+
+	public Flag getFlgInviataMailExtraSistema() {
+		return flgInviataMailExtraSistema;
+	}
+
+	public void setFlgInviataMailExtraSistema(Flag flgInviataMailExtraSistema) {
+		this.flgInviataMailExtraSistema = flgInviataMailExtraSistema;
+	}
+
+	public List<ConcessioneXmlOutBean> getListaConcessioni() {
+		return listaConcessioni;
+	}
+
+	public void setListaConcessioni(List<ConcessioneXmlOutBean> listaConcessioni) {
+		this.listaConcessioni = listaConcessioni;
+	}
+
+	public Boolean getAbilRilascia() {
+		return abilRilascia;
+	}
+
+	public void setAbilRilascia(Boolean abilRilascia) {
+		this.abilRilascia = abilRilascia;
+	}
+
+	public String getProssimaAzione() {
+		return prossimaAzione;
+	}
+
+	public String getProssimaAzioneIdFirmatario() {
+		return prossimaAzioneIdFirmatario;
+	}
+
+	public String getProssimaAzioneNomeFirmatario() {
+		return prossimaAzioneNomeFirmatario;
+	}
+
+	public String getProssimaAzioneIdUOAss() {
+		return prossimaAzioneIdUOAss;
+	}
+
+	public String getProssimaAzioneCodRapioUOAss() {
+		return prossimaAzioneCodRapioUOAss;
+	}
+
+	public String getProssimaAzioneDesUOAss() {
+		return prossimaAzioneDesUOAss;
+	}
+
+	public void setProssimaAzione(String prossimaAzione) {
+		this.prossimaAzione = prossimaAzione;
+	}
+
+	public void setProssimaAzioneIdFirmatario(String prossimaAzioneIdFirmatario) {
+		this.prossimaAzioneIdFirmatario = prossimaAzioneIdFirmatario;
+	}
+
+	public void setProssimaAzioneNomeFirmatario(String prossimaAzioneNomeFirmatario) {
+		this.prossimaAzioneNomeFirmatario = prossimaAzioneNomeFirmatario;
+	}
+
+	public void setProssimaAzioneIdUOAss(String prossimaAzioneIdUOAss) {
+		this.prossimaAzioneIdUOAss = prossimaAzioneIdUOAss;
+	}
+
+	public void setProssimaAzioneCodRapioUOAss(String prossimaAzioneCodRapioUOAss) {
+		this.prossimaAzioneCodRapioUOAss = prossimaAzioneCodRapioUOAss;
+	}
+
+	public void setProssimaAzioneDesUOAss(String prossimaAzioneDesUOAss) {
+		this.prossimaAzioneDesUOAss = prossimaAzioneDesUOAss;
+	}
 }

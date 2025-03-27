@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -324,10 +325,15 @@ public abstract class ProtocollazioneDetailEntrata extends ProtocollazioneDetail
 
 	@Override
 	protected void createDestinatariItem() {
-
+		
 		if(isModalitaWizard()) {
 			
 			destinatariItem = new DestinatarioProtEntrataItem() {
+				
+				@Override
+				public boolean isProtPregresso() {
+					return isPregresso();
+				}
 				
 				@Override
 				public boolean isProtInModalitaWizard() {
@@ -461,7 +467,7 @@ public abstract class ProtocollazioneDetailEntrata extends ProtocollazioneDetail
 					if(destProtEntrataDefault != null) {
 						String idUoSoggetto = destProtEntrataDefault.getAttribute("idUo");
 						String descrizione = destProtEntrataDefault.getAttribute("descrizione");
-						if(AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT")) {
+						if(AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") && !isPregresso()) {
 							lRecord.setAttribute("tipoDestinatario", "UP_UOI");
 						} else {
 							lRecord.setAttribute("tipoDestinatario", "UOI");
@@ -500,6 +506,11 @@ public abstract class ProtocollazioneDetailEntrata extends ProtocollazioneDetail
 			destinatariItem = new DestinatarioProtEntrataItem() {
 	
 				@Override
+				public boolean isProtPregresso() {
+					return isPregresso();
+				}
+				
+				@Override
 				public boolean hasDefaultValue() {					
 					return AurigaLayout.getParametroDBAsBoolean("ATTIVA_PREIMP_DEST_UO_PROT_IN_PROT_E") && getDestProtEntrataDefault() != null;
 				}
@@ -511,7 +522,7 @@ public abstract class ProtocollazioneDetailEntrata extends ProtocollazioneDetail
 					if(destProtEntrataDefault != null) {
 						String idUoSoggetto = destProtEntrataDefault.getAttribute("idUo");
 						String descrizione = destProtEntrataDefault.getAttribute("descrizione");
-						if(AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT")) {
+						if(AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") && !isPregresso()) {
 							lRecord.setAttribute("tipoDestinatario", "UP_UOI");
 						} else {
 							lRecord.setAttribute("tipoDestinatario", "UOI");

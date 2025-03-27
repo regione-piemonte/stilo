@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+/*
  * Smart GWT (GWT for SmartClient)
  * Copyright 2008 and beyond, Isomorphic Software, Inc.
  *
@@ -5390,13 +5391,11 @@ public class FormItem extends RefDataClass implements com.smartgwt.client.widget
 
 				@Override
 				protected boolean condition(Object value) {
-					if(value != null && !"".equals((String) value)) {
-						if(value != null && !"".equals((String) value)) {
-							if(RequestValidatorClient.containsScript((String) value)) {
-								return false;
-							}
+					String valueStr = value != null ? String.valueOf(value) : null;
+					if(valueStr != null && !"".equals(valueStr)) {
+						if(RequestValidatorClient.containsScript(valueStr)) {
+							return false;
 						}
-						return true;						
 					}
 					return true;
 				}				

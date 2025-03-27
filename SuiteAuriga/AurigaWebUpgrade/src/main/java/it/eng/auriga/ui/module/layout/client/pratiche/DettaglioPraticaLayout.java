@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -1418,7 +1419,7 @@ public class DettaglioPraticaLayout extends HLayout {
 												@Override
 												public void execute(Boolean value) {													
 													if(value != null && value) {
-														InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", true, new DSCallback() {
+														InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO",null, true, new DSCallback() {
 															
 															@Override
 															public void execute(DSResponse response, Object rawData, DSRequest request) {
@@ -1429,7 +1430,7 @@ public class DettaglioPraticaLayout extends HLayout {
 														lInvioUdMailWindow.show();
 													} else {														
 														object.setAttribute("attach", listaAttachWithoutAllegatiPISep);
-														InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", true, new DSCallback() {
+														InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO",null, true, new DSCallback() {
 															
 															@Override
 															public void execute(DSResponse response, Object rawData, DSRequest request) {
@@ -1442,7 +1443,7 @@ public class DettaglioPraticaLayout extends HLayout {
 												}
 											});				
 										} else {					
-											InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", true, new DSCallback() {
+											InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO",null, true, new DSCallback() {
 												
 												@Override
 												public void execute(DSResponse response, Object rawData, DSRequest request) {

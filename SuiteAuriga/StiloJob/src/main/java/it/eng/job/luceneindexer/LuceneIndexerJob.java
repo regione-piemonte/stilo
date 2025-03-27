@@ -1,10 +1,9 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.job.luceneindexer;
 
 import java.io.File;
 import java.io.InputStream;
-import java.lang.invoke.MethodHandles;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -17,18 +16,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.inject.Named;
-
 import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
 import org.apache.lucene.index.IndexWriter;
 import org.springframework.context.ApplicationContext;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import it.eng.dbpoolmanager.DBPoolManager;
 import it.eng.dbpoolmanager.spring.FactorySpringDatasource;
+
+import it.eng.dbpoolmanager.DBPoolManager;
 import it.eng.gd.lucenemanager.LuceneSpringAppContext;
 import it.eng.gd.lucenemanager.bean.SearchCategory;
 import it.eng.gd.lucenemanager.service.LuceneService;
+import it.eng.job.SpringHelper;
 import it.eng.job.exception.AurigaJobException;
 import it.eng.job.luceneindexer.model.DataToIndex;
 import it.eng.job.luceneindexer.utils.JobUtilities;
@@ -38,7 +36,6 @@ import it.eng.utility.jobmanager.quartz.AbstractJob;
 import it.eng.utility.jobmanager.quartz.Job;
 
 @Job(type = "LuceneIndexerJob")
-@Named
 public class LuceneIndexerJob extends AbstractJob<String> {
 
 	private static final String ERRORE_CHIUSURA_INDEX_WRITER = "Errore chiusura indexWriter";
@@ -49,7 +46,7 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 
 	private static final String ID_SP_AOO = "ID_SP_AOO";
 
-	private static final Logger log = LogManager.getLogger(MethodHandles.lookup().lookupClass());
+	private Logger log = Logger.getLogger(LuceneIndexerJob.class);
 
 	public static final String _ID_FOLDER_PREFIX = "F";
 
@@ -98,7 +95,6 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 	@Override
 	public List<String> load() {
 		// DenisBragato
-		log.info("load");
 		LuceneSpringAppContext.setContext(SpringHelper.getLuceneApplicationContext());
 		ApplicationContext context = SpringHelper.getMainApplicationContext();
 		// Istanzio il DBPoolManager
@@ -130,19 +126,7 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 		Connection con = null;
 		try {
 			// recupero della connessione
-			String dbPgs = (String) getAttribute("dbPgs");
-			String ulrPgs = (String) getAttribute("ulrPgs");
-			String userPgs = (String) getAttribute("userPgs");
-			String passwordPgs = (String) getAttribute("passwordPgs");
-			if (dbPgs.equals("ALIAS_DEPOSITO"))
-			{	
-			 con = DriverManager.getConnection(ulrPgs, userPgs, passwordPgs);
-			}
-			else
-			{	
-			 con = DBPoolManager.createDBPoolManagerConnection(connAlias);
-			}			
-			
+			con = DBPoolManager.createDBPoolManagerConnection(connAlias);
 			log.debug("Recupero connessione");
 			// fallita connessione al db
 			if (con == null) {
@@ -154,6 +138,7 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 			// istanzio il version handler free extract per dopo
 			log.debug("Recupero categoria e tabella di lettura");
 			String categoria = (String) getAttribute("LuceneIndexingCategory");
+			log.info("Categoria " + categoria);
 			String tableName = (String) getAttribute("tblInfoXIndexer");
 			String numeroBlocchi = (String) getAttribute("numeroBlocchi");
 			String maxRecordToLoad = (String) getAttribute("maxRecordToLoad");
@@ -170,15 +155,7 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 			// ricavo la lista dei MIME type corrispondenti ai formati
 			// reperisco il nome dello schema
 			log.info("Inizio indicizzazione Lucene");
-			if (dbPgs.equals("ALIAS_DEPOSITO"))
-			{	
-			  doIndexingPostgres(con, tableName, categoria);
-			}
-			else
-			{	
-			  doIndexing(con, tableName, categoria);
-			}
-			
+			doIndexing(con, tableName, categoria);
 			log.info("Fine indicizzazione Lucene");
 		} catch (Exception e) {
 			log.error("Eccezione execute LuceneIndexerJob", e);
@@ -235,16 +212,20 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 		PreparedStatement statementUpdate = null;
 		ResultSet resultSet = null;
 		StringBuilder query = null;
+		StringBuilder queryPre = null;
+		StringBuilder queryFin = null;
 		StringBuilder queryUpdate = null;
 
 		try {
 
+			
 			String categoriaCondition = "";
 			if (StringUtils.isNotEmpty(categoria)) {
 				categoriaCondition = "AND indici.CATEGORIA = ? ";
 			}
-
-			query = new StringBuilder("SELECT indici.* FROM " + tabella + " indici WHERE ");
+			
+			query = new StringBuilder();
+			
 
 			// differenzio la query in base allo stato
 			if (condizioneStatoInErrore) {
@@ -253,26 +234,43 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 				query.append("indici.STATO IS NULL ");
 			}
 
-			query.append("AND NVL(indici.TRY#, 0) < ? " + categoriaCondition + " AND ROWNUM < ?");
+			query.append("AND NVL(indici.TRY#, 0) < ? " + categoriaCondition );
 
-			if (SearchCategory.REP_DOC.getValore().equals(categoria)) {
-				query.append(" ORDER BY indici.ID_SP_AOO");
-			}
+//			if (SearchCategory.REP_DOC.getValore().equals(categoria)) {
+				//query.append(" ORDER BY i.ID_SP_AOO ");
+//			}
+			log.info("query " + query);
+			queryPre = new StringBuilder("SELECT DISTINCT indici.CI_OBJ FROM " + tabella + " indici WHERE  ROWNUM <= ? AND ");
+			//queryPre = new StringBuilder("SELECT DISTINCT indici.CI_OBJ, indici.CATEGORIA FROM " + tabella + " indici WHERE  ROWNUM <= ? AND ");
+			queryPre.append(query);
+			
+			log.info("queryPre " + queryPre);
+			
+			queryFin = new StringBuilder("SELECT indici.* FROM " + tabella + " indici WHERE ");
+			queryFin.append(query);
 
+			queryFin.append("AND CI_OBJ IN ("+queryPre+")");
+			
 			List<DataToIndex> listaIndici = new LinkedList<>();
 
 			try {
 				Integer index = 1;
-				statement = connection.prepareStatement(query.toString());
+				statement = connection.prepareStatement(queryFin.toString());
 				statement.setString(index++, tryNum);
 				if (StringUtils.isNotEmpty(categoria)) {
 					statement.setString(index++, categoria);
 				}
 				statement.setString(index++, maxRecord);
+				statement.setString(index++, tryNum);
+				if (StringUtils.isNotEmpty(categoria)) {
+					statement.setString(index++, categoria);
+				}	
 
-				log.debug("Query estrazione record da indicizzare: " + query);
+				log.info("Query estrazione record da indicizzare: " + queryFin);
 				resultSet = statement.executeQuery();
-				creaListaRecord(resultSet, listaIndici);
+				log.debug("resultSet "+resultSet);
+				//creaListaRecord(resultSet, listaIndici);
+				creaListaRecord(resultSet, listaIndici, categoria);
 			} catch (Exception e) {
 				log.error("Eccezione estrazione record da indicizzare", e);
 				throw e;
@@ -330,12 +328,17 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 						queryUpdate.append("indici.STATO IS NULL ");
 					}
 
-					queryUpdate.append("AND indici.CI_OBJ = ?");
-
+					queryUpdate.append("AND indici.CI_OBJ = ? ");
+					queryUpdate.append("AND indici.ID_SP_AOO = ? ");
+					queryUpdate.append("AND indici.CATEGORIA = ? ");
+					
+					log.info("Aggiornamento stato esecuzione: " + queryUpdate);
+					
 					statementUpdate = connection.prepareStatement(queryUpdate.toString());
 					statementUpdate.setString(1, _STATO_IN_ESECUZIONE);
 					statementUpdate.setString(2, chiave);
-					log.debug("Aggiornamento stato esecuzione: " + query);
+					statementUpdate.setString(3, valori.get(0).getDominio());
+					statementUpdate.setString(4, categoria);
 					statementUpdate.executeQuery();
 
 				} catch (Exception e) {
@@ -356,6 +359,22 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 					log.debug("Reset index writer");
 					resetIndexWriter(connection, valori.get(0).getDominio(), categoria);
 				}
+				
+				if (SearchCategory.REP_DOC_FILE.getValore().equals(categoria) && (dominio == null || !dominio.equals(valori.get(0).getDominio()))) {
+					log.debug("Reset index writer");
+					resetIndexWriter(connection, valori.get(0).getDominio(), categoria);
+				}
+				
+				if (SearchCategory.ALBO_DOC.getValore().equals(categoria) && (dominio == null || !dominio.equals(valori.get(0).getDominio()))) {
+					log.debug("Reset index writer");
+					log.info("indexByState 17");
+					resetIndexWriter(connection, valori.get(0).getDominio(), categoria);
+				}
+				
+				if (SearchCategory.ALBO_DOC_FILE.getValore().equals(categoria) && (dominio == null || !dominio.equals(valori.get(0).getDominio()))) {
+					log.debug("Reset index writer");
+					resetIndexWriter(connection, valori.get(0).getDominio(), categoria);
+				}
 
 				dominio = valori.get(0).getDominio();
 
@@ -364,7 +383,7 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 				// eseguo la vera e propria indicizzazione
 				indexLuceneObject(lia, connection, tabella, service, indexWriter);
 				recordCount++;
-				if (numBlocchi != null && !SearchCategory.REP_DOC_FILE.equals(categoria) && recordCount == Integer.valueOf(numBlocchi)) {
+				if (numBlocchi != null && !SearchCategory.REP_DOC_FILE.getValore().equals(categoria) && recordCount == Integer.valueOf(numBlocchi)) {
 					log.info("Raggiunto limite per il blocco");
 					log.info("Commit in database e indexwriter");
 					indexWriter.commit();
@@ -393,166 +412,9 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 				} catch (Exception e) {
 					log.warn(ERRORE_CHIUSURA_INDEX_WRITER, e);
 				}
-			}
-		}
-
-	}
-	private void indexByStatePostgres(Connection connection, String tabella, String categoria, Boolean condizioneStatoInErrore) throws Exception {
-
-		PreparedStatement statement = null;
-		PreparedStatement statementUpdate = null;
-		ResultSet resultSet = null;
-		StringBuilder query = null;
-		StringBuilder queryUpdate = null;
-
-		try {
-
-			String categoriaCondition = "";
-			if (StringUtils.isNotEmpty(categoria)) {
-				categoriaCondition = "AND indici.CATEGORIA = ? ";
-			}
-
-			query = new StringBuilder("SELECT indici.* FROM " + tabella + " indici WHERE ");
-
-			// differenzio la query in base allo stato
-			if (condizioneStatoInErrore) {
-				query.append("indici.STATO IN ('E', 'X') ");
-			} else {
-				query.append("indici.STATO IS NULL ");
 			}
 			
-			query.append("AND coalesce(indici.TRY, null, 0)  < ? " + categoriaCondition + " LIMIT ?");
-
-			List<DataToIndex> listaIndici = new LinkedList<>();
-
-			try {
-				Integer index = 1;
-				statement = connection.prepareStatement(query.toString());
-				//statement.setString(index++, tryNum);
-				statement.setInt(index++, Integer.parseInt(tryNum));
-				if (StringUtils.isNotEmpty(categoria)) {
-					statement.setString(index++, categoria);
-				}
-				//statement.setString(index++, maxRecord);
-				statement.setInt(index++, Integer.parseInt(maxRecord));
-				log.debug("Query estrazione record da indicizzare: " + query);
-				resultSet = statement.executeQuery();
-				creaListaRecord(resultSet, listaIndici);
-			} catch (Exception e) {
-				log.error("Eccezione estrazione record da indicizzare", e);
-				throw e;
-			} finally {
-				if (statement != null) {
-					try {
-						statement.close();
-						statement = null;
-					} catch (SQLException ignore) {
-						log.error("Eccezione chiusura statement", ignore);
-					}
-				}
-				if (resultSet != null) {
-					try {
-						resultSet.close();
-						resultSet = null;
-					} catch (SQLException ignore) {
-						log.error("Eccezione chiusura resultSet", ignore);
-					}
-				}
-			}
-
-			Map<String, LinkedList<DataToIndex>> valuesToProcess = partition(listaIndici);
-			Set<String> chiaviDaProcessare = valuesToProcess.keySet();
-			String note = null;
-			int recordCount = 0;
-			String dominio = null;
-
-			for (String chiave : chiaviDaProcessare) {
-				List<DataToIndex> valori = valuesToProcess.get(chiave);
-				Map<String, Object> attributiIndicizzabili = new HashMap<>();
-				Map<String, Object> attributiNonIndicizzabili = new HashMap<>();
-
-				// logiche per distinguere tra attributi indicizzabili e non
-
-				for (DataToIndex data : valori) {
-					if (data.getAttrName().equals(ID_SP_AOO) || data.getAttrName().equals(ID_ORGANIGRAMMA) || data.getAttrName().equals(ID_PIANO_CLASSIF)) {
-						attributiNonIndicizzabili.put(data.getAttrName(), data.getAttrValue());
-					} else {
-						attributiIndicizzabili.put(data.getAttrName(), data.getAttrValue());
-					}
-					if (SearchCategory.REP_DOC_FILE.getValore().equals(categoria) && _FILE_DOC.equals(data.getAttrName())) {
-						note = data.getNote();
-					}
-				}
-				// aggiorno lo stato del record e il numero di tentativi
-				try {
-					queryUpdate = new StringBuilder(
-							"UPDATE " + tabella + " SET STATO = ?, " + "TRY = coalesce(TRY, null, 0) + 1, TS_LAST_TRY = current_date WHERE ");
-
-					// differenzio la query in base allo stato
-					if (condizioneStatoInErrore) {
-						queryUpdate.append("STATO IN ('E', 'X') ");
-					} else {
-						queryUpdate.append("STATO IS NULL ");
-					}
-
-					queryUpdate.append("AND CI_OBJ = ?");
-
-					statementUpdate = connection.prepareStatement(queryUpdate.toString());
-					statementUpdate.setString(1, _STATO_IN_ESECUZIONE);
-					statementUpdate.setString(2, chiave);
-					log.debug("Aggiornamento stato esecuzione: " + query);
-					statementUpdate.executeUpdate();
-
-				} catch (Exception e) {
-					log.error("Eccezione aggiornamento stato esecuzione", e);
-					throw e;
-				} finally {
-					try {
-						if (statementUpdate != null) {
-							statementUpdate.close();
-							statementUpdate = null;
-						}
-					} catch (SQLException ignore) {
-						log.error("Eccezione chiusura statement aggiornamento", ignore);
-					}
-				}
-
-				if (SearchCategory.REP_DOC.getValore().equals(categoria) && (dominio == null || !dominio.equals(valori.get(0).getDominio()))) {
-					log.debug("Reset index writer");
-					resetIndexWriterPostgress(connection, valori.get(0).getDominio(), categoria);
-				}
-
-				dominio = valori.get(0).getDominio();
-
-				LuceneIndexerAction lia = new LuceneIndexerAction(chiave, valori.get(0).getTsIns().toString(), dominio, attributiIndicizzabili,
-						attributiNonIndicizzabili, note, valori.get(0).getCategoria());
-				// eseguo la vera e propria indicizzazione
-				indexLuceneObject(lia, connection, tabella, service, indexWriter);
-				recordCount++;
-				if (numBlocchi != null && !SearchCategory.REP_DOC_FILE.equals(categoria) && recordCount == Integer.valueOf(numBlocchi)) {
-					log.info("Raggiunto limite per il blocco");
-					log.info("Commit in database e indexwriter");
-					indexWriter.commit();
-					connection.commit();
-					recordCount = 0;
-				}
-
-			}
-
-			log.debug("Commit finale in database e indexwriter");
-			if (chiaviDaProcessare != null && !chiaviDaProcessare.isEmpty()) {
-				indexWriter.commit();
-			}
-			connection.commit();
-		} catch (Exception e) {
-			if (connection != null) {
-				connection.rollback();
-			}
-			log.error("Eccezione indicizzazione", e);
-			throw e;
-		} finally {
-			// SE REP DOC ALLA FINE DEVO ASSOLUTAMENTE CHIUDERE L'ULTIMO INDICE
-			if (SearchCategory.REP_DOC.getValore().equals(categoria)) {
+			if (SearchCategory.ALBO_DOC.getValore().equals(categoria)) {
 				try {
 					indexWriter.close();
 				} catch (Exception e) {
@@ -562,7 +424,6 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 		}
 
 	}
-
 
 	/**
 	 * ricava dalla tabella d'appoggio tutti i valori utili a indicizzare il nuovo file
@@ -575,15 +436,13 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 	 * @throws Exception
 	 */
 	private void doIndexing(Connection connection, String tabella, String categoria) throws Exception {
-
 		service = (LuceneService) LuceneSpringAppContext.getContext().getBean("luceneService");
-
 		service.setCategory(SearchCategory.valueOf(categoria));
 		indexWriter = service.getIndexWriter();
-
+		
 		try {
 			String tipo = "metadati";
-			if (SearchCategory.REP_DOC_FILE.equals(categoria)) {
+			if (SearchCategory.REP_DOC_FILE.getValore().equals(categoria)) {
 				tipo = "file";
 			}
 			// PRIMA PROCESSO I METADATI MAI PROCESSATI
@@ -606,47 +465,19 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 		}
 
 	}
-	
-	private void doIndexingPostgres(Connection connection, String tabella, String categoria) throws Exception {
-
-		service = (LuceneService) LuceneSpringAppContext.getContext().getBean("luceneService");
-
-		service.setCategory(SearchCategory.valueOf(categoria));
-		indexWriter = service.getIndexWriter();
-
-		try {
-			String tipo = "metadati";
-			if (SearchCategory.REP_DOC_FILE.equals(categoria)) {
-				tipo = "file";
-			}
-			// PRIMA PROCESSO I METADATI MAI PROCESSATI
-			log.info("Inizio indicizzazione " + tipo + "  metadati mai processati");
-			indexByStatePostgres(connection, tabella, categoria, false);
-			log.info("Fine indicizzazione " + tipo + " metadati mai processati");
-			// POI PROCESSO I METADATI IN ERRORE
-			log.info("Inizio indicizzazione " + tipo + " metadati in errore");
-			indexByStatePostgres(connection, tabella, categoria, true);
-			log.info("Fine indicizzazione " + tipo + " metadati in errore");
-		} catch (Exception e) {
-			log.error("Eccezione indicizzazione", e);
-			throw e;
-		} finally {
-			try {
-				indexWriter.close();
-			} catch (Exception e) {
-				log.warn(ERRORE_CHIUSURA_INDEX_WRITER, e);
-			}
-		}
-
-	}
 
 	/**
 	 * @param resultSet
 	 * @param listaIndici
 	 * @throws SQLException
 	 */
-	private void creaListaRecord(ResultSet resultSet, List<DataToIndex> listaIndici) throws SQLException {
+	private void creaListaRecord(ResultSet resultSet, List<DataToIndex> listaIndici, String categoria) throws SQLException { 
+	//private void creaListaRecord(ResultSet resultSet, List<DataToIndex> listaIndici) throws SQLException {
+		int i=0;
 		while (resultSet.next()) {
+			if (resultSet.getString("CATEGORIA").equals(categoria)) {
+			i++;
+			log.debug("trovato record " + i);
 			DataToIndex record = new DataToIndex();
 			record.setCiObj(resultSet.getString("CI_OBJ"));
 			record.setAttrName(resultSet.getString("ATTR_NAME"));
@@ -656,6 +487,7 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 			record.setTsIns(resultSet.getTimestamp("TS_INS"));
 			record.setDominio(resultSet.getString(ID_SP_AOO) == null ? "" : resultSet.getInt(ID_SP_AOO) + "");
 			listaIndici.add(record);
+			}
 		}
 	}
 
@@ -747,7 +579,6 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 						service.indexDocument(app, luceneIndexerAction.getCiObj(), luceneIndexerAction.getAttributiDaIndicizzare(),
 								luceneIndexerAction.getAttributiNonIndicizzabili(), fileUri, true, indexWriter);
 					} else {
-						log.info("service.getWriter().getUtils().getWsEndpoint() "+service.getWriter().getUtils().getWsEndpoint());
 						service.indexDocument(app, luceneIndexerAction.getCiObj(), luceneIndexerAction.getAttributiDaIndicizzare(),
 								luceneIndexerAction.getAttributiNonIndicizzabili(), fileUri, false, indexWriter);
 					}
@@ -758,6 +589,35 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 					&& (luceneIndexerAction.getNote().startsWith(OCR_OUTPUT) || luceneIndexerAction.getNote().startsWith(OCR_INPUT))) {
 				if (fileUri != null) {
 					StorageRetriever.deleteFile(fileUri);
+				}
+			}
+            //Aggiunta per OCR
+			/*
+			 * Nel job di REP_DOC_FILE:
+                1)	Se il file che viene indicizzato (ATTR_NAME=#FILE) ha URI che inizia con [FS@OCR] dopo aver indicizzato il file va cancellato il file fisico.
+                2)	Se CI_OBJ del record inizia con D0V e se ATTR_NAME=#FILE dopo aver indicizzato il file va cancellato il file fisico
+
+			 */
+			
+			
+			if (fileUri!= null)
+			{		
+/*					&& luceneIndexerAction.getAttributiDaIndicizzare().get(_FILE_DOC)
+					&& (luceneIndexerAction.getNote().startsWith(OCR_OUTPUT) || luceneIndexerAction.getNote().startsWith(OCR_INPUT))) {*/
+				//log.info("fileUri to delete: "+fileUri);
+				//log.info("getCiObj: "+luceneIndexerAction.getCiObj());
+				
+				if (fileUri != null && fileUri.startsWith("[FS@OCR]")) {
+					StorageRetriever.deleteFile(fileUri);
+					//log.info("getCiObj deleted: "+luceneIndexerAction.getCiObj());
+				}
+				if (fileUri != null && luceneIndexerAction.getCiObj().startsWith("D0V")) {
+					try {
+						StorageRetriever.deleteFile(fileUri);
+						log.info("getCiObj deleted: "+luceneIndexerAction.getCiObj());
+					}catch(Exception e) {
+						log.warn("Problemi durante la cancellazione - probabilmente già cancellato");
+					}	
 				}
 			}
 			deleteRows = true;
@@ -789,7 +649,7 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 
 	private void resetIndexWriter(Connection con, String dominio, String filtroCategoria) throws Exception {
 
-		log.debug("Reset index writer per cambio dominio (solo per categoria REP_DOC)");
+		log.debug("Reset index writer per cambio dominio (solo per categoria REP_DOC,REP_DOC_FILE)");
 		log.debug("Nuovo dominio: " + dominio);
 		log.debug("Schema: " + getSchemaName(con));
 
@@ -807,27 +667,6 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 		indexWriter = service.getIndexWriter();
 		log.debug("Istanziato il nuovo indexWriter su directory: " + indexWriter.getDirectory().toString());
 	}
-	
-	private void resetIndexWriterPostgress(Connection con, String dominio, String filtroCategoria) throws Exception {
-
-		log.debug("Reset index writer per cambio dominio (solo per categoria REP_DOC)");
-		log.debug("Nuovo dominio: " + dominio);
-		log.debug("Schema: " + "auri_deposito");
-
-		try {
-			indexWriter.close();
-		} catch (Exception e) {
-			log.warn("resetIndexWriter - Errore chiusura indexWriter", e);
-		}
-		log.debug("Faccio la commit sulla connessione per cancellare i record già processati");
-		con.commit();
-		service = (LuceneService) LuceneSpringAppContext.getContext().getBean("luceneService");
-		service.setCategory(SearchCategory.valueOf(filtroCategoria));
-		service.setIdDominio(dominio);
-		service.setDbName("auri_deposito");
-		indexWriter = service.getIndexWriter();
-		log.debug("Istanziato il nuovo indexWriter su directory: " + indexWriter.getDirectory().toString());
-	}
 
 	/**
 	 * Metodo di cancellazione dei record corrispettivi agli indici
@@ -841,10 +680,12 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 	private void deleteRows(Connection con, LuceneIndexerAction luceneIndexerAction, String tableName) throws Exception {
 		PreparedStatement stmt = null;
 		try {
-			String query = "DELETE FROM " + tableName + " indici WHERE indici.CI_OBJ = ?";
+			String query = "DELETE FROM " + tableName + " indici WHERE indici.CI_OBJ = ? AND indici.CATEGORIA = ? AND indici.ID_SP_AOO = ?";
 			stmt = con.prepareStatement(query);
 			stmt.setString(1, luceneIndexerAction.getCiObj());
-			log.debug("Cancellazione record indice: " + stmt.toString());
+			stmt.setString(2, luceneIndexerAction.getCategoria());
+			stmt.setString(3, luceneIndexerAction.getDominio());
+			log.debug("Cancellazione record indice: " + stmt.toString() + "; CATEGORIA: " + luceneIndexerAction.getCategoria()+ "; dominio: " + luceneIndexerAction.getDominio());
 			stmt.executeUpdate();
 		} catch (Exception e) {
 			con.rollback();
@@ -874,12 +715,14 @@ public class LuceneIndexerJob extends AbstractJob<String> {
 	private void setRowsToStateError(Connection con, LuceneIndexerAction luceneIndexerAction, String tableName, String message) throws Exception {
 		PreparedStatement stmt = null;
 		try {
-			String query = "UPDATE " + tableName + " indici SET indici.STATO = ?, ERR_MSG = ?, TS_LAST_TRY = SYSDATE WHERE indici.CI_OBJ = ?";
+			String query = "UPDATE " + tableName + " indici SET indici.STATO = ?, ERR_MSG = ?, TS_LAST_TRY = SYSDATE WHERE indici.CI_OBJ = ? AND indici.CATEGORIA = ? AND indici.ID_SP_AOO = ?";
 			stmt = con.prepareStatement(query);
 			stmt.setString(1, _STATO_ERRORE);
 			stmt.setString(2, message);
 			stmt.setString(3, luceneIndexerAction.getCiObj());
-			log.debug("Cancellazione record indice: " + stmt.toString());
+			stmt.setString(4, luceneIndexerAction.getCategoria());
+			stmt.setString(5, luceneIndexerAction.getDominio());
+			log.debug("Cancellazione record indice: " + stmt.toString() +"; CATEGORIA: " + luceneIndexerAction.getCategoria() + "; dominio: " + luceneIndexerAction.getDominio());
 			stmt.executeUpdate();
 		} catch (Exception e) {
 			con.rollback();

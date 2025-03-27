@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -369,6 +370,10 @@ public class SelezionaUOCanvas extends ReplicableCanvas {
 			}
 		});
 		organigrammaItem.setPickListProperties(pickListProperties);
+		if(((SelezionaUOItem)getItem()).getSelectItemOrganigrammaHint() != null) {
+			organigrammaItem.setShowHint(true);
+			organigrammaItem.setHint(((SelezionaUOItem)getItem()).getSelectItemOrganigrammaHint());
+		}
 
 		organigrammaFromLoadDettHiddenItem = new HiddenItem("organigrammaFromLoadDett");
 

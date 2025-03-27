@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.invioMail.datasource;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -1184,6 +1185,17 @@ public class AurigaInvioMailDatasource extends AbstractServiceDataSource<Operazi
 		parametroUriFileBean.setValoreParametro(uriFileXlsNew);
 		parametroUriFileBean.setVerso("IN");
 		listaParametriXmlIn.add(parametroUriFileBean);
+		
+		if(ParametriDBUtil.getParametroDBAsBoolean(getSession(), "ATTIVA_UO_INVIO_MAIL_DA_LISTA_XLS") && 
+				pInvioMailBean.getUoLavoro() != null) {
+			// Parametro UO LAVORO
+			InsBatchParametriXmlBean parametroUOLavoroBean = new InsBatchParametriXmlBean();
+			parametroUOLavoroBean.setNomeParametro("ID_UO_MITT");
+			parametroUOLavoroBean.setTipoParametro("INTEGER");
+			parametroUOLavoroBean.setValoreParametro(pInvioMailBean.getUoLavoro().startsWith("UO") ? pInvioMailBean.getUoLavoro().substring(2) : pInvioMailBean.getUoLavoro());
+			parametroUOLavoroBean.setVerso("IN");
+			listaParametriXmlIn.add(parametroUOLavoroBean);
+		}
 		
 		// Parametro ID ACCOUNT MITTENTE MAIL
 		InsBatchParametriXmlBean parametroIdAccountMittenteBean = new InsBatchParametriXmlBean();

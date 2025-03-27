@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -95,8 +96,10 @@ public class MittenteProtInternaCanvas extends IndirizzoCanvas {
 	
 	public boolean showSelectOrganigramma() {
 		boolean fromLoadDett =  mDynamicForm.getValue("fromLoadDett") != null ? (Boolean) mDynamicForm.getValue("fromLoadDett") : false; 
-		if (fromLoadDett && !isPresenteInOrganigramma()) return false;
-		else return ((MittenteProtItem)getItem()).getFlgSoloInOrganigramma();
+		if (fromLoadDett && !isPresenteInOrganigramma()) {
+			return false;
+		}
+		return ((MittenteProtItem)getItem()).getFlgSoloInOrganigramma() && !((MittenteProtItem) getItem()).isProtPregresso();
 	}
 	
 	public String getTipoAssegnatari() {
@@ -262,13 +265,13 @@ public class MittenteProtInternaCanvas extends IndirizzoCanvas {
 								boolean trovato = false;
 								if (data.getLength() > 0) {
 									for (int i = 0; i < data.getLength(); i++) {
+										String typeNodo = data.get(i).getAttribute("typeNodo");
 										String codice = data.get(i).getAttribute("codice");
 										String flgSelXFinalita = data.get(i).getAttribute("flgSelXFinalita");
-										if (event.getValue().equals(codice) && (flgSelXFinalita == null || "1".equals(flgSelXFinalita))) {
+										if ("UO".equals(typeNodo) && event.getValue().equals(codice) && (flgSelXFinalita == null || "1".equals(flgSelXFinalita))) {
 											mDynamicForm.setValue("organigrammaMittente", data.get(i).getAttribute("id"));
 											mDynamicForm.setValue("idMittente", data.get(i).getAttribute("idUo"));
 											mDynamicForm.setValue("idSoggetto", data.get(i).getAttribute("idRubrica"));															
-											String typeNodo = data.get(i).getAttribute("typeNodo");
 											if(typeNodo != null) {
 												if(typeNodo.equals("UO")) {
 													mDynamicForm.setValue("idUoSoggetto", data.get(i).getAttribute("idUo"));
@@ -1001,6 +1004,8 @@ public class MittenteProtInternaCanvas extends IndirizzoCanvas {
 
 			@Override
 			public void onChanged(ChangedEvent event) {
+				boolean checked = event.getValue() != null && (Boolean) event.getValue();
+				flgAssegnaAlMittenteItem.setAttribute("valueAfterChange", checked ? "true" : "false");
 				((MittenteProtItem) getItem()).manageChangedFlgAssegnaAlMittente(mDynamicForm.getValuesAsRecord());	
 				mDynamicForm.redraw();
 			}
@@ -1169,7 +1174,13 @@ public class MittenteProtInternaCanvas extends IndirizzoCanvas {
 					}
 					// se il soggetto è selezionabile per l'assegnazione allora setto il check al valore di default
 					if(flgSelXAssegnazione) {
-						mDynamicForm.setValue("flgAssegnaAlMittente", ((MittenteProtItem) getItem()).getFlgAssegnaAlMittenteDefault());
+						// se l'utente ha modificato il valore del check "effettua assegnazione", rispetto a quello di default, allora devo caricare quello
+						Boolean flgAssegnaAlMittenteValueAfterChange = flgAssegnaAlMittenteItem.getAttribute("valueAfterChange") != null ? "true".equals(flgAssegnaAlMittenteItem.getAttribute("valueAfterChange")) : null;
+						if(flgAssegnaAlMittenteValueAfterChange != null) {
+							mDynamicForm.setValue("flgAssegnaAlMittente", flgAssegnaAlMittenteValueAfterChange);
+						} else {
+							mDynamicForm.setValue("flgAssegnaAlMittente", ((MittenteProtItem) getItem()).getFlgAssegnaAlMittenteDefault());
+						}
 						((MittenteProtItem) getItem()).manageChangedFlgAssegnaAlMittente(mDynamicForm.getValuesAsRecord());
 					} 
 				}

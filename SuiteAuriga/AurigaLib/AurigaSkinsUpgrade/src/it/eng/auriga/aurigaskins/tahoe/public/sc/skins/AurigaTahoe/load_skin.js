@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+/*============================================================
     "Tahoe" theme programmatic settings
     Copyright 2003 and beyond, Isomorphic Software
 ============================================================*/

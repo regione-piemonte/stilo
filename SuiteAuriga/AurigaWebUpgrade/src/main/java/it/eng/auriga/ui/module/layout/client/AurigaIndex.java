@@ -1,6 +1,10 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.google.gwt.core.client.GWT;
@@ -13,12 +17,17 @@ import com.smartgwt.client.data.Record;
 import com.smartgwt.client.data.RecordList;
 import com.smartgwt.client.rpc.HandleTransportErrorCallback;
 import com.smartgwt.client.rpc.LoginRequiredCallback;
+import com.smartgwt.client.rpc.RPCCallback;
 import com.smartgwt.client.rpc.RPCManager;
 import com.smartgwt.client.rpc.RPCRequest;
 import com.smartgwt.client.rpc.RPCResponse;
+import com.smartgwt.client.types.HeaderControls;
+import com.smartgwt.client.types.Visibility;
 import com.smartgwt.client.util.JSON;
 import com.smartgwt.client.util.SC;
+import com.smartgwt.client.widgets.Canvas;
 
+import it.eng.auriga.ui.module.layout.client.postaElettronica.DettaglioRegProtAssociatoWindow;
 import it.eng.utility.ui.module.core.client.EscapeHtmlClient;
 import it.eng.utility.ui.module.core.client.SJCLClient;
 import it.eng.utility.ui.module.core.client.ScriptCleanerClient;
@@ -26,45 +35,74 @@ import it.eng.utility.ui.module.core.client.UserInterfaceFactory;
 import it.eng.utility.ui.module.core.client.callback.ServiceCallback;
 import it.eng.utility.ui.module.core.client.datasource.GWTRestDataSource;
 import it.eng.utility.ui.module.core.client.datasource.GWTRestService;
+import it.eng.utility.ui.module.core.client.datasource.OneCallGWTRestService;
+import it.eng.utility.ui.module.core.client.i18n.I18NUtil;
 import it.eng.utility.ui.module.core.client.util.ClientFactory;
+import it.eng.utility.ui.module.core.shared.message.MessageBean;
+import it.eng.utility.ui.module.core.shared.message.MessageType;
 import it.eng.utility.ui.module.layout.client.Index;
 import it.eng.utility.ui.module.layout.client.Layout;
 import it.eng.utility.ui.module.layout.client.common.file.DownloadFile;
 import it.eng.utility.ui.module.layout.client.error.ErrorWindow;
+import it.eng.utility.ui.module.layout.client.message.MessageBox;
 import it.eng.utility.ui.module.layout.shared.bean.FilterPrivilegiContainer;
 import it.eng.utility.ui.module.layout.shared.bean.FilterPrivilegiImpl;
 
 public class AurigaIndex extends Index {
+	
+	protected Dictionary dictionary;
+	
+	protected String schemaPortlet;
+	protected String codApplication;
+	protected String codApplicationIst;
+	protected String applicationKey;
+	protected String userid;
+	protected String idUd;
+	protected String codCategoriaReg;
+	protected String siglaReg;
+	protected String annoReg;
+	protected String numReg;
+	
+	protected boolean loginError;	
 
 	// private static Logger logger = java.util.logging.Logger.getLogger("AurigaIndex");
 	protected SchemaSelectionWindow lSchemaSelectionWindow;
 	public String schemaSelezionato;
 	public String dominioSelezionato;
+	
 	protected String usernameSSO;
 	protected String autenticazioneIam;
-
 	protected String showResetPasswordLogin = "N";
 
 	protected AurigaLoginWindow loginwindow;
 	protected static AurigaIndex index;
 	protected ClientFactory clientFactory;
 
+	protected String logLoginDaPortlet = "";
+	
 	@Override
 	public void onModuleLoad() {
 		if (AurigaLayout.getIsAttivaAccessibilita()) {
 			SC.setScreenReaderMode(true);		
 		}
-		final Dictionary dictionary = Dictionary.getDictionary("params");
+		
+		dictionary = Dictionary.getDictionary("params");
+		
+		setLoginDaPortletParams(dictionary);
+		setDettaglioUdParams(dictionary);
+		
 		try {
 			usernameSSO = (dictionary.keySet().contains("usernameSSO") && dictionary.get("usernameSSO") != null) ? dictionary.get("usernameSSO") : null;
 		} catch (Exception e) {
 			usernameSSO = null;
 		}
+		
 		try {
 			autenticazioneIam = (dictionary.keySet().contains("autenticazioneIam") && dictionary.get("autenticazioneIam") != null) ? dictionary.get("autenticazioneIam") : "false";
 		} catch (Exception e) {
 			autenticazioneIam = "false";
 		}
+		
 		try {
 			showResetPasswordLogin = dictionary.get("showResetPasswordLogin");
 		} catch (Exception e) {
@@ -97,9 +135,14 @@ public class AurigaIndex extends Index {
 		RPCManager.setDefaultTimeout(0);
 		initAutomaticDownload(this, "automaticDownload");
 		lSchemaSelectionWindow = new SchemaSelectionWindow(this);
-		String schema = dictionary.get("schema") != null ? dictionary.get("schema") : null;
-		final Record lRecordSchema = new Record(JSON.decode(schema));
 		
+		String schema = null;
+		try {
+			schema = (dictionary.keySet().contains("schema") && dictionary.get("schema") != null) ? dictionary.get("schema") : null;
+		} catch (Exception e) {
+			schema = null;
+		}
+		final Record lRecordSchema = new Record(JSON.decode(schema));
 		
 		if (autenticazioneIam != null && "true".equalsIgnoreCase(autenticazioneIam)){
 			Record lRecord = new Record();
@@ -142,10 +185,169 @@ public class AurigaIndex extends Index {
 		}
 	}
 	
+	protected boolean isLoginDaPortlet() {
+		return codApplication != null && !"".equals(codApplication);
+	}
+	
+	protected void setLoginDaPortletParams(Dictionary dictionary) {
+		try {
+			schemaPortlet = (dictionary.keySet().contains("schemaPortlet") && dictionary.get("schemaPortlet") != null) ? dictionary.get("schemaPortlet") : null;
+		} catch (Exception e) {
+			schemaPortlet = null;
+		}	
+		try {
+			codApplication = (dictionary.keySet().contains("codApplication") && dictionary.get("codApplication") != null) ? dictionary.get("codApplication") : null;
+		} catch (Exception e) {
+			codApplication = null;
+		}	
+		try {
+			codApplicationIst = (dictionary.keySet().contains("codApplicationIst") && dictionary.get("codApplicationIst") != null) ? dictionary.get("codApplicationIst") : null;
+		} catch (Exception e) {
+			codApplicationIst = null;
+		}	
+		try {
+			applicationKey = (dictionary.keySet().contains("applicationKey") && dictionary.get("applicationKey") != null) ? dictionary.get("applicationKey") : null;
+		} catch (Exception e) {
+			applicationKey = null;
+		}	
+		try {
+			userid = (dictionary.keySet().contains("userid") && dictionary.get("userid") != null) ? dictionary.get("userid") : null;
+		} catch (Exception e) {
+			userid = null;
+		}
+	}
+	
+	protected void setDettaglioUdParams(Dictionary dictionary) {
+		try {
+			idUd = (dictionary.keySet().contains("idUd") && dictionary.get("idUd") != null) ? dictionary.get("idUd") : null;
+		} catch (Exception e) {
+			idUd = null;
+		}		
+		try {
+			codCategoriaReg = (dictionary.keySet().contains("codCategoriaReg") && dictionary.get("codCategoriaReg") != null) ? dictionary.get("codCategoriaReg") : null;
+		} catch (Exception e) {
+			codCategoriaReg = null;
+		}
+		try {
+			siglaReg = (dictionary.keySet().contains("siglaReg") && dictionary.get("siglaReg") != null) ? dictionary.get("siglaReg") : null;
+		} catch (Exception e) {
+			siglaReg = null;
+		}
+		try {
+			annoReg = (dictionary.keySet().contains("annoReg") && dictionary.get("annoReg") != null) ? dictionary.get("annoReg") : null;
+		} catch (Exception e) {
+			annoReg = null;
+		}
+		try {
+			numReg = (dictionary.keySet().contains("numReg") && dictionary.get("numReg") != null) ? dictionary.get("numReg") : null;
+		} catch (Exception e) {
+			numReg = null;
+		}
+	}
+	
+	protected String getUsernameForLoginDaPortlet() {
+		return userid + "#COD_APPL#" + codApplication + "#COD_APPL_IST#" + codApplicationIst;
+	}
+	
+	protected String getPasswordForLoginDaPortlet() {	
+		String schemaPortlet = null;
+		try {
+			schemaPortlet = (dictionary.keySet().contains("schemaPortlet") && dictionary.get("schemaPortlet") != null) ? dictionary.get("schemaPortlet") : null;
+		} catch (Exception e) {
+			schemaPortlet = null;
+		}
+		if(schemaPortlet != null && !"".equals(schemaPortlet)) {
+			return applicationKey + "#SCHEMA#" + schemaPortlet;
+		} else {
+			String schema = null;
+			try {
+				schema = (dictionary.keySet().contains("schema") && dictionary.get("schema") != null) ? dictionary.get("schema") : null;
+			} catch (Exception e) {
+				schema = null;
+			}
+			Record lRecordSchema = new Record(JSON.decode(schema));
+			return applicationKey + "#SCHEMA#" + lRecordSchema.getAttributeAsRecord("defaultSchema").getAttribute("name");
+		}
+	}
+	
+	protected void resetParamsOnLoginError() {
+		schemaPortlet = null;
+		codApplication = null;
+		codApplicationIst = null;
+		applicationKey = null;
+		userid = null;
+	}
+	
+	private void loginDaPortlet() {
+		Layout.showWaitPopup("Autenticazione in corso...");		
+		RPCRequest req = new RPCRequest();
+		req.setContainsCredentials(true);
+		req.setActionURL("j_security_check");
+		req.setUseSimpleHttp(true);
+		req.setShowPrompt(false);
+		Map params = new HashMap();
+		// adjust parameter names to match your authentication system
+		params.put("j_username", getUsernameForLoginDaPortlet());
+		params.put("j_password", getPasswordForLoginDaPortlet());
+		req.setParams(params);				
+		RPCManager.sendRequest(req, new RPCCallback(){
+			public void execute(RPCResponse response, Object rawData, RPCRequest request) {
+				try {
+					Layout.hideWaitPopup();				
+				} catch(Exception e) {
+				}
+				logLoginDaPortlet += "login status " + response.getStatus() + "<br/>";
+				if (response.getStatus() == RPCResponse.STATUS_SUCCESS) {
+					createSessionLoginInfo(new ServiceCallback<Record>() {	
+						
+						@Override
+						public void execute(Record object) {
+							// get rid of login window											
+							RPCManager.resendTransaction();
+							if(object != null && object.getAttribute("idApplicazione") != null) {
+								logLoginDaPortlet += "buildPortalLayout()<br/>";
+								layout = buildPortalLayout();
+							}
+//							try {	                	 
+//								if (getLayout().getConfigured()) {
+//									logLoginDaPortlet += "configured<br/>";							
+//									getLayout().aggiornaUtente();	
+//									logLoginDaPortlet += "aggiornaUtente()<br/>";																
+//								} else {
+//									logLoginDaPortlet += "not configured<br/>";
+//								}
+//							} catch(Exception e) {
+//								logLoginDaPortlet += "errore " + e.getMessage() + "<br/>";
+//							};	
+						}
+					});													
+				} else {	
+					final MessageBox messagebox = new MessageBox(false);
+					// Setto la messagebox
+					GWTRestDataSource.settingMessageBox(messagebox);											
+					loginError = true;
+					resetParamsOnLoginError();
+					List<MessageBean> messages = new ArrayList<MessageBean>();
+					messages.add(new MessageBean("Login non valido", "", MessageType.ERROR));
+					messagebox.addMessages(messages);
+//					new OneCallGWTRestService<Record, Record>("LogoutDataSource").call(new Record(), new ServiceCallback<Record>() {		
+//						
+//						@Override
+//						public void execute(Record object) {
+//							
+//						}
+//					});
+				}				
+			}
+		});				
+		
+	}
+	
 	private void afterSelezionaDominio(final Dictionary dictionary, final Record lRecordSchema, String dominio) {
 		dominioSelezionato = dominio;
 		final GWTRestDataSource lServiceRestUserUtil = new GWTRestDataSource("ServiceRestUserUtil");
 		final Record record = new Record();
+		// Salvo in sessione DOMINIO_SELEZIONATO_SSO, che verrà letto dal filtro di login per fare la login nel dominio selezionato
 		record.setAttribute("key", "DOMINIO_SELEZIONATO_SSO");
 		record.setAttribute("value", dominio);
 		
@@ -367,6 +569,8 @@ public class AurigaIndex extends Index {
 					showSelection(lRecordSchema.getAttributeAsRecordList("schemi"), lRecordSchema.getAttributeAsMap("defaultSchema"));
 				} else if (  AurigaLayout.getGenericConfig() != null && AurigaLayout.getGenericConfig().getReloadAfterSessionExpired() != null && AurigaLayout.getGenericConfig().getReloadAfterSessionExpired()) {
 					Window.Location.reload();
+				} else if(isLoginDaPortlet()) {					
+					loginDaPortlet();
 				} else {
 					// Sono sicuro che è unico
 					showLogin();
@@ -374,11 +578,91 @@ public class AurigaIndex extends Index {
 			}
 		});
 	}
-
+	
 	@Override
 	public Layout buildPortalLayout() {
+		if(isLoginDaPortlet()) {
+			Layout.showWaitPopup("Caricamento in corso...");
+			AurigaLayout lAurigaLayout = new AurigaLayout() {
+				
+					@Override
+					public boolean isLoginDaPortlet() {
+						return true;
+					}
+				
+					@Override
+					public void afterAggiornaUtente() {
+						clearUserPreferences();
+						logLoginDaPortlet += "utenteLoggato " + (Layout.utenteLoggato != null ? Layout.utenteLoggato.getUserid() : "NULL")  + "<br/>";
+						logLoginDaPortlet += "apriDettaglioUd()<br/>";
+						if(Layout.isDebugClientEnable()) { GWT.log("LOGIN DA PORTLET<br/>" + logLoginDaPortlet); }
+						if(idUd != null && !"".equals(idUd)) {
+							apriDettaglioUd(idUd);
+						} else if(numReg != null && !"".equals(numReg)) {
+							Record lRecord = new Record();
+							lRecord.setAttribute("codCategoriaProtocollo", codCategoriaReg);
+							lRecord.setAttribute("siglaProtocollo", siglaReg);
+							lRecord.setAttribute("nroProtocollo", numReg);
+							lRecord.setAttribute("annoProtocollo", annoReg);
+							GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("ProtocolloDataSource");
+							lGwtRestDataSource.executecustom("recuperaIdUd", lRecord, new DSCallback() {
+				
+								@Override
+								public void execute(DSResponse response, Object rawData, DSRequest request) {
+				
+									if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
+										Record record = response.getData()[0];
+										String idUd = record.getAttributeAsString("idUd");
+										if (idUd != null && !"".equals(idUd)) {
+											apriDettaglioUd(idUd);				
+										}					
+									} else {
+										Layout.addMessage(new MessageBean("Documento inesistente", "", MessageType.ERROR));
+									}
+								}
+							});
+						}
+					}
+					
+					@Override
+					public MessageBox buildMessageBox() {
+						return new MessageBox(false);
+					}
+			};
+			lAurigaLayout.setVisibility(Visibility.HIDDEN);
+			return lAurigaLayout;
+		} else {
+			return new AurigaLayout();
+		}
+	}
 
-		return new AurigaLayout();
+	public Canvas apriDettaglioUd(String idUd) {
+		String title = "Dettaglio unità documentaria";
+		Record lRecord = new Record();
+		lRecord.setAttribute("idUd", idUd);
+		DettaglioRegProtAssociatoWindow lDettaglioRegProtAssociatoWindow = new DettaglioRegProtAssociatoWindow(lRecord, null, title) {
+			
+			@Override
+			public void show() {
+				super.show();
+				Layout.hideWaitPopup();
+			};
+			
+			@Override
+			public boolean isFromPortlet() {
+				return true;
+			}
+		};
+		lDettaglioRegProtAssociatoWindow.setIsModal(true);
+		lDettaglioRegProtAssociatoWindow.setShowModalMask(true);
+		lDettaglioRegProtAssociatoWindow.setModalMaskOpacity(50);         
+		lDettaglioRegProtAssociatoWindow.setShowMinimizeButton(false);
+		lDettaglioRegProtAssociatoWindow.setShowMaximizeButton(false);
+		lDettaglioRegProtAssociatoWindow.setShowCloseButton(false);				 
+		lDettaglioRegProtAssociatoWindow.setHeaderControls(HeaderControls.HEADER_ICON, HeaderControls.HEADER_LABEL); 
+		lDettaglioRegProtAssociatoWindow.setHeight100();
+		lDettaglioRegProtAssociatoWindow.setWidth100();
+		return lDettaglioRegProtAssociatoWindow;
 	}
 
 	@Override
@@ -407,6 +691,10 @@ public class AurigaIndex extends Index {
 			loginwindow.redraw();
 			loginwindow.show();
 			loginwindow.getForm().focusInItem("j_username");
+			if(loginError) {
+				Layout.addMessage(new MessageBean(I18NUtil.getMessages().loginError_message(), "", MessageType.ERROR));
+				loginError = false;						
+			}
 		}
 	}
 
@@ -423,7 +711,7 @@ public class AurigaIndex extends Index {
 
 	protected void proceedAsUsual(String schema) {
 		schemaSelezionato = schema;
-		if (schemaSelezionato != null && !"".equals(schemaSelezionato)) {
+		if (!isLoginDaPortlet() && schemaSelezionato != null && !"".equals(schemaSelezionato)) {
 			manageOnModuleLoad(true);
 		} else {
 			manageOnModuleLoad(false);
@@ -433,16 +721,18 @@ public class AurigaIndex extends Index {
 			loginwindow = new AurigaLoginWindow(this);
 		}
 		adaptFilterBuilderDefaults();
-		layout.filterPrivilegi = new FilterPrivilegiImpl();
-		new GWTRestService<Record, Record>("ServiceRestPrivilegiFilterUtil").call(new Record(), new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record object) {
-				FilterPrivilegiContainer lFilterPrivilegiContainer = new FilterPrivilegiContainer();
-				lFilterPrivilegiContainer.setConfigMap(object.getAttributeAsMap("configMap"));
-				layout.filterPrivilegi.setContainer(lFilterPrivilegiContainer);
-			}
-		});
+		if (!isLoginDaPortlet()) {
+			layout.filterPrivilegi = new FilterPrivilegiImpl();
+			new GWTRestService<Record, Record>("ServiceRestPrivilegiFilterUtil").call(new Record(), new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record object) {
+					FilterPrivilegiContainer lFilterPrivilegiContainer = new FilterPrivilegiContainer();
+					lFilterPrivilegiContainer.setConfigMap(object.getAttributeAsMap("configMap"));
+					layout.filterPrivilegi.setContainer(lFilterPrivilegiContainer);
+				}
+			});
+		}
 
 	}
 

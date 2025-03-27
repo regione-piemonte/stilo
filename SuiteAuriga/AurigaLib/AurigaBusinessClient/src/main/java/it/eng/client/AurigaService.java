@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.client;
 
 import java.util.Locale;
 
@@ -424,6 +425,14 @@ public class AurigaService {
 	 
 	
 	/**
+	 * Servizio DmpkWsGetresponseaddupdud
+	 */ 	
+	public static DmpkWsGetresponseaddupdud getDmpkWsGetresponseaddupdud(){
+		return new DmpkWsGetresponseaddupdud();
+	}
+	 
+	
+	/**
 	 * Servizio DaoBnlConsumerWS
 	 */ 	
 	public static DaoBnlConsumerWS getDaoBnlConsumerWS(){
@@ -448,6 +457,14 @@ public class AurigaService {
 	 
 	
 	/**
+	 * Servizio DaoTFileDocToSign
+	 */ 	
+	public static DaoTFileDocToSign getDaoTFileDocToSign(){
+		return new DaoTFileDocToSign();
+	}
+	 
+	
+	/**
 	 * Servizio DmpkTipiRegNumUdTrovatipiregnum
 	 */ 	
 	public static DmpkTipiRegNumUdTrovatipiregnum getDmpkTipiRegNumUdTrovatipiregnum(){
@@ -468,6 +485,14 @@ public class AurigaService {
 	 */ 	
 	public static DmpkUtilityGeneraidtrasmsdi getDmpkUtilityGeneraidtrasmsdi(){
 		return new DmpkUtilityGeneraidtrasmsdi();
+	}
+	 
+	
+	/**
+	 * Servizio DmpkCollaborationRilasciaauo
+	 */ 	
+	public static DmpkCollaborationRilasciaauo getDmpkCollaborationRilasciaauo(){
+		return new DmpkCollaborationRilasciaauo();
 	}
 	 
 	
@@ -820,6 +845,14 @@ public class AurigaService {
 	 */ 	
 	public static DmpkCoreTestisinwork getDmpkCoreTestisinwork(){
 		return new DmpkCoreTestisinwork();
+	}
+	 
+	
+	/**
+	 * Servizio DaoTDocToSign
+	 */ 	
+	public static DaoTDocToSign getDaoTDocToSign(){
+		return new DaoTDocToSign();
 	}
 	 
 	
@@ -2048,6 +2081,14 @@ public class AurigaService {
 	 
 	
 	/**
+	 * Servizio DmpkBmanagerAnnullaattiiniterannoprecadsp
+	 */ 	
+	public static DmpkBmanagerAnnullaattiiniterannoprecadsp getDmpkBmanagerAnnullaattiiniterannoprecadsp(){
+		return new DmpkBmanagerAnnullaattiiniterannoprecadsp();
+	}
+	 
+	
+	/**
 	 * Servizio DmpkDefSecurityDapplicazioneesterna
 	 */ 	
 	public static DmpkDefSecurityDapplicazioneesterna getDmpkDefSecurityDapplicazioneesterna(){
@@ -2336,6 +2377,14 @@ public class AurigaService {
 	 
 	
 	/**
+	 * Servizio DmpkWsTrovasoggettirubrica
+	 */ 	
+	public static DmpkWsTrovasoggettirubrica getDmpkWsTrovasoggettirubrica(){
+		return new DmpkWsTrovasoggettirubrica();
+	}
+	 
+	
+	/**
 	 * Servizio DaoTAvvioIterAttributes
 	 */ 	
 	public static DaoTAvvioIterAttributes getDaoTAvvioIterAttributes(){
@@ -2408,6 +2457,14 @@ public class AurigaService {
 	 
 	
 	/**
+	 * Servizio EsportazioneDocActaImpl
+	 */ 	
+	public static EsportazioneDocActaImpl getEsportazioneDocActaImpl(){
+		return new EsportazioneDocActaImpl();
+	}
+	 
+	
+	/**
 	 * Servizio DmpkCoreSetaclud
 	 */ 	
 	public static DmpkCoreSetaclud getDmpkCoreSetaclud(){
@@ -2420,14 +2477,6 @@ public class AurigaService {
 	 */ 	
 	public static DmpkProcessesLoaddettprocessud getDmpkProcessesLoaddettprocessud(){
 		return new DmpkProcessesLoaddettprocessud();
-	}
-	 
-	
-	/**
-	 * Servizio EsportazioneDocActaImpl
-	 */ 	
-	public static EsportazioneDocActaImpl getEsportazioneDocActaImpl(){
-		return new EsportazioneDocActaImpl();
 	}
 	 
 	
@@ -2524,6 +2573,14 @@ public class AurigaService {
 	 */ 	
 	public static DmpkSeduteOrgCollGetlogseduta getDmpkSeduteOrgCollGetlogseduta(){
 		return new DmpkSeduteOrgCollGetlogseduta();
+	}
+	 
+	
+	/**
+	 * Servizio DmpkBmanagerCtrlattiiniterannoprecadsp
+	 */ 	
+	public static DmpkBmanagerCtrlattiiniterannoprecadsp getDmpkBmanagerCtrlattiiniterannoprecadsp(){
+		return new DmpkBmanagerCtrlattiiniterannoprecadsp();
 	}
 	 
 	
@@ -4108,6 +4165,14 @@ public class AurigaService {
 	 */ 	
 	public static DmpkUtilityTrovaidruoliinclusi getDmpkUtilityTrovaidruoliinclusi(){
 		return new DmpkUtilityTrovaidruoliinclusi();
+	}
+	 
+	
+	/**
+	 * Servizio DmpkCollaborationSavenextactposttaskitersign
+	 */ 	
+	public static DmpkCollaborationSavenextactposttaskitersign getDmpkCollaborationSavenextactposttaskitersign(){
+		return new DmpkCollaborationSavenextactposttaskitersign();
 	}
 	 
 	
@@ -6000,6 +6065,14 @@ public class AurigaService {
 	 
 	
 	/**
+	 * Servizio DmpkLoginLogindaportlet
+	 */ 	
+	public static DmpkLoginLogindaportlet getDmpkLoginLogindaportlet(){
+		return new DmpkLoginLogindaportlet();
+	}
+	 
+	
+	/**
 	 * Servizio DmpkEfactDsezionale
 	 */ 	
 	public static DmpkEfactDsezionale getDmpkEfactDsezionale(){
@@ -6092,6 +6165,14 @@ public class AurigaService {
 	 */ 	
 	public static DmpkProcessTypesGetidprocesstypegen getDmpkProcessTypesGetidprocesstypegen(){
 		return new DmpkProcessTypesGetidprocesstypegen();
+	}
+	 
+	
+	/**
+	 * Servizio ConsultazioneAmcoImpl
+	 */ 	
+	public static ConsultazioneAmcoImpl getConsultazioneAmcoImpl(){
+		return new ConsultazioneAmcoImpl();
 	}
 	 
 	
@@ -6860,6 +6941,14 @@ public class AurigaService {
 	 */ 	
 	public static DmpkRaccomandateIns_raccomandate getDmpkRaccomandateIns_raccomandate(){
 		return new DmpkRaccomandateIns_raccomandate();
+	}
+	 
+	
+	/**
+	 * Servizio PubblicazioniImpl
+	 */ 	
+	public static PubblicazioniImpl getPubblicazioniImpl(){
+		return new PubblicazioniImpl();
 	}
 	 
 	
@@ -7856,6 +7945,14 @@ public class AurigaService {
 	 
 	
 	/**
+	 * Servizio GestioneInserimentoRichXRegMultiplaUscita
+	 */ 	
+	public static GestioneInserimentoRichXRegMultiplaUscita getGestioneInserimentoRichXRegMultiplaUscita(){
+		return new GestioneInserimentoRichXRegMultiplaUscita();
+	}
+	 
+	
+	/**
 	 * Servizio DmpkIntMgoEmailPreparainviofatturaxemailmulti
 	 */ 	
 	public static DmpkIntMgoEmailPreparainviofatturaxemailmulti getDmpkIntMgoEmailPreparainviofatturaxemailmulti(){
@@ -8168,18 +8265,18 @@ public class AurigaService {
 	 
 	
 	/**
-	 * Servizio DmpkBmanagerFsuplaod_elabattrfolder
-	 */ 	
-	public static DmpkBmanagerFsuplaod_elabattrfolder getDmpkBmanagerFsuplaod_elabattrfolder(){
-		return new DmpkBmanagerFsuplaod_elabattrfolder();
-	}
-	 
-	
-	/**
 	 * Servizio ContabilitaSIBImpl
 	 */ 	
 	public static ContabilitaSIBImpl getContabilitaSIBImpl(){
 		return new ContabilitaSIBImpl();
+	}
+	 
+	
+	/**
+	 * Servizio DmpkBmanagerFsuplaod_elabattrfolder
+	 */ 	
+	public static DmpkBmanagerFsuplaod_elabattrfolder getDmpkBmanagerFsuplaod_elabattrfolder(){
+		return new DmpkBmanagerFsuplaod_elabattrfolder();
 	}
 	 
 	
@@ -8264,6 +8361,14 @@ public class AurigaService {
 	 
 	
 	/**
+	 * Servizio ConsultazioneContabiliaImpl
+	 */ 	
+	public static ConsultazioneContabiliaImpl getConsultazioneContabiliaImpl(){
+		return new ConsultazioneContabiliaImpl();
+	}
+	 
+	
+	/**
 	 * Servizio DmpkPolicyTestvisibinchiarofolder
 	 */ 	
 	public static DmpkPolicyTestvisibinchiarofolder getDmpkPolicyTestvisibinchiarofolder(){
@@ -8276,14 +8381,6 @@ public class AurigaService {
 	 */ 	
 	public static DmpkProcessTypesLoaddettprocesstype getDmpkProcessTypesLoaddettprocesstype(){
 		return new DmpkProcessTypesLoaddettprocesstype();
-	}
-	 
-	
-	/**
-	 * Servizio ConsultazioneContabiliaImpl
-	 */ 	
-	public static ConsultazioneContabiliaImpl getConsultazioneContabiliaImpl(){
-		return new ConsultazioneContabiliaImpl();
 	}
 	 
 	
@@ -9308,13 +9405,6 @@ public class AurigaService {
 	 */ 	
 	public static DmpkIntPortaleCrmTrovarichsbloccolimagibilita getDmpkIntPortaleCrmTrovarichsbloccolimagibilita(){
 		return new DmpkIntPortaleCrmTrovarichsbloccolimagibilita();
-	}
-	
-	/**
-	 * Servizio ConsultazioneAmcoImpl
-	 */ 	
-	public static ConsultazioneAmcoImpl getConsultazioneAmcoImpl(){
-		return new ConsultazioneAmcoImpl();
 	}
 	 
 	

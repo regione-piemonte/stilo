@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.postaElettronica;
 
 import com.smartgwt.client.data.DSCallback;
 import com.smartgwt.client.data.DSRequest;
@@ -12,6 +13,7 @@ import it.eng.utility.ui.module.layout.client.portal.ModalWindow;
 public class DettaglioRegProtAssociatoWindow extends ModalWindow {
 
 	private DettaglioRegProtAssociatoWindow _window;
+	private String title;
 
 	private ProtocollazioneDetail portletLayout;
 
@@ -26,6 +28,7 @@ public class DettaglioRegProtAssociatoWindow extends ModalWindow {
 		setTitle(title);
 
 		_window = this;
+		this.title = title;
 
 		settingsMenu.removeItem(separatorMenuItem);
 		settingsMenu.removeItem(autoSearchMenuItem);
@@ -38,6 +41,9 @@ public class DettaglioRegProtAssociatoWindow extends ModalWindow {
 	private void loadDettUD(Record record,String taskName) {
 
 		GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("ProtocolloDataSource");
+		if(isFromPortlet()) {
+			lGwtRestDataSource.addParam("isFromPortlet", "true");
+		}
 		if(taskName != null && !"".equals(taskName)) {
 			lGwtRestDataSource.addParam("taskName", taskName);
 		}
@@ -49,18 +55,31 @@ public class DettaglioRegProtAssociatoWindow extends ModalWindow {
 			@Override
 			public void execute(DSResponse response, Object rawData, DSRequest request) {
 				if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
-					Record lRecord = response.getData()[0];					
+					Record lRecord = response.getData()[0];
+					if(isFromPortlet()) {
+						lRecord.setAttribute("abilModificaDati", false);
+						lRecord.setAttribute("abilGestioneCollegamentiUD", false);
+					}
 					portletLayout = ProtocollazioneDetail.getInstance(lRecord);
 					portletLayout.caricaDettaglio(null, lRecord);					
 					portletLayout.getValuesManager().clearErrors(true);
 					portletLayout.setHeight100();
 					portletLayout.setWidth100();
-					portletLayout.viewMode();					
+					if(isFromPortlet()) {
+						_window.setTitle(title + " " + portletLayout.getTipoEstremiDocumento());
+						portletLayout.viewFromPortletMode();
+					} else {
+						portletLayout.viewMode();
+					}
 					setBody(portletLayout);
 					_window.show();
 				}
 			}
 		});
+	}
+	
+	public boolean isFromPortlet() {
+		return false;
 	}
 	
 }

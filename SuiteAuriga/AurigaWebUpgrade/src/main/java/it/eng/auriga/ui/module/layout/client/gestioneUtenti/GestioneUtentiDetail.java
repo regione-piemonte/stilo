@@ -1,8 +1,11 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.gestioneUtenti;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.google.gwt.i18n.client.Dictionary;
 import com.google.gwt.regexp.shared.RegExp;
@@ -19,6 +22,7 @@ import com.smartgwt.client.types.TitleOrientation;
 import com.smartgwt.client.util.BooleanCallback;
 import com.smartgwt.client.util.SC;
 import com.smartgwt.client.widgets.form.DynamicForm;
+import com.smartgwt.client.widgets.form.FormItemHoverFormatter;
 import com.smartgwt.client.widgets.form.FormItemIfFunction;
 import com.smartgwt.client.widgets.form.fields.FormItem;
 import com.smartgwt.client.widgets.form.fields.HiddenItem;
@@ -48,6 +52,7 @@ import it.eng.utility.ui.module.layout.client.common.CustomDetail;
 import it.eng.utility.ui.module.layout.client.common.DetailSection;
 import it.eng.utility.ui.module.layout.client.common.items.CheckboxItem;
 import it.eng.utility.ui.module.layout.client.common.items.DateItem;
+import it.eng.utility.ui.module.layout.client.common.items.DateTimeItem;
 import it.eng.utility.ui.module.layout.client.common.items.FilteredSelectItem;
 import it.eng.utility.ui.module.layout.client.common.items.ImgButtonItem;
 import it.eng.utility.ui.module.layout.client.common.items.NumericItem;
@@ -66,6 +71,20 @@ public class GestioneUtentiDetail extends CustomDetail {
 	protected DynamicForm modificaDocumentiFascicoliStrutturaForm;
 	protected DynamicForm applEstAccreditateForm;
 	protected DynamicForm visibEmailTransCaselleAssociateUOForm;
+	protected DynamicForm notificaEmailForm;
+	
+	protected DetailSection societaSection;
+	protected DetailSection clientiSection;
+	protected DetailSection indirizziSection;
+	protected DetailSection gruppoClientiSection;
+	protected DetailSection notificaEmailSection;
+	
+	protected DetailSection uoAssociateUtenteSection;
+	//CR Visualizzazione di documenti e fascicoli assegnati/inviati in copia alla struttura 13/10/2019
+	protected DetailSection visualizzaDocumentiFascicoliStrutturaSection;
+	protected DetailSection modificaDocumentiFascicoliStrutturaSection;
+	protected DetailSection applEstAccreditateSection;
+	protected DetailSection visibEmailTransCaselleAssociateUOSection;
 	
 	protected HiddenItem idUser;
 	protected HiddenItem flgDiSistema;
@@ -76,7 +95,6 @@ public class GestioneUtentiDetail extends CustomDetail {
 	protected HiddenItem descrizioneLinguaItem;
 	protected HiddenItem listaUoAssociateUtenteEliminatiItem;
 	
-
 	protected RadioGroupItem flgUtenteInternoEsternoItem;
 	
 	protected TextItem cognome;
@@ -110,18 +128,6 @@ public class GestioneUtentiDetail extends CustomDetail {
 	protected ImgButtonItem importaDaLDAPusernameButton;
 	protected ImgButtonItem importaDaLDAPemailButton;
 
-	protected DetailSection societaSection;
-	protected DetailSection clientiSection;
-	protected DetailSection indirizziSection;
-	protected DetailSection gruppoClientiSection;
-	
-	protected DetailSection uoAssociateUtenteSection;
-	//CR Visualizzazione di documenti e fascicoli assegnati/inviati in copia alla struttura 13/10/2019
-	protected DetailSection visualizzaDocumentiFascicoliStrutturaSection;
-	protected DetailSection modificaDocumentiFascicoliStrutturaSection;
-	protected DetailSection applEstAccreditateSection;
-	protected DetailSection visibEmailTransCaselleAssociateUOSection;
-
 	protected SocietaUtentiItem societaUtentiItem;
 	protected IndirizziSoggettoItem indirizziItem;
 	protected GruppoClientiItem gruppoClientiItem;
@@ -130,14 +136,6 @@ public class GestioneUtentiDetail extends CustomDetail {
 	protected ModificaDocumentiFascicoliStrutturaItem modificaDocumentiFascicoliStrutturaItem;
 	protected ApplEstAccreditateItem applEstAccreditateItem; 
 	protected VisibEmailTransCaselleAssociateUOItem visibEmailTransCaselleAssociateUOItem; 
-	
-	protected TabSet tabSet;
-
-	protected Tab tabMain;
-	protected Tab tabClienti;
-
-	protected VLayout lVLayoutMain;
-	protected VLayout lVLayoutDetail;
 
 	protected ListGridField idSocietaField;
 	protected ListGridField idSoggettoGruppoField;
@@ -155,11 +153,23 @@ public class GestioneUtentiDetail extends CustomDetail {
 	protected boolean inviaEmailPwdCreaUtente;
 
 	protected CheckboxItem flgUtenzaApplicativaItem;
+	protected CheckboxItem flgPresaInCaricoAutomaticaInRegUdItem;
+	
 	protected CheckboxItem flgDisattivaNotifDocDaPrendereInCaricoItem;
 
 	protected TitleStaticTextItem flgUtenzaApplicativaTitleItem;
+	protected TitleStaticTextItem flgPresaInCaricoAutomaticaInRegUdTitleItem;
 	protected TitleStaticTextItem flgDisattivaNotifDocDaPrendereInCaricoTitleItem;
+	protected DateTimeItem tsCheckNotifDocDaPrendereInCaricoItem; 
+	protected StaticTextItem esitoNotifDocDaPrendereInCaricoItem;
+	protected HiddenItem msgErrNotifDocDaPrendereInCaricoItem;
+	protected TextItem nroDocNotifDocDaPrendereInCaricoItem;
 	
+	protected TabSet tabSet;
+	protected Tab tabMain;
+	protected Tab tabClienti;
+	protected VLayout lVLayoutMain;
+	protected VLayout lVLayoutDetail;
 	
 	public GestioneUtentiDetail(String nomeEntita) {
 
@@ -416,12 +426,55 @@ public class GestioneUtentiDetail extends CustomDetail {
 		flgUtenzaApplicativaItem.setShowLabel(false);
 		flgUtenzaApplicativaItem.setDefaultValue(false);
 		flgUtenzaApplicativaItem.setStartRow(true);
+		flgUtenzaApplicativaItem.addChangedHandler(new ChangedHandler() {
 
+			@Override
+			public void onChanged(ChangedEvent event) {
+				
+				// azzero il flag  flgPresaInCaricoAutomaticaInRegUdItem
+				flgPresaInCaricoAutomaticaInRegUdItem.setValue(false);
+				form.setValue("flgPresaInCaricoAutomaticaInRegUd", false);
+				
+				markForRedraw();
+			}
+		});
+
+		
 		flgUtenzaApplicativaTitleItem = new TitleStaticTextItem("<b>" + I18NUtil.getMessages().gestioneutenti_flgUtenzaApplicativa_title()+"</b>", 125);
 		flgUtenzaApplicativaTitleItem.setAlign(Alignment.LEFT);
 		flgUtenzaApplicativaTitleItem.setName("flgUtenzaApplicativaTitle");
-		flgUtenzaApplicativaTitleItem.setColSpan(6);
+		flgUtenzaApplicativaTitleItem.setColSpan(1);
 		flgUtenzaApplicativaTitleItem.setStartRow(false);
+		
+		
+		flgPresaInCaricoAutomaticaInRegUdItem = new CheckboxItem("flgPresaInCaricoAutomaticaInRegUd");
+		flgPresaInCaricoAutomaticaInRegUdItem.setAlign(Alignment.RIGHT);
+		flgPresaInCaricoAutomaticaInRegUdItem.setShowTitle(false);
+		flgPresaInCaricoAutomaticaInRegUdItem.setShowLabel(false);
+		flgPresaInCaricoAutomaticaInRegUdItem.setDefaultValue(false);
+		flgPresaInCaricoAutomaticaInRegUdItem.setStartRow(false);
+		flgPresaInCaricoAutomaticaInRegUdItem.setShowIfCondition(new FormItemIfFunction() {
+
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				return new Boolean(flgUtenzaApplicativaItem.getValue() != null && (Boolean) flgUtenzaApplicativaItem.getValue() ? true : false);
+			}
+		});
+
+
+		flgPresaInCaricoAutomaticaInRegUdTitleItem = new TitleStaticTextItem("<b>" + I18NUtil.getMessages().gestioneutenti_flgPresaInCaricoAutomaticaInRegUd_title()+"</b>", 125);
+		flgPresaInCaricoAutomaticaInRegUdTitleItem.setAlign(Alignment.LEFT);
+		flgPresaInCaricoAutomaticaInRegUdTitleItem.setName("flgPresaInCaricoAutomaticaInRegUdTitle");
+		flgPresaInCaricoAutomaticaInRegUdTitleItem.setColSpan(8);
+		flgPresaInCaricoAutomaticaInRegUdTitleItem.setStartRow(false);
+		flgPresaInCaricoAutomaticaInRegUdTitleItem.setShowIfCondition(new FormItemIfFunction() {
+
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				return new Boolean(flgUtenzaApplicativaItem.getValue() != null && (Boolean) flgUtenzaApplicativaItem.getValue() ? true : false);
+			}
+		});
+		
 		
 		
 		flgDisattivaNotifDocDaPrendereInCaricoItem = new CheckboxItem("flgDisattivaNotifDocDaPrendereInCarico");
@@ -431,6 +484,7 @@ public class GestioneUtentiDetail extends CustomDetail {
 		flgDisattivaNotifDocDaPrendereInCaricoItem.setDefaultValue(false);
 		flgDisattivaNotifDocDaPrendereInCaricoItem.setStartRow(true);
 		flgDisattivaNotifDocDaPrendereInCaricoItem.setShowIfCondition(new FormItemIfFunction() {
+			
 			@Override
 			public boolean execute(FormItem item, Object value, DynamicForm form) {
 				return GestioneUtentiLayout.isDisattivaNotifDocDaPrendereInCarico();
@@ -442,6 +496,13 @@ public class GestioneUtentiDetail extends CustomDetail {
 		flgDisattivaNotifDocDaPrendereInCaricoTitleItem.setName("flgDisattivaNotifDocDaPrendereInCaricoTitle");
 		flgDisattivaNotifDocDaPrendereInCaricoTitleItem.setColSpan(6);
 		flgDisattivaNotifDocDaPrendereInCaricoTitleItem.setStartRow(false);
+		flgDisattivaNotifDocDaPrendereInCaricoTitleItem.setShowIfCondition(new FormItemIfFunction() {
+			
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				return GestioneUtentiLayout.isDisattivaNotifDocDaPrendereInCarico();
+			}
+		});
 
 		
 		if ((AurigaLayout.getParametroDB("AUTHENTICATION_TYPE") != null && AurigaLayout.getParametroDB("AUTHENTICATION_TYPE").equalsIgnoreCase("LDAP"))) {
@@ -450,7 +511,7 @@ public class GestioneUtentiDetail extends CustomDetail {
 			confermaPassword = new HiddenItem("confermaPassword");
 			confermaPassword.setDefaultValue("QQaattyy13625");
 		} else {
-			if (isInviaEmailPwdCreaUtente() == true) {
+			if (isInviaEmailPwdCreaUtente() == true || isAuthExt() == true) {
 				password = new HiddenItem("password");
 				password.setDefaultValue("QQaattyy13625");
 				confermaPassword = new HiddenItem("confermaPassword");
@@ -542,7 +603,7 @@ public class GestioneUtentiDetail extends CustomDetail {
 		idProfilo.setValueField("idProfilo");
 		idProfilo.setDisplayField("nome");
 		idProfilo.setOptionDataSource(profiliUtenteDS);
-		idProfilo.setWidth(420);
+		idProfilo.setWidth(460);
 		idProfilo.setClearable(true);
 		idProfilo.setShowIcons(true);
 		idProfilo.setAutoFetchData(false);
@@ -829,6 +890,7 @@ public class GestioneUtentiDetail extends CustomDetail {
 					      		email,     importaDaLDAPemailButton, 
 					      		dtIniVld, dtFineVld,
 					      		flgUtenzaApplicativaItem, flgUtenzaApplicativaTitleItem,
+					      		flgPresaInCaricoAutomaticaInRegUdItem, flgPresaInCaricoAutomaticaInRegUdTitleItem,
 					      		flgDisattivaNotifDocDaPrendereInCaricoItem,flgDisattivaNotifDocDaPrendereInCaricoTitleItem,
 					      		idProfilo, dettaglioProfiloButton, modificaProfiloButton, eliminaProfiloButton, nuovoProfiloButton, 
 					      		idSubProfiloItem,
@@ -856,6 +918,7 @@ public class GestioneUtentiDetail extends CustomDetail {
 					      email, 
 					      dtIniVld, dtFineVld,
 					      flgUtenzaApplicativaItem,flgUtenzaApplicativaTitleItem,
+					      flgPresaInCaricoAutomaticaInRegUdItem,flgPresaInCaricoAutomaticaInRegUdTitleItem,
 					      flgDisattivaNotifDocDaPrendereInCaricoItem,flgDisattivaNotifDocDaPrendereInCaricoTitleItem,
 					      idProfilo, dettaglioProfiloButton, modificaProfiloButton, eliminaProfiloButton, nuovoProfiloButton,
 					      idSubProfiloItem,
@@ -892,8 +955,10 @@ public class GestioneUtentiDetail extends CustomDetail {
 		societaUtentiItem.setShowTitle(false);
 		societaUtentiItem.setAttribute("obbligatorio", false);
 		societaForm.setFields(societaUtentiItem);
+		
 		societaSection = new DetailSection(I18NUtil.getMessages().gestioneutenti_societaSection_title(), true, true, false, societaForm);
 		societaSection.setVisible(isSocietaAttiva());
+		
 		lVLayoutMain.addMember(societaSection);
 	}
 
@@ -915,9 +980,92 @@ public class GestioneUtentiDetail extends CustomDetail {
 		gruppoClientiItem.setShowTitle(false);
 		gruppoClientiItem.setAttribute("obbligatorio", false);
 		gruppoClientiForm.setFields(gruppoClientiItem);
+		
 		gruppoClientiSection = new DetailSection(I18NUtil.getMessages().gestioneutenti_gruppoClientiSection_title(), true, true, false, gruppoClientiForm);
 		gruppoClientiSection.setVisible(isGestioneClienti());
+		
 		lVLayoutMain.addMember(gruppoClientiSection);
+	}
+	
+	private void buildNotificaEmailSection() {
+		notificaEmailForm = new DynamicForm();
+		notificaEmailForm.setValuesManager(vm);
+		notificaEmailForm.setWidth("100%");
+		notificaEmailForm.setHeight("5");
+		notificaEmailForm.setPadding(5);
+		notificaEmailForm.setNumCols(7);
+		notificaEmailForm.setColWidths(1, 1, 1, 1, 1, 1, "*");
+		notificaEmailForm.setWrapItemTitles(false);
+		
+		msgErrNotifDocDaPrendereInCaricoItem = new HiddenItem("msgErrNotifDocDaPrendereInCarico");
+		
+		tsCheckNotifDocDaPrendereInCaricoItem = new DateTimeItem("tsCheckNotifDocDaPrendereInCarico", "Data e ora ultimo controllo");
+		tsCheckNotifDocDaPrendereInCaricoItem.setColSpan(1);
+
+		esitoNotifDocDaPrendereInCaricoItem = new StaticTextItem("esitoNotifDocDaPrendereInCarico");
+		esitoNotifDocDaPrendereInCaricoItem.setShowValueIconOnly(true);
+		esitoNotifDocDaPrendereInCaricoItem.setColSpan(1);
+		esitoNotifDocDaPrendereInCaricoItem.setShowTitle(true);
+		esitoNotifDocDaPrendereInCaricoItem.setTitle("Esito: ");
+		esitoNotifDocDaPrendereInCaricoItem.setWidth(16);
+		esitoNotifDocDaPrendereInCaricoItem.setHeight(16);
+		esitoNotifDocDaPrendereInCaricoItem.setValueIconSize(16);
+		esitoNotifDocDaPrendereInCaricoItem.setCellStyle(it.eng.utility.Styles.staticTextItem);
+		Map<String, String> valueEsitoIcons = new HashMap<String, String>();
+		valueEsitoIcons.put("OK", "anagrafiche/soggetti/esito_notifica_ok.png");
+		valueEsitoIcons.put("KO", "anagrafiche/soggetti/esito_notifica_ko.png");
+		esitoNotifDocDaPrendereInCaricoItem.setValueIcons(valueEsitoIcons);
+		esitoNotifDocDaPrendereInCaricoItem.setShowIfCondition(new FormItemIfFunction() {
+
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+
+				String esitoNotifDocDaPrendereInCarico = (String) value;
+
+				String hint = "";
+				if (esitoNotifDocDaPrendereInCarico != null && "OK".equals(esitoNotifDocDaPrendereInCarico)) {
+					hint += "<img src=\"anagrafiche/soggetti/esito_notifica_ok.png\" height=\"16\" width=\"16\" />";
+				} else {
+					hint += "<img src=\"anagrafiche/soggetti/esito_notifica_ko.png\" height=\"16\" width=\"16\" />";
+				}
+				
+				esitoNotifDocDaPrendereInCaricoItem.setHint(hint);
+				esitoNotifDocDaPrendereInCaricoItem.setWrapHintText(false);
+				return true;
+			}
+		});
+		esitoNotifDocDaPrendereInCaricoItem.setItemHoverFormatter(new FormItemHoverFormatter() {
+
+			@Override
+			public String getHoverHTML(FormItem item, DynamicForm form) {
+
+				Record record = new Record(vm.getValues());
+
+				String esitoNotifDocDaPrendereInCarico = record.getAttribute("esitoNotifDocDaPrendereInCarico");
+				String hover="";
+				if (esitoNotifDocDaPrendereInCarico != null && "OK".equals(esitoNotifDocDaPrendereInCarico)) {
+					hover += "Controllo effettuato con successo";
+				} else {
+					hover += record.getAttribute("msgErrNotifDocDaPrendereInCarico");
+				}
+				
+				return hover;
+			}
+		});
+		
+		nroDocNotifDocDaPrendereInCaricoItem = new TextItem("nroDocNotifDocDaPrendereInCarico", "N. di documenti da prendere in carico");
+		nroDocNotifDocDaPrendereInCaricoItem.setColSpan(1);
+		nroDocNotifDocDaPrendereInCaricoItem.setWidth(100);
+		
+		notificaEmailForm.setFields(tsCheckNotifDocDaPrendereInCaricoItem,
+									nroDocNotifDocDaPrendereInCaricoItem,
+									esitoNotifDocDaPrendereInCaricoItem,
+									msgErrNotifDocDaPrendereInCaricoItem );
+		
+		notificaEmailSection = new DetailSection(I18NUtil.getMessages().gestioneutenti_notificaEmailSection_title(), true, true, false, notificaEmailForm);
+		notificaEmailSection.setVisible(GestioneUtentiLayout.isDisattivaNotifDocDaPrendereInCarico());
+		
+		lVLayoutMain.addMember(notificaEmailSection);
 	}
 
 	private void buildUoAssociateUtenteSection() {
@@ -1279,6 +1427,7 @@ public class GestioneUtentiDetail extends CustomDetail {
 		lVLayoutMain = new VLayout();
 		lVLayoutMain.setWidth100();
 		lVLayoutMain.setOverflow(Overflow.AUTO);
+		
 		buildMainInfoSection();
 		buildUoAssociateUtenteSection();
 		//CR Visualizzazione di documenti e fascicoli assegnati/inviati in copia alla struttura 13/10/2019
@@ -1288,10 +1437,14 @@ public class GestioneUtentiDetail extends CustomDetail {
 		buildApplEstAccreditateSection();
 		buildSocietaSection();
 		buildGrupppClientiSection();
+		buildNotificaEmailSection();
+		
 		VLayout lVLayoutSpacer = new VLayout();
 		lVLayoutSpacer.setWidth100();
 		lVLayoutSpacer.setHeight100();
+		
 		lVLayoutMain.addMember(lVLayoutSpacer);
+		
 		tabMain = new Tab("main");
 		tabMain.setPrompt("Dati generali");
 		tabMain.setTitle("Dati generali");
@@ -1398,10 +1551,16 @@ public class GestioneUtentiDetail extends CustomDetail {
 		return AurigaLayout.getParametroDBAsBoolean("INVIA_EMAIL_PWD_CREA_UTENTE");
 	}
 	
+	public boolean isAuthExt() {
+		return AurigaLayout.getParametroDBAsBoolean("AUTH_EXT");
+	}
+	
+	
 	@Override
 	public void setCanEdit(boolean canEdit) {
 		super.setCanEdit(canEdit);
 		listaUoAssociateUtenteItem.setCanEdit(canEdit);
+		setCanEdit(false, notificaEmailForm);
 	}
 	
 	protected String setTitleAlign(String title, int width, boolean required) {

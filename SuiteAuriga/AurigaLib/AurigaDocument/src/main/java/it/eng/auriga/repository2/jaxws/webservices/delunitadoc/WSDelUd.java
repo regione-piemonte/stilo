@@ -1,5 +1,7 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.delunitadoc;
 
+import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreDel_ud_doc_verBean;
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsDeludBean;
 import it.eng.auriga.database.store.dmpk_ws.store.Delud;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
@@ -9,6 +11,7 @@ import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.jaxws.webservices.common.JAXWSAbstractAurigaService;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
 import it.eng.document.function.GestioneDocumenti;
+import it.eng.document.function.StoreException;
 import it.eng.document.function.bean.DelUdDocVerIn;
 import it.eng.document.function.bean.DelUdDocVerOut;
 import java.io.ByteArrayInputStream;
@@ -21,6 +24,8 @@ import java.util.List;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -75,6 +80,7 @@ public class WSDelUd extends JAXWSAbstractAurigaService implements WSIDelUd{
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
 
 
@@ -83,6 +89,7 @@ public class WSDelUd extends JAXWSAbstractAurigaService implements WSIDelUd{
     String outRispostaWS = null;
     String errMsg = null;
     String xmlIn = null;
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
     
     try {
 
@@ -125,6 +132,11 @@ public class WSDelUd extends JAXWSAbstractAurigaService implements WSIDelUd{
    	         outServizio =  eseguiServizio(loginBean,outWS);   	         
 		}
 		catch (Exception e){	
+			if (e instanceof StoreException) {
+	    		if(((StoreException) e).getError()!=null){
+	    			errCode = ((StoreException) e).getError().getErrorCode();
+	    		}
+	    	}
 			if(e.getMessage()!=null)
 	 			 errMsg = "Errore = " + e.getMessage();
 	 		 else
@@ -168,7 +180,7 @@ public class WSDelUd extends JAXWSAbstractAurigaService implements WSIDelUd{
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 	 	}
 	 	else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	}	 	
 	 		
         aLogger.info("Fine WSDelUd");
@@ -187,56 +199,54 @@ public class WSDelUd extends JAXWSAbstractAurigaService implements WSIDelUd{
     }
     
     private WSDeleteUdBean callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
+    	aLogger.debug("Eseguo il WS DMPK_WS->DelUd.");
     	
     	String idUd           = null;
     	String flgTipoDel     = null;
-    	
-    	aLogger.debug("Eseguo il WS DmpkWSDelUd.");
-    	
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsDeludBean input = new DmpkWsDeludBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		  
-    		  // Eseguo il servizio
-    		  Delud service = new Delud();
-    		  StoreResultBean<DmpkWsDeludBean> output = service.execute(loginBean, input);
+    	    		
+    	// Inizializzo l'INPUT    		
+    	DmpkWsDeludBean input = new DmpkWsDeludBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+	  
+    	// Eseguo il servizio
+    	Delud service = new Delud();
+    	StoreResultBean<DmpkWsDeludBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	    		  
-    		  // restituisco l'ID UD
-    		  if (output.getResultBean().getIdudout() != null){
-    			  idUd = output.getResultBean().getIdudout().toString();  
-    		  }
-    		  if (idUd== null || idUd.equalsIgnoreCase("")){
-    			  throw new Exception("La store procedure DelUd ha ritornato id nullo");
-    		  }
-    		  // restituiso il tipo di operazione di cancellazione (F = Fisica, L = Logica)
-    		  if (output.getResultBean().getFlgtipodelout() != null){
-    			  flgTipoDel = output.getResultBean().getFlgtipodelout();  
-    		  }
-    	      if (flgTipoDel == null) {
-    	    	    throw new Exception("La store procedure DelUd ha ritornato una operazione non valida");
-    	      }
-    	      if (!flgTipoDel.equals(K_CANCELLAZIONE_LOGICA)  && !flgTipoDel.equals(K_CANCELLAZIONE_FISICA)) {
-    	        	throw new Exception("La store procedure DelUd ha ritornato una operazione non valida");
-    	      }    	            	        
+    	if (output.isInError()){
+    		aLogger.debug(output.getDefaultMessage());
+      	  	aLogger.debug(output.getErrorContext());
+      	  	aLogger.debug(output.getErrorCode());
+      	  	throw new StoreException(output);
+		}	    		  
+    	// restituisco l'ID UD
+    	if (output.getResultBean().getIdudout() != null){
+		  idUd = output.getResultBean().getIdudout().toString();  
+    	}
+    	if (idUd== null || idUd.equalsIgnoreCase("")){
+		  throw new Exception("La store procedure DelUd ha ritornato id nullo");
+    	}
+    	// restituiso il tipo di operazione di cancellazione (F = Fisica, L = Logica)
+    	if (output.getResultBean().getFlgtipodelout() != null){
+		  flgTipoDel = output.getResultBean().getFlgtipodelout();  
+    	}
+    	if (flgTipoDel == null) {
+    	    throw new Exception("La store procedure DelUd ha ritornato una operazione non valida");
+    	}
+    	if (!flgTipoDel.equals(K_CANCELLAZIONE_LOGICA)  && !flgTipoDel.equals(K_CANCELLAZIONE_FISICA)) {
+        	throw new Exception("La store procedure DelUd ha ritornato una operazione non valida");
+    	}    	            	        
 
-    	      // popolo il bean di out
-    	      WSDeleteUdBean  result = new WSDeleteUdBean();    	        
-    	      result.setIdUd(idUd);
-    	      result.setFlgTipoDel(flgTipoDel);	      
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+    	// popolo il bean di out
+    	WSDeleteUdBean  result = new WSDeleteUdBean();    	        
+    	result.setIdUd(idUd);
+    	result.setFlgTipoDel(flgTipoDel);	      
+    	return result;
+ 		
     }
     
     private String eseguiServizio(AurigaLoginBean loginBean, WSDeleteUdBean bean) throws Exception {
-    	aLogger.debug("Eseguo il servizio di AurigaDocument.");
+    	aLogger.debug("Eseguo il servizio CoreDel_ud_doc_ver.");
     	
     	String ret = null; 
     	
@@ -252,23 +262,27 @@ public class WSDelUd extends JAXWSAbstractAurigaService implements WSIDelUd{
             
     	// viene eseguita la DMPK_CORE.DEL_UD_DOC_VER(U) per cancellare una unita' documentaria
     	input.setFlgTipoTargetIn(K_TARGET_UNITADOC);
+    	
     	// eseguo il servizio
     	
-    	try {
-    		 GestioneDocumenti servizio     = new GestioneDocumenti();
-    		 DelUdDocVerOut  servizioOut  = new DelUdDocVerOut();       		 
-    		 servizioOut = servizio.delUdDocVer(loginBean, input);
-    		 
-    		 // Se il servizio e' andato in errore restituisco il messaggio di errore 	
-    		 if(StringUtils.isNotBlank(servizioOut.getDefaultMessage())) {
-	    	    	throw new Exception(servizioOut.getDefaultMessage());
-    		 }
-	    	 // Altrimenti restituisco l'URI    		 
-    		 ret = (servizioOut.getUriOut()!= null ? (StringUtils.isNotBlank(servizioOut.getUriOut()) ? servizioOut.getUriOut() : null) : null);        		 
-    	}
-    	catch (Exception e){
-	 		throw new Exception(e.getMessage());	
-	 	}
+		GestioneDocumenti servizio     = new GestioneDocumenti();
+		DelUdDocVerOut  servizioOut  = new DelUdDocVerOut();       		 
+		servizioOut = servizio.delUdDocVer(loginBean, input);
+		 
+		// Se il servizio e' andato in errore restituisco il messaggio di errore 	
+		if(StringUtils.isNotBlank(servizioOut.getDefaultMessage())) {
+			StoreResultBean<DmpkCoreDel_ud_doc_verBean> output = new StoreResultBean<DmpkCoreDel_ud_doc_verBean>();
+			output.setDefaultMessage(servizioOut.getDefaultMessage());
+			output.setErrorContext(servizioOut.getErrorContext());
+			output.setErrorCode(servizioOut.getErrorCode());
+			aLogger.debug(output.getDefaultMessage());
+			aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+    	    throw new StoreException(output);	
+		}
+    	// Altrimenti restituisco l'URI    		 
+		ret = (servizioOut.getUriOut()!= null ? (StringUtils.isNotBlank(servizioOut.getUriOut()) ? servizioOut.getUriOut() : null) : null);
+		 
     	return ret;
     }
         
@@ -288,7 +302,7 @@ public class WSDelUd extends JAXWSAbstractAurigaService implements WSIDelUd{
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             aLogger.debug("generaXMLToken: token = " + xmlIn);
             aLogger.debug("generaXMLToken: tokenEsc = " + xmlInEsc);

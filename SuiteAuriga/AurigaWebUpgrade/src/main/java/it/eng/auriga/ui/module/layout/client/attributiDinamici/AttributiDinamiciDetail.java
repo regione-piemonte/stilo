@@ -1,8 +1,8 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.attributiDinamici;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -20,7 +20,6 @@ import com.smartgwt.client.types.Overflow;
 import com.smartgwt.client.types.TitleOrientation;
 import com.smartgwt.client.types.VerticalAlignment;
 import com.smartgwt.client.types.Visibility;
-import com.smartgwt.client.util.DateUtil;
 import com.smartgwt.client.widgets.Canvas;
 import com.smartgwt.client.widgets.form.DynamicForm;
 import com.smartgwt.client.widgets.form.ValuesManager;
@@ -32,7 +31,11 @@ import com.smartgwt.client.widgets.form.fields.events.ChangedEvent;
 import com.smartgwt.client.widgets.form.fields.events.ChangedHandler;
 import com.smartgwt.client.widgets.form.validator.CustomValidator;
 import com.smartgwt.client.widgets.form.validator.RegExpValidator;
+import com.smartgwt.client.widgets.form.validator.RequiredIfFunction;
+import com.smartgwt.client.widgets.form.validator.RequiredIfValidator;
 import com.smartgwt.client.widgets.form.validator.Validator;
+import com.smartgwt.client.widgets.grid.ListGrid;
+import com.smartgwt.client.widgets.grid.ListGridField;
 import com.smartgwt.client.widgets.layout.VLayout;
 import com.smartgwt.client.widgets.tab.TabSet;
 
@@ -49,6 +52,7 @@ import it.eng.utility.ui.module.layout.client.common.items.ExtendedDateTimeItem;
 import it.eng.utility.ui.module.layout.client.common.items.ExtendedNumericItem;
 import it.eng.utility.ui.module.layout.client.common.items.ExtendedTextAreaItem;
 import it.eng.utility.ui.module.layout.client.common.items.ExtendedTextItem;
+import it.eng.utility.ui.module.layout.client.common.items.FilteredSelectItem;
 import it.eng.utility.ui.module.layout.client.common.items.ImgButtonItem;
 import it.eng.utility.ui.module.layout.client.common.items.SelectItem;
 import it.eng.utility.ui.module.layout.client.common.items.StaticTextItem;
@@ -130,7 +134,9 @@ public class AttributiDinamiciDetail extends CustomDetail {
 				}
 				
 				if (attr.getAttribute("obbligatorio") != null && "1".equals(attr.getAttribute("obbligatorio"))) {
-					riquadriObbligatori.add(new Integer(attr.getAttribute("numero")));
+					if (attr.getAttribute("obbligatorioComplesso") == null || "1".equals(attr.getAttribute("obbligatorioComplesso"))) {
+						riquadriObbligatori.add(new Integer(attr.getAttribute("numero")));
+					}
 				}
 
 				RecordList recordList = mappaAttributiRiquadri.get(new Integer(attr.getAttribute("numero")));
@@ -208,7 +214,8 @@ public class AttributiDinamiciDetail extends CustomDetail {
 						Record attr = attributiRiga.get(i);
 
 						FormItem item = null;
-
+						List<Validator> validators = new ArrayList<Validator>();
+						
 						if ("DATE".equals(attr.getAttribute("tipo"))) {
 							item = buildDateItem(attr);
 						} else if ("DATETIME".equals(attr.getAttribute("tipo"))) {
@@ -222,9 +229,9 @@ public class AttributiDinamiciDetail extends CustomDetail {
 						} else if ("INTEGER".equals(attr.getAttribute("tipo"))) {
 							item = buildIntegerItem(attr);
 						} else if ("EURO".equals(attr.getAttribute("tipo"))) {
-							item = buildEuroItem(attr);
+							item = buildEuroItem(attr, validators);
 						} else if ("DECIMAL".equals(attr.getAttribute("tipo"))) {
-							item = buildDecimalItem(attr);
+							item = buildDecimalItem(attr, validators);
 						} else if ("LISTA".equals(attr.getAttribute("tipo"))) {
 							if (attr.getAttribute("sottotipo") != null && "GRID".equals(attr.getAttribute("sottotipo"))) {
 								item = buildListaGridItem(attr, mappaDettAttrLista, mappaAttributiRiquadri.get(nroRiquadro), form.getNumCols());
@@ -232,7 +239,13 @@ public class AttributiDinamiciDetail extends CustomDetail {
 								item = buildListaReplicableItem(attr, mappaDettAttrLista, mappaAttributiRiquadri.get(nroRiquadro), form.getNumCols());
 							}  
 						} else if ("COMBO-BOX".equals(attr.getAttribute("tipo"))) {
-							item = buildComboBoxItem(attr);
+							if (attr.getAttribute("sottotipo") != null && "CON_FILTRO_OPZ".equals(attr.getAttribute("sottotipo"))) {
+								item = buildFilteredComboBoxItem(attr, false);
+							} else if (attr.getAttribute("sottotipo") != null && "CON_FILTRO_OBBL".equals(attr.getAttribute("sottotipo"))) {
+								item = buildFilteredComboBoxItem(attr, true);
+							} else {
+								item = buildComboBoxItem(attr);
+							}
 						} else if ("RADIO".equals(attr.getAttribute("tipo"))) {
 							item = buildRadioItem(attr);
 						} else if ("DOCUMENT".equals(attr.getAttribute("tipo"))) {
@@ -250,9 +263,22 @@ public class AttributiDinamiciDetail extends CustomDetail {
 
 							if (attr.getAttribute("obbligatorio") != null && "1".equals(attr.getAttribute("obbligatorio"))) {
 								if(item instanceof CheckboxItem) {
-									item.setValidators(buildRequiredCheckValidator());									
+									validators.add(buildRequiredCheckValidator());									
 								} else {
-									item.setRequired(true);
+									if (attr.getAttribute("obbligatorioComplesso") == null || "1".equals(attr.getAttribute("obbligatorioComplesso"))) {
+										item.setRequired(true);
+									} else {
+										validators.add(0, new RequiredIfValidator(new RequiredIfFunction() {
+
+											@Override
+											public boolean execute(FormItem formItem, Object value) {
+												if(formItem.getForm() != null && formItem.getForm().getDetailSection() != null) {
+													return formItem.getForm().getDetailSection().hasValue();
+												}
+												return false;
+											}
+										}));
+									}
 								}
 								item.setAttribute("obbligatorio", true);
 								if(item instanceof ExtendedTextItem) {
@@ -326,7 +352,11 @@ public class AttributiDinamiciDetail extends CustomDetail {
 							if (attr.getAttribute("regularExpr") != null && !"".equals(attr.getAttribute("regularExpr"))) {
 								// ATTENZIONE: questo sovrascrive tutti gli eventuali altri validatori dell'item
 								RegExpValidator regExpValidator = buildRegExpValidator(attr.getAttribute("regularExpr"));
-								item.setValidators(regExpValidator);
+								validators.add(regExpValidator);
+							}
+							
+							if(validators != null && validators.size() > 0) {
+								item.setValidators(validators.toArray(new Validator[validators.size()]));
 							}
 
 							if ("LISTA".equals(attr.getAttribute("tipo"))) {
@@ -686,7 +716,10 @@ public class AttributiDinamiciDetail extends CustomDetail {
 			item.setColSpan(numCols - 2);
 		}
 		if (attr.getAttribute("senzaAggiuntaRimozione") != null && "1".equals(attr.getAttribute("senzaAggiuntaRimozione"))) {
-			item.setNotReplicable(true);	
+			item.setNotReplicable(true);
+			item.setShowNewButton(false);
+			item.setShowDuplicaRigaButton(false);
+			item.setShowRemoveButton(false);
 		}
 		if (attr.getAttribute("altezza") != null && !"".equals(attr.getAttribute("altezza"))) {
 			item.setViewReplicableItemHeight(new Integer(attr.getAttribute("altezza")));
@@ -881,7 +914,7 @@ public class AttributiDinamiciDetail extends CustomDetail {
 		return lengthValidator;
 	}
 
-	protected ExtendedNumericItem buildEuroItem(Record attr) {
+	protected ExtendedNumericItem buildEuroItem(Record attr, List<Validator> validators) {
 		final ExtendedNumericItem item = new ExtendedNumericItem(attr.getAttribute("nome"), attr.getAttribute("label"));
 		item.setColSpan(1);
 		item.setKeyPressFilter("[0-9.]");
@@ -901,7 +934,8 @@ public class AttributiDinamiciDetail extends CustomDetail {
 		Integer numMaxCaratteri = (attr.getAttribute("numMaxCaratteri") != null && !"".equals(attr.getAttribute("numMaxCaratteri"))) ? new Integer(
 				attr.getAttribute("numMaxCaratteri")) : 0;
 		Validator lengthValidator = buildFloatLengthValidator(numMaxCaratteri);
-		item.setValidators(precisionValidator, lengthValidator);		
+		validators.add(precisionValidator);
+		validators.add(lengthValidator);
 		return item;
 	}
 	
@@ -925,7 +959,7 @@ public class AttributiDinamiciDetail extends CustomDetail {
 		return value;		
 	}
 
-	protected ExtendedNumericItem buildDecimalItem(Record attr) {
+	protected ExtendedNumericItem buildDecimalItem(Record attr, List<Validator> validators) {
 		final ExtendedNumericItem item = new ExtendedNumericItem(attr.getAttribute("nome"), attr.getAttribute("label"));
 		item.setColSpan(1);
 		item.setKeyPressFilter("[0-9.]");
@@ -945,7 +979,8 @@ public class AttributiDinamiciDetail extends CustomDetail {
 		Integer numMaxCaratteri = (attr.getAttribute("numMaxCaratteri") != null && !"".equals(attr.getAttribute("numMaxCaratteri"))) ? new Integer(
 				attr.getAttribute("numMaxCaratteri")) : 0;
 		Validator lengthValidator = buildFloatLengthValidator(numMaxCaratteri);
-		item.setValidators(precisionValidator, lengthValidator);		
+		validators.add(precisionValidator);
+		validators.add(lengthValidator);
 		return item;
 	}
 	
@@ -968,6 +1003,45 @@ public class AttributiDinamiciDetail extends CustomDetail {
 		}
 		return value;		
 	}
+	
+	protected FilteredSelectItem buildFilteredComboBoxItem(Record attr, boolean isFiltroObbligatorio) {
+		final FilteredSelectItem item = new FilteredSelectItem(attr.getAttribute("nome"), attr.getAttribute("label")) {
+			
+			@Override
+			protected ListGrid builPickListProperties() {
+				ListGrid pickListProperties = super.builPickListProperties();	
+				pickListProperties.setShowHeader(false);
+//				pickListProperties.addFetchDataHandler(new FetchDataHandler() {
+//
+//					@Override
+//					public void onFilterData(FetchDataEvent event) {
+//						GWTRestDataSource loadComboDS = (GWTRestDataSource) item.getOptionDataSource();								
+//						item.setOptionDataSource(loadComboDS);
+//						item.invalidateDisplayValueCache();
+//					}
+//				});
+				return pickListProperties;
+			}
+		};
+		GWTRestDataSource loadComboDS = new GWTRestDataSource("LoadComboAttributoDinamicoDataSource", "key", FieldType.TEXT, true);
+		loadComboDS.addParam("nomeCombo", attr.getAttribute("nome"));
+		if(isFiltroObbligatorio) {
+			loadComboDS.addParam("isFiltroObbligatorio", "true");
+			item.setEmptyPickListMessage("Nessun record trovato o filtro obbligatorio da compilare");
+		} else {
+			item.setEmptyPickListMessage("Nessun record trovato");
+		}
+		item.setOptionDataSource(loadComboDS);
+		item.setValueField("key");
+		item.setDisplayField("value");
+		ListGridField valueField = new ListGridField("value", "Descrizione");
+		valueField.setWidth("*");
+		valueField.setCanFilter(true);		
+		item.setPickListFields(valueField);
+		item.setClearable(true);		
+		item.setColSpan(1);
+		return item;
+	}
 
 	protected SelectItem buildComboBoxItem(Record attr) {
 		SelectItem item = new SelectItem(attr.getAttribute("nome"), attr.getAttribute("label"));
@@ -975,8 +1049,9 @@ public class AttributiDinamiciDetail extends CustomDetail {
 		GWTRestDataSource loadComboDS = new GWTRestDataSource("LoadComboAttributoDinamicoDataSource", "key", FieldType.TEXT);
 		loadComboDS.addParam("nomeCombo", attr.getAttribute("nome"));
 		item.setOptionDataSource(loadComboDS);
-		item.setDisplayField("value");
+		item.setEmptyPickListMessage("Nessun record trovato");
 		item.setValueField("key");
+		item.setDisplayField("value");
 		item.setColSpan(1);
 		return item;
 	}

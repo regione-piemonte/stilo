@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.common.bean;
 import it.eng.common.type.SignerType;
 
 import java.io.Serializable;
@@ -9,9 +10,6 @@ import java.util.List;
 
 public class SignerObjectBean implements Serializable{
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 4913957259468551466L;
 	
 	public byte[] digestAlgs;
@@ -23,7 +21,6 @@ public class SignerObjectBean implements Serializable{
 	public byte[] cert;
 	public byte[] crl;
 	public boolean marca = false;
-	
 	
 	public String getId() {
 		return id;
@@ -43,9 +40,6 @@ public class SignerObjectBean implements Serializable{
 	public void setCrl(byte[] crl) {
 		this.crl = crl;
 	}
-
-	
-	
 	public byte[] getDigestAlgs() {
 		return digestAlgs;
 	}
@@ -76,14 +70,12 @@ public class SignerObjectBean implements Serializable{
 	public void setFileName(String fileName) {
 		this.fileName = fileName;
 	}
-	
 	public boolean isMarca() {
 		return marca;
 	}
 	public void setMarca(boolean marca) {
 		this.marca = marca;
 	}
-	
 	@Override
 	public String toString() {
 		return "SignerObjectBean [digestAlgs=" + Arrays.toString(digestAlgs)
@@ -92,6 +84,4 @@ public class SignerObjectBean implements Serializable{
 				+ ", id=" + id + ", cert=" + Arrays.toString(cert) + ", crl="
 				+ Arrays.toString(crl) + "]";
 	}
-	
-	
 }

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.gestioneContenutiAmministrazioneTrasparente.datasource;
 
 import java.io.File;
 import java.io.StringReader;
@@ -115,6 +116,7 @@ import it.eng.utility.ui.module.core.server.datasource.AbstractDataSource;
 import it.eng.utility.ui.module.core.server.datasource.AurigaAbstractFetchDatasource;
 import it.eng.utility.ui.module.core.server.datasource.annotation.Datasource;
 import it.eng.utility.ui.module.core.shared.message.MessageType;
+import it.eng.utility.ui.servlet.bean.Firmatari;
 import it.eng.utility.ui.servlet.bean.MimeTypeFirmaBean;
 import it.eng.utility.ui.user.AurigaUserUtil;
 import it.eng.utility.ui.user.ParametriDBUtil;
@@ -396,15 +398,10 @@ public class ContenutiAmmTraspDatasource extends AurigaAbstractFetchDatasource<C
 		
 		MimeTypeFirmaBean lMimeTypeFirmaBean = lFileUtility.getInfoFromFile(StorageImplementation.getStorage().getRealFile(out.getUri()).toURI().toString(), displayFile, false, null);
 
-		if (lMimeTypeFirmaBean.getFirmatari() != null) {
-			Firmatario firmatarioObject = new Firmatario();
-			firmatarioObject.setTipoFirma(lMimeTypeFirmaBean.getTipoFirma());
-			firmatarioObject.setInfoFirma(lMimeTypeFirmaBean.getInfoFirma());
-			
-			List<Firmatario> firmatari = new ArrayList<>();
-			infoFileBean.setFirmatari(firmatari);
-			
-		} 
+		GenericFile genericFile = new GenericFile();
+		setProprietaGenericFile(genericFile, lMimeTypeFirmaBean);
+		infoFileBean.setFirmatari(genericFile.getFirmatari());
+		
 		infoFileBean.setFirmato(lMimeTypeFirmaBean.isFirmato() ? Flag.SETTED : Flag.NOT_SETTED);				
 		
 		if(lMimeTypeFirmaBean.getInfoFirmaMarca()!=null) {

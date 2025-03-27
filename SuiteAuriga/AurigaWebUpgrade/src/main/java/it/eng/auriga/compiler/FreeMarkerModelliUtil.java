@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.compiler;
 
 import static org.jodconverter.office.LocalOfficeUtils.toUrl;
 
@@ -20,6 +21,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
 import javax.servlet.http.HttpSession;
@@ -39,9 +45,6 @@ import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 import org.odftoolkit.odfdom.doc.OdfDocument;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
-import org.odftoolkit.odfdom.doc.table.OdfTable;
-import org.odftoolkit.odfdom.doc.table.OdfTableCell;
-import org.odftoolkit.odfdom.doc.table.OdfTableColumn;
 import org.odftoolkit.odfdom.dom.attribute.table.TableAlignAttribute;
 import org.odftoolkit.odfdom.dom.element.OdfStylableElement;
 import org.odftoolkit.odfdom.dom.element.office.OfficeBodyElement;
@@ -51,7 +54,10 @@ import org.odftoolkit.odfdom.dom.element.style.StyleParagraphPropertiesElement;
 import org.odftoolkit.odfdom.dom.element.style.StyleTableCellPropertiesElement;
 import org.odftoolkit.odfdom.dom.element.style.StyleTablePropertiesElement;
 import org.odftoolkit.odfdom.dom.element.style.StyleTextPropertiesElement;
+import org.odftoolkit.odfdom.dom.element.table.TableTableElement;
 import org.odftoolkit.odfdom.dom.element.text.TextLineBreakElement;
+import org.odftoolkit.odfdom.dom.element.text.TextListItemElement;
+import org.odftoolkit.odfdom.dom.element.text.TextListLevelStyleElementBase;
 import org.odftoolkit.odfdom.dom.element.text.TextParagraphElementBase;
 import org.odftoolkit.odfdom.dom.element.text.TextSElement;
 import org.odftoolkit.odfdom.dom.element.text.TextSectionElement;
@@ -60,7 +66,10 @@ import org.odftoolkit.odfdom.dom.style.OdfStyleFamily;
 import org.odftoolkit.odfdom.dom.style.props.OdfParagraphProperties;
 import org.odftoolkit.odfdom.dom.style.props.OdfStylePropertiesSet;
 import org.odftoolkit.odfdom.dom.style.props.OdfStyleProperty;
+import org.odftoolkit.odfdom.incubator.doc.style.OdfStyle;
 import org.odftoolkit.odfdom.incubator.doc.style.OdfStylePageLayout;
+import org.odftoolkit.odfdom.incubator.doc.text.OdfTextList;
+import org.odftoolkit.odfdom.incubator.doc.text.OdfTextListStyle;
 import org.odftoolkit.odfdom.incubator.doc.text.OdfTextParagraph;
 import org.odftoolkit.odfdom.incubator.doc.text.OdfTextSpan;
 import org.odftoolkit.odfdom.pkg.OdfElement;
@@ -72,7 +81,10 @@ import org.odftoolkit.odfdom.type.Color;
 import org.odftoolkit.simple.TextDocument;
 import org.odftoolkit.simple.style.Font;
 import org.odftoolkit.simple.style.PageLayoutProperties;
+import org.odftoolkit.simple.style.StyleTypeDefinitions.HorizontalAlignmentType;
+import org.odftoolkit.simple.style.StyleTypeDefinitions.VerticalAlignmentType;
 import org.odftoolkit.simple.table.Cell;
+import org.odftoolkit.simple.table.Column;
 import org.odftoolkit.simple.table.Row;
 import org.odftoolkit.simple.table.Table;
 import org.odftoolkit.simple.text.Paragraph;
@@ -100,12 +112,17 @@ import com.itextpdf.tool.xml.css.CSS.Value;
 import com.sun.star.beans.PropertyValue;
 import com.sun.star.beans.XPropertySet;
 import com.sun.star.bridge.XUnoUrlResolver;
+import com.sun.star.container.XIndexAccess;
 import com.sun.star.document.XDocumentInsertable;
 import com.sun.star.frame.XComponentLoader;
 import com.sun.star.frame.XModel;
 import com.sun.star.frame.XStorable;
 import com.sun.star.lang.XComponent;
 import com.sun.star.lang.XMultiComponentFactory;
+import com.sun.star.lang.XMultiServiceFactory;
+import com.sun.star.text.XFootnote;
+import com.sun.star.text.XSimpleText;
+import com.sun.star.text.XTextContent;
 import com.sun.star.text.XTextCursor;
 import com.sun.star.text.XTextDocument;
 import com.sun.star.text.XTextRange;
@@ -113,6 +130,8 @@ import com.sun.star.uno.UnoRuntime;
 import com.sun.star.uno.XComponentContext;
 import com.sun.star.uno.XInterface;
 import com.sun.star.util.XCloseable;
+import com.sun.star.util.XPropertyReplace;
+import com.sun.star.util.XReplaceDescriptor;
 import com.sun.star.util.XReplaceable;
 import com.sun.star.util.XSearchDescriptor;
 import com.sun.star.util.XSearchable;
@@ -127,8 +146,6 @@ import it.eng.auriga.compiler.exeption.FreeMarkerCreateDocumentException;
 import it.eng.auriga.compiler.exeption.FreeMarkerFixMergedCellException;
 import it.eng.auriga.compiler.exeption.FreeMarkerMergeHtmlSectionsException;
 import it.eng.auriga.compiler.exeption.FreeMarkerRetriveStyleException;
-import it.eng.auriga.exception.StoreException;
-import it.eng.auriga.ui.module.layout.server.modelliDoc.datasource.ModelliDocDatasource;
 import it.eng.auriga.ui.module.layout.server.modelliDoc.datasource.bean.AssociazioniAttributiCustomBean;
 import it.eng.auriga.ui.module.layout.server.modelliDoc.datasource.bean.ModelliDocBean;
 import it.eng.services.fileop.InfoFileUtility;
@@ -158,12 +175,10 @@ import net.sf.jooreports.templates.image.RenderedImageSource;
 public class FreeMarkerModelliUtil {
 	
 	private static Logger logger = Logger.getLogger(FreeMarkerModelliUtil.class);
-	
-	private final static String SEPARATORE_FILE_DA_INIETTARE = "##@@FILE_DA_INIETTARE@@##";
-	
+		
 	public static final char NUL = (char) 0; // Codice ASCII NUL (Nullo)
 	public static final char EOT = (char) 4; // Codice ASCII EOT (End of transmission)
-	public static final char ENQ = (char) 5; // Codice ASCII ENQ (Enquiry)	 
+	public static final char ENQ = (char) 5; // Codice ASCII ENQ (Enquiry)
 	
 	public static final String FREEMARKER_INIZIO = "${";
 	public static final String FREEMARKER_FINE = "}";
@@ -185,6 +200,15 @@ public class FreeMarkerModelliUtil {
 	public static final String OMISSIS = "<i>omissis</i>";
 	public static final String HTML_SPACE = "&nbsp;";
 	public static final String PAGE_BREAK = "PPaGeBrEaKK";
+	public static final String STYLE_BUG = "SStYlEbUGG";
+	
+	public static final String PLACEHOLDER_NOTA_AGGIUNTA = "#nota_agg#";
+	public static final String PLACEHOLDER_NOTA_MODIFICA = "#nota_mod#";
+	public static final String PLACEHOLDER_NOTA_STRALCIO = "#nota_str#";
+	public static final String TESTO_NOTA_AGGIUNTA = "Testo aggiunto in corso di seduta";
+	public static final String TESTO_NOTA_MODIFICA = "Testo modificato in corso di seduta";
+	public static final String TESTO_NOTA_STRALCIO = "Testo stralciato in corso di seduta";	
+	
 	public static String VARIABILE_FONT_NAME;
 	public static String VARIABILE_FONT_SIZE;
 	
@@ -207,6 +231,8 @@ public class FreeMarkerModelliUtil {
 		Map<String, String> fileSectionsModel = new HashMap<String, String>();
 		List<String> elencoCampiConGestioneOmissisDaIgnorare =  bean.getElencoCampiConGestioneOmissisDaIgnorare();
 		logger.debug("#######INIZIO for(String nomeVariabile : model.keySet())#######");
+		boolean foundParagraphStyleBug = false;
+		boolean foundPlaceholderModificaTesto = false;
 		for(String nomeVariabile : model.keySet()) {
 			if (model.get(nomeVariabile) instanceof String && presenteFileAlternativoTestoCkeditor(bean.getTipiValori(), nomeVariabile, bean.getValori())) {
 				String jsonFileDaIniettare = getFileAlternativoTestoCkeditor(nomeVariabile, bean.getValori());
@@ -233,7 +259,7 @@ public class FreeMarkerModelliUtil {
 					isHtml = true;
 				}
 				if (isHtml) {
-					//TODO Perchè viene fatto l'unescapeHtml? 
+					// Perchè viene fatto l'unescapeHtml? 
 					// intanto lo commento e faccio solo i replaceAll, perchè mi crea problemi quando ho dei caratteri speciali: &amp; ecc...					
 //					html = StringEscapeUtils.unescapeHtml(StringEscapeUtils.unescapeHtml(html).replaceAll("\n", "").replaceAll("\t", ""));
 					html = html.replaceAll("\n", "").replaceAll("\t", "");
@@ -242,6 +268,61 @@ public class FreeMarkerModelliUtil {
 					html = html.replaceAll("<br/>", ESCAPE_BR);
 					html = html.replaceAll("<br>", ESCAPE_BR);	
 					html = html.replaceAll("\\$\\{", "\\$ \\{");
+					
+					// Verifico se devo inserire note di aggiunta, modifica o stralcio
+					foundPlaceholderModificaTesto = foundPlaceholderModificaTesto || html.indexOf(PLACEHOLDER_NOTA_AGGIUNTA) != -1 || html.indexOf(PLACEHOLDER_NOTA_MODIFICA) != -1 || html.indexOf(PLACEHOLDER_NOTA_STRALCIO) != -1;
+					
+					// Inizio correzione per risolvere bug su applicazioni stili multipli
+					// Il bug si verifica quando ho una successione di chiusure di almeno 2 tag tra strong, em, u, s e la chiusura del tag p senza nulla in mezzo,
+					// (ad esempio la sequenza </string></u></s></p>) e causa il fatto che non tutti gli stili vengono applicati
+					// Per risolvere bisogna mettere una stringa fittizia prima del tag </p> prima dell'inizione, e poi rimuoverla dall'odt ad iniezione avvenuta.
+					// In questo modo tutti gli stili vengono applicati
+					int indexInf = html.indexOf("<p");
+					int indexSup = html.indexOf("</p>");
+					while (indexInf > -1 && indexSup > -1) {
+						String before = html.substring(0, indexInf);
+						// Prendo lo spezzone <p>....</p>
+						String htmlParagraph = html.substring(indexInf, indexSup + 4);
+						String after = html.substring(indexSup + 4, html.length());
+						int pos;
+						// Estraggo la stringa con tutti i tag di chiusura concatenati in sequenza prima di </p>) 
+						for (pos =  htmlParagraph.length() - 1; pos > 0; pos --) {
+							if (htmlParagraph.charAt(pos) == '<' && !(htmlParagraph.charAt(pos - 1) == '>')) {
+								break;
+							}
+						}
+						// Conto le occorrenze dei tag strong, ul, s e em nella stringa con tutti i tag di chiusura sequenziali
+						String tagChiusuraParagraph = htmlParagraph.substring(pos, htmlParagraph.length());
+						int tagChiusuraTrovati = 0;
+						if (tagChiusuraParagraph.indexOf("</strong>") != -1) {
+							tagChiusuraTrovati += 1;
+						}
+						if (tagChiusuraParagraph.indexOf("</em>") != -1) {
+							tagChiusuraTrovati += 1;
+						}
+						if (tagChiusuraParagraph.indexOf("</u>") != -1) {
+							tagChiusuraTrovati += 1;
+						}
+						if (tagChiusuraParagraph.indexOf("</s>") != -1) {
+							tagChiusuraTrovati += 1;
+						}
+						// Se ho trovato almeno 2 occorrenze aggiungo la stringa fittizia prima del tag </p>
+						if (tagChiusuraTrovati >= 2) {
+							htmlParagraph = htmlParagraph.substring(0, htmlParagraph.length() - 4) + STYLE_BUG + "</p>";
+							html = before + htmlParagraph + after;
+							indexSup += STYLE_BUG.length();
+							foundParagraphStyleBug = true;
+						}
+//						boolean match = extract.matches("<p(.*)>(<strong>|<em>|<u>|<s>){2,}.*(<\\/strong>|<\\/em>|<\\/u>|<\\/s>){2,}<\\/p>");
+//						if (match) {
+//							extract = extract.substring(0, extract.length() - 4) + "&nbsp;" + "</p>";
+//							html = before + extract + after;
+//						}
+						indexInf = indexInf + 3 < html.length() ? html.indexOf("<p", indexInf + 3) : -1;
+						indexSup = indexSup + 4 < html.length() ? html.indexOf("</p>", indexSup + 4) : -1;
+					}
+					// Fine correzione per risolvere bug su applicazioni stili multipli
+					
 					// Sostituzione tag di interruzione pagina, metto dei paragrfi come placeholder (questi paragrafi poi verranno tolti o gestiti per creare le minime differenze possibili)
 					// Ckeditor inserisce i page break come "<div style=\"page-break-after:always\"><span style=\"display:none\">&nbsp;</span></div>"
 //					html = html.replaceAll("<div style=\"page-break-after:always\"><span style=\"display:none\">&nbsp;</span></div>", "<p>" + PAGE_BREAK + "</p>");
@@ -406,9 +487,9 @@ public class FreeMarkerModelliUtil {
 			// Funzione che prende i caratteri delle sezioni dal modello ODT e li applica sull ODT generato che dovrà  essere convertito
 			// TODO controllare il cambio caratteri, per ora gestisco gli errori con una eccezione
 			try {
-				logger.debug("#######INIZIO cambiaCarattereSezioni#######");
-				templateOdtWithValues = cambiaCarattereSezioni(templateOdtWithValues, templateOdt, mappaTablesStyle, listsStyle, paragraphsStyle, bean, htmlSectionsModel, session);
-				logger.debug("#######FINE cambiaCarattereSezioni#######");
+				logger.debug("#######INIZIO applicaStiliParagrafiEListe#######");
+				templateOdtWithValues = applicaStiliParagrafiEListe(templateOdtWithValues, templateOdt, mappaTablesStyle, listsStyle, paragraphsStyle, bean, htmlSectionsModel, session);
+				logger.debug("#######FINE applicaStiliParagrafiEListe#######");
 				if (mappaTablesStyle != null && !mappaTablesStyle.isEmpty()) {
 					logger.debug("#######INIZIO applicaStiliTabelle#######");
 					templateOdtWithValues = applicaStiliTabelle(templateOdtWithValues, mappaTablesStyle);
@@ -419,7 +500,24 @@ public class FreeMarkerModelliUtil {
 						templateOdtWithValues = applicaUnioniCelle(templateOdtWithValues, mappaTablesStyle);
 						logger.debug("#######FINE applicaUnioniCelle#######");
 					}
-				}				
+				}
+				
+				if (foundParagraphStyleBug) {
+					PropertyValue[] aReplaceArgs = new PropertyValue[2];
+			        aReplaceArgs[0] = new PropertyValue();
+			        aReplaceArgs[0].Name = "CharFontName";
+			        aReplaceArgs[0].Value = "Arial";
+			        aReplaceArgs[1] = new PropertyValue();
+			        aReplaceArgs[1].Name = "CharHeight";
+			        aReplaceArgs[1].Value = 1;
+					ReplacementItem replacement = new ReplacementItem(STYLE_BUG, " ", aReplaceArgs);
+					List<ReplacementItem> listReplacement = new ArrayList<>();
+					listReplacement.add(replacement);
+					replaceAllStringInOdt(templateOdtWithValues, listReplacement, session);
+				}
+				if (foundPlaceholderModificaTesto) {
+					inserisciFootnoteModificaTesto(templateOdtWithValues, session);
+				}
 //			} catch (StoreException e) {
 //				// errori gestiti
 //				logger.error(e.getMessage(), e);
@@ -618,8 +716,79 @@ public class FreeMarkerModelliUtil {
 		}
 	}
 
-	private static void getWidthCols(TableStyleBean tableStyleBean) {
+	private static void correggiIndentazioneParagrafiLista(org.odftoolkit.simple.text.list.List lista, Section section) throws Exception {
+		// Vedo se dopo l'ultimo elemento della lista ci sono paragrafi con un margine settato
+		// In quel caso i paragrafi in word erano allineati all'ultimo elemento della lista
 		
+		// Estraggo l'ultimo elemento della lista e il suo livello
+		ListItem lastListItem = getLastListItem(lista);
+		// Verifico che l'ultimo elemento della lsita non sia null (accade con liste vuote)
+		if (lastListItem != null) {
+			int lastListItemLevel = lastListItem.getOwnerList().getLevel();		
+			// Prendo il nome dello stile dell'ultimo elemento della lista
+			String lastListItemStyleName = lista.getOdfElement().getAttribute("text:style-name");
+			if (StringUtils.isBlank(lastListItemStyleName)) {
+				lastListItemStyleName = lista.getOdfElement().getAttribute("fo:style-name");
+			}
+			if (StringUtils.isNotBlank(lastListItemStyleName)) {
+				// Estraggo lo stile (da verificare se bisogna cercare lo stile in altre parti del documento)
+				OdfTextListStyle lastListItemStyle;
+				lastListItemStyle = section.getOwnerDocument().getContentDom().getAutomaticStyles().getListStyle(lastListItemStyleName);
+				if (lastListItemStyle != null) {
+					// Estraggo lo stile del livello dell'ultimo item della lista
+					TextListLevelStyleElementBase lTextListLevelStyleElementBase = lastListItemStyle.getLevel(lastListItemLevel);
+					// Ricavo spaziature e margini
+					OdfNamespace lOdfNamespace = OdfNamespace.newNamespace("fo", "urn:oasis:names:tc:opendocument:xmlns:text:1.0");
+					OdfName odfNameSpaceBefore = OdfName.newName(lOdfNamespace, "space-before");
+					OdfName odfNameMinLabelWidth = OdfName.newName(lOdfNamespace, "min-label-width");
+					String spaceBefore = lTextListLevelStyleElementBase.getStyleProperties().get(OdfStyleProperty.get(OdfStylePropertiesSet.ListLevelProperties, odfNameSpaceBefore));
+					spaceBefore = StringUtils.isNotBlank(spaceBefore) ? spaceBefore : "0cm";
+					String minLabelWidth = lTextListLevelStyleElementBase.getStyleProperties().get(OdfStyleProperty.get(OdfStylePropertiesSet.ListLevelProperties, odfNameMinLabelWidth));
+					minLabelWidth = StringUtils.isNotBlank(minLabelWidth) ? minLabelWidth : "0cm";
+					// Ricavo lo stile dell'ultimo ListItem e estreggo il margine destro
+					StyleParagraphPropertiesElement lListItemStyleParagraphPropertiesElement = retriveStyleParagraphPropertiesElementFromListItem(lastListItem);
+					String marginLeft = convertPointToCentimeter(lListItemStyleParagraphPropertiesElement.getFoMarginLeftAttribute(), "0cm");
+					// Calcolo il margine da settare negli eventuali paragrafi sono l'ultimoitem della lista
+					String marginToSet = sommaMisureInCentimetri(spaceBefore, minLabelWidth, marginLeft);
+					// Scorro i paragrafi dopo l'ultimo elemento della lista
+					Node currentNode = lista.getOdfElement().getNextSibling();
+					while (currentNode instanceof OdfTextParagraph) {
+						OdfTextParagraph lTextParagraphElementBase = (OdfTextParagraph) currentNode;
+						String indentazioneParagrafo = lTextParagraphElementBase.getProperty(StyleParagraphPropertiesElement.MarginLeft);
+						if (StringUtils.isNotBlank(indentazioneParagrafo)) {
+							lTextParagraphElementBase.setProperty(StyleParagraphPropertiesElement.MarginLeft, marginToSet);
+						} else {
+							// Fine degli eventuali paragrafi da allineare all'ultimo elemento della lista
+							break;
+						}
+						currentNode = currentNode.getNextSibling();
+					}
+				}
+			}
+		}
+	}
+			
+	private static  StyleParagraphPropertiesElement retriveStyleParagraphPropertiesElementFromListItem(ListItem lListItem) {
+		NodeList listItemChildNodes = lListItem.getOdfElement().getChildNodes();
+		if (listItemChildNodes != null) {
+			for (int i = 0; i < listItemChildNodes.getLength(); i++) {
+				if (listItemChildNodes.item(i) instanceof OdfTextParagraph) {		
+					OdfTextParagraph lOdfTextParagraph = (OdfTextParagraph) listItemChildNodes.item(i);
+					OdfStyle lOdfStyle = lOdfTextParagraph.getAutomaticStyle();
+					NodeList figli = lOdfStyle.getChildNodes();
+					for (int j = 0; j < figli.getLength(); j++) {
+						if (figli.item(j) instanceof StyleParagraphPropertiesElement) {
+							StyleParagraphPropertiesElement lStyleParagraphPropertiesElement = (StyleParagraphPropertiesElement) figli.item(j);
+							return lStyleParagraphPropertiesElement;
+						}
+					}
+				}
+			}
+		}
+		return null;
+	}
+	
+	private static void getWidthCols(TableStyleBean tableStyleBean) {
 		CellaMappaUnioniBean[][] mappaUnioni = tableStyleBean.getMappaUnioni();
 		Float[] listaWidthCols = new Float[mappaUnioni[0].length];
 		Float sommaLarghezzeColonne = (float) 0;
@@ -872,6 +1041,7 @@ public class FreeMarkerModelliUtil {
 			doc.outputSettings().indentAmount(0).prettyPrint(false);
 			int nItem = 0;
 			Elements parItems = doc.select("p");
+			// Scorro tutti gli elementi paagrafo
 			for (org.jsoup.nodes.Node parItem : parItems) {
 				// Non devo elaborare paragrafi che sono dentro tabelle o liste
 				boolean nodoDaElaborare = true;
@@ -886,10 +1056,14 @@ public class FreeMarkerModelliUtil {
 				}
 				if (nodoDaElaborare) {
 					nItem++;
+					// Estraggo la prima parte di testo
 					TextNode firstTextNode = getFirstTextNode(parItem);
+					// Ci aggiungo una etichetta a inizio testo
 					firstTextNode.text("%#ParItem" + nItem + "#%sect_" + htmlSectionName + firstTextNode.text());
+					// Recupero lo stile del paragrafo
 					StyleSheet styleSheet = new StyleSheet();
 					AttributeSet styleSet = styleSheet.getDeclaration(parItem.attr("style"));
+					// Salvo lo stile del paragrafo agganciandolo alla sua etichetta
 					paragraphsStyle.put("%#ParItem" + nItem + "#%sect_" + htmlSectionName, styleSet);
 	//				if (parItem.hasText() && parItem.textNodes() != null && parItem.textNodes().size() > 0) {
 	//					parItem.textNodes().get(0).text("%#ParItem" + nItem + "#%sect_" + htmlSectionName + "##" + parItem.textNodes().get(0).text());
@@ -1020,33 +1194,56 @@ public class FreeMarkerModelliUtil {
 	
 	private static File applicaStiliTabelle(File templateOdtWithValues, Map<String, TableStyleBean> mappaTablesStyle) throws Exception {
 		
-		OdfDocument odtFinale = null;
+		TextDocument odtFinale = null;
 		try {
-		    odtFinale = OdfDocument.loadDocument(templateOdtWithValues);
+		    odtFinale = TextDocument.loadDocument(templateOdtWithValues);
 		    
 		    StyleMasterPageElement defaultPage = odtFinale.getOfficeMasterStyles().getMasterPage("Standard");
 		    String pageLayoutName = defaultPage.getStylePageLayoutNameAttribute();        
 		    OdfStylePageLayout pageLayoutStyle = defaultPage.getAutomaticStyles().getPageLayout(pageLayoutName);
 		    PageLayoutProperties pageLayoutProps = PageLayoutProperties.getOrCreatePageLayoutProperties(pageLayoutStyle);
+		    // Larghezza della pagina escudendo, i margini settati nel foglio
 		    Double writeablePageWidth = pageLayoutProps.getPageWidth() - (pageLayoutProps.getMarginLeft() +  pageLayoutProps.getMarginRight());
+		    // Larghezza di tutto il foglio della pagina, alla quale aggiungo un piccolo margine per non rischiare di scrivere proprio al limite
+		    Double pageWidthWithSmallMargin = pageLayoutProps.getPageWidth() - 10;
 		    
-			for (OdfTable odfTable : odtFinale.getTableList()) {
-				String idTable =  odfTable.getOdfElement().getAttribute("idTableCKEDITOR");
-				if (StringUtils.isNotBlank(idTable) && mappaTablesStyle.containsKey(idTable)) {
+			for (Table table : odtFinale.getTableList()) {
+				TableTableElement tableTableElement = table.getOdfElement();
+				String idTable =  tableTableElement.getAttribute("idTableCKEDITOR");
+								
+				// Se la tabella è vuota ignoro l'elaborazione
+				if (StringUtils.isNotBlank(idTable) && mappaTablesStyle.containsKey(idTable) && table.getRowCount() > 0 && table.getColumnCount() > 0) {
 					TableStyleBean tableStyle = mappaTablesStyle.get(idTable);
 					getWidthCols(tableStyle);
+					// Inizializzo la larghezza della tabella alla larghezza dei margini
+					long larghezzaTabellaEffettiva = writeablePageWidth.longValue();
 					if (StringUtils.isNotBlank(tableStyle.getUnitaMisuraWidthColonne())) {
-						Float larghezzaTabellaDaSettare = convertMeasureInMm(tableStyle.getSommaWidthColonne() + tableStyle.getUnitaMisuraWidthColonne());
-						if (larghezzaTabellaDaSettare != null && larghezzaTabellaDaSettare < writeablePageWidth) {
+						// Calcolo la somma delle larghezze delle colonne e la converto in millimetri, per ottenere la larghezza della tabella
+						Float larghezzaTabellaOriginale = convertMeasureInMm(tableStyle.getSommaWidthColonne() + tableStyle.getUnitaMisuraWidthColonne());
+						if (larghezzaTabellaOriginale != null && larghezzaTabellaOriginale < writeablePageWidth) {
+							// La larghezza della tabella rientra nei margini del foglio, la mantengo allinenata a sinistra e non ne modifico la dimensione
 							try {
-								odfTable.getOdfElement().setProperty(StyleTablePropertiesElement.Align, TableAlignAttribute.Value.LEFT.toString());
-								odfTable.setWidth(larghezzaTabellaDaSettare.longValue());
+								tableTableElement.setProperty(StyleTablePropertiesElement.Align, TableAlignAttribute.Value.LEFT.toString());
+								larghezzaTabellaEffettiva = larghezzaTabellaOriginale.longValue();
 							} catch (Exception e) {
 								logger.error(e.getMessage(), e);
 							}
+						} else if (larghezzaTabellaOriginale != null && larghezzaTabellaOriginale < pageWidthWithSmallMargin) {
+							// La larghezza della tabella supera i margini ma rientra nel foglio. Non modifico la dimensione ma la mantengo centrata
+							Double eccedenza = larghezzaTabellaOriginale - writeablePageWidth;
+							tableTableElement.setProperty(StyleTablePropertiesElement.Align, TableAlignAttribute.Value.LEFT.toString());
+							tableTableElement.setProperty(StyleTablePropertiesElement.Width, larghezzaTabellaOriginale + "");
+							tableTableElement.setProperty(StyleTablePropertiesElement.MarginLeft, "-" + eccedenza / 2 + "mm");
+							larghezzaTabellaEffettiva = larghezzaTabellaOriginale.longValue();
+						} else {
+							// La larghezza della tabella supera la larghezza del foglio, la ridimensiono alla larghezza del foglio e la mantengo centrata
+							Double eccedenza = pageWidthWithSmallMargin - writeablePageWidth;
+							tableTableElement.setProperty(StyleTablePropertiesElement.Align, TableAlignAttribute.Value.LEFT.toString());
+							tableTableElement.setProperty(StyleTablePropertiesElement.MarginLeft, "-" + eccedenza / 2 + "mm");
+							larghezzaTabellaEffettiva = pageWidthWithSmallMargin.longValue();
 						}
 					}
-					long odfTableWidth = odfTable.getWidth() > 0 ? odfTable.getWidth() : writeablePageWidth.longValue();	
+//					table.setWidth(larghezzaTabellaEffettiva);
 //					odfTable.getOdfElement().setProperty(StyleTablePropertiesElement.MayBreakBetweenRows, "true");
 //					odfTable.getOdfElement().setProperty(StyleTablePropertiesElement.KeepWithNext, "auto");
 					
@@ -1063,8 +1260,8 @@ public class FreeMarkerModelliUtil {
 						stileBordo = tableStyle.getStileTabella().getAttribute("border") != null ? tableStyle.getStileTabella().getAttribute("border").toString() : "";
 					}
 					
-					for (int posCol = 0; posCol < odfTable.getColumnCount(); posCol++) {
-						OdfTableColumn colonna = odfTable.getColumnByIndex(posCol);
+					for (int posCol = 0; posCol < table.getColumnCount(); posCol++) {
+						Column colonna = table.getColumnByIndex(posCol);
 						// setto la larghezza della colonna posCol
 						colonna.setUseOptimalWidth(false);
 						
@@ -1075,13 +1272,13 @@ public class FreeMarkerModelliUtil {
 							if (colsWidth.get(posCol) != null) {
 								Float larghezzaColonnaHtml = colsWidth.get(posCol);
 								Float percentualeLarghezza = (larghezzaColonnaHtml / tableStyle.getSommaWidthColonne()) ;
-								Float larghezzaColonnaOdf = odfTableWidth * percentualeLarghezza;
-								colonna.setWidth(larghezzaColonnaOdf.longValue());
+								Float larghezzaColonnaOdf = larghezzaTabellaEffettiva * percentualeLarghezza;
+								colonna.setWidthWidthoutRelative(larghezzaColonnaOdf.longValue());
 							}
 						}
 						for (int posRow = 0; posRow < colonna.getCellCount(); posRow ++) {
 							AttributeSet cellStyle = tableStyle.getListaStiliRow().get(posRow).get(posCol);
-							OdfTableCell cella = odfTable.getCellByPosition(posCol, posRow);
+							Cell cella = table.getCellByPosition(posCol, posRow);
 							if (cella != null) {
 								// Verifico che nella cella non siano presenti interruzioni di pagina
 								String testoCella = cella.getDisplayText();
@@ -1104,15 +1301,23 @@ public class FreeMarkerModelliUtil {
 								}
 		
 								if (cellStyle.getAttribute(CSS.Attribute.TEXT_ALIGN) != null) {
-									cella.setHorizontalAlignment(cellStyle.getAttribute(CSS.Attribute.TEXT_ALIGN).toString());
+									try {
+										cella.setHorizontalAlignment(HorizontalAlignmentType.enumValueOf(cellStyle.getAttribute(CSS.Attribute.TEXT_ALIGN).toString()));
+									} catch (Exception e) {
+										cella.setHorizontalAlignment(HorizontalAlignmentType.JUSTIFY);
+									}
 								} else {
-									cella.setHorizontalAlignment("justify");
+									cella.setHorizontalAlignment(HorizontalAlignmentType.JUSTIFY);
 								}
 								
 								if (cellStyle.getAttribute(CSS.Attribute.VERTICAL_ALIGN) != null) {
-									cella.setVerticalAlignment(cellStyle.getAttribute(CSS.Attribute.VERTICAL_ALIGN).toString());
+									try {
+										cella.setVerticalAlignment(VerticalAlignmentType.enumValueOf(cellStyle.getAttribute(CSS.Attribute.VERTICAL_ALIGN).toString()));
+									} catch (Exception e) {
+										cella.setVerticalAlignment(VerticalAlignmentType.MIDDLE);
+									}
 								} else {
-									cella.setVerticalAlignment("middle");
+									cella.setVerticalAlignment(VerticalAlignmentType.MIDDLE);
 								}
 								
 								if (cellStyle.getAttribute(CSS.Attribute.BACKGROUND_COLOR) != null ) {
@@ -1125,6 +1330,7 @@ public class FreeMarkerModelliUtil {
 								cella.getOdfElement().setProperty(StyleParagraphPropertiesElement.KeepTogether, "auto");
 								cella.getOdfElement().setProperty(StyleParagraphPropertiesElement.KeepWithNext, "auto");
 								cella.getOdfElement().setProperty(StyleParagraphPropertiesElement.LineSpacing, "1");
+								cella.getOdfElement().setProperty(StyleTableCellPropertiesElement.Padding, "0.1cm");
 								
 								// Setto il bordo delle celle
 								try {
@@ -1160,11 +1366,7 @@ public class FreeMarkerModelliUtil {
 									cella.getOdfElement().setProperty(StyleTableCellPropertiesElement.BorderLeft, borderLeft);
 									cella.getOdfElement().setProperty(StyleTableCellPropertiesElement.BorderTop, borderTop);
 									cella.getOdfElement().setProperty(StyleTableCellPropertiesElement.BorderRight, borderRight);
-									cella.getOdfElement().setProperty(StyleTableCellPropertiesElement.BorderBottom, borderBottom);
-//									cella.getOdfElement().setProperty(StyleTableCellPropertiesElement.BorderLeft, "0.5pt solid black");
-//									cella.getOdfElement().setProperty(StyleTableCellPropertiesElement.BorderRight, "0.5pt solid black");
-//									cella.getOdfElement().setProperty(StyleTableCellPropertiesElement.BorderTop, "0.5pt solid #000000");
-//									cella.getOdfElement().setProperty(StyleTableCellPropertiesElement.BorderBottom, "0.5pt solid #000000");									
+									cella.getOdfElement().setProperty(StyleTableCellPropertiesElement.BorderBottom, borderBottom);							
 								} catch (Exception e) {
 									cella.getOdfElement().setProperty(StyleTableCellPropertiesElement.BorderLeft, "0.5pt solid #000000");
 									cella.getOdfElement().setProperty(StyleTableCellPropertiesElement.BorderRight, "0.5pt solid #000000");
@@ -1174,6 +1376,7 @@ public class FreeMarkerModelliUtil {
 							}
 						}
 					}
+					table.setWidth(larghezzaTabellaEffettiva);
 				}
 			}
 	
@@ -1214,7 +1417,7 @@ public class FreeMarkerModelliUtil {
 				Float measureCmFloat = Float.parseFloat(measure)*10;
 				return measureCmFloat;
 			case "px":
-				float fattoreConversionePxMm = 3F;
+				float fattoreConversionePxMm = 3.8F;
 				Float measurePxFloat = Float.parseFloat(measure)/fattoreConversionePxMm;
 				return measurePxFloat;
 			default:
@@ -1223,7 +1426,6 @@ public class FreeMarkerModelliUtil {
 		}
 		return null;
 	}
-	
 		
 	private static String convertCssToBorderString(Object cssBorderWidth, Object cssBorderStyle, Object cssBorderColor, String defaulBorder) {
 		
@@ -1253,18 +1455,36 @@ public class FreeMarkerModelliUtil {
 		return strBorderWidth + " " + strBorderStyle + " " + strBorderColor;
 	}
 	
-	private static String convertMeasureToPoint(String strPixelMeasure, String defaultMeasure, boolean convertForParagraphIndent) {
+	private static String convertMeasureToPoint(String strMeasure, String defaultMeasure, boolean convertForParagraphIndent) {
 		try {
-			if (StringUtils.isNotBlank(strPixelMeasure) && strPixelMeasure.toUpperCase().endsWith("PX")) {
-				strPixelMeasure = strPixelMeasure.substring(0, strPixelMeasure.length() - 2);
+			if (StringUtils.isNotBlank(strMeasure) && strMeasure.toUpperCase().endsWith("PX")) {
+				strMeasure = strMeasure.substring(0, strMeasure.length() - 2);
 				double fattoreConversione = 0.55;
 				if (convertForParagraphIndent) {
 					fattoreConversione = 0.35;
 					fattoreConversione = 0.55;
 				}
-				return ((Double.valueOf(strPixelMeasure)) * fattoreConversione) + "pt";
-			} else if (StringUtils.isNotBlank(strPixelMeasure) && strPixelMeasure.toUpperCase().endsWith("PT")) {
-				return strPixelMeasure;
+				return ((Double.valueOf(strMeasure)) * fattoreConversione) + "pt";
+			} else if (StringUtils.isNotBlank(strMeasure) && strMeasure.toUpperCase().endsWith("PT")) {
+				return strMeasure;
+			} else if (StringUtils.isNotBlank(strMeasure) && strMeasure.toUpperCase().endsWith("CM")) {
+				strMeasure = strMeasure.substring(0, strMeasure.length() - 2);
+				return ((Double.valueOf(strMeasure)) * 28.3465) + "pt";
+			} else {
+				return defaultMeasure;
+			}
+		}catch (Exception e) {
+			return defaultMeasure;
+		}
+	}
+	
+	private static String convertPointToCentimeter(String strMeasure, String defaultMeasure) {
+		try {
+			if (strMeasure.toUpperCase().endsWith("PT")) {
+				strMeasure = strMeasure.substring(0, strMeasure.length() - 2);
+				return ((Double.valueOf(strMeasure)) * 0.0352778) + "cm";
+			} else if (strMeasure.toUpperCase().endsWith("CM")) {
+				return strMeasure;
 			} else {
 				return defaultMeasure;
 			}
@@ -1303,7 +1523,7 @@ public class FreeMarkerModelliUtil {
 		return null;
 	}
 
-	private static File cambiaCarattereSezioni(File templateOdtWithValues,File templateOdt, Map<String, TableStyleBean> mappaTablesStyle, Map<String, Object> listsStyle, Map<String, AttributeSet> paragraphsStyle, ModelliDocBean modelliDocBean, Map<String, Object> htmlSectionsModel, HttpSession session) throws Exception {
+	private static File applicaStiliParagrafiEListe(File templateOdtWithValues,File templateOdt, Map<String, TableStyleBean> mappaTablesStyle, Map<String, Object> listsStyle, Map<String, AttributeSet> paragraphsStyle, ModelliDocBean modelliDocBean, Map<String, Object> htmlSectionsModel, HttpSession session) throws Exception {
 		
 		TextDocument odtModello = null;
 		TextDocument odtFinale = null;
@@ -1320,10 +1540,10 @@ public class FreeMarkerModelliUtil {
 					// Elimino il primo paragrafo vuoto da ogni sezione
 					eliminaPrimoParagrafoVuoto(odtModello, odtFinale, sezione, mappaTablesStyle, listsStyle);
 					// Cambio i caratteri della sezione
-					cambiaCarattereSezione(odtModello, odtFinale, sezione, mappaTablesStyle, listsStyle, paragraphsStyle, modelliDocBean, session);
+					applicaStiliParagrafiEListeSuSezione(odtModello, odtFinale, sezione, mappaTablesStyle, listsStyle, paragraphsStyle, modelliDocBean, session);
 				}
 			}
-	
+					
 			File templateOdtToconvert = File.createTempFile("temp", ".odt");
 			
 			odtFinale.save(templateOdtToconvert);
@@ -1362,13 +1582,64 @@ public class FreeMarkerModelliUtil {
 		}
 	}
 	
-	private static void cambiaCarattereSezione(TextDocument odtModello, TextDocument odtFinale, String nomeSection, Map<String, TableStyleBean> mappaTablesStyle, Map<String, Object> listsStyle, Map<String, AttributeSet> paragraphsStyle, ModelliDocBean modelliDocBean, HttpSession session) throws Exception {
+	// Elimina da un item della lista tutti i paragrafi vuoti. Questo fa sparire le voci degli elenchi puntati vuote
+	private static void eliminaItemParagrafiVuoti(org.odftoolkit.simple.text.list.List list) {
+		try {
+			if (list != null && list.getItems() != null && list.getItems().size() > 0) {
+				// Contatore del numero di childnode di tipo OdfTextList
+				int numTextListChildNode = 0;
+				// Lista degli eventuali nodi da rimuovere
+				List<Node> listaNodiDaRimuovere = new ArrayList<>();
+				for (ListItem listItem : list.getItems()) {
+					// Scorro tutti i figli dell'item della lista
+					TextListItemElement odfListItem = listItem.getOdfElement();
+					NodeList itemChildNodes = odfListItem.getChildNodes();
+					if (itemChildNodes != null && itemChildNodes.getLength() > 0) {
+						for (int i = 0; i < itemChildNodes.getLength(); i++) {
+							// Verifico se il nodo figlio è un paragrafo
+							if (itemChildNodes.item(i) != null && itemChildNodes.item(i) instanceof OdfTextParagraph) {
+								OdfTextParagraph paragraphChildNode = (OdfTextParagraph) itemChildNodes.item(i);
+								if (StringUtils.isBlank(paragraphChildNode.getTextContent())) {
+									// Se il paragrafo è vuoto lo aggiungo alla lista dei paragrafi da eliminare
+									listaNodiDaRimuovere.add(itemChildNodes.item(i));
+								} else { 
+								} 
+							} else if (itemChildNodes.item(i) != null && itemChildNodes.item(i) instanceof OdfTextList) {
+								// Se il paragrafo non è vuoto aggiorno il contatore
+								numTextListChildNode += 1;
+							} 
+						}
+					}
+					if (numTextListChildNode > 0) {
+						for (int i = 0; i < listaNodiDaRimuovere.size(); i++) {
+							odfListItem.removeChild(listaNodiDaRimuovere.get(i));
+						}
+					}
+					Iterator<org.odftoolkit.simple.text.list.List> sublistIterator = listItem.getListIterator();
+					if (StringUtils.isEmpty(listItem.getTextContent()) && (sublistIterator == null || !sublistIterator.hasNext())) {
+						listItem.remove();
+					} else if (sublistIterator.hasNext()) {
+						while (sublistIterator.hasNext()) {
+							eliminaItemParagrafiVuoti(sublistIterator.next());
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			logger.error("Errore in eliminaPrimoParagrafoVuoto: " + e.getMessage(), e); 
+		}
+	}
+	
+	private static void applicaStiliParagrafiEListeSuSezione(TextDocument odtModello, TextDocument odtFinale, String nomeSection, Map<String, TableStyleBean> mappaTablesStyle, Map<String, Object> listsStyle, Map<String, AttributeSet> paragraphsStyle, ModelliDocBean modelliDocBean, HttpSession session) throws Exception {
 		
 		String variabileFontName = null;
 		String variabileFontSize = null;
 		String variabileStyleName = null;
 		String variabileStyleSpiazzaturaTop = null;
 		String variabileStyleSpiazzaturaBottom = null;
+		String variabileStyleLineHeight = null;
+		String variabileStyleLineHeightAtLeast = null;
+		String variabileStyleLineSpacing = null;
 				
 		Section section = odtModello.getSectionByName(nomeSection);
 		Iterator<Paragraph> iterator = section != null ? section.getParagraphIterator() : null;
@@ -1378,6 +1649,9 @@ public class FreeMarkerModelliUtil {
 			Paragraph par = iterator.next();
 			// Recupero lo span contenete la variabile su cui iniettare il testo
 			StyleTextPropertiesElement styleText = null;
+			variabileStyleLineHeight = par.getOdfElement().getProperty(StyleParagraphPropertiesElement.LineHeight);
+			variabileStyleLineHeightAtLeast = par.getOdfElement().getProperty(StyleParagraphPropertiesElement.LineHeightAtLeast);
+			variabileStyleLineSpacing = par.getOdfElement().getProperty(StyleParagraphPropertiesElement.LineSpacing);
 			
 			if (par.getFrameContainerElement().getFirstChild() != null && par.getFrameContainerElement().getFirstChild() instanceof OdfTextSpan) {
 				try {
@@ -1510,11 +1784,11 @@ public class FreeMarkerModelliUtil {
 
 		// FIXME Se section finale è vuota cosa devo fare? Una volta è capitato ed è andato in errore per null pointer
 		if(sectionFinale != null) {
-			settaStyleInSection(sectionFinale, variabileFontName, variabileFontSize, variabileStyleName, variabileStyleSpiazzaturaTop, variabileStyleSpiazzaturaBottom, mappaTablesStyle, listsStyle, paragraphsStyle, session);
+			settaStyleInSection(sectionFinale, variabileFontName, variabileFontSize, variabileStyleName, variabileStyleSpiazzaturaTop, variabileStyleSpiazzaturaBottom, variabileStyleLineHeight, variabileStyleLineHeightAtLeast, variabileStyleLineSpacing, mappaTablesStyle, listsStyle, paragraphsStyle, session);
 		}
 	}
 	
-	private static void settaStyleInSection(Section sectionFinale, String variabileFontName, String variabileFontSize, String variabileStyleName, String variabileStyleSpiazzaturaTop, String variabileStyleSpiazzaturaBottom, Map<String, TableStyleBean> mappaTablesStyle, Map<String, Object> listsStyle, Map<String, AttributeSet> paragraphsStyle, HttpSession session) throws FreeMarkerCreateDocumentException {
+	private static void settaStyleInSection(Section sectionFinale, String variabileFontName, String variabileFontSize, String variabileStyleName, String variabileStyleSpiazzaturaTop, String variabileStyleSpiazzaturaBottom, String variabileStyleLineHeight, String variabileStyleLineHeightAtLeast, String variabileStyleLineSpacing, Map<String, TableStyleBean> mappaTablesStyle, Map<String, Object> listsStyle, Map<String, AttributeSet> paragraphsStyle, HttpSession session) throws FreeMarkerCreateDocumentException {
 		// Setto lo stile nei paragrafi dela section
 		Iterator<Paragraph> iteratorParagrafi = sectionFinale.getParagraphIterator();
 		List<Paragraph> listaParagrafiDaRimuovere = new ArrayList<>();
@@ -1535,14 +1809,21 @@ public class FreeMarkerModelliUtil {
 				odfParagraph.setProperty(StyleTextPropertiesElement.FontName, variabileFontName);
 				odfParagraph.setProperty(StyleTextPropertiesElement.FontNameAsian, variabileFontName);
 				odfParagraph.setProperty(StyleTextPropertiesElement.FontNameComplex, variabileFontName);
-				odfParagraph.setProperty(StyleTextPropertiesElement.FontSize, variabileFontSize + "pt");
-				odfParagraph.setProperty(StyleTextPropertiesElement.FontSizeAsian, variabileFontSize + "pt");
-				odfParagraph.setProperty(StyleTextPropertiesElement.FontSizeComplex, variabileFontSize + "pt");
+				odfParagraph.setProperty(StyleTextPropertiesElement.FontSize, variabileFontSize);
+				odfParagraph.setProperty(StyleTextPropertiesElement.FontSizeAsian, variabileFontSize);
+				odfParagraph.setProperty(StyleTextPropertiesElement.FontSizeComplex, variabileFontSize);
 				odfParagraph.setProperty(StyleParagraphPropertiesElement.MarginBottom, variabileStyleSpiazzaturaBottom);
 				odfParagraph.setProperty(StyleParagraphPropertiesElement.MarginTop, variabileStyleSpiazzaturaTop);
 				odfParagraph.setProperty(StyleParagraphPropertiesElement.KeepTogether, "auto");
 				odfParagraph.setProperty(StyleParagraphPropertiesElement.KeepWithNext, "auto");
-				odfParagraph.setProperty(StyleParagraphPropertiesElement.LineSpacing, "1");
+				if (variabileStyleLineHeight != null) {
+					odfParagraph.setProperty(StyleParagraphPropertiesElement.LineHeight, variabileStyleLineHeight);
+				} else if (variabileStyleLineHeightAtLeast != null){
+					odfParagraph.setProperty(StyleParagraphPropertiesElement.LineHeightAtLeast, variabileStyleLineHeightAtLeast);
+				} else if (variabileStyleLineSpacing != null) {
+					odfParagraph.setProperty(StyleParagraphPropertiesElement.LineSpacing, variabileStyleLineSpacing);
+				}
+//				odfParagraph.setProperty(StyleParagraphPropertiesElement.FontIndependentLineSpacing, "2cm");
 				
 				if (odfParagraph.getProperty(OdfParagraphProperties.TextAlign) == null) {
 					odfParagraph.setProperty(OdfParagraphProperties.TextAlign, "justify");
@@ -1570,7 +1851,13 @@ public class FreeMarkerModelliUtil {
 								odfChildParagraph.setProperty(StyleParagraphPropertiesElement.MarginTop, variabileStyleSpiazzaturaTop);
 								odfChildParagraph.setProperty(StyleParagraphPropertiesElement.KeepTogether, "auto");
 								odfChildParagraph.setProperty(StyleParagraphPropertiesElement.KeepWithNext, "auto");
-								odfChildParagraph.setProperty(StyleParagraphPropertiesElement.LineSpacing, "1");
+								if (variabileStyleLineHeight != null) {
+									odfChildParagraph.setProperty(StyleParagraphPropertiesElement.LineHeight, variabileStyleLineHeight);
+								} else if (variabileStyleLineHeightAtLeast != null){
+									odfChildParagraph.setProperty(StyleParagraphPropertiesElement.LineHeightAtLeast, variabileStyleLineHeightAtLeast);
+								} else if (variabileStyleLineSpacing != null) {
+									odfChildParagraph.setProperty(StyleParagraphPropertiesElement.LineSpacing, variabileStyleLineSpacing);
+								}
 							}
 						} catch (Exception e) {
 							logger.error("Errore nel cambio font nella sezione " + sectionFinale.getName(), e);
@@ -1673,9 +1960,23 @@ public class FreeMarkerModelliUtil {
 	    	// Se lista.getItems() è true non entro nel ciclo, quindi non mi devo preoccupare che style non sia stato inizializzato
 	    	for (ListItem listItem : listaItem) {
 	    		nItemListsModello++;
-	    		setListItemStyleInSection(sectionFinale, listItem, variabileFontName, variabileFontSize, variabileStyleSpiazzaturaBottom, variabileStyleSpiazzaturaTop, listsStyle, counterListBean, nItemListsModello, session, style, 0, 0);
+	    		setListItemStyleInSection(sectionFinale, listItem, variabileFontName, variabileFontSize, variabileStyleSpiazzaturaBottom, variabileStyleSpiazzaturaTop, variabileStyleLineHeight, variabileStyleLineHeightAtLeast, variabileStyleLineSpacing, listsStyle, counterListBean, nItemListsModello, session, style, 0, 0);
 			}
-	    }
+	    	
+	    	if (isAttivaIndentazione(session)) {
+	    		try {
+	    			correggiIndentazioneParagrafiLista(lista, sectionFinale);
+	    		} catch (Exception e) {
+	    			throw new FreeMarkerCreateDocumentException("Errore nella correzione dell'indentazione dei paragrafi nelle liste");
+				}
+	    	}
+		}
+		
+		iteratorListe = sectionFinale.getListIterator();
+		while (iteratorListe.hasNext()) {
+			eliminaItemParagrafiVuoti(iteratorListe.next());
+		}
+		
 		// Controllo che nelle liste le interruzioni di pagina siano presenti solamente alla fine di un item
 		iteratorListe = sectionFinale.getListIterator();
 		while (iteratorListe.hasNext()) {
@@ -1743,25 +2044,41 @@ public class FreeMarkerModelliUtil {
 		}
 	}
 	
+	private static String sommaMisureInCentimetri(String... addendi) {
+		float somma = 0;
+		for (int i = 0; i < addendi.length; i++) {
+			String valore = addendi[i].substring(0, addendi[i].length() - 2).replace(",", ".");
+			somma += Float.parseFloat(valore);
+		}
+		return (somma + "").replace(".", ".") + "cm";
+	}
+	
 	// Funzione che applica l'indentazione del paragrafo
 	private static void setParagraphIndentation(TextParagraphElementBase paragraph, Map<String, AttributeSet> paragraphsStyle, String sectionName) {
 		if (paragraphsStyle != null && !paragraphsStyle.isEmpty()) {
+			// Estraggo il testo del paragrafo
 			String paragraphTextContent = paragraph.getTextContent();
+			// Cerco l'inizio dell'etichetta che ho utilizzato quando ho salvato il suo stile
 			int parIdStartIndex = paragraphTextContent.indexOf("%#");
 			int parIdEndIndex = -1;
 			boolean termineEleaborazioneParagrafo = false;
 			while (!termineEleaborazioneParagrafo) {
 				if (parIdStartIndex > -1) {
+					// Cerco la fine dell'etichetta
 					parIdEndIndex = paragraphTextContent.indexOf(sectionName, parIdStartIndex);
 					if (parIdEndIndex > -1) {
+						// Estraggo la probabile etichetta
 						String parId = paragraphTextContent.substring(parIdStartIndex, parIdEndIndex + sectionName.length());
+						// Verifico se l'etichetta è presente nela mappa. Se non è presente allora non ho estratto un'etichetta inserita per la gestione dell'identazione e non faccio nulla
 						if (paragraphsStyle.containsKey(parId)) {
+							// Elimino l'etichetta dal testo del paragrafo
 							TextImpl textNodeWithParId = getTextImplNodeWithParagraphKey(paragraph, parId);
 							if (textNodeWithParId != null) {
 								textNodeWithParId.setTextContent(textNodeWithParId.getTextContent().replace(parId, ""));
 							} else {
 								paragraph.setTextContent(paragraphTextContent.replace(parId, ""));
 							}
+							// Setto lo stile nel paragrafo
 							AttributeSet paragraphAttributeSet = paragraphsStyle.get(parId);
 							Object marginLeft = paragraphAttributeSet.getAttribute(CSS.Attribute.MARGIN_LEFT);
 							if (marginLeft != null) {
@@ -1769,6 +2086,7 @@ public class FreeMarkerModelliUtil {
 							}
 							termineEleaborazioneParagrafo = true;
 						} else {
+							// Continuo a cercare l'etichetta all'interno del paragrafo
 							parIdStartIndex = paragraphTextContent.indexOf("%#", parIdStartIndex + 1);
 						}
 					} else {
@@ -1803,8 +2121,7 @@ public class FreeMarkerModelliUtil {
 	}
 	
 	//Funzione che applica il carattere alle liste delle liste ricorsivamente
-	private static void setListItemStyleInSection(Section sectionFinale, ListItem listItem, String variabileFontName, String variabileFontSize, String variabileStyleSpiazzaturaBottom, String variabileStyleSpiazzaturaTop, Map<String, Object> listsStyle, CountersListsBean counterListBean, int nItemListsModello, HttpSession session, AttributeSet stileLista, int margineSinistroListaPadre, int livelloLista) {
-
+	private static void setListItemStyleInSection(Section sectionFinale, ListItem listItem, String variabileFontName, String variabileFontSize, String variabileStyleSpiazzaturaBottom, String variabileStyleSpiazzaturaTop, String variabileStyleLineHeight, String variabileStyleLineHeightAtLeast, String variabileStyleLineSpacing, Map<String, Object> listsStyle, CountersListsBean counterListBean, int nItemListsModello, HttpSession session, AttributeSet stileLista, int margineSinistroListaPadre, int livelloLista) {
 		if (listItem != null && listItem.getOdfElement() != null && listItem.getOdfElement().getFirstChild() != null && listItem.getOdfElement().getFirstChild() instanceof OdfTextParagraph) {
 			
 			for (int i = 0; i < listItem.getOdfElement().getFirstChild().getChildNodes().getLength(); i++) {
@@ -1845,15 +2162,20 @@ public class FreeMarkerModelliUtil {
 			listTextParagraph.setProperty(StyleTextPropertiesElement.FontName, variabileFontName);
 			listTextParagraph.setProperty(StyleTextPropertiesElement.FontNameAsian, variabileFontName);
 			listTextParagraph.setProperty(StyleTextPropertiesElement.FontNameComplex, variabileFontName);
-			listTextParagraph.setProperty(StyleTextPropertiesElement.FontSize, variabileFontSize + "pt");
-			listTextParagraph.setProperty(StyleTextPropertiesElement.FontSizeAsian, variabileFontSize + "pt");
-			listTextParagraph.setProperty(StyleTextPropertiesElement.FontSizeComplex, variabileFontSize + "pt");
+			listTextParagraph.setProperty(StyleTextPropertiesElement.FontSize, variabileFontSize);
+			listTextParagraph.setProperty(StyleTextPropertiesElement.FontSizeAsian, variabileFontSize);
+			listTextParagraph.setProperty(StyleTextPropertiesElement.FontSizeComplex, variabileFontSize);
 //			listTextParagraph.setProperty(StyleParagraphPropertiesElement.MarginBottom, variabileStyleSpiazzaturaBottom);
 //			listTextParagraph.setProperty(StyleParagraphPropertiesElement.MarginTop, variabileStyleSpiazzaturaTop);
 			listTextParagraph.setProperty(StyleParagraphPropertiesElement.KeepTogether, "auto");
 			listTextParagraph.setProperty(StyleParagraphPropertiesElement.KeepWithNext, "auto");
-			listTextParagraph.setProperty(StyleParagraphPropertiesElement.LineSpacing, "1");
-
+			if (variabileStyleLineHeight != null) {
+				listTextParagraph.setProperty(StyleParagraphPropertiesElement.LineHeight, variabileStyleLineHeight);
+			} else if (variabileStyleLineHeightAtLeast != null){
+				listTextParagraph.setProperty(StyleParagraphPropertiesElement.LineHeightAtLeast, variabileStyleLineHeightAtLeast);
+			} else if (variabileStyleLineSpacing != null) {
+				listTextParagraph.setProperty(StyleParagraphPropertiesElement.LineSpacing, variabileStyleLineSpacing);
+			}
 			Iterator<org.odftoolkit.simple.text.list.List> iteratorListe = listItem.getListIterator();
 			while (iteratorListe.hasNext()) {
 				org.odftoolkit.simple.text.list.List lista = iteratorListe.next();
@@ -1877,7 +2199,7 @@ public class FreeMarkerModelliUtil {
 				java.util.List<ListItem> listaItem = lista.getItems();
 				for (ListItem subListItem : listaItem) {
 					nItemListsModello++;
-					setListItemStyleInSection(sectionFinale, subListItem, variabileFontName, variabileFontSize, variabileStyleSpiazzaturaBottom, variabileStyleSpiazzaturaTop, listsStyle, counterListBean, nItemListsModello, session, style, margineSinistroListaPadre, livelloLista + 1);
+					setListItemStyleInSection(sectionFinale, subListItem, variabileFontName, variabileFontSize, variabileStyleSpiazzaturaBottom, variabileStyleSpiazzaturaTop, variabileStyleLineHeight, variabileStyleLineHeightAtLeast, variabileStyleLineSpacing, listsStyle, counterListBean, nItemListsModello, session, style, margineSinistroListaPadre, livelloLista + 1);
 				}
 			}
 		}
@@ -1987,6 +2309,95 @@ public class FreeMarkerModelliUtil {
         }		
 	}
 	
+	private static XComponent openOdfFileAndCreateXComponent(final File fileOdtWithValues) throws Exception {
+		ExecutorService executor = Executors.newCachedThreadPool();
+		Callable<Object> createXComponentTask = new Callable<Object>() {
+
+			public Object call() {
+				try {
+					XComponentContext lXLocalContext = com.sun.star.comp.helper.Bootstrap.createInitialComponentContext(null);
+					XMultiComponentFactory lXLocalServiceManager = lXLocalContext.getServiceManager();
+					Object lUrlResolver  = lXLocalServiceManager.createInstanceWithContext("com.sun.star.bridge.UnoUrlResolver", lXLocalContext);
+					XUnoUrlResolver xUnoUrlResolver = (XUnoUrlResolver) UnoRuntime.queryInterface(XUnoUrlResolver.class,lUrlResolver);
+					boolean openOfficeConnected = false;
+					Object initialObject = null;
+					OpenOfficeConfiguration lOpenOfficeConfiguration = null;
+					if (SpringAppContext.getContext().containsBean("unoofficemanager")) {
+						lOpenOfficeConfiguration = (OpenOfficeConfiguration)SpringAppContext.getContext().getBean("unoofficemanager");
+					} else {
+						lOpenOfficeConfiguration = (OpenOfficeConfiguration)SpringAppContext.getContext().getBean("officemanager");
+					}
+					Iterator<OpenOfficeInstance> openOfficeInstanceIterator = lOpenOfficeConfiguration.getInstances().iterator();
+					while (openOfficeInstanceIterator.hasNext() && !openOfficeConnected) {
+						OpenOfficeInstance lOpenOfficeInstance = openOfficeInstanceIterator.next();
+						String openOfficeHost = lOpenOfficeInstance.getHost();
+						List<String> openOfficePortList = lOpenOfficeInstance.getPortList();
+						for (String openOfficePort : openOfficePortList) {
+					        try {
+					        	initialObject = xUnoUrlResolver.resolve("uno:socket,host=" + openOfficeHost + ",port=" + openOfficePort + ";urp;StarOffice.ServiceManager");
+					        	openOfficeConnected = true;
+					        	break;
+					        } catch (Exception e) {
+					        	logger.error("Conessione openoffice fallita su host " + openOfficeHost + " e porta " + openOfficePort + " . Verifico su porta successiva.");
+					        }
+						}
+					}
+					if (!openOfficeConnected || initialObject == null) {
+						logger.error("Impossibile creare una connessione tra le librerie UNO e OpenOffice.");
+						return null;
+					}
+					XPropertySet lXPropertySet = (XPropertySet) UnoRuntime.queryInterface(XPropertySet.class, initialObject);
+					XComponentContext lXComponentContext = (XComponentContext) UnoRuntime.queryInterface(XComponentContext.class, lXPropertySet.getPropertyValue("DefaultContext"));
+					XMultiComponentFactory lXMultiComponentFactory = lXComponentContext.getServiceManager();
+					Object lDesktop = lXMultiComponentFactory.createInstanceWithContext("com.sun.star.frame.Desktop", lXComponentContext);
+					XComponentLoader lXComponentLoader = (XComponentLoader)UnoRuntime.queryInterface(XComponentLoader.class, lDesktop);
+					XComponent lXComponent = lXComponentLoader.loadComponentFromURL(toUrl(fileOdtWithValues), "_blank", 0, new PropertyValue[0]);
+					return lXComponent;
+				} catch (Exception e) {
+					logger.error("Errore nell'inzializzazione delle librerie UNO.", e);
+					return null;
+				}
+			}
+		};
+		
+		Future<Object> future = executor.submit(createXComponentTask);
+		XComponent lXComponent = null;
+		try {
+			lXComponent = (XComponent) future.get(10, TimeUnit.SECONDS);
+		} catch (Exception e) {
+			logger.error("Errore nel Callable della creazione dell'XComponent delle librerie UNO.", e);
+		} finally {
+			future.cancel(true);
+		}
+		if (lXComponent == null) {
+			logger.error("Errore nella creazione dell'XComponent delle librerie UNO");
+			throw new FreeMarkerCreateDocumentException("Errore nell''iniezione dei dati nel modello tramite la libreria UNO.");
+		}
+		return lXComponent; 
+		
+	}
+	
+	private static void storeOdfFileAndDisposeXComponet(XComponent lXComponent) throws com.sun.star.io.IOException {
+		XStorable xStore = (XStorable) UnoRuntime.queryInterface(com.sun.star.frame.XStorable.class, lXComponent); 
+        xStore.store();
+        XModel lXModel = (com.sun.star.frame.XModel) UnoRuntime.queryInterface(XModel.class, lXComponent);
+        if (lXModel != null) {
+			XCloseable xCloseable = (XCloseable) UnoRuntime.queryInterface(XCloseable.class, lXModel);
+			if (xCloseable != null) {
+				try {
+					xCloseable.close(true);
+				} catch (Exception exCloseVeto) {
+				}
+			} else {
+				try {
+					XComponent lXComponent2 = (XComponent) UnoRuntime.queryInterface(XComponent.class, lXModel);
+					lXComponent2.dispose();
+				} catch (Exception exModifyVeto) {
+				}
+			}
+		}
+	}
+	
 	private static void iniettaDocxInHtmlSections(Map<String, String> fileSectionsModel, File fileOdtWithValues, HttpSession session) throws Exception {
 		// Pulisco le sezioni dove inittare i dati
 		OdfPackage odfPackage = null;
@@ -2023,59 +2434,12 @@ public class FreeMarkerModelliUtil {
         		} catch (Exception e) {}         		
         	}        	
         }
-		
-		// Inietto i file odt
-		XComponentContext lXLocalContext = com.sun.star.comp.helper.Bootstrap.createInitialComponentContext(null);
-        XMultiComponentFactory lXLocalServiceManager = lXLocalContext.getServiceManager();
-        Object lUrlResolver  = lXLocalServiceManager.createInstanceWithContext("com.sun.star.bridge.UnoUrlResolver", lXLocalContext);
-        XUnoUrlResolver xUnoUrlResolver = (XUnoUrlResolver) UnoRuntime.queryInterface(XUnoUrlResolver.class,lUrlResolver);
-        boolean openOfficeConnected = false;
-        Object initialObject = null;
-        OpenOfficeConfiguration lOpenOfficeConfiguration = (OpenOfficeConfiguration)SpringAppContext.getContext().getBean("officemanager");
-        Iterator<OpenOfficeInstance> openOfficeInstanceIterator = lOpenOfficeConfiguration.getInstances().iterator();
-        while (openOfficeInstanceIterator.hasNext() && !openOfficeConnected) {
-        	OpenOfficeInstance lOpenOfficeInstance = openOfficeInstanceIterator.next();
-        	String openOfficeHost = lOpenOfficeInstance.getHost();
-        	List<String> openOfficePortList = lOpenOfficeInstance.getPortList();
-        	for (String openOfficePort : openOfficePortList) {
-		        try {
-		        	initialObject = xUnoUrlResolver.resolve("uno:socket,host=" + openOfficeHost + ",port=" + openOfficePort + ";urp;StarOffice.ServiceManager");
-		        	openOfficeConnected = true;
-		        	break;
-		        } catch (Exception e) {
-		        	logger.error("Conessione openoffice fallita su host " + openOfficeHost + " e porta " + openOfficePort, e);
-		        }
-			}
-		}
-        if (!openOfficeConnected || initialObject == null) {
-        	throw new FreeMarkerCreateDocumentException("Errore nell''iniezione del documento nel modello");
-        }
-        XPropertySet lXPropertySet = (XPropertySet) UnoRuntime.queryInterface(XPropertySet.class, initialObject);
-        XComponentContext lXComponentContext = (XComponentContext) UnoRuntime.queryInterface(XComponentContext.class, lXPropertySet.getPropertyValue("DefaultContext"));
 
-        XMultiComponentFactory lXMultiComponentFactory = lXComponentContext.getServiceManager();
-        Object lDesktop = lXMultiComponentFactory.createInstanceWithContext("com.sun.star.frame.Desktop", lXComponentContext);
-        
-        XComponentLoader lXComponentLoader = (XComponentLoader)UnoRuntime.queryInterface(XComponentLoader.class, lDesktop);
-        
-//		XMultiServiceFactory xmultiservicefactoryServiceManager = com.sun.star.comp.helper.Bootstrap.createSimpleServiceManager();
-//
-//		Object objectConnector = xmultiservicefactoryServiceManager.createInstance("com.sun.star.connection.Connector");
-//		XConnector xconnector = (XConnector) UnoRuntime.queryInterface(XConnector.class, objectConnector);
-//		XConnection xconnection = xconnector.connect("socket, host=localhost,port=8100");
-//		String stringRootOid = "StarOffice.NamingService";
-//		com.sun.star.uno.IBridge ibridge = UnoRuntime.getBridgeByName("java", null, "remote", null, new Object[] { "urp", xconnection, null });
-//		Object objectInitial = ibridge.mapInterfaceFrom(stringRootOid, new com.sun.star.uno.Type(XInterface.class));
-//		XNamingService xnamingservice = (XNamingService) UnoRuntime.queryInterface(XNamingService.class, objectInitial);
-//		if (xnamingservice != null) {
-//			Object objectServiceManager = xnamingservice.getRegisteredObject("StarOffice.ServiceManager");
-//			XMultiServiceFactory xmultiservicefactory = (XMultiServiceFactory) UnoRuntime.queryInterface(XMultiServiceFactory.class, objectServiceManager);
-//		}
-        	
-		XComponent lXComponent = lXComponentLoader.loadComponentFromURL(toUrl(fileOdtWithValues), "_blank", 0, new PropertyValue[0]);
-        
+		XComponent lXComponent = openOdfFileAndCreateXComponent(fileOdtWithValues);
+ 
         XTextDocument lXTextDocument = (XTextDocument) UnoRuntime.queryInterface(XTextDocument.class, lXComponent);
-                
+        
+        // Inietto i file odt
         for(String nomeVariabile : fileSectionsModel.keySet()) {
         	
         	XSearchable lXReplaceable = (XSearchable) UnoRuntime.queryInterface(XSearchable.class, lXTextDocument);
@@ -2107,26 +2471,105 @@ public class FreeMarkerModelliUtil {
         }
         
         //Salvo il documento
-        XStorable xStore = (XStorable) UnoRuntime.queryInterface(com.sun.star.frame.XStorable.class, lXComponent); 
-        xStore.store();
-        
-        XModel lXModel = (com.sun.star.frame.XModel) UnoRuntime.queryInterface(XModel.class, lXComponent);
-        if (lXModel != null) {
-			XCloseable xCloseable = (XCloseable) UnoRuntime.queryInterface(XCloseable.class, lXModel);
-			if (xCloseable != null) {
-				try {
-					xCloseable.close(true);
-				} catch (Exception exCloseVeto) {
-				}
-			} else {
-				try {
-					XComponent lXComponent2 = (XComponent) UnoRuntime.queryInterface(XComponent.class, lXModel);
-					lXComponent2.dispose();
-				} catch (Exception exModifyVeto) {
+        storeOdfFileAndDisposeXComponet(lXComponent);
+	}
+	
+	private static void replaceAllStringInOdt(File fileOdtWithValues, List<ReplacementItem> listStringToReplace, HttpSession session) throws Exception {
+		if (listStringToReplace != null && !listStringToReplace.isEmpty()) {
+			XComponent lXComponent = openOdfFileAndCreateXComponent(fileOdtWithValues);
+	        XTextDocument lXTextDocument = (XTextDocument) UnoRuntime.queryInterface(XTextDocument.class, lXComponent);
+			for (ReplacementItem lReplacementItem : listStringToReplace) {
+				String stringaDaCercare = lReplacementItem.getStringToReplace();
+				String stringaConCuiSostituire = lReplacementItem.getStringReplacement();
+		        XReplaceable lXReplaceable = (XReplaceable) UnoRuntime.queryInterface(XReplaceable.class, lXTextDocument);
+		        XReplaceDescriptor lXReplaceDescriptor  = lXReplaceable.createReplaceDescriptor();
+		        lXReplaceDescriptor.setSearchString(stringaDaCercare);
+		        lXReplaceDescriptor.setReplaceString(stringaConCuiSostituire);
+		        PropertyValue[] aReplaceArgs = lReplacementItem.getReplaceProperty();
+		        XPropertyReplace xPropRepl = (XPropertyReplace) UnoRuntime.queryInterface(XPropertyReplace.class, lXReplaceDescriptor);
+		        xPropRepl.setReplaceAttributes(aReplaceArgs);
+		        
+		        lXReplaceable.replaceAll(lXReplaceDescriptor);
+			}
+			//Salvo il documento
+	        storeOdfFileAndDisposeXComponet(lXComponent);   
+		}
+	}
+	
+	private static void inserisciFootnoteModificaTesto(File fileOdtWithValues, HttpSession session) throws Exception {
+		boolean footnoteInserite = false;
+		XComponent lXComponent = openOdfFileAndCreateXComponent(fileOdtWithValues);
+        XTextDocument lXTextDocument = (XTextDocument) UnoRuntime.queryInterface(XTextDocument.class, lXComponent);
+        XMultiServiceFactory mxDocFactory = (XMultiServiceFactory) UnoRuntime.queryInterface(XMultiServiceFactory.class, lXTextDocument);
+        //Evidenzio il testo da settare come nota
+        XSearchable lXReplaceable = (XSearchable) UnoRuntime.queryInterface(XSearchable.class, lXTextDocument);
+		XSearchDescriptor lXSearchDescriptor = lXReplaceable.createSearchDescriptor();
+		lXSearchDescriptor.setSearchString("(" + PLACEHOLDER_NOTA_AGGIUNTA + "|" + PLACEHOLDER_NOTA_MODIFICA + "|" + PLACEHOLDER_NOTA_STRALCIO + ")");
+		lXSearchDescriptor.setPropertyValue("SearchRegularExpression", true);
+		XIndexAccess  lXIndexAccessNoteDaInserire  = (XIndexAccess) lXReplaceable.findAll(lXSearchDescriptor);
+		if (lXIndexAccessNoteDaInserire != null && lXIndexAccessNoteDaInserire.getCount() > 0) {
+			footnoteInserite = true;
+			for (int i = 0; i < lXIndexAccessNoteDaInserire.getCount(); i++) {
+				XTextRange lXTextRangeTestoDaReferenziare = (XTextRange) UnoRuntime.queryInterface(XTextRange.class, lXIndexAccessNoteDaInserire.getByIndex(i));
+				String testoTRovato = lXTextRangeTestoDaReferenziare.getString();
+				// In base al testo trovato setto la nota
+				if (StringUtils.isNotBlank(testoTRovato)) {
+					String testoNota = "";
+					switch (testoTRovato) {
+					case PLACEHOLDER_NOTA_AGGIUNTA:
+						testoNota = TESTO_NOTA_AGGIUNTA;
+						break;
+					case PLACEHOLDER_NOTA_MODIFICA:
+						testoNota = TESTO_NOTA_MODIFICA;
+						break;
+					case PLACEHOLDER_NOTA_STRALCIO:
+						testoNota = TESTO_NOTA_STRALCIO;
+						break;
+					default:
+						break;
+					}
+					XTextCursor lXTextCursorTestoDaReferenziare = lXTextRangeTestoDaReferenziare.getText().createTextCursorByRange(lXTextRangeTestoDaReferenziare);
+					XPropertySet xCursorPropsTestoDaReferenziare = (XPropertySet) UnoRuntime.queryInterface(XPropertySet.class, lXTextCursorTestoDaReferenziare);
+					Object charFontName = xCursorPropsTestoDaReferenziare.getPropertyValue("CharFontName");
+					Object charFontStyleName = xCursorPropsTestoDaReferenziare.getPropertyValue("CharFontStyleName");
+					Object charFontFamily = xCursorPropsTestoDaReferenziare.getPropertyValue("CharFontFamily");
+					Object charFontPitch = xCursorPropsTestoDaReferenziare.getPropertyValue("CharFontPitch");
+							
+				    XFootnote xFootnote = (XFootnote) UnoRuntime.queryInterface( XFootnote.class, mxDocFactory.createInstance ( "com.sun.star.text.Footnote" ) );				  
+				    XTextContent xContentFootnote = (XTextContent) UnoRuntime.queryInterface(XTextContent.class, xFootnote);
+				    lXTextDocument.getText().insertTextContent(lXTextRangeTestoDaReferenziare, xContentFootnote, false);
+				    
+				    XSimpleText xSimpleFootnote = (XSimpleText) UnoRuntime.queryInterface (XSimpleText.class, xFootnote);
+			        XTextRange xRangeFootnote = (XTextRange) UnoRuntime.queryInterface (XTextRange.class, xSimpleFootnote.createTextCursor() );
+			        XTextCursor lXTextCursorFootnote = xRangeFootnote.getText().createTextCursorByRange(xRangeFootnote);
+			        XPropertySet xCursorPropsFootnote = (XPropertySet) UnoRuntime.queryInterface(XPropertySet.class, lXTextCursorFootnote);
+			        xCursorPropsFootnote.setPropertyValue("CharFontName", charFontName);
+			        xCursorPropsFootnote.setPropertyValue("CharFontStyleName", charFontStyleName);
+			        xCursorPropsFootnote.setPropertyValue("CharFontFamily", charFontFamily);
+			        xCursorPropsFootnote.setPropertyValue("CharFontPitch", charFontPitch);
+			        xSimpleFootnote.insertString (xRangeFootnote, testoNota, false );
 				}
 			}
 		}
-
+        //Salvo il documento
+        storeOdfFileAndDisposeXComponet(lXComponent);
+        if (footnoteInserite) {
+        	PropertyValue[] aReplaceArgs = new PropertyValue[2];
+	        aReplaceArgs[0] = new PropertyValue();
+	        aReplaceArgs[0].Name = "CharFontName";
+	        aReplaceArgs[0].Value = "Arial";
+	        aReplaceArgs[1] = new PropertyValue();
+	        aReplaceArgs[1].Name = "CharHeight";
+	        aReplaceArgs[1].Value = 1;
+	        ReplacementItem replacementAgg = new ReplacementItem(PLACEHOLDER_NOTA_AGGIUNTA, "", aReplaceArgs);
+	        ReplacementItem replacementMod = new ReplacementItem(PLACEHOLDER_NOTA_MODIFICA, "", aReplaceArgs);
+	        ReplacementItem replacementStr = new ReplacementItem(PLACEHOLDER_NOTA_STRALCIO, "", aReplaceArgs);
+			List<ReplacementItem> listReplacement = new ArrayList<>();
+			listReplacement.add(replacementAgg);
+			listReplacement.add(replacementMod);
+			listReplacement.add(replacementStr);
+        	replaceAllStringInOdt(fileOdtWithValues, listReplacement, session);
+		}
 	}
 	
 	private static TextSectionElement getSectionByName(OdfDocument odfDocument, String name) {
@@ -2163,7 +2606,7 @@ public class FreeMarkerModelliUtil {
 			OpenOfficeConverter.newInstance().convertByOutExt(templateOdtWithValues, "application/vnd.oasis.opendocument.text", templatePdfWithValues, "pdf");
 		} catch (Exception e) {
 			logger.error("Errore durante la conversione con OpenOffice", e);
- 			throw new StoreException("Il servizio di conversione in pdf del testo è momentaneamente non disponibile. Se il problema persiste contattare l'assistenza");
+ 			throw new Exception("Il servizio di conversione in pdf del testo è momentaneamente non disponibile. Se il problema persiste contattare l'assistenza");
 		}
 		
 		if (generaPdfa) {
@@ -2632,7 +3075,7 @@ public class FreeMarkerModelliUtil {
 	}
 	
 	public static String getHtmlModelValue(Object value) {
-		return value != null ? ModelliDocDatasource.HTML_VALUE_PREFIX + String.valueOf(value) : "";
+		return value != null ? HTML_VALUE_PREFIX + String.valueOf(value) : "";
 	}
 	
 	private static RenderedImageSource getImageModelValue(Object value, HttpSession session) throws IOException {

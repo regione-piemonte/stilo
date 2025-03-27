@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="ISO-8859-1"?>
-	<ModifyAttrCustom>
-		<NomeAttributo>ATTR_WS_PROVA</NomeAttributo>
-		<DatiDaAggiornare>
-			<Label>Progettista</Label>
-			<Tipo>Strutturato</Tipo>
-		</DatiDaAggiornare>
-	</ModifyAttrCustom>

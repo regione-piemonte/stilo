@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.firmaHsm.datasource;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,14 +70,12 @@ public class FirmaHsmDataSource extends AbstractDataSource<FirmaHsmBean, FirmaHs
 	}
 	
 	public FirmaHsmBean richiediCodiceOtp(FirmaHsmBean bean) {
-		// Ricavo il tipo hsm con cui effettuare la firma HSM
-		String tipoHsm = getTipoHsm(bean.getProviderHsmFromPreference());
-		bean.setHsmType(tipoHsm);
-
-		// Richiedo il codice OTP
-		OtpResponseBean otpResponseBean = new OtpResponseBean();
 		try {
-			otpResponseBean = HsmBaseUtility.richiediCodiceOTP(bean, getSession());
+			// Ricavo il tipo hsm con cui effettuare la firma HSM
+			String tipoHsm = HsmBaseUtility.getTipoHsm(bean.getProviderHsmFromPreference(), true, getSession());
+			bean.setHsmType(tipoHsm);
+			// Richiedo il codice OTP
+			OtpResponseBean otpResponseBean = HsmBaseUtility.richiediCodiceOTP(bean, getSession());
 			bean.setEsitoOk(true);
 		} catch (Exception e) {
 			AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo(getSession());
@@ -99,14 +98,12 @@ public class FirmaHsmDataSource extends AbstractDataSource<FirmaHsmBean, FirmaHs
 	}
 	
 	public FirmaHsmBean richiediListaCertificati(FirmaHsmBean bean) {
-		// Ricavo il tipo hsm con cui effettuare la firma HSM
-		String tipoHsm = getTipoHsm(bean.getProviderHsmFromPreference());
-		bean.setHsmType(tipoHsm);
-
-		// Richiedo la lista dei certificati
-		CertResponseBean certResponseBean = new CertResponseBean();
 		try {
-			certResponseBean = HsmBaseUtility.richiediListaCertificati(bean, getSession());
+			// Ricavo il tipo hsm con cui effettuare la firma HSM
+			String tipoHsm = HsmBaseUtility.getTipoHsm(bean.getProviderHsmFromPreference(), true, getSession());
+			bean.setHsmType(tipoHsm);
+			// Richiedo la lista dei certificati
+			CertResponseBean certResponseBean = HsmBaseUtility.richiediListaCertificati(bean, getSession());
 			List<CertificatoHsmBean> listaCertificatiHsm = new ArrayList<CertificatoHsmBean>();
 			if ((certResponseBean.getCertList() != null) || (certResponseBean.getCertList().size() > 0)){
 				for (CertBean certBean : certResponseBean.getCertList()) {
@@ -155,7 +152,7 @@ public class FirmaHsmDataSource extends AbstractDataSource<FirmaHsmBean, FirmaHs
 
 	public FirmaHsmBean firmaHsmMultipla(FirmaHsmBean bean) throws Exception {
 		// Ricavo il tipo hsm con cui effettuare la firma HSM
-		String tipoHsm = getTipoHsm(bean.getProviderHsmFromPreference());
+		String tipoHsm = HsmBaseUtility.getTipoHsm(bean.getProviderHsmFromPreference(), true, getSession());
 		bean.setHsmType(tipoHsm);
 		
 		boolean firmaAvanzamentoIterAtti = Boolean.parseBoolean(getExtraparams().get("FIRMA_AVANZAMENTO_ITER_ATTI"));
@@ -164,6 +161,16 @@ public class FirmaHsmDataSource extends AbstractDataSource<FirmaHsmBean, FirmaHs
 		boolean skipControlloFirmaBusta = Boolean.parseBoolean(getExtraparams().get("skipControlloFirmaBusta"));
 		bean.setSkipControlloFirmaBusta(skipControlloFirmaBusta);
 		try {
+			if (bean.getListaFileDaFirmare() != null) {
+				AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo(getSession());
+				if (loginBean != null){
+					String logFirmaHsmMultipla = "(UtenteLoggato: " + loginBean.getDenominazione() + ", Delega: " + loginBean.getDelegaDenominazione() + ") Chiamata a firmaHsmMultipla per i file ";
+					for (FileDaFirmare fileDaFirmareDaLista : bean.getListaFileDaFirmare()) {
+						logFirmaHsmMultipla += "[" + fileDaFirmareDaLista.getNomeFile() + " " + fileDaFirmareDaLista.getUri() + "]";
+					}
+					log.debug(logFirmaHsmMultipla);
+				}
+			}
 			if (isFirmaSuImpronta) {
 				bean = HsmBaseUtility.firmaMultiplaHash(bean, getSession());
 			} else {
@@ -304,6 +311,8 @@ public class FirmaHsmDataSource extends AbstractDataSource<FirmaHsmBean, FirmaHs
 		Hsm hsmClient = HsmClientFactory.getHsmClient(getSession(), bean);
 		if (Boolean.valueOf(hsmClient.getHsmConfig().getClientConfig().getFirmaRemotaConPassaggioFile())) {
 			// Si tratta di una firma su file, cambio tutti i tipi
+			// Non viene cambiato il tipo firma per HASH_CADES_CONGIUNTA e HASH_CADES_VERTICALE, se si corregge questa parte bisogna sistemare anche 
+			// il metodo firmaMultiplaFile di HsmBaseUtility
 			isFirmaSuImpronta = false;
 			for (FileDaFirmare fileDaFirmare : listaFileDaFirmare) {
 				if (TipoFirmaHsm.HASH_PADES.equals(fileDaFirmare.getTipoFirmaHsm())) {
@@ -316,29 +325,6 @@ public class FirmaHsmDataSource extends AbstractDataSource<FirmaHsmBean, FirmaHs
 			}
 		}
 		return isFirmaSuImpronta;
-	}
-	
-	private String getTipoHsm(String providerHsm) {
-		String xmlParametriHsm;
-		if (StringUtils.isNotBlank(providerHsm)) {
-			xmlParametriHsm = ParametriDBUtil.getParametroDB(getSession(), "HSM_PARAMETERS_" + providerHsm);
-		} else {
-			xmlParametriHsm = ParametriDBUtil.getParametroDB(getSession(), "HSM_PARAMETERS");
-		}
-		
-		XmlUtilityDeserializer lXmlUtility = new XmlUtilityDeserializer();
-		try {
-			ClientConfig clientConfig = lXmlUtility.unbindXml(xmlParametriHsm, ClientConfig.class);
-			
-			if (StringUtils.isNotBlank(clientConfig.getHsmType())) {
-				return clientConfig.getHsmType();
-			} else {
-				return ParametriDBUtil.getParametroDB(getSession(), "TIPO_HSM");
-			}
-		} catch(Exception e) {
-			log.error("Errore nel recupero di ClientConfig per determinare il providerHsm. Uso quello nel parametro DB TIPO_HSM", e);
-			return ParametriDBUtil.getParametroDB(getSession(), "TIPO_HSM");
-		}
 	}
 
 }

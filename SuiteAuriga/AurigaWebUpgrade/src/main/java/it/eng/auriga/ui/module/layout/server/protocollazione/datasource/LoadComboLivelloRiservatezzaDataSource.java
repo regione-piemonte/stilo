@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource;
 
 
 import it.eng.auriga.database.store.dmpk_load_combo.bean.DmpkLoadComboDmfn_load_comboBean;
@@ -28,6 +29,7 @@ public class LoadComboLivelloRiservatezzaDataSource extends AbstractFetchDataSou
 			throws Exception {
 		
 		String uoProtocollante = StringUtils.isNotBlank(getExtraparams().get("uoProtocollante")) ? getExtraparams().get("uoProtocollante") : "";
+		boolean isBozza = getExtraparams().get("isBozza") != null && "true".equals(getExtraparams().get("isBozza"));
 		
 		DmpkLoadComboDmfn_load_comboBean lDmpkLoadComboDmfn_load_comboBean = new DmpkLoadComboDmfn_load_comboBean();
 		
@@ -37,7 +39,10 @@ public class LoadComboLivelloRiservatezzaDataSource extends AbstractFetchDataSou
 		String altriParametri = "ID_USER_LAVORO|*|" + (AurigaUserUtil.getLoginInfo(getSession()).getIdUserLavoro() != null ? AurigaUserUtil.getLoginInfo(getSession()).getIdUserLavoro() : "") + "|*|DICTIONARY_ENTRY|*|LIV_RISERVATEZZA";
 		if (StringUtils.isNotBlank(uoProtocollante)) {					
 			altriParametri += "|*|ID_UO|*|" + (uoProtocollante.startsWith("UO") ? uoProtocollante.substring(2) : uoProtocollante);
-		}		
+		}
+		if (isBozza) {
+			altriParametri += "|*|FLG_BOZZA|*|1";
+		}
 		lDmpkLoadComboDmfn_load_comboBean.setAltriparametriin(altriParametri);
 
 		StoreResultBean<DmpkLoadComboDmfn_load_comboBean> lStoreResultBean =  lDmpkLoadComboDmfn_load_combo.execute(getLocale(), AurigaUserUtil.getLoginInfo(getSession()), lDmpkLoadComboDmfn_load_comboBean);

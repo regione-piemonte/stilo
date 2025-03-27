@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.restresource;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -824,6 +825,7 @@ public class AlboPretorioRestService{
 		alboUDBean.setTsPubblicazione(pAttoXmlBean.getTsPubblicazione());
 		alboUDBean.setFlgImmediatamenteEsegiubile(pAttoXmlBean.getFlgImmediatamenteEsegiubile());
 		alboUDBean.setDataAdozione(pAttoXmlBean.getDataAdozione());
+		alboUDBean.setIdDocType(pAttoXmlBean.getIdDocType());
 		return alboUDBean;
 	}
 
@@ -847,7 +849,7 @@ public class AlboPretorioRestService{
 		lFindRepositoryObjectBean.setFlgUdFolder("U");
 		lFindRepositoryObjectBean.setFlgSenzaPaginazione(1);
 		lFindRepositoryObjectBean.setColsOrderBy("6");
-		String colsToReturn = "2,4,14,15,18,32,71,72,91,201,270,271,273,274,275,276,283,FLG_IMMEDIATAMENTE_ESEGUIBILE";
+		String colsToReturn = "2,4,14,15,18,31,32,71,72,91,201,270,271,273,274,275,276,283,FLG_IMMEDIATAMENTE_ESEGUIBILE";
 		lFindRepositoryObjectBean.setColsToReturn(colsToReturn);
 
 		return lFindRepositoryObjectBean;

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -165,8 +166,12 @@ public class FilePrimarioOutBean implements Serializable {
 	private Flag flgPdfEditabileOmissis;
 	@XmlVariabile(nome="VerConOmissis.FlgPdfConCommenti", tipo=TipoVariabile.SEMPLICE)
 	private Flag flgPdfConCommentiOmissis;
+	@XmlVariabile(nome = "TipoDocConFile", tipo = TipoVariabile.SEMPLICE)
+	private String flgRichiestoFile;
 	@XmlVariabile(nome = "TipoDocConFirma", tipo = TipoVariabile.SEMPLICE)
-	private String flgRichiestaFirmaDigitale;
+	private String flgRichiestoFileConFirma;
+	@XmlVariabile(nome = "TipoDocConFirmaValida", tipo = TipoVariabile.SEMPLICE)
+	private String flgRichiestoFileConFirmaValida;
 	
 	// Archiviazione in ACTA
 	@XmlVariabile(nome="EsitoInvioActaSerieAttiIntegrali", tipo=TipoVariabile.SEMPLICE)
@@ -600,11 +605,23 @@ public class FilePrimarioOutBean implements Serializable {
 	public void setFlgPdfConCommentiOmissis(Flag flgPdfConCommentiOmissis) {
 		this.flgPdfConCommentiOmissis = flgPdfConCommentiOmissis;
 	}
-	public String getFlgRichiestaFirmaDigitale() {
-		return flgRichiestaFirmaDigitale;
+	public String getFlgRichiestoFile() {
+		return flgRichiestoFile;
 	}
-	public void setFlgRichiestaFirmaDigitale(String flgRichiestaFirmaDigitale) {
-		this.flgRichiestaFirmaDigitale = flgRichiestaFirmaDigitale;
+	public void setFlgRichiestoFile(String flgRichiestoFile) {
+		this.flgRichiestoFile = flgRichiestoFile;
+	}
+	public String getFlgRichiestoFileConFirma() {
+		return flgRichiestoFileConFirma;
+	}
+	public void setFlgRichiestoFileConFirma(String flgRichiestoFileConFirma) {
+		this.flgRichiestoFileConFirma = flgRichiestoFileConFirma;
+	}
+	public String getFlgRichiestoFileConFirmaValida() {
+		return flgRichiestoFileConFirmaValida;
+	}
+	public void setFlgRichiestoFileConFirmaValida(String flgRichiestoFileConFirmaValida) {
+		this.flgRichiestoFileConFirmaValida = flgRichiestoFileConFirmaValida;
 	}
 	public String getEsitoInvioACTASerieAttiIntegrali() {
 		return esitoInvioACTASerieAttiIntegrali;

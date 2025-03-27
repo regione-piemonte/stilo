@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.postaElettronica;
 
 
 import java.util.ArrayList;
@@ -531,6 +532,7 @@ public class NuovoMessaggioXlsWindow extends PostaElettronicaWindow {
 							final String mittentePref = values.getAttributeAsString("mittente");
 							GWTRestDataSource accounts = new GWTRestDataSource("AccountInvioEmailDatasource");
 							accounts.addParam("finalita", "INVIO_NUOVO_MSG");
+							accounts.addParam("tipoAccount", "ID");
 							accounts.fetchData(null, new DSCallback() {
 								
 								@Override
@@ -556,6 +558,21 @@ public class NuovoMessaggioXlsWindow extends PostaElettronicaWindow {
 												lRecordList.add(lRecord);
 											}
 											values.setAttribute("attach", lRecordList);
+										}
+										if (oldValues!=null) {
+											if (oldValues.get("nomeFileXls") !=null){
+												values.setAttribute("nomeFileXls", (String)oldValues.get("nomeFileXls"));
+											}
+											if (oldValues.get("uriXls") !=null){
+												values.setAttribute("uriXls", (String)oldValues.get("uriXls"));
+											}
+											
+											/*
+											if (oldValues.get("infoFileXls") !=null){
+												InfoFileRecord infoFile = new InfoFileRecord(oldValues.get("infoFileXls"));
+												values.setAttribute("infoFileXls", infoFile);
+											}
+											*/
 										}
 										editNewRecord(values.toMap());
 									}

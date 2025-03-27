@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -12,6 +13,7 @@ import com.smartgwt.client.data.DSResponse;
 import com.smartgwt.client.data.Record;
 import com.smartgwt.client.data.RecordList;
 import com.smartgwt.client.types.FieldType;
+import com.smartgwt.client.types.ListGridComponent;
 import com.smartgwt.client.widgets.events.FetchDataEvent;
 import com.smartgwt.client.widgets.events.FetchDataHandler;
 import com.smartgwt.client.widgets.form.DynamicForm;
@@ -25,10 +27,13 @@ import com.smartgwt.client.widgets.form.validator.RequiredIfFunction;
 import com.smartgwt.client.widgets.form.validator.RequiredIfValidator;
 import com.smartgwt.client.widgets.grid.ListGrid;
 import com.smartgwt.client.widgets.grid.ListGridField;
+import com.smartgwt.client.widgets.toolbar.ToolStrip;
+
 import it.eng.auriga.ui.module.layout.client.i18n.I18NUtil;
 import it.eng.utility.ui.module.core.client.datasource.GWTRestDataSource;
 import it.eng.utility.ui.module.core.client.datasource.SelectGWTRestDataSource;
 import it.eng.utility.ui.module.layout.client.common.ReplicableCanvas;
+import it.eng.utility.ui.module.layout.client.common.items.CheckboxItem;
 import it.eng.utility.ui.module.layout.client.common.items.ExtendedTextItem;
 import it.eng.utility.ui.module.layout.client.common.items.FilteredSelectItemWithDisplay;
 
@@ -207,7 +212,27 @@ public class PeriziaCanvas extends ReplicableCanvas {
 		// Aggiungo le colonne
 		periziaItem.setPickListFields(periziaPickListFields.toArray(new ListGridField[periziaPickListFields.size()]));
 		
+		ToolStrip toolStrip = new ToolStrip();  
+        toolStrip.setHeight(30);  
+        toolStrip.setWidth100();
+        CheckboxItem flgAncheNonVldItem = new CheckboxItem("flgAncheNonVld", "includi anche cessate");
+        flgAncheNonVldItem.setWidth(50);
+        flgAncheNonVldItem.setStartRow(true);
+        flgAncheNonVldItem.addChangedHandler(new ChangedHandler() {
+
+			@Override
+			public void onChanged(ChangedEvent event) {
+				GWTRestDataSource periziaDS = (GWTRestDataSource) periziaItem.getOptionDataSource();
+				periziaDS.addParam("flgAncheNonVld", event.getValue() != null && (Boolean) event.getValue() ? "true" : "");				
+				periziaItem.setOptionDataSource(periziaDS);
+				periziaItem.invalidateDisplayValueCache();
+				periziaItem.fetchData();
+			}
+		});
+        toolStrip.addFormItem(flgAncheNonVldItem);
+        
 		ListGrid pickListProperties = periziaItem.getPickListProperties();
+		pickListProperties.setGridComponents(toolStrip, ListGridComponent.HEADER, ListGridComponent.FILTER_EDITOR, ListGridComponent.BODY);
 		pickListProperties.addFetchDataHandler(new FetchDataHandler() {
 			@Override
 			public void onFilterData(FetchDataEvent event) {
@@ -219,6 +244,8 @@ public class PeriziaCanvas extends ReplicableCanvas {
 			}
 		});
 		periziaItem.setPickListProperties(pickListProperties);
+		
+		periziaItem.setEmptyPickListMessage("Nessun record trovato o filtri incompleti o poco restrittivi: filtrare per codice o descrizione");
 		
 		periziaItem.setFilterLocally(true);
 		periziaItem.setAutoFetchData(false);

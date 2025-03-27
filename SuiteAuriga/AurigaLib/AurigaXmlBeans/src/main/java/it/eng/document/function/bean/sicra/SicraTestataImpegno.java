@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean.sicra;
 
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -42,6 +43,7 @@ public class SicraTestataImpegno implements Serializable {
 	private String codSettoreOri;
 	private Long codTipoAttoOri;
 	private String siglaTipoAttoOri;
+	private String identificativoStilo;
 
 	public String getParte() {
 		return parte;
@@ -291,4 +293,12 @@ public class SicraTestataImpegno implements Serializable {
 		this.siglaTipoAttoOri = siglaTipoAttoOri;
 	}
 
+	public String getIdentificativoStilo() {
+		return identificativoStilo;
+	}
+
+	public void setIdentificativoStilo(String identificativoStilo) {
+		this.identificativoStilo = identificativoStilo;
+	}
+	
 }// SicraTestataImpegno

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -133,6 +134,7 @@ public class AurigaLayout extends Layout {
 	protected static String uoLavoro = null;
 	protected static Record prefScrivania = null;
 	protected static Record prefNotificheMail = null;
+	protected static Record prefIterFirmeBozze = null;
 	protected static String prefIterAtti = null;
 	protected static Record impostazioniStampa = null;
 	protected static Record impostazioniFirma = null;
@@ -160,6 +162,10 @@ public class AurigaLayout extends Layout {
 
 	public AurigaLayout() {
 		super();
+	}
+	
+	public boolean isLoginDaPortlet() {
+		return false;
 	}
 	
 	public static String getIdDominio() {
@@ -250,33 +256,35 @@ public class AurigaLayout extends Layout {
 	}
 
 	public void loadPreferenceUoLavoroAndUpdateWelcomeMessage() {
-		if (getParametroDBAsBoolean("SHOW_UO_IN_TOOLBAR")) {			
-			loadUserPreference("idUODefault" + getPrefKeySuffixSpecXDominio(), "DEFAULT", new ServiceCallback<Record>() {
-
-				@Override
-				public void execute(Record recordPrefSpec) {
-					if (recordPrefSpec != null) {
-						uoLavoro = recordPrefSpec.getAttributeAsString("value");
-						updateWelcomeMessage();
-					} else {
-						loadUserPreference("idUODefault", "DEFAULT", new ServiceCallback<Record>() {
-
-							@Override
-							public void execute(Record recordPref) {
-								if (recordPref != null) {
-									uoLavoro = recordPref.getAttributeAsString("value");									
-								} else {
-									uoLavoro = null;
+		if(!isLoginDaPortlet()) {
+			if (getParametroDBAsBoolean("SHOW_UO_IN_TOOLBAR")) {			
+				loadUserPreference("idUODefault" + getPrefKeySuffixSpecXDominio(), "DEFAULT", new ServiceCallback<Record>() {
+	
+					@Override
+					public void execute(Record recordPrefSpec) {
+						if (recordPrefSpec != null) {
+							uoLavoro = recordPrefSpec.getAttributeAsString("value");
+							updateWelcomeMessage();
+						} else {
+							loadUserPreference("idUODefault", "DEFAULT", new ServiceCallback<Record>() {
+	
+								@Override
+								public void execute(Record recordPref) {
+									if (recordPref != null) {
+										uoLavoro = recordPref.getAttributeAsString("value");									
+									} else {
+										uoLavoro = null;
+									}
+									updateWelcomeMessage();
 								}
-								updateWelcomeMessage();
-							}
-						});
-					}					
-				}
-			});
-		} else {
-			uoLavoro = null;
-			updateWelcomeMessage();
+							});
+						}					
+					}
+				});
+			} else {
+				uoLavoro = null;
+				updateWelcomeMessage();
+			}
 		}
 	}
 
@@ -619,281 +627,294 @@ public class AurigaLayout extends Layout {
 	}
 
 	public void afterAggiornaUtente() {
-
-		addPortalDesktopButtons();
 		
-		clearUserPreferences();
-		
-		loadUserPreference("attivaProtOttimizzataAllegati", "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				attivaProtOttimizzataAllegati = false;
-				if (recordPref != null) {
-					if(recordPref.getAttribute("value") != null && !"".equals(recordPref.getAttribute("value"))) {
-						attivaProtOttimizzataAllegati = new Boolean(recordPref.getAttribute("value"));
-					}
-				}
-			}
-		});
-
-		loadUserPreference("idUOPuntoProtAttivato" + getPrefKeySuffixSpecXDominio(), "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPrefSpec) {
-				
-				idUOPuntoProtAttivato = recordPrefSpec != null ? recordPrefSpec.getAttributeAsString("value") : null;
-				if(isAbilAttivaFunzProtocollazione()) {
-					funzProtLabel.show();
-					funzProtButton.show();
-				} else {
-					funzProtLabel.hide();
-					funzProtButton.hide();
-				}
-				
-				if(idUOPuntoProtAttivato != null && !"".equals(idUOPuntoProtAttivato)) {
-					attivaFunzProt();
-				} else {
-					disattivaFunzProt();
-				}			
-				
-			}
-		});	
-		
-		loadUserPreference("signature.email", "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					firmaEmailHtml = recordPref.getAttributeAsString("value");
-				}
-			}
-		});
-
-		loadUserPreferences("signature.email", new ServiceCallback<RecordList>() {
-
-			@Override
-			public void execute(RecordList recordListPref) {
-				if (recordListPref != null) {
-					firmeEmailHtml = new LinkedHashMap<String, String>();
-					for (int i = 0; i < recordListPref.getLength(); i++) {
-						Record recordPref = recordListPref.get(i);
-						firmeEmailHtml.put(recordPref.getAttributeAsString("prefName"), recordPref.getAttributeAsString("value"));
-					}
-				}
-			}
-		});
-
-		loadUserPreference("signature.email.predefinita", "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					firmaEmailPredefinita = recordPref.getAttributeAsString("value");
-				}
-			}
-		});
-
-		loadUserPreference("signature.email.nuova", "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					firmaEmailAutoNuova = recordPref.getAttributeAsString("value");
-				}
-			}
-		});
-
-		loadUserPreference("signature.email.risposta", "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					firmaEmailAutoRisposta = recordPref.getAttributeAsString("value");
-				}
-			}
-		});
-
-		loadUserPreference("signature.email.inoltro", "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					firmaEmailAutoInoltro = recordPref.getAttributeAsString("value");
-				}
-			}
-		});
-		
-		loadUserPreference("impostazioniPdf", "properties","DEFAULT", new ServiceCallback<Record>() {
+		if(!isLoginDaPortlet()) {
 			
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					impostazioniPdf = recordPref.getAttributeAsString("value");
-				}
-			}
-		});
-
-		loadUserPreference("cod.organigramma" + getPrefKeySuffixSpecXDominio(), "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPrefSpec) {
-				if (recordPrefSpec != null) {
-					codRapidoOrganigramma = recordPrefSpec.getAttributeAsString("value");
-				} else {
-					loadUserPreference("cod.organigramma", "DEFAULT", new ServiceCallback<Record>() {
-
-						@Override
-						public void execute(Record recordPref) {
-							if (recordPref != null) {
-								codRapidoOrganigramma = recordPref.getAttributeAsString("value");
-							} 
+			addPortalDesktopButtons();
+			
+			clearUserPreferences();
+			
+			loadUserPreference("attivaProtOttimizzataAllegati", "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					attivaProtOttimizzataAllegati = false;
+					if (recordPref != null) {
+						if(recordPref.getAttribute("value") != null && !"".equals(recordPref.getAttribute("value"))) {
+							attivaProtOttimizzataAllegati = new Boolean(recordPref.getAttribute("value"));
 						}
-					});
-				}
-			}
-		});
-
-		loadUserPreference("impostazioniStampa", "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					impostazioniStampa = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
-				}
-			}
-		});
-
-		loadUserPreference("impostazioniTimbro", "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					impostazioniTimbro = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
-				}
-			}
-		});
-		
-		loadUserPreference("docScrivania", "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					prefScrivania = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
-				}
-			}
-		});
-		
-		loadUserPreference("prefNotificheMail", "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				if ((recordPref != null) && (!AurigaLayout.getParametroDBAsBoolean("IGNORE_PREF_NOTIF_EMAIL"))) {
-					Record prefNotifiche = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
-					if (!AurigaLayout.getParametroDBAsBoolean("OBBL_MEZZO_TRASM_E")) {
-						String assegnazioneCompetenzaDoc = prefNotifiche.getAttribute("assegnazioneCompetenzaDoc");
-						String invioConoscenzaDoc = prefNotifiche.getAttribute("invioConoscenzaDoc");
-						prefNotifiche.setAttribute("assegnazioneCompetenzaDoc", ((assegnazioneCompetenzaDoc.equals("true") || assegnazioneCompetenzaDoc.equals("false")) ? Boolean.valueOf(assegnazioneCompetenzaDoc) : false));
-						prefNotifiche.setAttribute("invioConoscenzaDoc", ((invioConoscenzaDoc.equals("true") || invioConoscenzaDoc.equals("false")) ? Boolean.valueOf(invioConoscenzaDoc) : false));
 					}
-					prefNotificheMail = new Record(prefNotifiche.toMap());
 				}
-			}
-		});
-
-		loadUserPreference("preVerificaStaffInIterAtti" + getPrefKeySuffixSpecXDominio(), "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					prefIterAtti = recordPref.getAttributeAsString("value");
+			});
+	
+			loadUserPreference("idUOPuntoProtAttivato" + getPrefKeySuffixSpecXDominio(), "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPrefSpec) {
+					
+					idUOPuntoProtAttivato = recordPrefSpec != null ? recordPrefSpec.getAttributeAsString("value") : null;
+					if(isAbilAttivaFunzProtocollazione()) {
+						funzProtLabel.show();
+						funzProtButton.show();
+					} else {
+						funzProtLabel.hide();
+						funzProtButton.hide();
+					}
+					
+					if(idUOPuntoProtAttivato != null && !"".equals(idUOPuntoProtAttivato)) {
+						attivaFunzProt();
+					} else {
+						disattivaFunzProt();
+					}			
+					
 				}
-			}
-		});
-		
-		/**
-		 * Vengono recuperate le preference di firma dell'utente loggato, anzichè quelle dell'utente delegante.
-		 */
-		loadUserPreference("impostazioniFirma", "DEFAULT", utenteLoggato.getIdUtente(), new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					impostazioniFirma = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
-				}
-			}
-		});
-		
-		loadUserPreference("impostazioniFirmaAutomatica", "DEFAULT", utenteLoggato.getIdUtente(), new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					impostazioniFirmaAutomatica = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
-				}
-			}
-		});
-
-		loadUserPreference("impostazioniDocumento", "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					impostazioniDocumento = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
-				}
-			}
-		});
-
-		loadUserPreference("impostazioniFascicolo", "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					impostazioniFascicolo = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
-				}
-			}
-		});
-		
-		loadUserPreference("impostazioniSceltaOrganigramma", "DEFAULT", new ServiceCallback<Record>() {
-
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					impostazioniSceltaOrganigramma = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
-				}
-			}
-		});
-		
-		showNewsAlert();
-		
-		loadUserPreference("impostazioniSceltaAccessibilita", "DEFAULT", new ServiceCallback<Record>() {
+			});	
 			
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					impostazioniSceltaAccessibilita = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
+			loadUserPreference("signature.email", "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						firmaEmailHtml = recordPref.getAttributeAsString("value");
+					}
 				}
-			}
-		});
-		
-		loadUserPreference("impostazioniAperturaDettaglioPerRicercaPuntuale", "DEFAULT", new ServiceCallback<Record>() {
+			});
+	
+			loadUserPreferences("signature.email", new ServiceCallback<RecordList>() {
+	
+				@Override
+				public void execute(RecordList recordListPref) {
+					if (recordListPref != null) {
+						firmeEmailHtml = new LinkedHashMap<String, String>();
+						for (int i = 0; i < recordListPref.getLength(); i++) {
+							Record recordPref = recordListPref.get(i);
+							firmeEmailHtml.put(recordPref.getAttributeAsString("prefName"), recordPref.getAttributeAsString("value"));
+						}
+					}
+				}
+			});
+	
+			loadUserPreference("signature.email.predefinita", "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						firmaEmailPredefinita = recordPref.getAttributeAsString("value");
+					}
+				}
+			});
+	
+			loadUserPreference("signature.email.nuova", "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						firmaEmailAutoNuova = recordPref.getAttributeAsString("value");
+					}
+				}
+			});
+	
+			loadUserPreference("signature.email.risposta", "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						firmaEmailAutoRisposta = recordPref.getAttributeAsString("value");
+					}
+				}
+			});
+	
+			loadUserPreference("signature.email.inoltro", "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						firmaEmailAutoInoltro = recordPref.getAttributeAsString("value");
+					}
+				}
+			});
 			
-			@Override
-			public void execute(Record recordPref) {
-				if (recordPref != null) {
-					impostazioniAperturaDettaglioPerRicercaPuntuale = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
+			loadUserPreference("impostazioniPdf", "properties","DEFAULT", new ServiceCallback<Record>() {
+				
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						impostazioniPdf = recordPref.getAttributeAsString("value");
+					}
 				}
+			});
+	
+			loadUserPreference("cod.organigramma" + getPrefKeySuffixSpecXDominio(), "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPrefSpec) {
+					if (recordPrefSpec != null) {
+						codRapidoOrganigramma = recordPrefSpec.getAttributeAsString("value");
+					} else {
+						loadUserPreference("cod.organigramma", "DEFAULT", new ServiceCallback<Record>() {
+	
+							@Override
+							public void execute(Record recordPref) {
+								if (recordPref != null) {
+									codRapidoOrganigramma = recordPref.getAttributeAsString("value");
+								} 
+							}
+						});
+					}
+				}
+			});
+	
+			loadUserPreference("impostazioniStampa", "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						impostazioniStampa = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
+					}
+				}
+			});
+	
+			loadUserPreference("impostazioniTimbro", "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						impostazioniTimbro = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
+					}
+				}
+			});
+			
+			loadUserPreference("docScrivania", "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						prefScrivania = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
+					}
+				}
+			});
+			
+			loadUserPreference("prefNotificheMail", "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					if ((recordPref != null) && (!AurigaLayout.getParametroDBAsBoolean("IGNORE_PREF_NOTIF_EMAIL"))) {
+						Record prefNotifiche = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
+						if (!AurigaLayout.getParametroDBAsBoolean("OBBL_MEZZO_TRASM_E")) {
+							String assegnazioneCompetenzaDoc = prefNotifiche.getAttribute("assegnazioneCompetenzaDoc");
+							String invioConoscenzaDoc = prefNotifiche.getAttribute("invioConoscenzaDoc");
+							prefNotifiche.setAttribute("assegnazioneCompetenzaDoc", ((assegnazioneCompetenzaDoc.equals("true") || assegnazioneCompetenzaDoc.equals("false")) ? Boolean.valueOf(assegnazioneCompetenzaDoc) : false));
+							prefNotifiche.setAttribute("invioConoscenzaDoc", ((invioConoscenzaDoc.equals("true") || invioConoscenzaDoc.equals("false")) ? Boolean.valueOf(invioConoscenzaDoc) : false));
+						}
+						prefNotificheMail = new Record(prefNotifiche.toMap());
+					}
+				}
+			});
+			
+			loadUserPreference("prefIterFirmeBozze", "DEFAULT", new ServiceCallback<Record>() {
+				
+				@Override
+				public void execute(Record recordPref) {
+					if ((recordPref != null) && (AurigaLayout.getParametroDBAsBoolean("ATTIVA_ITER_FIRME_BOZZE"))) {
+						prefIterFirmeBozze = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
+					}
+				}
+			});
+	
+			loadUserPreference("preVerificaStaffInIterAtti" + getPrefKeySuffixSpecXDominio(), "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						prefIterAtti = recordPref.getAttributeAsString("value");
+					}
+				}
+			});
+			
+			/**
+			 * Vengono recuperate le preference di firma dell'utente loggato, anzichè quelle dell'utente delegante.
+			 */
+			loadUserPreference("impostazioniFirma", "DEFAULT", utenteLoggato.getIdUtente(), new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						impostazioniFirma = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
+					}
+				}
+			});
+			
+			loadUserPreference("impostazioniFirmaAutomatica", "DEFAULT", utenteLoggato.getIdUtente(), new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						impostazioniFirmaAutomatica = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
+					}
+				}
+			});
+	
+			loadUserPreference("impostazioniDocumento", "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						impostazioniDocumento = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
+					}
+				}
+			});
+	
+			loadUserPreference("impostazioniFascicolo", "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						impostazioniFascicolo = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
+					}
+				}
+			});
+			
+			loadUserPreference("impostazioniSceltaOrganigramma", "DEFAULT", new ServiceCallback<Record>() {
+	
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						impostazioniSceltaOrganigramma = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
+					}
+				}
+			});
+			
+			showNewsAlert();
+			
+			loadUserPreference("impostazioniSceltaAccessibilita", "DEFAULT", new ServiceCallback<Record>() {
+				
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						impostazioniSceltaAccessibilita = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
+					}
+				}
+			});
+			
+			loadUserPreference("impostazioniAperturaDettaglioPerRicercaPuntuale", "DEFAULT", new ServiceCallback<Record>() {
+				
+				@Override
+				public void execute(Record recordPref) {
+					if (recordPref != null) {
+						impostazioniAperturaDettaglioPerRicercaPuntuale = new Record(JSON.decode(recordPref.getAttributeAsString("value")));
+					}
+				}
+			});
+			
+			if (UserInterfaceFactory.getParametroDB("URI_PDF_COOKIE_POLICY") != null && !"".equals(UserInterfaceFactory.getParametroDB("URI_PDF_COOKIE_POLICY").trim())) {
+				cookiesButton.show();
 			}
-		});
-		
-		if (UserInterfaceFactory.getParametroDB("URI_PDF_COOKIE_POLICY") != null && !"".equals(UserInterfaceFactory.getParametroDB("URI_PDF_COOKIE_POLICY").trim())) {
-			cookiesButton.show();
 		}
 
 		super.afterAggiornaUtente();
 	}
 
-	private void clearUserPreferences() {
+	protected void clearUserPreferences() {
 //		uoLavoro = null; // ATTENZIONE: questa variabile non va' resettata perchè viene letta prima che venga chiamato questo metodo
 		attivaProtOttimizzataAllegati = false;
 		idUOPuntoProtAttivato = null;
@@ -911,6 +932,7 @@ public class AurigaLayout extends Layout {
 		impostazioniTimbro = null;
 		prefScrivania = null;
 		prefNotificheMail = null;
+		prefIterFirmeBozze = null;
 		prefIterAtti = null;
 		impostazioniFirma = null;
 		impostazioniFirmaAutomatica = null;
@@ -1703,6 +1725,30 @@ public class AurigaLayout extends Layout {
 			}
 		};
 	}
+	
+	public static void getInfoRepertorio(final String repertorio, final ServiceCallback<Record> callback) {
+		GWTRestDataSource gruppiRepertorioDS = new GWTRestDataSource("LoadComboGruppiRepertorioSource", "key", FieldType.TEXT);
+		gruppiRepertorioDS.fetchData(null, new DSCallback() {
+
+			@Override
+			public void execute(DSResponse response, Object rawData, DSRequest request) {
+				Record recRepertorio = null;
+				if(repertorio != null && !"".equals(repertorio)) {
+					if (response.getData().length > 0) {
+						for (Record rec : response.getData()) {
+							if(rec.getAttribute("key") != null && rec.getAttribute("key").equalsIgnoreCase(repertorio)) {
+								recRepertorio = rec;
+								break;
+							}
+						}
+					}
+				}
+				if(callback != null) {
+					callback.execute(recRepertorio);
+				}
+			}
+		});
+	}
 
 	public static void apriSceltaRepertorioPopup(final String flgTipoProv, final String repertorioDefault, final ServiceCallback<Record> callback) {
 
@@ -1718,7 +1764,8 @@ public class AurigaLayout extends Layout {
 					addMessage(new MessageBean("Nessun repertorio abilitato", "", MessageType.ERROR));
 				} else if (response.getData().length == 1) {
 					Record lRecord = new Record();
-					lRecord.setAttribute("repertorio", response.getData()[0].getAttribute("key"));					
+					lRecord.setAttribute("repertorio", response.getData()[0].getAttribute("key"));
+					lRecord.setAttribute("flgForzaSceltaTipoDoc", response.getData()[0].getAttribute("flgForzaSceltaTipoDoc"));
 					if (callback != null) {
 						callback.execute(lRecord);
 					}
@@ -1825,6 +1872,37 @@ public class AurigaLayout extends Layout {
 			});
 		} else if (callback != null) {
 			callback.execute(null);
+		}
+	}
+	
+	public static void isPresenteTipoDoc(final String idTipoDoc, final String categoriaReg, final String siglaReg, final BooleanCallback callback) {
+		if(callback != null) {
+			if(idTipoDoc == null || "".equals(idTipoDoc)) {
+				callback.execute(true);
+			} else if (AurigaLayout.getParametroDBAsBoolean("ATTIVA_ATT_CUSTOM_TIPO_GUI")) {			
+				GWTRestDataSource idTipoDocumentoDS = new GWTRestDataSource("LoadComboTipoDocumentoDataSource", "idTipoDocumento", FieldType.TEXT, true);
+				idTipoDocumentoDS.addParam("showErrorMsg", "true");
+				idTipoDocumentoDS.addParam("categoriaReg", categoriaReg);
+				idTipoDocumentoDS.addParam("siglaReg", siglaReg);
+				idTipoDocumentoDS.fetchData(null, new DSCallback() {
+	
+					@Override
+					public void execute(DSResponse response, Object rawData, DSRequest request) {
+						boolean trovato = false;
+						if (response.getData().length > 0) {
+							for(Record lRecord : response.getData()) {
+								if(idTipoDoc != null && lRecord.getAttribute("idTipoDocumento") != null && idTipoDoc.equals(lRecord.getAttribute("idTipoDocumento"))) {
+									trovato = true;
+									break;
+								}
+							}						
+						}
+						callback.execute(trovato);
+					}
+				});
+			} else {
+				callback.execute(false);
+			}
 		}
 	}
 
@@ -1986,6 +2064,18 @@ public class AurigaLayout extends Layout {
 			listaConfigUtenteMenuItems.add(prefNotificheMailMenuItem);
 		}
 		
+		MenuItem prefIterFirmeBozzeMenuItem = new MenuItem(I18NUtil.getMessages().configUtenteMenuPreferenzaFirmeBozze_title(), "menu/gruppi_soggetti.png");
+		prefIterFirmeBozzeMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				onClickConfigUtenteMenuIterFirmeBozze();
+			}
+		});
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_ITER_FIRME_BOZZE")) {
+			listaConfigUtenteMenuItems.add(prefIterFirmeBozzeMenuItem);
+		}
+		
 		// PREFERENZA ITER ATTI
 		MenuItem prefIterAttiMenuItem = new MenuItem(I18NUtil.getMessages().configUtenteMenuPreferenzaIterAtti_title(), "menu/iter_atti.png");
 		prefIterAttiMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
@@ -2025,8 +2115,10 @@ public class AurigaLayout extends Layout {
 		}
 		
 		// PREFERENZE DI STAMPA
-		MenuItem impostazioniStampaMenuItem = new MenuItem(I18NUtil.getMessages().configUtenteMenuImpostazioniStampa_title(),
-				"postaElettronica/print_file.png");
+		String titleImpostazioniStampa = AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") ?
+				I18NUtil.getMessages().configUtenteMenuImpostazioniStampaSegnaturaDocCartacei_title() : 
+				I18NUtil.getMessages().configUtenteMenuImpostazioniStampa_title();
+		MenuItem impostazioniStampaMenuItem = new MenuItem(titleImpostazioniStampa, "postaElettronica/print_file.png");
 		impostazioniStampaMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
 
 			@Override
@@ -2113,7 +2205,7 @@ public class AurigaLayout extends Layout {
 			 * Altrimenti bisogna caricare le firme in calce
 			 */
 			// FIRME IN CALCE ALLE E-MAIL
-			MenuItem firmeEmailMenuItem = new MenuItem(I18NUtil.getMessages().configUtenteMenuFirmeEmail_title(), "menu/firma_email.png");
+			MenuItem firmeEmailMenuItem = new MenuItem(I18NUtil.getMessages().configUtenteMenuFirmeEmail_title(), "buttons/firma_calce_email.png");
 			firmeEmailMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
 
 				@Override
@@ -2510,22 +2602,41 @@ public class AurigaLayout extends Layout {
 		loadUserPreference(prefKey, prefName, userId, true, new ServiceCallback<Record>() {
 
 			@Override
-			public void execute(Record recordPref) {
-
+			public void execute(final Record recordPref) {
 				if (recordPref != null) {
 					recordPref.setAttribute("value", value);
-					preferenceDS.updateData(recordPref);
+					preferenceDS.updateData(recordPref, new DSCallback() {
+						
+						@Override
+						public void execute(DSResponse dsResponse, Object data, DSRequest dsRequest) {
+							if (dsResponse.getStatus() == DSResponse.STATUS_SUCCESS) {
+								if (successMessage != null && !"".equals(successMessage)) {
+									AurigaLayout.addMessage(new MessageBean(successMessage, "", MessageType.INFO));
+								}
+								if (callback != null) {
+									callback.execute(recordPref);
+								}
+							}
+						}
+					});
 				} else {
-					Record record = new Record();
+					final Record record = new Record();
 					record.setAttribute("prefName", prefName);
 					record.setAttribute("value", value);
-					preferenceDS.addData(record);
-				}
-				if (successMessage != null && !"".equals(successMessage)) {
-					AurigaLayout.addMessage(new MessageBean(successMessage, "", MessageType.INFO));
-				}
-				if (callback != null) {
-					callback.execute(recordPref);
+					preferenceDS.addData(record, new DSCallback() {
+						
+						@Override
+						public void execute(DSResponse dsResponse, Object data, DSRequest dsRequest) {
+							if (dsResponse.getStatus() == DSResponse.STATUS_SUCCESS) {
+								if (successMessage != null && !"".equals(successMessage)) {
+									AurigaLayout.addMessage(new MessageBean(successMessage, "", MessageType.INFO));
+								}
+								if (callback != null) {
+									callback.execute(null);
+								}
+							}
+						}
+					});
 				}
 			}
 		});
@@ -2550,21 +2661,28 @@ public class AurigaLayout extends Layout {
 		loadUserPreference(prefKey, prefName, userId, true, new ServiceCallback<Record>() {
 
 			@Override
-			public void execute(Record recordPref) {
-
+			public void execute(final Record recordPref) {
 				if (recordPref != null) {
 //					recordPref.setAttribute("value", value);
-					preferenceDS.removeData(recordPref);
-					
-					if (successMessage != null && !"".equals(successMessage)) {
-						AurigaLayout.addMessage(new MessageBean(successMessage, "", MessageType.INFO));
-					}
+					preferenceDS.removeData(recordPref, new DSCallback() {
+						
+						@Override
+						public void execute(DSResponse dsResponse, Object data, DSRequest dsRequest) {
+							if (dsResponse.getStatus() == DSResponse.STATUS_SUCCESS) {
+								if (successMessage != null && !"".equals(successMessage)) {
+									AurigaLayout.addMessage(new MessageBean(successMessage, "", MessageType.INFO));
+								}
+								if (callback != null) {
+									callback.execute(recordPref);
+								}
+							}
+						}
+					});
 				} else {
 					AurigaLayout.addMessage(new MessageBean("Credenziali di firma automatica non settate", "", MessageType.INFO));
-				}
-				
-				if (callback != null) {
-					callback.execute(recordPref);
+					if (callback != null) {
+						callback.execute(null);
+					}
 				}
 			}
 		});
@@ -2914,6 +3032,33 @@ public class AurigaLayout extends Layout {
 		savePrefNotificheMailWindow.setValues(prefNotificheMail);
 		savePrefNotificheMailWindow.redraw();
 		savePrefNotificheMailWindow.show();	
+	}
+	
+	public void onClickConfigUtenteMenuIterFirmeBozze() {
+		
+		final JSONEncoder encoder = new JSONEncoder();
+		encoder.setDateFormat(JSONDateFormat.DATE_CONSTRUCTOR);
+		
+		SavePrefIterFirmeBozzeWindow savePrefIterFirmeBozzeWindow = new SavePrefIterFirmeBozzeWindow("salvaPrefIterFirmeBozze") {
+
+			@Override
+			public void manageOnOkButtonClick(final Record values) {
+				
+				if (values != null) {
+					saveUserPreference("prefIterFirmeBozze", "DEFAULT", JSON.encode(values.getJsObj(), encoder), null, new ServiceCallback<Record>() {
+
+						@Override
+						public void execute(Record recordPref) {
+							prefIterFirmeBozze = values;
+						}
+					});
+				}
+			}
+		};			
+		savePrefIterFirmeBozzeWindow.clearValues();
+		savePrefIterFirmeBozzeWindow.setValues(prefIterFirmeBozze);
+		savePrefIterFirmeBozzeWindow.redraw();
+		savePrefIterFirmeBozzeWindow.show();	
 	}
 	
 	public void onClickConfigUtenteMenuPrefIterAtti() {
@@ -3891,6 +4036,15 @@ public class AurigaLayout extends Layout {
 		return getParametroDBAsBoolean("ATTIVA_ASS_RAG_A_GRUPPI");
 	}
 	
+	public static boolean isAttivoModuloAtti() {	
+		return getParametroDBAsBoolean("ATTIVATO_MODULO_ATTI");
+	}
+	
+	public static boolean isAttivoAlbo() {	
+		return getParametroDBAsBoolean("ATTIVA_ALBO");
+	}
+	
+	
 	public void setShibbolethLogoutInfo() {
 		// Ricavo la url di logout
 		if (getGenericConfig().getShibbolethLogoutUrlHeaderName() != null && !"".equals(getGenericConfig().getShibbolethLogoutUrlHeaderName())) {
@@ -3988,6 +4142,25 @@ public class AurigaLayout extends Layout {
 				}
 			}
 		});
+	}
+	
+	public static boolean showOperazioniTimbratura() {
+		if(AurigaLayout.getParametroDBAsBoolean("DISATTIVA_TIMBRO_BARCODE")) {
+			return false;
+		}
+		return true;
+	}
+	
+	public static boolean showCopiaConformeCustom() {
+		String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
+		return labelConformitaCustom != null && !"".equals(labelConformitaCustom) && Layout.isPrivilegioAttivo("SCC");
+	}
+	
+	public static boolean showAttestatoConformitaOriginale() {
+		if(AurigaLayout.getParametroDBAsBoolean("DISATTIVA_ATTESTATO_CONFORMITA_ORIG")) {
+			return false;
+		}
+		return true;
 	}
 	
 }

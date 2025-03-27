@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.archivio;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -43,6 +44,7 @@ import com.smartgwt.client.widgets.toolbar.ToolStripButton;
 import it.eng.auriga.ui.module.layout.client.AurigaLayout;
 import it.eng.auriga.ui.module.layout.client.DocumentDetail;
 import it.eng.auriga.ui.module.layout.client.ErroreMassivoPopup;
+import it.eng.auriga.ui.module.layout.client.TipologiaAllegatiInvioMailCostants;
 import it.eng.auriga.ui.module.layout.client.gestioneProcedimenti.avvioProcedimento.SceltaTipoProcGenPopup;
 import it.eng.auriga.ui.module.layout.client.i18n.I18NUtil;
 import it.eng.auriga.ui.module.layout.client.invioUD.InvioUDMailWindow;
@@ -62,6 +64,7 @@ import it.eng.auriga.ui.module.layout.client.protocollazione.PubblicazioneTraspA
 import it.eng.auriga.ui.module.layout.client.protocollazione.RepertorioDetailUscita;
 import it.eng.auriga.ui.module.layout.client.protocollazione.SceltaTipoDocPopup;
 import it.eng.auriga.ui.module.layout.client.protocollazione.VerificaRegDuplicataWindow;
+import it.eng.auriga.ui.module.layout.client.pubblicazioneAlbo.NuovaRichiestaPubblicazioneWindow;
 import it.eng.auriga.ui.module.layout.client.richiestaAccessoAtti.RichiestaAccessoAttiDetail;
 import it.eng.auriga.ui.module.layout.shared.invioRaccomandate.ETypePoste;
 import it.eng.auriga.ui.module.layout.shared.util.AzioniRapide;
@@ -101,8 +104,9 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 	private MultiToolStripButton stampaEtichettaMultiButton;
 	private MultiToolStripButton stampaDistintaSpedizioneMultiButton;
 	private MultiToolStripButton fascicolaMultiButton;
+	private MultiToolStripButton organizzaMultiButton;
 	private MultiToolStripButton assegnaMultiButton;
-	private MultiToolStripButton smistaCCMultiButton;
+	private MultiToolStripButton condividiMultiButton;
 	private MultiToolStripButton apposizioneCommentiMultiButton;
 	private MultiToolStripButton downloadZipAllegati;
 	private MultiToolStripButton downloadZipFilePubblicati;
@@ -110,7 +114,8 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 	private MultiToolStripButton modificaTipologiaMultiButton;
 	private MultiToolStripButton chiudiFascicoloMultiButton;
 	private MultiToolStripButton riapriFascicoloMultiButton;
-	private MultiToolStripButton segnaComeVisionatoMultiButton;	
+	private MultiToolStripButton segnaComeVisionatoMultiButton;
+	
 //	private MultiToolStripButton versaInArchivioStoricoFascicoloMultiButton;
 
 	protected DetailToolStripButton stampaEtichettaButton;
@@ -132,6 +137,7 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 	protected DetailToolStripButton nuovaProtComeCopiaButton;
 	protected DetailToolStripButton presaInCaricoButton;
 	protected DetailToolStripButton restituisciButton;
+	protected DetailToolStripButton rilasciaButton;
 	protected DetailToolStripButton segnaComeVisionatoButton;
 	protected DetailToolStripButton classificazioneFascicolazioneButton;
 	protected DetailToolStripButton modificaButton;
@@ -143,8 +149,10 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 	protected DetailToolStripButton protocollazioneUscitaButton;
 	protected DetailToolStripButton protocollazioneInternaButton;
 	protected DetailToolStripButton invioPECButton;
+	protected FrecciaDetailToolStripButton frecciainvioPECButton;
 	protected DetailToolStripButton invioMailRicevutaButton;
 	protected DetailToolStripButton invioPEOButton;
+	protected FrecciaDetailToolStripButton frecciainvioPEOButton;
 	protected DetailToolStripButton inviaRaccomandataButton;
 	protected DetailToolStripButton inviaPostaPrioritariaButton;
 	protected DetailToolStripButton verificaRegistrazioneButton;
@@ -162,12 +170,15 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 	protected DetailToolStripButton riapriFascicoloButton;
 	protected DetailToolStripButton versaInArchivioStoricoFascicoloButton;
 	protected DetailToolStripButton avviaIterButton;
+	protected DetailToolStripButton azioniIstruttoriaPubblButton;
+	protected DetailToolStripButton avviaIterFirmeButton;
 	protected DetailToolStripButton osservazioniNotificheButton;
 	protected DetailToolStripButton apposizioneFirmaButton;
 	protected DetailToolStripButton apposizioneFirmaProtocollazioneButton;
 	protected DetailToolStripButton rifiutoApposizioneFirmaButton;
 	protected DetailToolStripButton apposizioneVistoButton;
 	protected DetailToolStripButton rifiutoApposizioneVistoButton;
+	protected DetailToolStripButton pubblicazioneButton;
 	protected DetailToolStripButton pubblicazioneTraspAmmButton;	
 	
 	/*******************************************
@@ -977,12 +988,12 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			};
 		}
 		
-		if(smistaCCMultiButton == null) {
-		   smistaCCMultiButton = new MultiToolStripButton("archivio/smistamentoCC.png", this, "Smista", false) {
+		if(condividiMultiButton == null) {
+			condividiMultiButton = new MultiToolStripButton("archivio/condividi.png", this, "Invia per conoscenza", false) {
 
 				@Override
 				public boolean toShow() {
-					return true;
+					return Layout.isPrivilegioAttivo("GRD/UD/NOT") || Layout.isPrivilegioAttivo("GRD/FLD/NOT");
 				}
 
 				@Override
@@ -991,10 +1002,21 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 					// Prendo il primo flag per confrontarlo con tutti gli altri
 					String flgUdFolderFirst = list.getSelectedRecords()[0].getAttribute("flgUdFolder");
 					boolean isStessoFlgUdFolder = true;
+					
+					// Prendo il primo flag per confrontarlo con tutti gli altri
+					String flgTipoProvFirst = list.getSelectedRecords()[0].getAttribute("flgTipoProv");
+					boolean isStessoFlgTipoProv = true;
+					boolean hasFlgTipoProvEntrata = false;
 
 					for (int i = 0; i < list.getSelectedRecords().length; i++) {
 						if (list.getSelectedRecords()[i].getAttribute("flgUdFolder").equalsIgnoreCase(flgUdFolderFirst)) {
 							listaUdFolder.add(list.getSelectedRecords()[i]);
+							if (list.getSelectedRecords()[i].getAttribute("flgTipoProv") != null && list.getSelectedRecords()[i].getAttribute("flgTipoProv").equalsIgnoreCase("E")) {
+								hasFlgTipoProvEntrata = true;
+							}							
+							if(list.getSelectedRecords()[i].getAttribute("flgTipoProv") != null ? !list.getSelectedRecords()[i].getAttribute("flgTipoProv").equals(flgTipoProvFirst) : flgTipoProvFirst != null) {
+								isStessoFlgTipoProv = false;
+							}
 						} else {
 							isStessoFlgUdFolder = false;
 						}					
@@ -1002,37 +1024,48 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 					final String flgUdFolder = isStessoFlgUdFolder ? flgUdFolderFirst : null;
 					
 					if (isStessoFlgUdFolder) {
-						final Menu creaSmistaCC = new Menu(); 
+
+						final String flgTipoProv = isStessoFlgTipoProv ? flgTipoProvFirst : null;	
+						final boolean isFlgTipoProvMassiva = !isStessoFlgTipoProv && hasFlgTipoProvEntrata;
+						
+						final Menu creaCondividi = new Menu(); // Menu principale Standar/Rapido
+						
 						Record recordDestPref = new Record();						
 						RecordList listaAzioniRapide = new RecordList();
 						Record recordAzioneRapida = new Record();						
 						if(flgUdFolder.equals("U")){
-							recordAzioneRapida.setAttribute("azioneRapida", AzioniRapide.SMISTA_DOC.getValue());
+							recordAzioneRapida.setAttribute("azioneRapida", AzioniRapide.INVIO_CC_DOC.getValue());
 						} else {
-							recordAzioneRapida.setAttribute("azioneRapida", AzioniRapide.SMISTA_FOLDER.getValue());
+							recordAzioneRapida.setAttribute("azioneRapida", AzioniRapide.INVIO_CC_FOLDER.getValue());
 						}
 						listaAzioniRapide.add(recordAzioneRapida);
-						recordDestPref.setAttribute("listaAzioniRapide", listaAzioniRapide);				
+						recordDestPref.setAttribute("listaAzioniRapide", listaAzioniRapide);
+						
 						GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("LoadComboDestinatariPreferiti");
 						lGwtRestDataSource.performCustomOperation("getDestinatariPreferitiUtente", recordDestPref, new DSCallback() {
-				
+							
 							@Override
 							public void execute(DSResponse response, Object rawData, DSRequest request) {
+								
 								if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
 									
 									Record destinatariPreferiti = response.getData()[0];
 									RecordList listaUOPreferiti = null;
 									RecordList listaUtentiPreferiti = null;
 									if(flgUdFolder != null && flgUdFolder.equals("U")){
-										listaUOPreferiti = AurigaLayout.buildRecordListFromArrayListOfMap((ArrayList<Map>) destinatariPreferiti.getAttributeAsMap("mappaUOPreferite").get(AzioniRapide.SMISTA_DOC.getValue()));
-										listaUtentiPreferiti = AurigaLayout.buildRecordListFromArrayListOfMap((ArrayList<Map>) destinatariPreferiti.getAttributeAsMap("mappaUtentiPreferiti").get(AzioniRapide.SMISTA_DOC.getValue()));					
+//										listaUOPreferiti = destinatariPreferiti.getAttributeAsRecordList("listaUOPreferiteDoc");
+//										listaUtentiPreferiti = destinatariPreferiti.getAttributeAsRecordList("listaUtentiPreferitiDoc");
+										listaUOPreferiti = AurigaLayout.buildRecordListFromArrayListOfMap((ArrayList<Map>) destinatariPreferiti.getAttributeAsMap("mappaUOPreferite").get(AzioniRapide.INVIO_CC_DOC.getValue()));
+										listaUtentiPreferiti = AurigaLayout.buildRecordListFromArrayListOfMap((ArrayList<Map>) destinatariPreferiti.getAttributeAsMap("mappaUtentiPreferiti").get(AzioniRapide.INVIO_CC_DOC.getValue()));				
 									} else if(flgUdFolder != null && flgUdFolder.equals("F")){
-										listaUOPreferiti = AurigaLayout.buildRecordListFromArrayListOfMap((ArrayList<Map>) destinatariPreferiti.getAttributeAsMap("mappaUOPreferite").get(AzioniRapide.SMISTA_FOLDER.getValue()));
-										listaUtentiPreferiti = AurigaLayout.buildRecordListFromArrayListOfMap((ArrayList<Map>) destinatariPreferiti.getAttributeAsMap("mappaUtentiPreferiti").get(AzioniRapide.SMISTA_FOLDER.getValue()));					
-									}
-																
+//										listaUOPreferiti = destinatariPreferiti.getAttributeAsRecordList("listaUOPreferiteFolder");
+//										listaUtentiPreferiti = destinatariPreferiti.getAttributeAsRecordList("listaUtentiPreferitiFolder");
+										listaUOPreferiti = AurigaLayout.buildRecordListFromArrayListOfMap((ArrayList<Map>) destinatariPreferiti.getAttributeAsMap("mappaUOPreferite").get(AzioniRapide.INVIO_CC_FOLDER.getValue()));
+										listaUtentiPreferiti = AurigaLayout.buildRecordListFromArrayListOfMap((ArrayList<Map>) destinatariPreferiti.getAttributeAsMap("mappaUtentiPreferiti").get(AzioniRapide.INVIO_CC_FOLDER.getValue()));					
+									}								
+									
 									boolean noMenuRapido = true; // identifica la presenza o menu di valori da visualizzare nel menu rapido
-									final RecordList listaPreferiti = new RecordList(); // contiene tutti i preferiti da visualizzare
+									final RecordList listaPreferiti = new RecordList(); // contiene tutti i preferiti da visualizzare (sia UO che Utenti)
 									
 									if(listaUOPreferiti != null && !listaUOPreferiti.isEmpty()){
 										listaPreferiti.addList(listaUOPreferiti.toArray());
@@ -1043,20 +1076,29 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 										listaPreferiti.addList(listaUtentiPreferiti.toArray());
 										noMenuRapido = false;
 									}
-																
-									// SmistaCC Standard 
-									MenuItem smistaCCMenuStandardItem = new MenuItem("Standard");
-									smistaCCMenuStandardItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+																	
+									// Condividi Standard 
+									MenuItem condivisioneMenuStandardItem = new MenuItem("Standard");
+									condivisioneMenuStandardItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
 										
 										@Override
 										public void onClick(MenuItemClickEvent event) {
-											
-											String title = "Compila dati smistamento";
-											final CondivisionePopup condivisionePopup = new CondivisionePopup(flgUdFolder, null, title) {																								
+											final CondivisionePopup condivisionePopup = new CondivisionePopup(flgUdFolder, null) {
 												
 												@Override
-												public boolean isSmistamentoCC() {
-													return true;
+												public String getFlgTipoProvDoc() {
+													if(flgUdFolder.equals("U")) {
+														return flgTipoProv;														
+													}
+													return null;
+												}
+												
+												@Override
+												public String getSuffissoFinalitaOrganigramma() {
+													if(flgUdFolder.equals("U") && isFlgTipoProvMassiva) {
+														return "_MASSIVA";													
+													}
+													return super.getSuffissoFinalitaOrganigramma();	
 												}
 												
 												@Override
@@ -1069,18 +1111,18 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 													
 													record.setAttribute("flgUdFolder", flgUdFolder);
 													record.setAttribute("listaRecord", listaUdFolder);
-													record.setAttribute("motivoInvio", "#SMIST");
 													
-													Layout.showWaitPopup("Smistamento in corso: potrebbe richiedere qualche secondo. Attendere…");
+													Layout.showWaitPopup("Invio per conoscenza in corso: potrebbe richiedere qualche secondo. Attendere…");
 													GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("CondivisioneDataSource");
 													try {
 														lGwtRestDataSource.addData(record, new DSCallback() {
 
 															@Override
 															public void execute(DSResponse response, Object rawData, DSRequest request) {
-																massiveOperationCallback(response, listaUdFolder, "idUdFolder", "segnatura", "Smistamento effettuato con successo",
-																		"Tutti i record selezionati per lo smistamento sono andati in errore!",
-																		"Alcuni dei record selezionati per lo smistamento sono andati in errore!", callback);
+																massiveOperationCallback(response, listaUdFolder, "idUdFolder", "segnatura",
+																		"Invio per conoscenza effettuato con successo",
+																		"Tutti i record selezionati per l'invio per conoscenza sono andati in errore!",
+																		"Alcuni dei record selezionati per l'invio per conoscenza sono andati in errore!", callback);
 															}
 														});
 													} catch (Exception e) {
@@ -1089,89 +1131,74 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 												}
 											};
 											condivisionePopup.show();
-										}
+										}	
 									});
-									creaSmistaCC.addItem(smistaCCMenuStandardItem);
+									creaCondividi.addItem(condivisioneMenuStandardItem);
 									
-									// SmistaCC Rapido
-									MenuItem smistaCCMenuRapidoItem = new MenuItem("Rapida");				
-
+									// Condividi rapido 
+									MenuItem condividiMenuRapidoItem = new MenuItem("Rapida");				
 									Boolean success = destinatariPreferiti.getAttributeAsBoolean("success");
 									
-									if(success != null && success == true){
+									if(success != null && success && !noMenuRapido){
 										
 										Menu scelteRapide = new Menu();
 										
-										if(noMenuRapido){
-											smistaCCMenuRapidoItem.setEnabled(false);    
-										} else {
-											buildMenuRapidoSmistamentoCC(listaUdFolder, flgUdFolder, listaPreferiti, scelteRapide);
-											smistaCCMenuRapidoItem.setSubmenu(scelteRapide);
-										}
-									
-									} else {
-										smistaCCMenuRapidoItem.setEnabled(false);
-									}
-									creaSmistaCC.addItem(smistaCCMenuRapidoItem);
-									
-									creaSmistaCC.showContextMenu();
-									}
-								}
-
-							
-								private void buildMenuRapidoSmistamentoCC(final RecordList listaUdFolder,
-										final String flgUdFolder, RecordList listaPreferiti ,Menu scelteRapide) {
-									
-									for(int i=0; i < listaPreferiti.getLength();i++){
-										
-										Record currentRecord = listaPreferiti.get(i);
-										final String idDestinatarioPreferito = currentRecord.getAttribute("idDestinatarioPreferito");
-										final String tipoDestinatarioPreferito = currentRecord.getAttribute("tipoDestinatarioPreferito");
-										final String descrizioneDestinatarioPreferito = currentRecord.getAttribute("descrizioneDestinatarioPreferito");
-										
-										MenuItem currentRapidoItem = new MenuItem(descrizioneDestinatarioPreferito); 
-										currentRapidoItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+										for(int i=0; i < listaPreferiti.getLength();i++){
+											Record currentRecord = listaPreferiti.get(i);
+											final String idDestinatarioPreferito = currentRecord.getAttribute("idDestinatarioPreferito");
+											final String tipoDestinatarioPreferito = currentRecord.getAttribute("tipoDestinatarioPreferito");
+											final String descrizioneDestinatarioPreferito = currentRecord.getAttribute("descrizioneDestinatarioPreferito");
 											
-											@Override
-											public void onClick(MenuItemClickEvent event) {
+											MenuItem currentRapidoItem = new MenuItem(descrizioneDestinatarioPreferito); 
+											currentRapidoItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
 												
-												RecordList listaDestInvioCC = new RecordList();
-												Record recordDestSmistaCC = new Record();
-												recordDestSmistaCC.setAttribute("idUo", idDestinatarioPreferito);
-												recordDestSmistaCC.setAttribute("typeNodo",tipoDestinatarioPreferito);
-												listaDestInvioCC.add(recordDestSmistaCC);
-												
-												Record record = new Record();
-												record.setAttribute("flgUdFolder", flgUdFolder);
-												record.setAttribute("listaRecord", listaUdFolder);
-												record.setAttribute("listaDestInvioCC", listaDestInvioCC);
-												record.setAttribute("motivoInvio", "#SMIST");
-												
-												GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("CondivisioneDataSource");
-												try {
-													lGwtRestDataSource.addData(record, new DSCallback() {
-	
-														@Override
-														public void execute(DSResponse response, Object rawData, DSRequest request) {
-															massiveOperationCallback(response, listaUdFolder, "idUdFolder", "segnatura", "Smistamento effettuato con successo",
-																	"Tutti i record selezionati per lo smistamento sono andati in errore!",
-																	"Alcuni dei record selezionati per lo smistamento sono andati in errore!", null);
-														}
-													});
-												} catch (Exception e) {
-													Layout.hideWaitPopup();
+												@Override
+												public void onClick(MenuItemClickEvent event) {
+													RecordList listaDestInvioCC = new RecordList();
+													Record recordDest = new Record();
+													recordDest.setAttribute("idUo", idDestinatarioPreferito);
+													recordDest.setAttribute("typeNodo",tipoDestinatarioPreferito);
+													recordDest.setAttribute("listaDestInvioCC", listaDestInvioCC);
+													listaDestInvioCC.add(recordDest);
+													
+													Record record = new Record();
+													record.setAttribute("flgUdFolder", flgUdFolder);
+													record.setAttribute("listaRecord", listaUdFolder);
+													record.setAttribute("listaDestInvioCC", listaDestInvioCC);
+													Layout.showWaitPopup("Invio per conoscenza in corso: potrebbe richiedere qualche secondo. Attendere…");
+													GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("CondivisioneDataSource");
+													try {
+														lGwtRestDataSource.addData(record, new DSCallback() {
+
+															@Override
+															public void execute(DSResponse response, Object rawData, DSRequest request) {
+																massiveOperationCallback(response, listaUdFolder, "idUdFolder", "segnatura",
+																		"Invio per conoscenza effettuato con successo",
+																		"Tutti i record selezionati per l'invio per conoscenza sono andati in errore!",
+																		"Alcuni dei record selezionati per l'invio per conoscenza sono andati in errore!", null);
+															}
+														});
+													} catch (Exception e) {
+														Layout.hideWaitPopup();
+													}
+													
 												}
-											}
-										});
-										scelteRapide.addItem(currentRapidoItem);
+											});
+											scelteRapide.addItem(currentRapidoItem);
+										}
+										condividiMenuRapidoItem.setSubmenu(scelteRapide);
+
+									} else {
+										condividiMenuRapidoItem.setEnabled(false);
 									}
+									creaCondividi.addItem(condividiMenuRapidoItem);
+									creaCondividi.showContextMenu();
 								}
-						
+							}
 						}, new DSRequest());
-						
 					} else {
 						Layout.addMessage(new MessageBean(
-								"Non è possibile smistare documenti e fascicoli in una sola operazione: seleziona solo documenti o solo fascicoli", "",
+								"Non è possibile inviare per conoscenza documenti e fascicoli in una sola operazione: seleziona solo documenti o solo fascicoli", "",
 								MessageType.ERROR));
 					}
 				}
@@ -1183,7 +1210,7 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 
 				@Override
 				public boolean toShow() {
-					return (Layout.isPrivilegioAttivo("GRD/UD/UUD") || Layout.isPrivilegioAttivo("GRD/FLD/UM"));
+					return (!AurigaLayout.getParametroDBAsBoolean("DISATTIVA_CLASSIFICAZIONE") && (Layout.isPrivilegioAttivo("GRD/UD/UUD") || Layout.isPrivilegioAttivo("GRD/FLD/UM")));
 				}
 
 				@Override
@@ -1226,6 +1253,48 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 						Layout.addMessage(new MessageBean("La selezione comprende anche dei fascicoli: operazione di fascicolazione non consentita", "",
 								MessageType.ERROR));
 				}
+			};
+		}
+		
+		if(organizzaMultiButton == null) {
+			organizzaMultiButton = new MultiToolStripButton("archivio/organizza.png", this, "Organizza", false) {
+
+				@Override
+				public boolean toShow() {
+					return (Layout.isPrivilegioAttivo("GRD/UD/UUD") || Layout.isPrivilegioAttivo("GRD/FLD/UM"));
+				}
+				
+				@Override
+				public void doSomething() {
+					final OrganizzaPopup organizzaPopup = new OrganizzaPopup(null) {
+
+						@Override
+						public void onClickOkButton(final DSCallback callback) {
+							
+							final RecordList listaUd = new RecordList();
+							for (int i = 0; i < list.getSelectedRecords().length; i++) {
+								listaUd.add(list.getSelectedRecords()[i]);
+							}
+							Record record = new Record();
+							record.setAttribute("listaRecord", listaUd);
+							record.setAttribute("listaFolderCustom", _form.getValueAsRecordList("listaFolderCustom"));
+							record.setAttribute("livelloRiservatezza", _form.getValue("livelloRiservatezza"));
+							GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("OrganizzaDataSource");
+							lGwtRestDataSource.addParam("inAppend", "true");
+							lGwtRestDataSource.addData(record, new DSCallback() {
+
+								@Override
+								public void execute(DSResponse response, Object rawData, DSRequest request) {
+									massiveOperationCallback(response, listaUd, "idUdFolder", "segnatura",
+											"Organizzazione nella cartella/e effettuata con successo",
+											"Tutti i record selezionati per l'organizzazione nella cartella/e sono andati in errore!",
+											"Alcuni dei record selezionati per l'organizzazione nella cartella/e sono andati in errore!", callback);
+								}
+							});
+						}
+					};
+				}
+				
 			};
 		}
 		
@@ -1657,7 +1726,7 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 						
 						}
 						
-						if(Layout.isPrivilegioAttivo("SCC")) {
+						if(AurigaLayout.showCopiaConformeCustom()) {
 							String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 							MenuItem scaricaFileConformitaCustomMenuItem = new MenuItem("File " + labelConformitaCustom, "buttons/download_zip.png");
 							scaricaFileConformitaCustomMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
@@ -1782,8 +1851,9 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			};			
 		}										
 		
+		
 		return new MultiToolStripButton[] { aggiungiAPreferitiMultiButton, rimuoviDaPreferitiMultiButton, assegnaRiservatezzaMultiButton,
-				rimuoviRiservatezzaMultiButton, stampaEtichettaMultiButton, stampaDistintaSpedizioneMultiButton, fascicolaMultiButton, smistaCCMultiButton, assegnaMultiButton,
+				rimuoviRiservatezzaMultiButton, stampaEtichettaMultiButton, stampaDistintaSpedizioneMultiButton, fascicolaMultiButton, organizzaMultiButton, condividiMultiButton, assegnaMultiButton,
 				apposizioneCommentiMultiButton, segnaComeVisionatoMultiButton, downloadZipAllegati, downloadZipFilePubblicati, modificaStatoDocMultiButton,
 				chiudiFascicoloMultiButton, modificaTipologiaMultiButton, riapriFascicoloMultiButton
 		};
@@ -2092,6 +2162,7 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 		nuovaProtComeCopiaButton.hide();
 		presaInCaricoButton.hide();
 		restituisciButton.hide();
+		rilasciaButton.hide();	
 		segnaComeVisionatoButton.hide();
 		classificazioneFascicolazioneButton.hide();
 		modificaButton.hide();
@@ -2104,8 +2175,10 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 		protocollazioneInternaButton.hide();
 		// permessiUdButton.hide();
 		invioPECButton.hide();
+		frecciainvioPECButton.hide();
 		invioMailRicevutaButton.hide();
 		invioPEOButton.hide();
+		frecciainvioPEOButton.hide();
 		inviaRaccomandataButton.hide();
 		inviaPostaPrioritariaButton.hide();		
 		detailDownloadDocsZip.hide();
@@ -2114,13 +2187,17 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 		riapriFascicoloButton.hide();
 		versaInArchivioStoricoFascicoloButton.hide();
 		avviaIterButton.hide();
+		azioniIstruttoriaPubblButton.hide();
+		avviaIterFirmeButton.hide();
 		osservazioniNotificheButton.hide();
 		apposizioneFirmaButton.hide();
 		rifiutoApposizioneFirmaButton.hide();
 		apposizioneFirmaProtocollazioneButton.hide();
 		apposizioneVistoButton.hide();
 		rifiutoApposizioneVistoButton.hide();
-		pubblicazioneTraspAmmButton.hide();		
+		pubblicazioneButton.hide();
+		pubblicazioneTraspAmmButton.hide();
+			
 	}
 
 	@Override
@@ -2170,6 +2247,11 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			} else {
 				restituisciButton.hide();
 			}
+			if (record.getAttributeAsBoolean("abilRilascia")) {
+				rilasciaButton.show();
+			} else {
+				rilasciaButton.hide();
+			}
 			if (record.getAttributeAsBoolean("abilSetVisionato")) {
 				segnaComeVisionatoButton.show();
 			} else {
@@ -2218,6 +2300,11 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			} else {
 				restituisciButton.hide();
 			}
+			if (record.getAttributeAsBoolean("abilRilascia")) {
+				rilasciaButton.show();
+			} else {
+				rilasciaButton.hide();
+			}
 			if (record.getAttributeAsBoolean("abilSetVisionato")) {
 				segnaComeVisionatoButton.show();
 			} else {
@@ -2230,8 +2317,10 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			modificaDatiRegButton.hide();
 			// permessiUdButton.hide();
 			invioPECButton.hide();
+			frecciainvioPECButton.hide();
 			invioMailRicevutaButton.hide();
 			invioPEOButton.hide();
+			frecciainvioPEOButton.hide();
 			inviaRaccomandataButton.hide();
 			inviaPostaPrioritariaButton.hide();
 			salvaComeModelloButton.hide();
@@ -2240,6 +2329,12 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			} else {
 				avviaIterButton.hide();
 			}
+			if(showAzioniIstruttoriaPubbl(record)) {
+				azioniIstruttoriaPubblButton.show();
+			} else {
+				azioniIstruttoriaPubblButton.hide();
+			}
+			avviaIterFirmeButton.hide();
 			if (showOsservazioniNotificheButton(record)){
 				osservazioniNotificheButton.show();
 			}else{
@@ -2254,6 +2349,7 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			apposizioneFirmaProtocollazioneButton.hide();
 			apposizioneVistoButton.hide();
 			rifiutoApposizioneVistoButton.hide();
+			pubblicazioneButton.hide();
 			pubblicazioneTraspAmmButton.hide();
 		} else if (detail instanceof FolderCustomDetail) {
 			((FolderCustomDetail) detail).viewMode();
@@ -2267,6 +2363,11 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 				restituisciButton.show();
 			} else {
 				restituisciButton.hide();
+			}
+			if (record.getAttributeAsBoolean("abilRilascia")) {
+				rilasciaButton.show();
+			} else {
+				rilasciaButton.hide();
 			}
 			if (record.getAttributeAsBoolean("abilSetVisionato")) {
 				segnaComeVisionatoButton.show();
@@ -2306,6 +2407,11 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			} else {
 				restituisciButton.hide();
 			}
+			if (record.getAttributeAsBoolean("abilRilascia")) {
+				rilasciaButton.show();
+			} else {
+				rilasciaButton.hide();
+			}
 			if (record.getAttributeAsBoolean("abilSetVisionato")) {
 				segnaComeVisionatoButton.show();
 			} else {
@@ -2318,8 +2424,10 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			modificaDatiRegButton.hide();
 			// permessiUdButton.hide();
 			invioPECButton.hide();
+			frecciainvioPECButton.hide();
 			invioMailRicevutaButton.hide();
 			invioPEOButton.hide();
+			frecciainvioPEOButton.hide();
 			inviaRaccomandataButton.hide();
 			inviaPostaPrioritariaButton.hide();
 			salvaComeModelloButton.hide();
@@ -2328,6 +2436,8 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			} else {
 				avviaIterButton.hide();
 			}
+			azioniIstruttoriaPubblButton.hide();
+			avviaIterFirmeButton.hide();
 			if (showOsservazioniNotificheButton(record)){
 				osservazioniNotificheButton.show();
 			}else{
@@ -2342,6 +2452,7 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			apposizioneFirmaProtocollazioneButton.hide();
 			apposizioneVistoButton.hide();
 			rifiutoApposizioneVistoButton.hide();
+			pubblicazioneButton.hide();
 			pubblicazioneTraspAmmButton.hide();
 			if ((detail instanceof PraticaPregressaDetail) && ((PraticaPregressaDetail) detail).showRegistraPrelievoButton()) {
 				registraPrelievoButton.show();
@@ -2432,6 +2543,11 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 					restituisciButton.show();
 				} else {
 					restituisciButton.hide();
+				}
+				if (record.getAttributeAsBoolean("abilRilascia")) {
+					rilasciaButton.show();
+				} else {
+					rilasciaButton.hide();
 				}
 				if (record.getAttributeAsBoolean("abilSetVisionato")) {
 					segnaComeVisionatoButton.show();
@@ -2590,6 +2706,11 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 				} else {
 					restituisciButton.hide();
 				}
+				if (record.getAttributeAsBoolean("abilRilascia")) {
+					rilasciaButton.show();
+				} else {
+					rilasciaButton.hide();
+				}
 				if (record.getAttributeAsBoolean("abilSetVisionato")) {
 					segnaComeVisionatoButton.show();
 				} else {
@@ -2654,6 +2775,16 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 					rifiutoApposizioneVistoButton.hide();
 				}
 			}
+			if(showAzioniIstruttoriaPubbl(record)) {
+				azioniIstruttoriaPubblButton.show();
+			} else {
+				azioniIstruttoriaPubblButton.hide();
+			}
+			if(showAvviaIterFirme(record)) {
+				avviaIterFirmeButton.show();
+			} else {
+				avviaIterFirmeButton.hide();
+			}
 			if (showOsservazioniNotificheButton(record)){
 				osservazioniNotificheButton.show();
 			}else{
@@ -2661,8 +2792,14 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			}
 			if (record.getAttributeAsBoolean("abilInvioPEC")) {
 				invioPECButton.show();
+				if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_OPZ_AVANZATE_INVIO_EMAIL_UD")) {
+					frecciainvioPECButton.show();
+				}else {
+					frecciainvioPECButton.hide();
+				}
 			} else {
 				invioPECButton.hide();
+				frecciainvioPECButton.hide();
 			}
 			if (record.getAttributeAsBoolean("abilInvioEmailRicevuta")) {
 				invioMailRicevutaButton.show();
@@ -2671,8 +2808,14 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			}
 			if (record.getAttributeAsBoolean("abilInvioPEO")) {
 				invioPEOButton.show();
+				if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_OPZ_AVANZATE_INVIO_EMAIL_UD")) {
+					frecciainvioPEOButton.show();
+				}else {
+					frecciainvioPEOButton.hide();
+				}
 			} else {
 				invioPEOButton.hide();
+				frecciainvioPEOButton.hide();
 			}
 			if (Layout.isPrivilegioAttivo("PRT/U") && ((ProtocollazioneDetail) detail) instanceof ProtocollazioneDetailUscita && !(record.getAttributeAsBoolean("annullata")) && AurigaLayout.getParametroDB("CLIENTE").equalsIgnoreCase("ARPA_LAZ")) {
 				ProtocollazioneUtil.isPossibleToPostel(record.getAttributeAsInt("idUd"), ETypePoste.RACCOMANDATA.value(), new ServiceCallback<Record>() {
@@ -2712,6 +2855,11 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			} else {
 				avviaIterButton.hide();
 			}
+			if (record.getAttributeAsBoolean("abilPubblicazione")) {
+				pubblicazioneButton.show();
+			} else {
+				pubblicazioneButton.hide();
+			}
 			if (record.getAttributeAsBoolean("abilPubblicazioneTraspAmm")) {
 				pubblicazioneTraspAmmButton.show();
 			} else {
@@ -2726,6 +2874,7 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			}
 			presaInCaricoButton.hide();
 			restituisciButton.hide();
+			rilasciaButton.hide();
 			segnaComeVisionatoButton.hide();
 			classificazioneFascicolazioneButton.hide();
 			if (record.getAttributeAsBoolean("abilModificaTipologia")) {
@@ -2762,6 +2911,7 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			nuovaProtComeCopiaButton.hide();
 			presaInCaricoButton.hide();
 			restituisciButton.hide();
+			rilasciaButton.hide();
 			segnaComeVisionatoButton.hide();
 			classificazioneFascicolazioneButton.hide();
 			modificaButton.hide();
@@ -2770,13 +2920,17 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			modificaDatiRegButton.hide();
 			// permessiUdButton.hide();
 			invioPECButton.hide();
+			frecciainvioPECButton.hide();
 			invioMailRicevutaButton.hide();
 			invioPEOButton.hide();
+			frecciainvioPEOButton.hide();
 			inviaRaccomandataButton.hide();
 			inviaPostaPrioritariaButton.hide();
 			deleteButton.hide();
 			salvaComeModelloButton.hide();
 			avviaIterButton.hide();
+			azioniIstruttoriaPubblButton.hide();
+			avviaIterFirmeButton.hide();
 			if (showOsservazioniNotificheButton(record)){
 				osservazioniNotificheButton.show();
 			}else{
@@ -2790,7 +2944,8 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			rifiutoApposizioneFirmaButton.hide();
 			apposizioneFirmaProtocollazioneButton.hide();
 			apposizioneVistoButton.hide();
-			rifiutoApposizioneVistoButton.hide();			
+			rifiutoApposizioneVistoButton.hide();
+			pubblicazioneButton.hide();
 			pubblicazioneTraspAmmButton.hide();
 		} else {
 			stampaEtichettaButton.hide();
@@ -2812,6 +2967,7 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			editButton.hide();
 			presaInCaricoButton.hide();
 			restituisciButton.hide();
+			rilasciaButton.hide();
 			segnaComeVisionatoButton.hide();
 			classificazioneFascicolazioneButton.hide();
 			modificaButton.hide();
@@ -2820,8 +2976,10 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			modificaDatiRegButton.hide();
 			// permessiUdButton.hide();
 			invioPECButton.hide();
+			frecciainvioPECButton.hide();
 			invioMailRicevutaButton.hide();
 			invioPEOButton.hide();
+			frecciainvioPEOButton.hide();
 			inviaRaccomandataButton.hide();
 			inviaPostaPrioritariaButton.hide();
 			deleteButton.hide();
@@ -2832,6 +2990,8 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 //			}else{
 //				rispondiButton.hide();
 //			}
+			azioniIstruttoriaPubblButton.hide();
+			avviaIterFirmeButton.hide();
 			if (showOsservazioniNotificheButton(record)){
 				osservazioniNotificheButton.show();
 			}else{
@@ -2846,6 +3006,7 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			apposizioneFirmaProtocollazioneButton.hide();
 			apposizioneVistoButton.hide();
 			rifiutoApposizioneVistoButton.hide();	
+			pubblicazioneButton.hide();
 			pubblicazioneTraspAmmButton.hide();
 		}
 		if (isLookup() && record.getAttributeAsBoolean("flgSelXFinalita") != null && record.getAttributeAsBoolean("flgSelXFinalita")) {
@@ -2979,6 +3140,7 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 		nuovaProtComeCopiaButton.hide();
 		presaInCaricoButton.hide();
 		restituisciButton.hide();
+		rilasciaButton.hide();
 		segnaComeVisionatoButton.hide();
 		classificazioneFascicolazioneButton.hide();
 		modificaButton.hide();
@@ -2987,8 +3149,10 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 		modificaDatiRegButton.hide();
 		// permessiUdButton.hide();
 		invioPECButton.hide();
+		frecciainvioPECButton.hide();
 		invioMailRicevutaButton.hide();
 		invioPEOButton.hide();
+		frecciainvioPEOButton.hide();
 		inviaRaccomandataButton.hide();
 		inviaPostaPrioritariaButton.hide();
 		detailDownloadDocsZip.hide();
@@ -3006,6 +3170,8 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 		apposizioneFirmaProtocollazioneButton.hide();		
 		apposizioneVistoButton.hide();
 		rifiutoApposizioneVistoButton.hide();	
+		azioniIstruttoriaPubblButton.hide();
+		avviaIterFirmeButton.hide();
 	}
 
 	private String getTitleUnicaStampaAbilitata(Record record) {
@@ -3056,9 +3222,7 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 		List<ToolStripButton> detailButtons = new ArrayList<ToolStripButton>();
 
 		if(stampaEtichettaButton == null) {
-			stampaEtichettaButton = new DetailToolStripButton(AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") ? "Timbra" :
-					I18NUtil.getMessages().protocollazione_detail_stampaEtichettaButton_prompt(),
-					"protocollazione/barcode.png");
+			stampaEtichettaButton = new DetailToolStripButton(getTitleStampaEtichetta(), "protocollazione/barcode.png");
 			stampaEtichettaButton.addClickHandler(new ClickHandler() {
 	
 				@Override
@@ -3079,7 +3243,6 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 				}
 			});
 		}
-		
 		
 		if(smistaButton == null) {
 			smistaButton = new DetailToolStripButton("Smista","archivio/smistamento.png");
@@ -3727,6 +3890,22 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			});
 		}
 		
+		if(rilasciaButton == null) {	
+			rilasciaButton = new DetailToolStripButton(I18NUtil.getMessages().protocollazione_detail_rilascia_title(), 
+					"archivio/rilascia_a_uo.png");
+			rilasciaButton.addClickHandler(new ClickHandler() {
+				
+				@Override
+				public void onClick(ClickEvent event) {
+					if (detail instanceof ProtocollazioneDetail) {
+						((ProtocollazioneDetail) detail).clickRilascia();
+					} else if (detail instanceof ArchivioDetail) {
+						((ArchivioDetail) detail).clickRilascia();
+					}
+				}
+			});
+		}
+		
 		if(segnaComeVisionatoButton == null) {	
 			segnaComeVisionatoButton = new DetailToolStripButton(I18NUtil.getMessages().protocollazione_detail_segnaComeVisionato_title(), 
 					"postaElettronica/flgRicevutaLettura.png");
@@ -3766,9 +3945,11 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 					editMode(true);
 					Record record = new Record(detail.getValuesManager().getValues());
 					if (detail instanceof ProtocollazioneDetail) {
-						if (!(detail instanceof ProtocollazioneDetailBozze)) {
+						if (detail instanceof ProtocollazioneDetailBozze) {
+							((ProtocollazioneDetailBozze) detail).modificaDatiMode(record.getAttributeAsBoolean("abilAggiuntaFile"));
+						} else {
 							if (record.getAttributeAsBoolean("abilModificaDati")) {
-								((ProtocollazioneDetail) detail).modificaDatiMode();
+								((ProtocollazioneDetail) detail).modificaDatiMode(record.getAttributeAsBoolean("abilAggiuntaFile"));
 							} else if (record.getAttributeAsBoolean("abilAggiuntaFile")) {
 								((ProtocollazioneDetail) detail).aggiuntaFileMode();
 							} else if (record.getAttributeAsBoolean("abilModificaDatiExtraIter")) {
@@ -3892,63 +4073,18 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 	
 				@Override
 				public void onClick(ClickEvent event) {
-					Record record = new Record(detail.getValuesManager().getValues());
-					
-					final Boolean flgInvioPECMulti = record.getAttributeAsBoolean("flgInvioPECMulti") != null &&
-							record.getAttributeAsBoolean("flgInvioPECMulti") ? true : false;					
-					
-					GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AurigaInvioUDMailDatasource");
-					if(flgInvioPECMulti) {
-						lGwtRestService.extraparam.put("PEC_MULTI", "1");
-					} 
-					lGwtRestService.extraparam.put("tipoMail", "PEC");
-					lGwtRestService.call(record, new ServiceCallback<Record>() {
-	
-						@Override
-						public void execute(Record object) {
-							
-							if(flgInvioPECMulti) {
-								object.setAttribute("tipoMail", "PEO");
-								InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", new DSCallback() {
-									
-									@Override
-									public void execute(DSResponse response, Object rawData, DSRequest request) {
-										
-										reload(new DSCallback() {
+					apriWindowInvioPEC(null);
+				}
+			});
+		}
 		
-											@Override
-											public void execute(DSResponse response, Object rawData, DSRequest request) {
-												
-												viewMode();
-											}
-										});
-									}
-								});
-								lInvioUdMailWindow.loadMail(object);
-								lInvioUdMailWindow.show();
-								
-							} else {
-								InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEC", new DSCallback() {
-									
-									@Override
-									public void execute(DSResponse response, Object rawData, DSRequest request) {
-										
-										reload(new DSCallback() {
-		
-											@Override
-											public void execute(DSResponse response, Object rawData, DSRequest request) {
-												
-												viewMode();
-											}
-										});
-									}
-								});
-								lInvioUdMailWindow.loadMail(object);
-								lInvioUdMailWindow.show();
-							}
+		if(frecciainvioPECButton == null) {
+			frecciainvioPECButton = new FrecciaDetailToolStripButton();
+			frecciainvioPECButton.addClickHandler(new ClickHandler() {
 
-						}
-					});
+				@Override
+				public void onClick(ClickEvent event) {
+					clickFrecciaInvioPECButton();
 				}
 			});
 		}
@@ -4026,32 +4162,18 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 	
 				@Override
 				public void onClick(ClickEvent event) {
-					Record record = new Record(detail.getValuesManager().getValues());
-					GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AurigaInvioUDMailDatasource");
-					lGwtRestService.extraparam.put("tipoMail", "PEO");
-					lGwtRestService.call(record, new ServiceCallback<Record>() {
-	
-						@Override
-						public void execute(Record object) {
-							InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", new DSCallback() {
-	
-								@Override
-								public void execute(DSResponse response, Object rawData, DSRequest request) {
-									
-									reload(new DSCallback() {
-	
-										@Override
-										public void execute(DSResponse response, Object rawData, DSRequest request) {
-											
-											viewMode();
-										}
-									});
-								}
-							});
-							lInvioUdMailWindow.loadMail(object);
-							lInvioUdMailWindow.show();
-						}
-					});
+					apriWindowInvioPEO(null);
+				}
+			});
+		}
+		
+		if(frecciainvioPEOButton == null) {
+			frecciainvioPEOButton = new FrecciaDetailToolStripButton();
+			frecciainvioPEOButton.addClickHandler(new ClickHandler() {
+
+				@Override
+				public void onClick(ClickEvent event) {
+					clickFrecciaInvioPEOButton();
 				}
 			});
 		}
@@ -4451,6 +4573,32 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			});
 		}
 		
+		if(azioniIstruttoriaPubblButton == null) {	
+			azioniIstruttoriaPubblButton = new DetailToolStripButton("Azioni istruttoria pubblicazione", "pratiche/icone/complessa.png");
+			azioniIstruttoriaPubblButton.addClickHandler(new ClickHandler() {
+	
+				@Override
+				public void onClick(ClickEvent event) {
+					if (detail instanceof ProtocollazioneDetail) {
+						((ProtocollazioneDetail)detail).clickAzioniIstruttoriaPubbl();
+					}
+				}
+			});
+		}
+		
+		if(avviaIterFirmeButton == null) {	
+			avviaIterFirmeButton = new DetailToolStripButton("Avvia raccolta firme", "file/mini_sign.png");
+			avviaIterFirmeButton.addClickHandler(new ClickHandler() {
+	
+				@Override
+				public void onClick(ClickEvent event) {
+					if (detail instanceof ProtocollazioneDetail) {
+						((ProtocollazioneDetail)detail).clickAvviaIterFirme(avviaIterFirmeButton);
+					}
+				}
+			});
+		}
+		
 		if(osservazioniNotificheButton == null) {	
 			osservazioniNotificheButton = new DetailToolStripButton("Notifiche", "osservazioni_notifiche.png");
 			osservazioniNotificheButton.addClickHandler(new ClickHandler() {
@@ -4588,6 +4736,63 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			});
 		} 
 		
+		if(pubblicazioneButton == null) {	
+			String labelTastoPubblAlbo = AurigaLayout.getParametroDB("LABEL_TASTO_PUBBL_ALBO");
+			if(labelTastoPubblAlbo == null || "".equals(labelTastoPubblAlbo)) {
+				labelTastoPubblAlbo = "Pubblica";
+			}	
+			pubblicazioneButton = new DetailToolStripButton(labelTastoPubblAlbo, "buttons/richiesta_pubblicazione.png");
+			pubblicazioneButton.addClickHandler(new ClickHandler() {
+	
+				@Override
+				public void onClick(ClickEvent event) {
+					final Record detailRecord = new Record(detail.getValuesManager().getValues());
+					final String idUd = detailRecord.getAttribute("idUd");
+					if (detail instanceof ProtocollazioneDetail) {			
+						final Record recordPubblicazione = new Record(detail.getValuesManager().getValues());
+						recordPubblicazione.setAttribute("statoAtto", "presente");
+						recordPubblicazione.setAttribute("tipoRegNum", detailRecord.getAttribute("tipoProtocollo"));
+						recordPubblicazione.setAttribute("siglaRegNum", detailRecord.getAttribute("siglaProtocollo"));
+						recordPubblicazione.setAttribute("annoRegNum", detailRecord.getAttribute("annoProtocollo"));
+						recordPubblicazione.setAttribute("nroRegNum", detailRecord.getAttribute("nroProtocollo"));
+						NuovaRichiestaPubblicazioneWindow lNuovaRichiestaPubblicazioneWindow = new NuovaRichiestaPubblicazioneWindow(recordPubblicazione.toMap(), null, new ServiceCallback<Record>() {
+							
+							@Override
+							public void execute(Record object) {
+								reload(new DSCallback() {
+
+									@Override
+									public void execute(DSResponse response, Object rawData, DSRequest request) {
+										detail.setSaved(true);
+										viewMode();
+									}
+								});
+							}
+						}) {
+							
+							@Override
+							public void afterLoadDetail() {
+								if(idUd != null && !"".equals(idUd)) {
+									detail.loadDettaglio(idUd, new ServiceCallback<Record>() {
+
+										@Override
+										public void execute(Record recordDettaglio) {
+											if (recordDettaglio != null) {
+												recordDettaglio.setAttribute("dataAdozione", recordDettaglio.getAttribute("tsRegistrazione"));
+												detail.editRecord(recordDettaglio);
+												detail.markForRedraw();
+												detail.setCanEdit(true);
+											}
+										}
+									});
+								}
+							}
+						};	
+					}
+				}
+			});
+		}
+		
 		if(pubblicazioneTraspAmmButton == null) {	
 			pubblicazioneTraspAmmButton = new DetailToolStripButton("Pubbl. Trasp. Amm.", "buttons/richiesta_pubblicazione.png");
 			pubblicazioneTraspAmmButton.addClickHandler(new ClickHandler() {
@@ -4600,6 +4805,8 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 			});
 		}
 		
+		detailButtons.add(azioniIstruttoriaPubblButton);
+		detailButtons.add(avviaIterFirmeButton);
 		detailButtons.add(apposizioneFirmaButton);
 		detailButtons.add(apposizioneFirmaProtocollazioneButton);
 		detailButtons.add(rifiutoApposizioneFirmaButton);
@@ -4616,6 +4823,7 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 		detailButtons.add(editButton);
 		detailButtons.add(presaInCaricoButton);
 		detailButtons.add(restituisciButton);
+		detailButtons.add(rilasciaButton);
 		detailButtons.add(segnaComeVisionatoButton);
 		detailButtons.add(classificazioneFascicolazioneButton);
 		detailButtons.add(modificaButton);
@@ -4627,7 +4835,9 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 		detailButtons.add(protocollazioneUscitaButton);
 		detailButtons.add(protocollazioneInternaButton);
 		detailButtons.add(invioPECButton);
+		detailButtons.add(frecciainvioPECButton);
 		detailButtons.add(invioPEOButton);
+		detailButtons.add(frecciainvioPEOButton);
 		detailButtons.add(inviaRaccomandataButton);
 		detailButtons.add(inviaPostaPrioritariaButton);
 		detailButtons.add(verificaRegistrazioneButton);
@@ -4659,6 +4869,7 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 		detailButtons.add(riapriFascicoloButton);
 		detailButtons.add(versaInArchivioStoricoFascicoloButton);
 		detailButtons.add(avviaIterButton);
+		detailButtons.add(pubblicazioneButton);
 		detailButtons.add(pubblicazioneTraspAmmButton);
 		
 		if ((detail instanceof RichiestaAccessoAttiDetail)) {
@@ -4666,6 +4877,105 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 		}
 
 		return detailButtons;
+	}
+
+	protected void clickFrecciaInvioPECButton() {
+
+		final Menu invioPEOMenu = new Menu();
+		MenuItem bustaFilePrincipaleMenuItem = new MenuItem("Standard", "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				apriWindowInvioPEC(null);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleMenuItem);
+		
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_BUSTA_PDF_FILE_FIRMATO")) {
+			
+			MenuItem filePrincipaleMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.FILE_PRINCIPALE, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+			filePrincipaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+	
+				@Override
+				public void onClick(MenuItemClickEvent event) {
+					apriWindowInvioPEC(TipologiaAllegatiInvioMailCostants.FILE_PRINCIPALE);
+				}
+			});
+			invioPEOMenu.addItem(filePrincipaleMenuItem);
+		}
+		
+		MenuItem bustaFilePrincipaleAllegatiEsterniMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI_ESTERNI, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleAllegatiEsterniMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				apriWindowInvioPEC(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI_ESTERNI);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleAllegatiEsterniMenuItem);
+		
+		MenuItem bustaFilePrincipaleEAllegatiMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleEAllegatiMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				apriWindowInvioPEC(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleEAllegatiMenuItem);
+
+		invioPEOMenu.showContextMenu();
+		
+	}
+
+	protected void clickFrecciaInvioPEOButton() {
+		final Menu invioPEOMenu = new Menu();
+		MenuItem bustaFilePrincipaleMenuItem = new MenuItem("Standard", "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				apriWindowInvioPEO(null);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleMenuItem);
+		
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_BUSTA_PDF_FILE_FIRMATO")) {
+			
+			MenuItem filePrincipaleMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.FILE_PRINCIPALE, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+			filePrincipaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+	
+				@Override
+				public void onClick(MenuItemClickEvent event) {
+					apriWindowInvioPEO(TipologiaAllegatiInvioMailCostants.FILE_PRINCIPALE);
+				}
+			});
+			invioPEOMenu.addItem(filePrincipaleMenuItem);
+		}
+		
+		MenuItem bustaFilePrincipaleAllegatiEsterniMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI_ESTERNI, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleAllegatiEsterniMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				apriWindowInvioPEO(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI_ESTERNI);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleAllegatiEsterniMenuItem);
+		
+		MenuItem bustaFilePrincipaleEAllegatiMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleEAllegatiMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				apriWindowInvioPEO(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleEAllegatiMenuItem);
+
+		invioPEOMenu.showContextMenu();
+	
 	}
 
 	protected void clickFrecciaDownload() {
@@ -4729,7 +5039,7 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 		
 		}
 		
-		if(Layout.isPrivilegioAttivo("SCC")) {
+		if(AurigaLayout.showCopiaConformeCustom()) {
 			String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 			MenuItem scaricaFileConformitaCustomMenuItem = new MenuItem("File " + labelConformitaCustom, "buttons/download_zip.png");
 			scaricaFileConformitaCustomMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
@@ -4829,9 +5139,11 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 				editMode(true);
 				Record record = new Record(detail.getValuesManager().getValues());
 				if (detail instanceof ProtocollazioneDetail) {
-					if (!(detail instanceof ProtocollazioneDetailBozze)) {
+					if (detail instanceof ProtocollazioneDetailBozze) {
+						((ProtocollazioneDetailBozze) detail).modificaDatiMode(record.getAttributeAsBoolean("abilAggiuntaFile"));
+					} else {
 						if (record.getAttributeAsBoolean("abilModificaDati")) {
-							((ProtocollazioneDetail) detail).modificaDatiMode();
+							((ProtocollazioneDetail) detail).modificaDatiMode(record.getAttributeAsBoolean("abilAggiuntaFile"));
 						} else if (record.getAttributeAsBoolean("abilAggiuntaFile")) {
 							((ProtocollazioneDetail) detail).aggiuntaFileMode();
 						} else if (record.getAttributeAsBoolean("abilModificaDatiExtraIter")) {
@@ -5754,6 +6066,31 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 	}
 	
 	/**
+	 * METODO CHE VERIFICA ABILITAZIONE BOTTONE AZIONI ISTRUTTORIA PUBBLICAZIONE
+	 */
+	public boolean showAzioniIstruttoriaPubbl(Record record) {
+		boolean verify = false;
+		if (record.getAttributeAsBoolean("abilIstruttoriaPubblCollegaComeIstConcorrente") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblScollegaDaIstPadre") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblAvvioComparativo") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblAvvio") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblProseguimentoConInterruzioneTermini") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblProseguimentoSenzaInterruzioneTermini") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblRipubblicazione") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblPubblicazione") ) {
+				verify = true;
+		}
+		return verify;
+	}
+	
+	/**
+	 * METODO CHE VERIFICA ABILITAZIONE BOTTONE AVVIA ITER FIRME
+	 */
+	public boolean showAvviaIterFirme(Record record) {
+		return record.getAttributeAsBoolean("abilAvviaIterFirme");
+	}
+	
+	/**
 	 * METODO PER VERIFICA ABILITAZIONE BOTTONE OSSERVAZIONI NOTIFICHE
 	 */
 	public boolean showOsservazioniNotificheButton(Record record){
@@ -6041,10 +6378,119 @@ public class ArchivioLayout extends CustomAdvancedTreeLayout {
 	}
 	
 	private boolean showOperazioniTimbratura(Record detailRecord) {
-		return detailRecord != null && detailRecord.getAttribute("codCategoriaProtocollo") != null && !"".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo"))
-				&& ("PG".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")) ||
-						"R".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")) ||
-						"PP".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")));
+		if(AurigaLayout.showOperazioniTimbratura()) {
+			return detailRecord != null && detailRecord.getAttribute("codCategoriaProtocollo") != null && !"".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo"))
+					&& ("PG".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")) ||
+							"R".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")) ||
+							"PP".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")));
+		}
+		return false;
+	}
+	
+	private String getTitleStampaEtichetta() {
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") &&
+		   (AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg") == null || "a".equalsIgnoreCase(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg")))) {
+			return "Timbra";
+		} else {
+			return I18NUtil.getMessages().protocollazione_detail_stampaEtichettaButton_prompt();
+		}
+	}
+
+	/**
+	 * 
+	 */
+	public void apriWindowInvioPEO(String tipologiaAllegati) {
+		final Record record = new Record(detail.getValuesManager().getValues());
+		GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AurigaInvioUDMailDatasource");
+		lGwtRestService.extraparam.put("tipoMail", "PEO");
+		lGwtRestService.extraparam.put("tipologiaAllegati", tipologiaAllegati);
+		lGwtRestService.call(record, new ServiceCallback<Record>() {
+
+			@Override
+			public void execute(Record object) {
+				InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", record.getAttributeAsString("idUd"), new DSCallback() {
+
+					@Override
+					public void execute(DSResponse response, Object rawData, DSRequest request) {
+						
+						reload(new DSCallback() {
+
+							@Override
+							public void execute(DSResponse response, Object rawData, DSRequest request) {
+								
+								viewMode();
+							}
+						});
+					}
+				});
+				lInvioUdMailWindow.loadMail(object);
+				lInvioUdMailWindow.show();
+			}
+		});
+	}
+
+	/**
+	 * 
+	 */
+	public void apriWindowInvioPEC(String tipologiaAllegati) {
+		final Record record = new Record(detail.getValuesManager().getValues());
+		
+		final Boolean flgInvioPECMulti = record.getAttributeAsBoolean("flgInvioPECMulti") != null &&
+				record.getAttributeAsBoolean("flgInvioPECMulti") ? true : false;					
+		
+		GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AurigaInvioUDMailDatasource");
+		if(flgInvioPECMulti) {
+			lGwtRestService.extraparam.put("PEC_MULTI", "1");
+		} 
+		lGwtRestService.extraparam.put("tipoMail", "PEC");
+		lGwtRestService.extraparam.put("tipologiaAllegati", tipologiaAllegati);
+		lGwtRestService.call(record, new ServiceCallback<Record>() {
+
+			@Override
+			public void execute(Record object) {
+				
+				if(flgInvioPECMulti) {
+					object.setAttribute("tipoMail", "PEO");
+					InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", record.getAttributeAsString("idUd"), new DSCallback() {
+						
+						@Override
+						public void execute(DSResponse response, Object rawData, DSRequest request) {
+							
+							reload(new DSCallback() {
+
+								@Override
+								public void execute(DSResponse response, Object rawData, DSRequest request) {
+									
+									viewMode();
+								}
+							});
+						}
+					});
+					lInvioUdMailWindow.loadMail(object);
+					lInvioUdMailWindow.show();
+					
+				} else {
+					InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEC", record.getAttributeAsString("idUd"), new DSCallback() {
+						
+						@Override
+						public void execute(DSResponse response, Object rawData, DSRequest request) {
+							
+							reload(new DSCallback() {
+
+								@Override
+								public void execute(DSResponse response, Object rawData, DSRequest request) {
+									
+									viewMode();
+								}
+							});
+						}
+					});
+					lInvioUdMailWindow.loadMail(object);
+					lInvioUdMailWindow.show();
+				}
+
+			}
+		});
 	}
 	
 }

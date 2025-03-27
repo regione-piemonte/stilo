@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.extractone;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
@@ -22,6 +23,7 @@ import javax.xml.ws.soap.MTOM;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.pdfbox.multipdf.PDFMergerUtility;
@@ -41,13 +43,14 @@ import it.eng.auriga.database.store.result.bean.StoreResultBean;
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.auriga.module.business.beans.SpecializzazioneBean;
 import it.eng.auriga.module.business.entity.WSTrace;
-import it.eng.auriga.repository2.jaxws.webservices.addunitadoc.AttachWSBean;
 import it.eng.auriga.repository2.jaxws.webservices.common.JAXWSAbstractAurigaService;
 import it.eng.auriga.repository2.jaxws.webservices.common.bean.AttachWSProperties;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
 import it.eng.auriga.ui.module.layout.server.common.MergeDocument;
 import it.eng.client.DmpkRegistrazionedocGettimbrodigreg;
 import it.eng.document.function.RecuperoFile;
+import it.eng.document.function.StoreException;
+import it.eng.document.function.bean.AttachWSBean;
 import it.eng.fileOperation.clientws.PaginaTimbro;
 import it.eng.fileOperation.clientws.PaginaTimbro.Pagine;
 import it.eng.fileOperation.clientws.PosizioneRispettoAlTimbro;
@@ -104,6 +107,7 @@ public class WSExtractOne extends JAXWSAbstractAurigaService implements WSIExtra
 			final String idDominio,
 			final String desDominio,
 			final String tipoDominio,
+			final String parametriconfigout,
 		    final WSTrace wsTraceBean) throws Exception {
 
 		String risposta = null;
@@ -113,7 +117,7 @@ public class WSExtractOne extends JAXWSAbstractAurigaService implements WSIExtra
 		String errMsg = null;
 		String warnMessage = null;
 		String xmlIn = null;
-
+		Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;	
 		try {
 
 			aLogger.info("Inizio WSExtractOne");
@@ -149,7 +153,12 @@ public class WSExtractOne extends JAXWSAbstractAurigaService implements WSIExtra
 				// Chiamo il servizio di AurigaDocument
 				outServizio =  eseguiServizio(loginBean,outWS); 	
 			}
-			catch (Exception e){	 
+			catch (Exception e){
+				if (e instanceof StoreException) {
+		    		if(((StoreException) e).getError()!=null){
+		    			errCode = ((StoreException) e).getError().getErrorCode();
+		    		}
+		    	}
 				if(e.getMessage()!=null)
 					errMsg = "Errore = " + e.getMessage();
 				else
@@ -198,7 +207,6 @@ public class WSExtractOne extends JAXWSAbstractAurigaService implements WSIExtra
 				}
 				
 				// Aggiungo il FILE ATTACH
-//				aLogger.info("orima ATTACH: ");
 				if(outServizio!=null && outServizio.getExtracted() != null && outServizio.getExtracted().size()!=0){
 					 
 					bais = new ByteArrayInputStream(FileUtils.readFileToByteArray(fileEstratto));
@@ -224,7 +232,7 @@ public class WSExtractOne extends JAXWSAbstractAurigaService implements WSIExtra
 					if (getPdf) {
 						InputStream inputStreamPdf;
 						
-						/*Verifico se il file è una fattura e quindi genero il pdf per le fatture*/
+						/*Verifico se il file e' una fattura e quindi genero il pdf per le fatture*/
 						FattureUtil fattureUtil = new FattureUtil();
 						File filePdf = fattureUtil.generaPdfFattura(loginBean, fileEstratto, outServizio.isFirmato(), 
 								outServizio.getFileName(), outServizio.getIdDoc(), outServizio.getIdUd(), outServizio.getMimeType());
@@ -319,6 +327,7 @@ public class WSExtractOne extends JAXWSAbstractAurigaService implements WSIExtra
 				attachListInputStreamTypes(listaAttach);
 			}
 			catch (Exception e){
+				aLogger.error("Errore: " + e.getMessage(), e);
 				if(e.getMessage()!=null)
 					errMsg = "Errore = " + e.getMessage();
 				else
@@ -358,7 +367,7 @@ public class WSExtractOne extends JAXWSAbstractAurigaService implements WSIExtra
 				risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", warnMessage);
 			}
 			else{
-				risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+				risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 			}
 			aLogger.info("Fine WSExtractOne");
 
@@ -376,8 +385,6 @@ public class WSExtractOne extends JAXWSAbstractAurigaService implements WSIExtra
 		}
 	}
 
-	
-	
 
 	@SuppressWarnings("unused")
 	private File unisciFile(List<File> listaFileDaUnire) throws Exception {
@@ -541,14 +548,13 @@ public class WSExtractOne extends JAXWSAbstractAurigaService implements WSIExtra
 	}
 
 	private WSExtractOneBean callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-
-		aLogger.debug("Eseguo il WS DmpkWsExtractOne.");
+		aLogger.debug("Eseguo il WS DMPK_WS->ExtractOne.");
 
 		String idDoc       = null;
 		String nroProgrVer = null;
 		String xml         = null;  
 		boolean flgTimbrato = false;
-		try {    		
+		    		
 			// Inizializzo l'INPUT    		
 			DmpkWsExtractfileudBean input = new DmpkWsExtractfileudBean();
 			input.setCodidconnectiontokenin(loginBean.getToken());
@@ -559,7 +565,7 @@ public class WSExtractOne extends JAXWSAbstractAurigaService implements WSIExtra
 			StoreResultBean<DmpkWsExtractfileudBean> output = service.execute(loginBean, input);
 
 			if (output.isInError()){
-				throw new Exception(output.getDefaultMessage());	
+				throw new StoreException(output);	
 			}	
 
 			// restituisco l'XML
@@ -599,19 +605,16 @@ public class WSExtractOne extends JAXWSAbstractAurigaService implements WSIExtra
 			result.setNroProgrVer(nroProgrVer);
 			result.setTimbrato(flgTimbrato);
 			return result;
-		}
-		catch (Exception e){
-			throw new Exception(e.getMessage()); 			
-		}
+		
+		
 	}
 
 	
 
 	private WSExtractOneBean eseguiServizio(AurigaLoginBean loginBean, WSExtractOneBean bean) throws Exception {
-		aLogger.debug("Eseguo il servizio di AurigaDocument.");
+		aLogger.debug("Eseguo il servizio RecuperoFile->extractPropertiesFilesByIdDoc.");
 
 		WSExtractOneBean ret = new WSExtractOneBean();
-		File fileOut = null;
 
 		// creo l'input
 		BigDecimal idDocIn       = (bean.getIdDoc() != null) ? new BigDecimal(bean.getIdDoc()) : null;	    		
@@ -663,7 +666,7 @@ public class WSExtractOne extends JAXWSAbstractAurigaService implements WSIExtra
 			// ...se il token non e' null
 			if (xmlIn != null) {
 				// effettuo l'escape di tutti i caratteri
-				xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+				xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
 			}
 			//xmlInEsc = xmlIn;
 			xml.append(xmlInEsc);
@@ -1070,22 +1073,10 @@ public class WSExtractOne extends JAXWSAbstractAurigaService implements WSIExtra
 	
 	public static void main(String[] args) throws Exception {
 		
-		
-		WSExtractOne extractOne = new WSExtractOne();
 		File estratto = new File("C:\\dgdoc\\data02\\repository\\archivio\\2022\\3\\28\\1\\20220328144615360122690188418193089");
-//		File pdf = extractOne.creaPDFFattura(uriFileXmlIn, "1.2.2");
 			InputStream is = null;
-//			if (false) {
-//				InfoFileUtility infoFileUtility = new InfoFileUtility();
-//				is = infoFileUtility.sbusta(estratto, "ITFRNFBA74R06H620U_HV90T.xml.p7m");
-//			} else {
 				is = new FileInputStream(estratto);
-//			}
-//			String xmlFatt = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))
-//					.lines().collect(Collectors.joining("\n"));
-
-//			is.reset();
-			String versione = "1.2.2";//getTagParametriVersione(xmlFatt);
+			String versione = "1.2.2";
 			FattureUtil fattureUtil = new FattureUtil();
 			File pdf = fattureUtil.creaPDFFattura(is, versione);
 

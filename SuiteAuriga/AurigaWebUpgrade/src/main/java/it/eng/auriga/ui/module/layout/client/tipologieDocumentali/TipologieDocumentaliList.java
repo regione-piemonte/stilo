@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.tipologieDocumentali;
 
 import com.smartgwt.client.data.DSCallback;
 import com.smartgwt.client.data.DSRequest;
@@ -43,10 +44,11 @@ public class TipologieDocumentaliList extends CustomList {
 	private ListGridField flgAllegato;
 	private ListGridField flgIsAssociataIterWf;
 	private ListGridField flgRichFirmaDigitale;
+	private ListGridField flgRichFile;
+	private ListGridField flgRichFirmaValida;
 	
 	private boolean tipologieDocAbilitate;
 	private String opzioniAbil;
-	
 
 	public TipologieDocumentaliList(String nomeEntita,String tipologieDocAbilitate, String opzioniAbil) {
 		super(nomeEntita);
@@ -77,8 +79,11 @@ public class TipologieDocumentaliList extends CustomList {
 		flgAbilFirma     = buildFlagIconField("flgAbilFirma", I18NUtil.getMessages().tipologieDocumentali_detail_flgAbilFirma(), I18NUtil.getMessages().tipologieDocumentali_detail_flgAbilFirma(), "true", "ok.png");
 
 		flgAllegato      = buildFlgAllegatoIconField();
-		flgRichFirmaDigitale = buildflgRichFirmaDigitaleIconField();
-				
+		
+		flgRichFile      = buildFlagIconField("flgRichFile", I18NUtil.getMessages().tipologieDocumentali_flgRichFile_list(), "Valido", "true", "ok.png");
+		flgRichFirmaDigitale = buildFlagIconField("flgRichFirmaDigitale", I18NUtil.getMessages().tipologieDocumentali_flgRichFirmaDigitale_list(), "Valido", "true", "ok.png");
+		flgRichFirmaValida = buildFlagIconField("flgRichFirmaValida", I18NUtil.getMessages().tipologieDocumentali_flgRichFirmaValida_list(), "Valido", "true", "ok.png");
+		
 		setFields(idTipoDoc, 
 				  nome, 
 				  descrizione, 
@@ -99,7 +104,10 @@ public class TipologieDocumentaliList extends CustomList {
 				  flgAbilFirma,
 				  flgAllegato,
 				  flgIsAssociataIterWf,
-				  flgRichFirmaDigitale);
+				  flgRichFile,
+				  flgRichFirmaDigitale,
+				  flgRichFirmaValida
+				  );
 	}
 
 	@Override
@@ -244,50 +252,5 @@ public class TipologieDocumentaliList extends CustomList {
 			}
 		});
 		return flagIconField;
-	}
-	
-	public ListGridField buildflgRichFirmaDigitaleIconField() {
-		ListGridField flagIconField = new ListGridField("flgRichFirmaDigitale", I18NUtil.getMessages().tipologieDocumentali_flgRichFirmaDigitale_list());
-		flagIconField.setAlign(Alignment.CENTER);
-		flagIconField.setAttribute("custom", true);
-		flagIconField.setShowHover(true);
-		flagIconField.setType(ListGridFieldType.ICON);
-		flagIconField.setCellFormatter(new CellFormatter() {
-			
-			@Override
-			public String format(Object value, ListGridRecord record, int rowNum, int colNum) {
-				String flgRichFirmaDigitale = record.getAttributeAsString("flgRichFirmaDigitale");
-				if (flgRichFirmaDigitale == null || flgRichFirmaDigitale.equals("0"))
-					flgRichFirmaDigitale = "";
-				if (flgRichFirmaDigitale.equals("V")) {
-					return buildIconHtml("firma/ric_firma_digitale_valida.png");
-				}
-				if (flgRichFirmaDigitale.equals("P")) {
-					return buildIconHtml("firma/ric_firma_digitale.png");
-				}
-				return null;
-			}
-		});
-		flagIconField.setHoverCustomizer(new HoverCustomizer() {
-			
-			@Override
-			public String hoverHTML(Object value, ListGridRecord record, int rowNum, int colNum) {
-				
-				String flgRichFirmaDigitale = record.getAttributeAsString("flgRichFirmaDigitale");
-				String flgRichFirmaDigitaleMsgHover =   "";
-				if (flgRichFirmaDigitale == null || flgRichFirmaDigitale.equals("0"))
-					flgRichFirmaDigitale = "";
-				if (flgRichFirmaDigitale.equals("V")) {
-					flgRichFirmaDigitaleMsgHover = I18NUtil.getMessages().tipologieDocumentali_flgRichFirmaDigitaleValidaAlt_list();
-					return flgRichFirmaDigitaleMsgHover;
-				}
-				if (flgRichFirmaDigitale.equals("P")) {
-					flgRichFirmaDigitaleMsgHover = I18NUtil.getMessages().tipologieDocumentali_flgRichFirmaDigitaleNonValidaAlt_list();
-					return flgRichFirmaDigitaleMsgHover;
-				}
-				return null;
-			}
-		});
-		return flagIconField;
-	}
+	}	
 }

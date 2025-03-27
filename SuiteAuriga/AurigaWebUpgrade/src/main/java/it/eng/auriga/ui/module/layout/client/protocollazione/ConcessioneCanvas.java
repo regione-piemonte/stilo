@@ -1,0 +1,299 @@
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+
+import com.google.gwt.core.client.Scheduler;
+import com.google.gwt.core.client.Scheduler.ScheduledCommand;
+import com.smartgwt.client.data.DSCallback;
+import com.smartgwt.client.data.DSRequest;
+import com.smartgwt.client.data.DSResponse;
+import com.smartgwt.client.data.Record;
+import com.smartgwt.client.data.RecordList;
+import com.smartgwt.client.types.FieldType;
+import com.smartgwt.client.types.ListGridComponent;
+import com.smartgwt.client.widgets.events.FetchDataEvent;
+import com.smartgwt.client.widgets.events.FetchDataHandler;
+import com.smartgwt.client.widgets.form.DynamicForm;
+import com.smartgwt.client.widgets.form.FormItemIfFunction;
+import com.smartgwt.client.widgets.form.fields.FormItem;
+import com.smartgwt.client.widgets.form.fields.HiddenItem;
+import com.smartgwt.client.widgets.form.fields.events.ChangedEvent;
+import com.smartgwt.client.widgets.form.fields.events.ChangedHandler;
+import com.smartgwt.client.widgets.form.validator.CustomValidator;
+import com.smartgwt.client.widgets.form.validator.RequiredIfFunction;
+import com.smartgwt.client.widgets.form.validator.RequiredIfValidator;
+import com.smartgwt.client.widgets.grid.ListGrid;
+import com.smartgwt.client.widgets.grid.ListGridField;
+import com.smartgwt.client.widgets.toolbar.ToolStrip;
+
+import it.eng.auriga.ui.module.layout.client.i18n.I18NUtil;
+import it.eng.utility.ui.module.core.client.datasource.GWTRestDataSource;
+import it.eng.utility.ui.module.core.client.datasource.SelectGWTRestDataSource;
+import it.eng.utility.ui.module.layout.client.common.ReplicableCanvas;
+import it.eng.utility.ui.module.layout.client.common.items.CheckboxItem;
+import it.eng.utility.ui.module.layout.client.common.items.ExtendedTextItem;
+import it.eng.utility.ui.module.layout.client.common.items.FilteredSelectItemWithDisplay;
+
+public class ConcessioneCanvas extends ReplicableCanvas {
+
+	private FilteredSelectItemWithDisplay concessioneItem;
+	private ExtendedTextItem codiceRapidoItem;
+	private HiddenItem codiceHiddenItem;
+	private HiddenItem descrizioneHiddenItem;
+	
+	private ReplicableCanvasForm mDynamicForm;
+
+	@Override
+	public void disegna() {
+
+		mDynamicForm = new ReplicableCanvasForm();
+		mDynamicForm.setWrapItemTitles(false);
+		
+		codiceHiddenItem       = new HiddenItem("codice");
+		descrizioneHiddenItem  = new HiddenItem("descrizione");
+
+		// Codice rapido
+		codiceRapidoItem = new ExtendedTextItem("codiceRapido", I18NUtil.getMessages().concessione_codiceRapitoItem_title());
+		codiceRapidoItem.setRequired(false);
+		codiceRapidoItem.setWidth(120);
+		codiceRapidoItem.setColSpan(1);
+		codiceRapidoItem.addChangedBlurHandler(new ChangedHandler() {
+
+			@Override
+			public void onChanged(ChangedEvent event) {
+				mDynamicForm.setValue("codice", (String) null);
+				mDynamicForm.setValue("descrizione", (String) null);
+				mDynamicForm.setValue("concessione", (String) null);
+				mDynamicForm.clearErrors(true);
+				final String value = codiceRapidoItem.getValueAsString();
+				if (value != null && !"".equals(value)) {
+					concessioneItem.fetchData(new DSCallback() {
+
+						@Override
+						public void execute(DSResponse response, Object rawData, DSRequest request) {
+							RecordList data = response.getDataAsRecordList();
+							boolean trovato = false;
+							if (data.getLength() > 0) {
+								for (int i = 0; i < data.getLength(); i++) {
+									String codice = data.get(i).getAttribute("codice");
+									if (value.equals(codice)) {
+										mDynamicForm.setValue("codice", data.get(i).getAttribute("codice"));
+										mDynamicForm.setValue("descrizione", data.get(i).getAttribute("descrizione"));
+										mDynamicForm.setValue("concessione", data.get(i).getAttribute("codice"));
+										mDynamicForm.clearErrors(true);
+										trovato = true;
+										break;
+									}
+								}
+							}
+							if (!trovato) {
+								codiceRapidoItem.validate();
+								codiceRapidoItem.blurItem();
+							}
+						}
+					});
+				} else {
+					concessioneItem.fetchData();
+				}
+			}
+		});
+		
+		codiceRapidoItem.setValidators(new CustomValidator() {
+
+			@Override
+			protected boolean condition(Object value) {
+				if (codiceRapidoItem.getValue() != null && !"".equals(codiceRapidoItem.getValueAsString().trim()) && concessioneItem.getValue() == null) {
+					return false;
+				}
+				return true;
+			}
+		});
+		
+		// combo concessione
+		SelectGWTRestDataSource concessioneDS = new SelectGWTRestDataSource("LoadComboConcessioneDataSource", "codice", FieldType.TEXT, new String[] { "descrizione" }, true);
+		
+		concessioneItem = new FilteredSelectItemWithDisplay("concessione", concessioneDS) {
+			
+			@Override
+			public void onOptionClick(Record record) {
+				super.onOptionClick(record);
+				mDynamicForm.clearErrors(true);
+				mDynamicForm.setValue("codiceRapido",  record.getAttribute("codice"));
+				mDynamicForm.setValue("codice",        record.getAttribute("codice"));
+				mDynamicForm.setValue("descrizione",   record.getAttribute("descrizione"));
+				//markForRedraw();
+				mDynamicForm.clearErrors(true);
+				Scheduler.get().scheduleDeferred(new ScheduledCommand() {
+					
+					@Override
+					public void execute() {
+						concessioneItem.fetchData();
+					}
+				});
+			}					
+			
+			@Override
+			protected void clearSelect() {
+				super.clearSelect();
+				mDynamicForm.setValue("codiceRapido", "");
+				mDynamicForm.setValue("codice", "");
+				mDynamicForm.setValue("descrizione",  "");
+				//markForRedraw();
+				mDynamicForm.clearErrors(true);
+				Scheduler.get().scheduleDeferred(new ScheduledCommand() {
+					
+					@Override
+					public void execute() {
+						concessioneItem.fetchData();
+					}
+				});
+			}
+			
+			@Override
+			public void setValue(String value) {
+				super.setValue(value);
+				if (value == null || "".equals(value)) {
+					mDynamicForm.setValue("codiceRapido", "");
+					mDynamicForm.setValue("codice", "");
+					mDynamicForm.setValue("descrizione",  "");
+					
+					mDynamicForm.clearErrors(true);
+					Scheduler.get().scheduleDeferred(new ScheduledCommand() {
+						
+						@Override
+						public void execute() {
+							concessioneItem.fetchData();
+						}
+					});
+				}
+            }
+		};
+		
+		concessioneItem.addChangedHandler(new ChangedHandler() {
+			@Override
+			public void onChanged(ChangedEvent event) {
+				markForRedraw();
+			}
+		});
+		
+		concessioneItem.setShowIfCondition(new FormItemIfFunction() {
+
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				return true;
+			}
+		});
+		concessioneItem.setValidators(new RequiredIfValidator(new RequiredIfFunction() {
+
+			@Override
+			public boolean execute(FormItem formItem, Object value) {
+				return true;
+			}
+		}));
+		
+		// Definizione delle colonne
+		
+		// CODICE
+		ListGridField codiceField = new ListGridField("codice", I18NUtil.getMessages().concessione_combo_codiceField_title());
+		codiceField.setWidth(120);
+		codiceField.setShowHover(true);
+		
+		// DESCRIZIONE
+		ListGridField descrizioneField = new ListGridField("descrizione", I18NUtil.getMessages().concessione_combo_descrizioneField_title());
+		descrizioneField.setWidth("*");
+		
+		List<ListGridField> concessionePickListFields = new ArrayList<ListGridField>();
+		concessionePickListFields.add(codiceField);
+		concessionePickListFields.add(descrizioneField);
+		
+		// Aggiungo le colonne
+		concessioneItem.setPickListFields(concessionePickListFields.toArray(new ListGridField[concessionePickListFields.size()]));
+		
+		ToolStrip toolStrip = new ToolStrip();  
+        toolStrip.setHeight(30);  
+        toolStrip.setWidth100();
+        CheckboxItem flgAncheNonVldItem = new CheckboxItem("flgAncheNonVld", "includi anche cessate");
+        flgAncheNonVldItem.setWidth(50);
+        flgAncheNonVldItem.setStartRow(true);
+        flgAncheNonVldItem.addChangedHandler(new ChangedHandler() {
+
+			@Override
+			public void onChanged(ChangedEvent event) {
+				GWTRestDataSource concessioneDS = (GWTRestDataSource) concessioneItem.getOptionDataSource();
+				concessioneDS.addParam("flgAncheNonVld", event.getValue() != null && (Boolean) event.getValue() ? "true" : "");
+				concessioneItem.setOptionDataSource(concessioneDS);
+				concessioneItem.invalidateDisplayValueCache();
+				concessioneItem.fetchData();
+			}
+		});
+        toolStrip.addFormItem(flgAncheNonVldItem);    
+		
+        ListGrid pickListProperties = concessioneItem.getPickListProperties();
+		pickListProperties.setGridComponents(toolStrip, ListGridComponent.HEADER, ListGridComponent.FILTER_EDITOR, ListGridComponent.BODY);
+		pickListProperties.addFetchDataHandler(new FetchDataHandler() {
+			@Override
+			public void onFilterData(FetchDataEvent event) {
+				String codiceRapido = mDynamicForm.getValueAsString("codiceRapido");
+				GWTRestDataSource concessioneDS = (GWTRestDataSource) concessioneItem.getOptionDataSource();
+				concessioneDS.addParam("codice", codiceRapido);				
+				concessioneItem.setOptionDataSource(concessioneDS);
+				concessioneItem.invalidateDisplayValueCache();
+			}
+		});
+		concessioneItem.setPickListProperties(pickListProperties);
+		
+		concessioneItem.setEmptyPickListMessage("Nessun record trovato o filtri incompleti o poco restrittivi: filtrare per codice o descrizione");
+		
+		concessioneItem.setFilterLocally(true);
+		concessioneItem.setAutoFetchData(false);
+		concessioneItem.setAlwaysFetchMissingValues(true);
+		concessioneItem.setFetchMissingValues(true);
+		concessioneItem.setValueField("codice");
+		concessioneItem.setOptionDataSource(concessioneDS);
+		concessioneItem.setShowTitle(false);
+		concessioneItem.setWidth(480);
+		concessioneItem.setClearable(true);
+		concessioneItem.setShowIcons(true);
+		concessioneItem.setRequired(false);
+
+		mDynamicForm.setFields(codiceRapidoItem, concessioneItem , codiceHiddenItem, descrizioneHiddenItem);
+
+		mDynamicForm.setNumCols(6);
+		mDynamicForm.setColWidths("50", "100", "50", "100", "50", "100");
+
+		addChild(mDynamicForm);
+	}
+
+	@Override
+	public void editRecord(Record record) {
+		GWTRestDataSource concessioneDS = (GWTRestDataSource) concessioneItem.getOptionDataSource();
+		if (record.getAttribute("concessione") != null && !"".equals(record.getAttributeAsString("concessione"))) {
+			concessioneDS.addParam("concessione", record.getAttributeAsString("concessione"));
+		} else {
+			concessioneDS.addParam("concessione", null);
+		}
+		concessioneItem.setOptionDataSource(concessioneDS);
+		
+		
+		if (record.getAttribute("concessione") != null && !"".equals(record.getAttributeAsString("concessione")) &&
+				record.getAttribute("descrizione") != null && !"".equals(record.getAttributeAsString("descrizione"))) {
+				LinkedHashMap<String, String> valueMap = new LinkedHashMap<String, String>();
+				valueMap.put(record.getAttribute("concessione"), record.getAttribute("descrizione"));
+				concessioneItem.setValueMap(valueMap);
+			}
+
+		super.editRecord(record);
+	}
+
+	public Record getFormValuesAsRecord() {
+		return mDynamicForm.getValuesAsRecord();
+	}
+
+	@Override
+	public ReplicableCanvasForm[] getForm() {
+		return new ReplicableCanvasForm[] { mDynamicForm };
+	}
+}

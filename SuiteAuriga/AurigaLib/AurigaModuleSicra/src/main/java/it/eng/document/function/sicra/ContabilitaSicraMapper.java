@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.sicra;
 
 import java.util.List;
 
@@ -27,6 +28,7 @@ import it.eng.document.function.bean.sicra.SicraInputSetEsecutivitaAtto;
 import it.eng.document.function.bean.sicra.SicraInputSetMovimentiAtto;
 import it.eng.document.function.bean.sicra.SicraMessaggiAvviso;
 import it.eng.document.function.bean.sicra.SicraMessaggiErrore;
+import it.eng.document.function.bean.sicra.SicraMessaggiInformazione;
 import it.eng.document.function.bean.sicra.SicraMessaggio;
 import it.eng.document.function.bean.sicra.SicraOutputAggiornaRifAttoLiquidazione;
 import it.eng.document.function.bean.sicra.SicraOutputArchiviaAtto;
@@ -63,7 +65,8 @@ public interface ContabilitaSicraMapper {
 			@Mapping(source = "flagRaggruppaProgetto", target = "flraggruppaprogetto"),
 			@Mapping(source = "flagRaggruppaTipoFinanz", target = "flraggruppatipofinanz"),
 			@Mapping(source = "flagRaggruppaTipoSpesa", target = "flraggruppatipospesa"), @Mapping(source = "numCapitolo", target = "numcapitolo"),
-			@Mapping(source = "siglaCPT", target = "siglacpt"), @Mapping(source = "siglaPianoFinanziario", target = "siglapianofinanziario") })
+			@Mapping(source = "siglaCPT", target = "siglacpt"), @Mapping(source = "siglaPianoFinanziario", target = "siglapianofinanziario"),
+			@Mapping(source = "cup", target = "cup"), @Mapping(source = "flagRaggruppaCup", target = "flraggruppacup")})
 	it.eng.utility.sicra.contabilita.xsd.ricerca_voci_bilancio.Richiesta sicraInputRicercaVociBilancioToRichiesta(SicraInputRicercaVociBilancio source);
 
 	@Mappings(value = { @Mapping(target = "budget", ignore = true), @Mapping(source = "outcome", target = "esitoChiamata") })
@@ -86,7 +89,8 @@ public interface ContabilitaSicraMapper {
 			@Mapping(source = "idtipospesa", target = "idTipoSpesa"), @Mapping(source = "mandatiemessi", target = "mandatiEmessi"),
 			@Mapping(source = "numcapitolo", target = "numCapitolo"), @Mapping(source = "prenotatodisponibile", target = "prenotatoDisponibile"),
 			@Mapping(source = "sigcpt", target = "sigCPT"), @Mapping(source = "sigcptcapitolo", target = "sigCPTcapitolo"),
-			@Mapping(source = "sigpianofin", target = "sigPianoFin"), @Mapping(source = "sigpianofincapitolo", target = "sigPianoFinCapitolo") })
+			@Mapping(source = "sigpianofin", target = "sigPianoFin"), @Mapping(source = "sigpianofincapitolo", target = "sigPianoFinCapitolo"),
+			@Mapping(source = "cup", target = "cup")})
 	SicraBudget budgetToSicraBudget(it.eng.utility.sicra.contabilita.xsd.ricerca_voci_bilancio.Risultato.ListaBudget.Budget source);
 
 	List<SicraBudget> budgetsToSicraBudgets(List<it.eng.utility.sicra.contabilita.xsd.ricerca_voci_bilancio.Risultato.ListaBudget.Budget> source);
@@ -122,13 +126,13 @@ public interface ContabilitaSicraMapper {
 			@Mapping(source = "idPrenotazionePartenza", target = "idprenotazionepartenza"), @Mapping(source = "numAtto", target = "numatto"),
 			@Mapping(source = "tipoAtto", target = "tipoatto"), @Mapping(source = "annoAttoOri", target = "annoattoOri"),
 			@Mapping(source = "dataAttoOri", target = "dataattoOri"), @Mapping(source = "numAttoOri", target = "numattoOri"),
-			@Mapping(source = "tipoAttoOri", target = "tipoattoOri") })
+			@Mapping(source = "tipoAttoOri", target = "tipoattoOri"), @Mapping(source = "identificativoStilo", target = "identificativoStilo") })
 	it.eng.utility.sicra.contabilita.xsd.set_movimenti_atto.Richiesta.Impegno.Testata sicraTestataImpegnoToTestata(SicraTestataImpegno source);
 
 	@Mappings(value = { @Mapping(source = "codannuale", target = "codAnnuale"), @Mapping(source = "idimpegno", target = "idImpegno") })
 	SicraImpegnoSintetico impegnoToSicraImpegnoSintetico(it.eng.utility.sicra.contabilita.xsd.set_movimenti_atto.Risultato.Impegno source);
 
-	@Mappings(value = { @Mapping(source = "avvisi", target = "messaggiAvviso"), @Mapping(source = "errori", target = "messaggiErrore") })
+	@Mappings(value = { @Mapping(source = "avvisi", target = "messaggiAvviso"), @Mapping(source = "errori", target = "messaggiErrore"), @Mapping(source = "informazioni", target = "messaggiInformazione") })
 	SicraMessaggio messaggiSetMovimentiAttoToSicraMessaggio(it.eng.utility.sicra.contabilita.xsd.set_movimenti_atto.Risultato.Messaggi source);
 
 	@Mappings(value = { @Mapping(source = "messaggi", target = "riscontro"), @Mapping(target = "esitoChiamata", ignore = true) })
@@ -139,6 +143,9 @@ public interface ContabilitaSicraMapper {
 
 	@Mappings(value = { @Mapping(source = "avviso", target = "avvisi") })
 	SicraMessaggiAvviso avvisiSetMovimentiAttoToSicraMessaggiAvviso(it.eng.utility.sicra.contabilita.xsd.set_movimenti_atto.Risultato.Messaggi.Avvisi source);
+	
+	@Mappings(value = { @Mapping(source = "info", target = "informazioni") })
+	SicraMessaggiInformazione informazioniSetMovimentiAttoToSicraMessaggiInformazione(it.eng.utility.sicra.contabilita.xsd.set_movimenti_atto.Risultato.Messaggi.Informazioni source);
 
 	/* SET ESECUTIVITA ATTO ********************************************************************************************/
 	// default

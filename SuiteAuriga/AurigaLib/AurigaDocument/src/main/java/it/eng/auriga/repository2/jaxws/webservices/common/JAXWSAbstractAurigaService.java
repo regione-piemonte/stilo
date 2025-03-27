@@ -1,16 +1,21 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.common;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -50,13 +55,20 @@ import javax.servlet.ServletContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import javax.xml.ws.WebServiceContext;
 import javax.xml.ws.handler.MessageContext;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.xerces.parsers.DOMParser;
+import org.exolab.castor.xml.Unmarshaller;
 import org.hibernate.Session;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
@@ -80,26 +92,34 @@ import com.sun.xml.ws.transport.Headers;
 
 import it.eng.auriga.database.store.dmpk_utility.bean.DmpkUtilityCtrlconnectiontokenBean;
 import it.eng.auriga.database.store.dmpk_utility.store.Ctrlconnectiontoken;
+import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsGetresponseaddupdudBean;
+import it.eng.auriga.database.store.dmpk_ws.store.Getresponseaddupdud;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
 import it.eng.auriga.function.WSFileUtils;
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
+import it.eng.auriga.module.business.dao.DaoTParametri;
 import it.eng.auriga.module.business.dao.DaoWSTrace;
+import it.eng.auriga.module.business.entity.TParameters;
 import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.generic.VersionHandler;
 import it.eng.auriga.repository2.generic.VersionHandlerException;
 import it.eng.auriga.repository2.jaxws.jaxbBean.service.request.ServiceRequest;
 import it.eng.auriga.repository2.jaxws.jaxbBean.service.response.ServiceResponse;
-import it.eng.auriga.repository2.jaxws.webservices.addunitadoc.AttachWSBean;
+import it.eng.auriga.repository2.jaxws.webservices.addunitadoc.AttachWSAddUdBean;
 import it.eng.auriga.repository2.jaxws.webservices.addunitadoc.WSAddUd;
 import it.eng.auriga.repository2.jaxws.webservices.addunitadoc.WSAddUdConfig;
+import it.eng.auriga.repository2.jaxws.webservices.addunitadoc.WSAddUdOutBean;
 import it.eng.auriga.repository2.jaxws.webservices.addunitadoc.multithread.CallInfoFileThread;
 import it.eng.auriga.repository2.jaxws.webservices.addunitadoc.visure.AddUdUtils;
 import it.eng.auriga.repository2.jaxws.webservices.common.bean.AttachWSProperties;
 import it.eng.auriga.repository2.jaxws.webservices.login.WSLogin;
+import it.eng.auriga.repository2.jaxws.webservices.updunitadoc.WSUpdUdOutBean;
 import it.eng.auriga.repository2.jaxws.webservices.util.BridgeSingleton;
+import it.eng.auriga.repository2.jaxws.webservices.util.FileIndiceWriter;
 import it.eng.auriga.repository2.jaxws.webservices.util.InfoUnitaDoc;
 import it.eng.auriga.repository2.jaxws.webservices.util.WSAttachBean;
 import it.eng.auriga.repository2.jaxws.webservices.util.XPathHelper;
+import it.eng.auriga.repository2.jaxws.webservices.util.castor.outputud.Output_UD;
 import it.eng.auriga.repository2.util.Base64;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
 import it.eng.auriga.repository2.util.InputStreamDataSource;
@@ -107,7 +127,9 @@ import it.eng.core.business.HibernateUtil;
 import it.eng.core.business.subject.SubjectBean;
 import it.eng.core.business.subject.SubjectUtil;
 import it.eng.document.function.GestioneDocumenti;
+import it.eng.document.function.StoreException;
 import it.eng.document.function.bean.AllegatiBean;
+import it.eng.document.function.bean.AttachWSBean;
 import it.eng.document.function.bean.FileInfoBean;
 import it.eng.document.function.bean.Flag;
 import it.eng.document.function.bean.GenericFile;
@@ -310,7 +332,7 @@ abstract public class JAXWSAbstractAurigaService extends SpringBeanAutowiringSup
 		// ...se il token non è null
 		if (value != null) {
 			// effettuo l'escape di tutti i caratteri
-			valueEsc = eng.util.XMLUtil.xmlEscape(value);
+			valueEsc = StringEscapeUtils.escapeXml(value);
 		}
 		aLogger.debug("generaXMLToken: value = " + value);
 		aLogger.debug("generaXMLToken: valueEsc = " + valueEsc);
@@ -603,6 +625,7 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 	public ServiceResponse serviceOperation(@WebParam(partName = "service", name = "service") ServiceRequest serviceRequest) {
 		WSTrace wsTraceBean = null;
 		boolean attivaWSTrace = false;
+		DaoWSTrace wsTraceDao = new DaoWSTrace();
 		
 		JAXWSConfigBean lJAXWSConfigBean = null;
 		try {
@@ -617,6 +640,7 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 		
 		if(attivaWSTrace) {
 			wsTraceBean = initTraceWS(serviceRequest);
+			/*il save del record viene fatto nel metodo service dopo aver effettuato la login*/
 		}
 		
 		long t0 = System.currentTimeMillis();
@@ -634,11 +658,9 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 					wsTraceBean.setFlgInErrore(xmlResponse.contains("<WSResult>1</WSResult>") ? false : true);
 					wsTraceBean.setTempoRispostaWs(tempoRisposta);
 					
-					DaoWSTrace wsTraceDao = new DaoWSTrace();
-				
-					wsTraceDao.save(wsTraceBean);
+					wsTraceDao.update(wsTraceBean);
 				} catch (Exception e) {
-					aLogger.warn("Non è stato possibile salvare il record di tracciamento WS in DB: " + e.getMessage());
+					aLogger.warn("Non è stato possibile aggiornare il record " + wsTraceBean.getId() + " di tracciamento WS in DB: " + e.getMessage());
 				}
 			}			
 		}
@@ -690,6 +712,7 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 		String idDominioAttr = null;
 		String desDominio = null;
 		String flgTpDominioAut = null;
+		String parametriconfigout = null;
 
 		// encoder base64.
 		it.eng.auriga.repository2.util.Base64 encoder = null;
@@ -983,6 +1006,7 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 						desUserAttr = res[1]; // DesUserOut
 						idDominioAttr = res[2]; // IdDominioOut
 						desDominio = res[3]; // DesDominioOut
+						parametriconfigout = res[4]; //parametriconfigout
 					}
 
 				} catch (VersionHandlerException vhe) {
@@ -1019,7 +1043,19 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 				// nel caso di login l'xml di input non viene utilizzato quindi lo uso per passare gli attributi desUser e idDominio
 				xml = "DesUser=\"" + desUserAttr + "\" IdDominio=\"" + idDominioAttr + "\"";
 			}
-
+			
+			
+			if(wsTraceBean!=null) {
+				try {
+					DaoWSTrace wsTraceDao = new DaoWSTrace();
+					wsTraceBean.setFlgInErrore(true);
+					wsTraceDao.save(wsTraceBean);
+				} catch (Exception e) {
+					aLogger.warn("Non è stato possibile salvare il record di tracciamento WS in DB: " + e.getMessage());
+				}	
+			}
+			
+			
 			// ***************************************************************
 			// chiamo l'implementazione concreta
 			// ***************************************************************
@@ -1027,6 +1063,7 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 				resultXML = serviceImplementation(userName, token, codApplicazione, istanzaApplicazione, con, xmlDomDoc, xml, schemaDb, idDominioAttr, // IdDominioOut
 						desDominio, // DesDominioOut
 						flgTpDominioAut, // FlgTpDominioAutOut
+						parametriconfigout,
 						wsTraceBean
 						);
 				return resultXML;
@@ -1176,7 +1213,7 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 		aLogger.debug("generaXMLRisposta: errMessage = " + errMessage);
 		aLogger.debug("generaXMLRisposta: errMessageEsc = " + errMessageEsc);
 
-		xml.append("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n");
+		xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 		xml.append("<BaseOutput_WS>\n");
 		xml.append("<WSResult>" + esito + "</WSResult>\n");
 
@@ -1218,6 +1255,7 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 	 *            a <code>String</code> XML di input (con informazioni applicative)
 	 * @param schemaDb
 	 *            schema del db
+	 * @param parametriconfigout 
 	 * @param wsTraceBean 
 	 * @return a <code>String</code> XML di risposta
 	 * @exception Exception
@@ -1225,7 +1263,7 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 	 */
 
 	public abstract String serviceImplementation(String user, String token, String codAppl, String istanzaAlppl, Connection conn, Document xmlDomDoc,
-			String xml, String schemaDb, String idDominio, String desDominio, String flgTpDominioAut, WSTrace wsTraceBean) throws Exception;
+			String xml, String schemaDb, String idDominio, String desDominio, String flgTpDominioAut, String parametriconfigout, WSTrace wsTraceBean) throws Exception;
 
 	/**
 	 * Metodo che restituisce la stringa URI del file XSD per la verifica della stringa XML
@@ -1661,7 +1699,7 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 		return listRebuildedFileOut;
 	}
 	
-	public List<AttachWSBean> calcola_info_file_multiThreaded(AurigaLoginBean pAurigaLoginBean, List<File> listaAttach, boolean flgImpresaInUnGiorno, String xml, String maxSizePoolThreadConfig)
+	public List<AttachWSBean> calcola_info_file_multiThreaded(AurigaLoginBean pAurigaLoginBean, List<AttachWSBean> listaAttach, boolean flgImpresaInUnGiorno, String xml, String maxSizePoolThreadConfig)
 			throws Exception {
 
 		List<AttachWSBean> listaAttachWithInfo = new ArrayList<AttachWSBean>();
@@ -1669,10 +1707,12 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 		ExecutorService executorService = null;
 
 		try {
-			for (int i = 0; i < listaAttach.size(); i++/* File fileAttach : listaAttach */) {
-				File fileAttach = listaAttach.get(i);
+			for (int i = 0; i < listaAttach.size(); i++) {
+				AttachWSBean fileAttach = listaAttach.get(i);
+				File file = fileAttach.getFile();
 
-				CallInfoFileThread callInfoFileThread = new CallInfoFileThread(flgImpresaInUnGiorno, xml, i, fileAttach, pAurigaLoginBean);
+				CallInfoFileThread callInfoFileThread = new CallInfoFileThread(flgImpresaInUnGiorno, xml, Integer.valueOf(fileAttach.getNumeroAttach()), 
+						file, pAurigaLoginBean, fileAttach.getDisplayFilename(), fileAttach.getFlgFilePrimario());
 
 				threadList.add(callInfoFileThread);
 			}			
@@ -1709,21 +1749,26 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 		return listaAttachWithInfo;
 	}
 	
-	public List<AttachWSBean> calcola_info_file(AurigaLoginBean pAurigaLoginBean, List<File> listaAttach, boolean flgImpresaInUnGiorno, String xml)
+	public List<AttachWSBean> calcola_info_file(AurigaLoginBean pAurigaLoginBean, List<AttachWSBean> listaAttach , boolean flgImpresaInUnGiorno, String xml)
 			throws Exception {
 		List<AttachWSBean> listaAttachWithInfo = new ArrayList<AttachWSBean>();
 		
 			try {
-				for (int i = 0; i<listaAttach.size(); i++/*File fileAttach : listaAttach*/) {
-					File fileAttach = listaAttach.get(i);
+				for (int i = 0; i<listaAttach.size(); i++) {
+					AttachWSBean fileAttach = listaAttach.get(i);
+					File file = fileAttach.getFile();
 					
-					AttachWSBean attachWSBean = AddUdUtils.buildAttachWSBean(fileAttach, xml, i, flgImpresaInUnGiorno, pAurigaLoginBean);
+					AttachWSBean attachWSBean = AddUdUtils.buildAttachWSBean(file, xml, Integer.valueOf(fileAttach.getNumeroAttach()), flgImpresaInUnGiorno, pAurigaLoginBean);
 					
-					boolean isValid = AddUdUtils.checkRequiredAttribute(fileAttach.getName(), attachWSBean);
+					boolean isValid = AddUdUtils.checkRequiredAttribute(fileAttach.getDisplayFilename(), attachWSBean);
 					
 					if(!isValid) {
-						AddUdUtils.retryCallFileOp(fileAttach, xml, i, flgImpresaInUnGiorno, pAurigaLoginBean);
+						AddUdUtils.retryCallFileOp(file, xml, i, flgImpresaInUnGiorno, pAurigaLoginBean);
 					}
+					
+					attachWSBean.setDisplayFilename(fileAttach.getDisplayFilename());
+					attachWSBean.setNumeroAttach(fileAttach.getNumeroAttach());
+					attachWSBean.setFlgFilePrimario(fileAttach.getFlgFilePrimario());
 
 					listaAttachWithInfo.add(attachWSBean);
 				}
@@ -2080,12 +2125,16 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 
 	}
 	
-	protected List<File> getFileFromDataHandler(DataHandler[] attachments) throws IOException {
+	protected List<File> getFileFromDataHandler(DataHandler[] attachments, AurigaLoginBean loginBean) throws Exception {
 		List<File> listaAttach = new ArrayList<File>();
 		
 		for(DataHandler dataHandlerAttach : attachments) {
-			File tempFile = File.createTempFile("tmp","");
-			FileUtils.copyInputStreamToFile(dataHandlerAttach.getInputStream(), tempFile);
+//			File tempFile = File.createTempFile("tmp","");
+//			FileUtils.copyInputStreamToFile(dataHandlerAttach.getInputStream(), tempFile);
+			
+			WSFileUtils lWSFileUtils = new WSFileUtils();
+			File tempFile = lWSFileUtils.saveInputStreamToStorageTmp(loginBean.getSpecializzazioneBean().getIdDominio(),
+					dataHandlerAttach.getInputStream());
 			
 			listaAttach.add(tempFile);
 		}
@@ -2179,7 +2228,7 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 					String mimetype = allegatoRiferimento.getMimetype();
 
 					if (mimetype == null || mimetype.equalsIgnoreCase("")) {
-						errori = "E' presente un file elettronico il cui mimetype e' sconosciuto\n";
+						errori = "E’ presente un file elettronico il cui mimetype è sconosciuto";
 					}
 				}
 			}
@@ -2243,7 +2292,7 @@ public boolean attachListInputStreamTypes(List<AttachWSProperties> listattach) t
 		}
 	}
 	
-public List<File> spacchettaZipSue(File file) throws Exception {
+	public List<File> spacchettaZipSue(File file) throws Exception {
 		
 		List<File> listaFileUnzippati = new ArrayList<File>();
 
@@ -2286,18 +2335,509 @@ public List<File> spacchettaZipSue(File file) throws Exception {
 	    return listaFileUnzippati;
 
 	}
+
+	protected String getParametroDB(String parName) {
+	   DaoTParametri daoParametri = new DaoTParametri();
+	   
+		try {
+			TParameters parametroRoot = daoParametri.getParametro(parName);
+			if (parametroRoot != null && StringUtils.isNotBlank(parametroRoot.getStrValue())) {
+				return parametroRoot.getStrValue();
+			}
+		} catch (Exception e) {
+			aLogger.error("Eccezione nella lettura del parametro " + parName, e);
+		}
+
+		return null;
+		
+	}
 	
+	private static String getIdUdFromRequest(String xml) throws Exception {
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder builder = factory.newDocumentBuilder();
+		Document document = builder.parse(new InputSource(new StringReader(xml)));
+
+		NodeList idUDList = document.getElementsByTagName("IdUD");
+
+		if (idUDList.getLength() > 0) {
+			Element idUDElement = (Element) idUDList.item(0);
+			String idUDValue = idUDElement.getTextContent();
+			return idUDValue;
+		} else {
+			throw new Exception("IdUd non presente nella request");
+		}
+	}
+	
+	public static void main(String[] args) throws Exception {
+//		String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?> <NewUD> 	<RegistrazioneDaDare> 		<CategoriaReg>PG</CategoriaReg> 	</RegistrazioneDaDare> 	<OggettoUD>Comunicazione Pratica SUA  2023SUA-197574-Prova - 2023SUA-197574-Seconda Comunicazione</OggettoUD> 	<TipoDoc> 		<CodId>24290</CodId> 	</TipoDoc> 	<VersioneElettronica> 		<NroAttachmentAssociato>1</NroAttachmentAssociato> 		<NomeFile>TIPOLOGIE DOCUMENTALI CWOL.pdf</NomeFile> 	</VersioneElettronica> 	<TipoProvenienza>E</TipoProvenienza> 	<NroAllegati>3</NroAllegati> 	<AllegatoUD> 		<TipoDocAllegato> 			<CodId>24191</CodId> 		</TipoDocAllegato> 		<DesAllegato>ALLEGATO2</DesAllegato> 		<TipoCartaceo>OU</TipoCartaceo> 		<VersioneElettronica> 			<NroAttachmentAssociato>2</NroAttachmentAssociato> 			<NomeFile>Mandatari.xlsx</NomeFile> 		</VersioneElettronica> 	</AllegatoUD> 	<AllegatoUD> 		<VersioneElettronica> 			<NroAttachmentAssociato>3</NroAttachmentAssociato> 			<NomeFile>Destinatari.xlsx</NomeFile> 		</VersioneElettronica> 	</AllegatoUD> </NewUD>";
+//		gestioneAsincronaAttach(xml, String.valueOf(System.currentTimeMillis()), true);	
+		
+		String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?> <UDDaAgg> 	<EstremiXIdentificazioneUD> 		<IdUD>7435175</IdUD> 	</EstremiXIdentificazioneUD> 	<RegistrazioneDaDare> 		<CategoriaReg>#DEF_TIPOLOGIA</CategoriaReg> 	</RegistrazioneDaDare> 	<RegistrazioneDaDare> 		<CategoriaReg>#DEF_TIPOLOGIA</CategoriaReg> 	</RegistrazioneDaDare> 	<RegistrazioneDaDare> 		<CategoriaReg>#DEF_TIPOLOGIA</CategoriaReg> 	</RegistrazioneDaDare> 	<TipoDoc> 		<CodId>24240</CodId> 	</TipoDoc> 	<TipoProvenienza>E</TipoProvenienza> 	<NroAllegati>1</NroAllegati> 	<NuovoAllegatoUD> 		<TipoDocAllegato> 			<CodId>24245</CodId> 		</TipoDocAllegato> 		<DesAllegato>XML</DesAllegato> 		<VersioneElettronica> 			<NroAttachmentAssociato>1</NroAttachmentAssociato> 			<NomeFile>NICOLA LISTA.docx</NomeFile> 		</VersioneElettronica> <VersioneElettronica> 			<NroAttachmentAssociato>2</NroAttachmentAssociato> 			<NomeFile>Riepielogo_timbrato.pdf</NomeFile> 		</VersioneElettronica> <VersioneElettronica> 			<NroAttachmentAssociato>3</NroAttachmentAssociato> 			<NomeFile>AntiMafiaTest.pdf</NomeFile> 		</VersioneElettronica> 	</NuovoAllegatoUD> </UDDaAgg>";
+//		gestioneAsincronaAttach(xml, getIdUdFromRequest(xml), false);
+
+		
+//		System.out.println(eliminaTagFile(xml));
+		
+//		Path oldFolderPath = Paths.get("C:\\Users\\antpeluso\\Desktop\\appoggio\\testAttach\\1698950213968");
+//		Path newFolderPath = Paths.get("C:\\Users\\antpeluso\\Desktop\\appoggio\\testAttach\\666");
+//	
+//		Files.move(oldFolderPath, newFolderPath, StandardCopyOption.REPLACE_EXISTING);
+	}
+	
+	public static DataHandler[] convertFileListToDataHandlerArray(List<File> fileList) {
+        DataHandler[] dataHandlers = new DataHandler[fileList.size()];
+
+        for (int i = 0; i < fileList.size(); i++) {
+            File file = fileList.get(i);
+            FileDataSource fileDataSource = new FileDataSource(file);
+            dataHandlers[i] = new DataHandler(fileDataSource);
+        }
+
+        return dataHandlers;
+    }
+	
+	public static DataHandler[] getDataHandler() {
+        // Esempio: creare una lista di oggetti File
+        List<File> fileList = new ArrayList<>();
+//        fileList.add(new File("C:\\Users\\antpeluso\\Desktop\\appoggio\\TIPOLOGIE DOCUMENTALI CWOL.pdf"));
+//        fileList.add(new File("C:\\Users\\antpeluso\\Desktop\\appoggio\\Mandatari.xlsx"));
+//        fileList.add(new File("C:\\Users\\antpeluso\\Desktop\\appoggio\\Destinatari.xlsx"));
+        
+        fileList.add(new File("C:\\Users\\antpeluso\\Desktop\\appoggio\\NICOLA LISTA.docx"));
+        fileList.add(new File("C:\\Users\\antpeluso\\Desktop\\appoggio\\Riepielogo_timbrato.pdf"));
+        fileList.add(new File("C:\\Users\\antpeluso\\Desktop\\appoggio\\AntiMafiaTest.pdf"));
+        
+
+        // Converti la lista di File in un array di DataHandler
+        DataHandler[] dataHandlers = convertFileListToDataHandlerArray(fileList);
+
+       return dataHandlers;
+    }
+   
+	protected List<File> gestioneAsincronaAttach(String xmlRequest,  String nomeCartellaAttach, boolean flgAddUd) throws Exception {
+			
+			List<File> fileAggiunti = new ArrayList<>();
+			
+			try {
+			   String rootFolderAttach = getParametroDB("ROOT_PATH_ATTACH_ASYNC_WS_ADD_UPD_UD");
+			   String dimensioneBufferScritturaDB = getParametroDB("DIMENSIONE_BUFFER_SCRITTURA_ATTACH_ASYNC");
+			   int dimensioneBufferScrittura = StringUtils.isNotBlank(dimensioneBufferScritturaDB) ? Integer.valueOf(dimensioneBufferScritturaDB) : 4096;
+			   
+			   DataHandler[] attachments = getMessageDataHandlers();
+			   
+			   Document sourceDocument = parseXMLString(xmlRequest); 
+	       
+	    	   DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+	           DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+	          createFileFromTagRequest(nomeCartellaAttach, rootFolderAttach, dimensioneBufferScrittura, attachments, 
+	        		   docBuilder, sourceDocument, fileAggiunti, "VersioneElettronica");
+	           createFileFromTagRequest(nomeCartellaAttach, rootFolderAttach, dimensioneBufferScrittura, attachments, 
+	        		   docBuilder, sourceDocument, fileAggiunti, "DatiVersioneElettronica");
+	           
+			return fileAggiunti;	
+
+			} catch (Exception e) {
+				String errorMessage = "Errore durante il salvataggio dei file su fileSystem: " + e.getMessage();
+				aLogger.error(errorMessage, e);
+				throw new Exception(errorMessage, e);
+			}		
+	       
+	   }
+
+
+
+	private void createFileFromTagRequest(String nomeCartellaAttach, String rootFolderAttach,
+			int dimensioneBufferScrittura, DataHandler[] attachments,
+			DocumentBuilder docBuilder,  Document sourceDocument, List<File> fileAggiunti, 
+			String nomeTagAllegatoRequest) throws SAXException, IOException, Exception, FileNotFoundException {
+		Document document;
+		Element rootElement;
+
+		// Estrai informazioni sui file dall'XML di origine.
+		NodeList fileList = sourceDocument.getElementsByTagName(nomeTagAllegatoRequest);
+		if (fileList != null && fileList.getLength() > 0) {
+
+//	        	   if(flgAddUd) {
+//		    		   document = docBuilder.newDocument();
+//
+//			           // Radice del nuovo documento XML.
+//			           rootElement = document.createElement("FileRegistrazione");
+//			           document.appendChild(rootElement); 
+//		    	   }else {
+//		    		   // Carica il documento XML esistente.
+//		               document = docBuilder.parse(rootFolderAttach + File.separator + nomeCartellaAttach + File.separator + "indice.xml");
+//
+//		               // Trova l'elemento <FileRegistrazione> nel documento.
+//		               rootElement = (Element) document.getElementsByTagName("FileRegistrazione").item(0);
+//		    	   }
+
+			File fileIndice = new File(
+					rootFolderAttach + File.separator + nomeCartellaAttach + File.separator + "indice.xml");
+			if (!fileIndice.exists()) {
+				document = docBuilder.newDocument();
+
+				// Radice del nuovo documento XML.
+				rootElement = document.createElement("FileRegistrazione");
+				document.appendChild(rootElement);
+			} else {
+				// Carica il documento XML esistente.
+				document = docBuilder
+						.parse(rootFolderAttach + File.separator + nomeCartellaAttach + File.separator + "indice.xml");
+
+				// Trova l'elemento <FileRegistrazione> nel documento.
+				rootElement = (Element) document.getElementsByTagName("FileRegistrazione").item(0);
+			}
+
+			for (int i = 0; i < fileList.getLength(); i++) {
+				Element fileElement = (Element) fileList.item(i);
+				String displayFilename = fileElement.getElementsByTagName("NomeFile") != null
+						? fileElement.getElementsByTagName("NomeFile").item(0).getTextContent()
+						: "";
+				String indexFile = fileElement.getElementsByTagName("NroAttachmentAssociato").item(0).getTextContent();
+				String uri = displayFilename;
+				boolean flgNomeFilePresente = false;
+				long dimensione;
+
+				DataHandler attach = null;
+				try {
+					attach = attachments[Integer.valueOf(indexFile) - 1];
+				} catch (Exception e1) {
+					throw new Exception("Non è stato trovato un file in input alla posizione: " + i);
+				}
+				try (InputStream inputStream = attach.getInputStream()) {
+
+					if (checkNomeFilePresente(displayFilename,
+							rootFolderAttach + File.separator + nomeCartellaAttach)) {
+						UUID uuid = UUID.randomUUID();
+						uri = FilenameUtils.getBaseName(displayFilename) + "#AURIGA#_" + uuid.toString() + "."
+								+ FilenameUtils.getExtension(displayFilename);
+						flgNomeFilePresente = true;
+					}
+
+					Files.createDirectories(Paths.get(rootFolderAttach + File.separator + nomeCartellaAttach));
+					File file = new File(rootFolderAttach + File.separator + nomeCartellaAttach, uri);
+
+					try (OutputStream outputStream = new FileOutputStream(file)) {
+						byte[] buffer = new byte[dimensioneBufferScrittura]; // Dimensione del buffer
+						int bytesRead;
+						while ((bytesRead = inputStream.read(buffer)) != -1) {
+							outputStream.write(buffer, 0, bytesRead);
+						}
+					}
+
+					dimensione = file.length();
+
+					if (flgNomeFilePresente && checkPresenteFileNomeOriginaleEDimensioneUguale(displayFilename,
+							dimensione, rootFolderAttach + File.separator + nomeCartellaAttach, uri)) {
+						Files.delete(file.toPath());
+						continue;
+					}
+					
+					fileAggiunti.add(file);
+
+				} catch (ArrayIndexOutOfBoundsException e) {
+					throw new Exception("Errore durante la scrittura del file: " + e.getMessage(), e);
+				}
+
+				String descrizioneAllegato = null;
+				String nomeTipo = null;
+				String codiceTipo = null;
+
+				// Crea l'elemento del file allegato nel file indice.
+				Element fileIndiceElement = document.createElement("File");
+				if ((fileElement.getParentNode().getNodeName().contains("AggVersioneElettronica")
+						&& fileElement.getParentNode().getParentNode().getNodeName().contains("UDDaAgg"))
+						|| fileElement.getParentNode().getNodeName().contains("NewUD")) {
+
+					fileIndiceElement.setAttribute("Principale", "true");
+				} else {
+					NodeList elementDesAllegato = ((Element) fileElement.getParentNode())
+							.getElementsByTagName("DesAllegato");
+					if (elementDesAllegato != null && elementDesAllegato.item(0) != null) {
+						descrizioneAllegato = elementDesAllegato.item(0).getTextContent();
+					}
+					NodeList elementCodiceTipo = ((Element) fileElement.getParentNode()).getElementsByTagName("CodId");
+					if (elementCodiceTipo != null && elementCodiceTipo.item(0) != null) {
+						codiceTipo = elementCodiceTipo.item(0).getTextContent();
+					}
+					NodeList elementNomeTipo = ((Element) fileElement.getParentNode())
+							.getElementsByTagName("Decodifica_Nome");
+					if (elementNomeTipo != null && elementNomeTipo.item(0) != null) {
+						nomeTipo = elementNomeTipo.item(0).getTextContent();
+					}
+				}
+				rootElement.appendChild(fileIndiceElement);
+				createFileSubElements(document, fileIndiceElement, displayFilename, uri, String.valueOf(dimensione),
+						descrizioneAllegato, nomeTipo, codiceTipo);
+			}
+
+			FileIndiceWriter fiw = FileIndiceWriter.getInstance();
+			fiw.writeToFile(document, rootFolderAttach, nomeCartellaAttach);
+		}
+
+	}
+   
+   
+	private boolean checkPresenteFileNomeOriginaleEDimensioneUguale(String fileNameToCheck, long dimensione, String folderPath, String nomeFileAppenaInserito) {
+	       File folder = new File(folderPath);
+	       File[] filesInFolder = folder.listFiles();
+
+	       if (filesInFolder != null) {
+	           for (File file : filesInFolder) {
+	               if (file.isFile() && getNameOriginale(file.getName()).equals(fileNameToCheck) && (!file.getName().equals(nomeFileAppenaInserito))) {
+	            	   if(file.length()==dimensione) {
+	            		   return true; 
+	            	   }
+	               }
+	           }
+	       }
+	       
+	       return false;
+	   }
+
+	protected boolean checkNomeFilePresente(String fileNameToCheck, String folderPath) {
+
+       File folder = new File(folderPath);
+       File[] filesInFolder = folder.listFiles();
+
+       if (filesInFolder != null) {
+           for (File file : filesInFolder) {
+               if (file.isFile() && getNameOriginale(file.getName()).equals(fileNameToCheck)) {
+                   return true;
+               }
+           }
+       }
+       
+       return false;
+   }
+
+   private String getNameOriginale(String nameFile) {
+	   String estensione = FilenameUtils.getExtension(nameFile);
+	   String[] parti = nameFile.split("#AURIGA#");
+       
+       if (parti!=null && parti.length > 1) {
+           String nameOriginale = parti[0];
+           return nameOriginale + "." + estensione;
+       }else {
+    	   return nameFile;
+       }
+	}
+
+public static String eliminaTagFile(String xml) throws Exception {
+
+       try {
+           DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+           DocumentBuilder builder = factory.newDocumentBuilder();
+           Document document = builder.parse(new InputSource(new StringReader(xml)));
+
+           // Rimuovi gli elementi VersioneElettronica e AllegatoUD.
+           removeElementsByName(document, "VersioneElettronica");
+           removeElementsByName(document, "AllegatoUD");
+           removeElementsByName(document, "NroAllegati");
+
+           // Serializza il documento in una stringa XML.
+          return documentToString(document);
+           
+           
+       } catch (Exception e) {
+    	   String errorMessage = "Errore durante la gestione del salvataggio dei file su fileSystem: " + e.getMessage();
+			aLogger.error(errorMessage, e);
+			throw new Exception(errorMessage, e);
+       }
+   }
+
+   // Rimuovi tutti gli elementi con un dato nome dal documento.
+   private static void removeElementsByName(Document document, String elementName) {
+       NodeList elements = document.getElementsByTagName(elementName);
+       for (int i = elements.getLength() - 1; i >= 0; i--) {
+           Node element = elements.item(i);
+           element.getParentNode().removeChild(element);
+       }
+   }
+
+   // Serializza un documento in una stringa XML.
+   private static String documentToString(Document document) throws Exception {
+       TransformerFactory tf = TransformerFactory.newInstance();
+       Transformer transformer = tf.newTransformer();
+       transformer.setOutputProperty("omit-xml-declaration", "no");
+       transformer.setOutputProperty("method", "xml");
+       transformer.setOutputProperty("indent", "yes");
+       transformer.setOutputProperty("encoding", "UTF-8");
+       StringWriter writer = new StringWriter();
+       transformer.transform(new DOMSource(document), new StreamResult(writer));
+       return writer.toString();
+   }
+   
+   public static Document parseXMLString(String xml) throws Exception {
+       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+       DocumentBuilder builder = factory.newDocumentBuilder();
+       ByteArrayInputStream input = new ByteArrayInputStream(xml.getBytes("UTF-8"));
+       Document document = builder.parse(input);
+       return document;
+   }
+   
+// Crea gli elementi DisplayFilename, URI, Dimensione, Descrizione Allegato e Tipo allegato all'interno dell'elemento del file.
+   protected void createFileSubElements(Document document, Element fileElement, String displayFilename, String uri, String dimensione, String descrizioneAllegato, String nomeTipo, String codiceTipo) {
+       Element displayFilenameElement = document.createElement("DisplayFilename");
+       displayFilenameElement.appendChild(document.createTextNode(displayFilename));
+       fileElement.appendChild(displayFilenameElement);
+
+       Element uriElement = document.createElement("URI");
+       uriElement.appendChild(document.createTextNode(uri));
+       fileElement.appendChild(uriElement);
+
+       Element dimensioneElement = document.createElement("Dimensione");
+       dimensioneElement.appendChild(document.createTextNode(dimensione));
+       fileElement.appendChild(dimensioneElement);
+       
+       if(StringUtils.isNotBlank(nomeTipo) || StringUtils.isNotBlank(codiceTipo)) {  	   
+    	// Crea l'elemento <TipoDocumento> come radice
+           Element tipoDocumentoElement = document.createElement("TipoDocumento");
+           
+           if(StringUtils.isNotBlank(nomeTipo)) {
+        	// Crea l'elemento <Nome> e imposta il suo valore (testo)
+               Element nomeTipoElement = document.createElement("Nome");
+               nomeTipoElement.appendChild(document.createTextNode(nomeTipo));  
+            // Aggiungi l'elemento <Nome> a <TipoDocumento>
+               tipoDocumentoElement.appendChild(nomeTipoElement);
+           }
+           if(StringUtils.isNotBlank(codiceTipo)) {
+        	   // Crea l'elemento <Nome> e imposta il suo valore (testo)
+        	   Element codiceTipoElement = document.createElement("CodID");
+        	   codiceTipoElement.appendChild(document.createTextNode(codiceTipo)); 
+        	// Aggiungi l'elemento <Nome> a <TipoDocumento>
+               tipoDocumentoElement.appendChild(codiceTipoElement);
+           }
+    	  fileElement.appendChild(tipoDocumentoElement); 
+       }  
+       
+       if(StringUtils.isNotBlank(descrizioneAllegato)) {
+    	   Element descrizioneAllegatoElement = document.createElement("Descrizione");
+           descrizioneAllegatoElement.appendChild(document.createTextNode(descrizioneAllegato));
+           fileElement.appendChild(descrizioneAllegatoElement); 
+       }
+             
+   }
+   
+	protected boolean checkApplicazioneCalcoloAsyncAttach(String codiceApplicazione, String parametriconfigout) {
+
+		if (StringUtils.isNotBlank(parametriconfigout)) {
+			try {
+				String targetColumnName = "COD_APPL_ATTACH_ASYNC_WS_ADD_UPD_UD";
+
+				// Parse XML
+				DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+				DocumentBuilder builder = factory.newDocumentBuilder();
+				InputSource inputSource = new InputSource(new StringReader(parametriconfigout));
+				Document document = builder.parse(inputSource);
+
+				// Trova tutti gli elementi <Riga>
+				NodeList rowList = document.getElementsByTagName("Riga");
+
+				// Cerca l'elemento con Colonna Nro="1" uguale a targetColumnName
+				for (int i = 0; i < rowList.getLength(); i++) {
+					Element rowElement = (Element) rowList.item(i);
+					Element col1Element = (Element) rowElement.getElementsByTagName("Colonna").item(0); // Primo elemento di <Colonna>
+
+					if (col1Element.getTextContent().equals(targetColumnName)) {
+						// Trovato l'elemento desiderato, ora estrai il valore da Colonna Nro="2"
+						Element col2Element = (Element) rowElement.getElementsByTagName("Colonna").item(1); // Secondo elemento di <Colonna>
+						String value = col2Element.getTextContent();
+						if (contieneApplicazione(codiceApplicazione, value)) {
+							return true;
+						}
+					}
+				}
+			} catch (Exception e) {
+				aLogger.error("Errore durante la lettura dei parametri di output della store: " + e.getMessage(), e);
+				return false;
+			}
+		}
+
+		return false;
+	}
+	
+	private boolean contieneApplicazione(String applicazione, String stringaApplicazioni) {
+        String[] listaApplicazioni = stringaApplicazioni.split("\\|\\*\\|"); // Dividi la stringa in base a '|*|'
+        for (String applicazioneEstratta : listaApplicazioni) {
+            if (applicazioneEstratta.equals(applicazione)) {
+                return true;
+            }
+        }
+        return false;
+    }
+	
+	protected void callStoreRispostaWSAddUpd(WSAddUdOutBean outServizioAddUd, WSUpdUdOutBean outServizioUpdUd, AurigaLoginBean aurigalogin) {
+		Session session = null;
+
+		try {
+			session = HibernateUtil.begin();
+
+			String xmlOut;
+			if(outServizioAddUd!=null) {
+				xmlOut = outServizioAddUd.getXmlRegOut();
+			}else {
+				xmlOut = outServizioUpdUd.getXmlRegOut();
+			}
+			StringReader srXmlOut = new StringReader(xmlOut);
+
+			Output_UD outputUd = (Output_UD) Unmarshaller.unmarshal(Output_UD.class, srXmlOut);
+			String idUd = String.valueOf(outputUd.getIdUD());
+
+			// Inizializzo l'INPUT
+			DmpkWsGetresponseaddupdudBean input = new DmpkWsGetresponseaddupdudBean();
+			input.setCodidconnectiontokenin(aurigalogin.getToken());
+			input.setIdudin(new BigDecimal(idUd));
+			
+			// Eseguo il servizio
+			Getresponseaddupdud service = new Getresponseaddupdud();
+			StoreResultBean<DmpkWsGetresponseaddupdudBean> output = service.execute(aurigalogin, input);
+
+			if (output.isInError()) {
+				throw new StoreException(output.getDefaultMessage());
+			}
+
+			// leggo XmlOut
+			String xml = output.getResultBean().getXmlout();
+
+			if (xml == null || xml.equalsIgnoreCase("")) {
+				throw new Exception("La store procedure ha ritornato XmlOut nullo");
+			}
+
+			if(outServizioAddUd!=null) {
+				outServizioAddUd.setXmlRegOut(xml);;
+			}else {
+				outServizioUpdUd.setXmlRegOut(xml);
+			}
+
+			session.flush();
+
+		} catch (Exception ex) {
+			aLogger.error("Errore durante la chiamata alla store DMPK_WS_GETRESPONSEADDUPDUD: " + ex.getMessage(), ex);
+		} finally {
+			if (session != null) {
+				try {
+					HibernateUtil.release(session);
+				} catch (Exception e) {
+					aLogger.error(e);
+				}
+			}
+		}
+
+	}
+
 	/**
 	 * 
-	 * @return il valore dello schemaDB passato nell'header della request, null se non esiste. 
+	 * @return il valore dello schemaDB passato nell'header della request, null se
+	 *         non esiste.
 	 */
 	private String retrieveSchemaFromHeader() {
-		if(context != null && context.getMessageContext() != null) {
+		if (context != null && context.getMessageContext() != null) {
 			Headers headers = (Headers) context.getMessageContext().get(MessageContext.HTTP_REQUEST_HEADERS);
-			if(headers.containsKey(HEADER_SCHEMA_DB)) {
+			if (headers.containsKey(HEADER_SCHEMA_DB)) {
 				return headers.getFirst(HEADER_SCHEMA_DB);
 			}
-		} 
+		}
 		return null;
 	}
 }

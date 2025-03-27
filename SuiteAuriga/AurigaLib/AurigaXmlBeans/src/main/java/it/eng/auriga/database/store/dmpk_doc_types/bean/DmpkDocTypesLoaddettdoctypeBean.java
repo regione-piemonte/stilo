@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.database.store.dmpk_doc_types.bean;
 
 import java.io.Serializable;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -56,7 +57,9 @@ public class DmpkDocTypesLoaddettdoctypeBean extends StoreBean implements Serial
 	private java.lang.String xmlattraddxdocdeltipoout;
 	private java.lang.String attributiaddout;
 	private java.lang.String abilitazionipubblout;
-	private java.lang.String flgrichfirmadigitaleout;
+	private java.math.BigDecimal flgrichfileout;
+	private java.math.BigDecimal flgrichfirmadigitaleout;
+	private java.math.BigDecimal flgrichfirmavalidaout;
 	private java.lang.Integer bachsizeout;
 	private java.lang.Integer flgmostraaltriattrout;
 	private java.lang.String errcontextout;
@@ -102,7 +105,9 @@ public class DmpkDocTypesLoaddettdoctypeBean extends StoreBean implements Serial
     public java.lang.String getXmlattraddxdocdeltipoout(){return xmlattraddxdocdeltipoout;}
     public java.lang.String getAttributiaddout(){return attributiaddout;}
     public java.lang.String getAbilitazionipubblout(){return abilitazionipubblout;}
-    public java.lang.String getFlgrichfirmadigitaleout(){return flgrichfirmadigitaleout;}
+    public java.math.BigDecimal getFlgrichfileout(){return flgrichfileout;}
+    public java.math.BigDecimal getFlgrichfirmadigitaleout(){return flgrichfirmadigitaleout;}
+    public java.math.BigDecimal getFlgrichfirmavalidaout(){return flgrichfirmavalidaout;}
     public java.lang.Integer getBachsizeout(){return bachsizeout;}
     public java.lang.Integer getFlgmostraaltriattrout(){return flgmostraaltriattrout;}
     public java.lang.String getErrcontextout(){return errcontextout;}
@@ -149,7 +154,9 @@ public class DmpkDocTypesLoaddettdoctypeBean extends StoreBean implements Serial
     public void setXmlattraddxdocdeltipoout(java.lang.String value){this.xmlattraddxdocdeltipoout=value;}
     public void setAttributiaddout(java.lang.String value){this.attributiaddout=value;}
     public void setAbilitazionipubblout(java.lang.String value){this.abilitazionipubblout=value;}
-    public void setFlgrichfirmadigitaleout(java.lang.String value){this.flgrichfirmadigitaleout=value;}
+    public void setFlgrichfileout(java.math.BigDecimal value){this.flgrichfileout=value;}
+    public void setFlgrichfirmadigitaleout(java.math.BigDecimal value){this.flgrichfirmadigitaleout=value;}
+    public void setFlgrichfirmavalidaout(java.math.BigDecimal value){this.flgrichfirmavalidaout=value;}
     public void setBachsizeout(java.lang.Integer value){this.bachsizeout=value;}
     public void setFlgmostraaltriattrout(java.lang.Integer value){this.flgmostraaltriattrout=value;}
     public void setErrcontextout(java.lang.String value){this.errcontextout=value;}

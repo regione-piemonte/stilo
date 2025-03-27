@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common.items;
 
 import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.core.client.Scheduler.ScheduledCommand;
@@ -13,6 +14,7 @@ import com.smartgwt.client.types.FetchMode;
 import com.smartgwt.client.types.ListGridComponent;
 import com.smartgwt.client.types.Overflow;
 import com.smartgwt.client.util.EventHandler;
+import com.smartgwt.client.util.SC;
 import com.smartgwt.client.widgets.Button;
 import com.smartgwt.client.widgets.form.DynamicForm;
 import com.smartgwt.client.widgets.form.FormItemHoverFormatter;
@@ -27,6 +29,7 @@ import com.smartgwt.client.widgets.grid.events.CellClickHandler;
 import com.smartgwt.client.widgets.grid.events.FilterEditorSubmitEvent;
 import com.smartgwt.client.widgets.grid.events.FilterEditorSubmitHandler;
 
+import it.eng.utility.ui.module.core.client.RequestValidatorClient;
 import it.eng.utility.ui.module.core.client.UserInterfaceFactory;
 import it.eng.utility.ui.module.core.client.i18n.I18NUtil;
 import it.eng.utility.ui.module.layout.client.Layout;
@@ -60,7 +63,7 @@ public class FilteredSelectItem extends it.eng.utility.ui.module.layout.client.c
 	}
 	
 	protected ListGrid builPickListProperties() {
-		ListGrid pickListProperties = new ListGrid(); 		
+		final ListGrid pickListProperties = new ListGrid(); 		
 		pickListProperties.setEmptyMessage(I18NUtil.getMessages().list_emptyMessage());
 		pickListProperties.setGridComponents(new ListGridComponent[]{ListGridComponent.HEADER, ListGridComponent.FILTER_EDITOR, ListGridComponent.BODY});
 		pickListProperties.setCanHover(true);
@@ -95,6 +98,15 @@ public class FilteredSelectItem extends it.eng.utility.ui.module.layout.client.c
 			
 			@Override
 			public void onFilterEditorSubmit(FilterEditorSubmitEvent event) {
+				Criteria criteria = event.getCriteria();
+				if (UserInterfaceFactory.getParametroDBAsBoolean("ATTIVA_SCRIPT_VALIDATOR_FOR_TEXT_INPUT") && criteria != null && criteria.getAttributeAsString("descrizione") != null) {
+					if(RequestValidatorClient.containsScript(criteria.getAttributeAsString("descrizione"))) {
+						criteria.setAttribute("descrizione", "");
+						pickListProperties.setCriteria(criteria);
+						SC.warn("Valore non valido: non si possono inserire script");
+						return;
+					}
+				}
 				doOnFilterEditorSubmit(event, _instance);
 			}
 		});
@@ -135,6 +147,13 @@ public class FilteredSelectItem extends it.eng.utility.ui.module.layout.client.c
 	}
 	
 	public void doOnFilterEditorSubmit(FilterEditorSubmitEvent event, final FilteredSelectItem item) {
+		Criteria criteria = event.getCriteria();
+		if (UserInterfaceFactory.getParametroDBAsBoolean("ATTIVA_SCRIPT_VALIDATOR_FOR_TEXT_INPUT") && criteria != null && criteria.getAttributeAsString("descrizione") != null) {
+			if(RequestValidatorClient.containsScript(criteria.getAttributeAsString("descrizione"))) {
+				SC.warn("Valore non valido: non si possono inserire script");
+				return;
+			}
+		}
 		item.setPickListCriteria(event.getCriteria());
 		event.cancel();
 		item.fetchData(new DSCallback() {

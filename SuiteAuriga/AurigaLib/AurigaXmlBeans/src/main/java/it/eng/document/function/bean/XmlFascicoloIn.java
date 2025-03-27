@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -34,6 +35,9 @@ public class XmlFascicoloIn implements Serializable {
 	
 	@XmlVariabile(nome="#@FolderAppartenenza", tipo = TipoVariabile.LISTA)
 	private List<FolderAppartenenzaBean> folderAppartenenza; 
+	
+	@XmlVariabile(nome="#Append_#@FolderAppartenenza", tipo = TipoVariabile.SEMPLICE)
+	private String appendFolderAppartenenza;
 	
 	@XmlVariabile(nome="#NroSecondario", tipo = TipoVariabile.SEMPLICE)
 	private String nroSecondario; 
@@ -187,6 +191,12 @@ public class XmlFascicoloIn implements Serializable {
 	
 	@XmlVariabile(nome="#TimestampGetData", tipo = TipoVariabile.SEMPLICE)
 	private String timestampGetData;
+		
+	@XmlVariabile(nome = "PERIZIA_ADSP", tipo = TipoVariabile.LISTA)
+	private List<PeriziaXmlBean> listaPerizie;
+	
+	@XmlVariabile(nome = "COD_CONCESSIONE", tipo = TipoVariabile.LISTA)
+	private List<ConcessioneXmlInBean> listaConcessioni;
 	
 	public Flag getFlgFascTitolario() {
 		return flgFascTitolario;
@@ -235,6 +245,14 @@ public class XmlFascicoloIn implements Serializable {
 	public void setFolderAppartenenza(
 			List<FolderAppartenenzaBean> folderAppartenenza) {
 		this.folderAppartenenza = folderAppartenenza;
+	}
+	
+	public String getAppendFolderAppartenenza() {
+		return appendFolderAppartenenza;
+	}
+
+	public void setAppendFolderAppartenenza(String appendFolderAppartenenza) {
+		this.appendFolderAppartenenza = appendFolderAppartenenza;
 	}
 
 	public String getNroSecondario() {
@@ -646,4 +664,19 @@ public class XmlFascicoloIn implements Serializable {
 		this.timestampGetData = timestampGetData;
 	}
 
+	public List<PeriziaXmlBean> getListaPerizie() {
+		return listaPerizie;
+	}
+
+	public void setListaPerizie(List<PeriziaXmlBean> listaPerizie) {
+		this.listaPerizie = listaPerizie;
+	}
+
+	public List<ConcessioneXmlInBean> getListaConcessioni() {
+		return listaConcessioni;
+	}
+
+	public void setListaConcessioni(List<ConcessioneXmlInBean> listaConcessioni) {
+		this.listaConcessioni = listaConcessioni;
+	}
 }

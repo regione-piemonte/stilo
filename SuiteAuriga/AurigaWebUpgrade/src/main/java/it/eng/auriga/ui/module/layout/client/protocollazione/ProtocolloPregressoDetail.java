@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.Map;
 
@@ -392,9 +393,9 @@ public class ProtocolloPregressoDetail extends ProtocollazioneDetailBozze {
 	}
 	
 	@Override
-	public void modificaDatiMode(Boolean abilAggiuntaFile) {
+	public void modificaDatiMode(String editMode, Boolean abilAggiuntaFile) {
 		
-		this.editMode = "modificaDati";
+		this.editMode = editMode;
 		setModificaDatiReg(false);
 		editMode();
 		if (numerazionePGPregressoForm != null) {

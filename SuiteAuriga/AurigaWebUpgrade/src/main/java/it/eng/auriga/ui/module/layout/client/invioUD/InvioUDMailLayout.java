@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.invioUD;
 
 import com.smartgwt.client.data.DSCallback;
 import com.smartgwt.client.data.DSRequest;
@@ -25,7 +26,7 @@ public class InvioUDMailLayout extends VLayout {
 
 	private DSCallback callback;
 
-	public InvioUDMailLayout(InvioUDMailWindow pWindow, Boolean invioMailFromAtti, final DSCallback pCallback) {
+	public InvioUDMailLayout(InvioUDMailWindow pWindow, String idUD, Boolean invioMailFromAtti, final DSCallback pCallback) {
 
 		window = pWindow;
 
@@ -35,7 +36,7 @@ public class InvioUDMailLayout extends VLayout {
 		setHeight100();
 		setOverflow(Overflow.VISIBLE);
 		
-		form = new InvioUDMailForm(window.getTipoMail(), invioMailFromAtti);
+		form = new InvioUDMailForm(window.getTipoMail(), idUD, invioMailFromAtti);
 		form.setMargin(10);
 
 		Button confermaButton = new Button("Invia");

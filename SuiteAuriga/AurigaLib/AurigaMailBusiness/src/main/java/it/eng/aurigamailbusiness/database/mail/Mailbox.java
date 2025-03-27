@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.aurigamailbusiness.database.mail;
 // Generated 14-apr-2017 14.35.28 by Hibernate Tools 3.5.0.Final
 
 import java.util.HashSet;

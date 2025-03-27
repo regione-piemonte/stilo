@@ -1,5 +1,7 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.deleteversion;
 
+import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreDel_ud_doc_verBean;
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsDelverdocBean;
 import it.eng.auriga.database.store.dmpk_ws.store.Delverdoc;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
@@ -9,6 +11,7 @@ import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.jaxws.webservices.common.JAXWSAbstractAurigaService;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
 import it.eng.document.function.GestioneDocumenti;
+import it.eng.document.function.StoreException;
 import it.eng.document.function.bean.DelUdDocVerIn;
 import it.eng.document.function.bean.DelUdDocVerOut;
 import java.io.ByteArrayInputStream;
@@ -21,6 +24,8 @@ import java.util.List;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -72,6 +77,7 @@ public class WSDeleteVersion extends JAXWSAbstractAurigaService implements WSIDe
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
 
 
@@ -80,6 +86,7 @@ public class WSDeleteVersion extends JAXWSAbstractAurigaService implements WSIDe
     String outRispostaWS = null;
     String errMsg = null;
     String xmlIn = null;
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
     
     try {
 
@@ -122,6 +129,11 @@ public class WSDeleteVersion extends JAXWSAbstractAurigaService implements WSIDe
    	         outServizio =  eseguiServizio(loginBean,outWS);
 		}
 		catch (Exception e){	
+			if (e instanceof StoreException) {
+	    		if(((StoreException) e).getError()!=null){
+	    			errCode = ((StoreException) e).getError().getErrorCode();
+	    		}
+	    	}
 			if(e.getMessage()!=null)
 	 			 errMsg = "Errore = " + e.getMessage();
 	 		 else
@@ -165,7 +177,7 @@ public class WSDeleteVersion extends JAXWSAbstractAurigaService implements WSIDe
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 	 	}
 	 	else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	}	 
         aLogger.info("Fine WSDeleteVersion");
    
@@ -184,66 +196,66 @@ public class WSDeleteVersion extends JAXWSAbstractAurigaService implements WSIDe
     }
     
     private WSDeleteVersionBean callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
+    	aLogger.debug("Eseguo il WS DMPK_WS->DeleteVersion.");
     	
     	String idDoc       = null;
     	String flgTipoDel  = null;
     	String nroProgrVer = null;
     	
-    	aLogger.debug("Eseguo il WS DmpkWSDeleteVersion.");
-    	
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsDelverdocBean input = new DmpkWsDelverdocBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		  
-    		  // Eseguo il servizio
-    		  Delverdoc service = new Delverdoc();
-    		  StoreResultBean<DmpkWsDelverdocBean> output = service.execute(loginBean, input);
+    		
+    	// Inizializzo l'INPUT    		
+    	DmpkWsDelverdocBean input = new DmpkWsDelverdocBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+	  
+    	// Eseguo il servizio
+    	Delverdoc service = new Delverdoc();
+    	StoreResultBean<DmpkWsDelverdocBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
-    		  // restituisco l'ID DOC
-    		  if (output.getResultBean().getIddocout() != null){
-    			  idDoc = output.getResultBean().getIddocout().toString();  
-    		  }
-    		  if (idDoc== null || idDoc.equalsIgnoreCase("")){
-    			  throw new Exception("La store procedure DelVerDoc ha ritornato id nullo");
-    		  }
-    		  // restituiso il tipo di operazione di cancellazione (F = Fisica, L = Logica)
-    		  if (output.getResultBean().getFlgtipodelout() != null){
-    			  flgTipoDel = output.getResultBean().getFlgtipodelout();  
-    		  }
-    	      if (flgTipoDel == null) {
-    	    	    throw new Exception("La store procedure DelVerDoc ha ritornato una operazione non valida");
-    	      }
-    	      if (!flgTipoDel.equals(K_CANCELLAZIONE_LOGICA)  && !flgTipoDel.equals(K_CANCELLAZIONE_FISICA)) {
-    	        	throw new Exception("La store procedure DelVerDoc ha ritornato una operazione non valida");
-    	      }
-    	      // restituisco il nro progressivo
-    	      if (output.getResultBean().getNroprogrverout()!= null){
-    	    	  nroProgrVer = output.getResultBean().getNroprogrverout().toString();
-    	      }
-      	      if (nroProgrVer == null) {
-      	    	    throw new Exception("La store procedure DelVerDoc ha ritornato un nro versione nullo");
-      	      }
-              
-    	      // popolo il bean di out
-    	      WSDeleteVersionBean  result = new WSDeleteVersionBean();
-    	      result.setIdDoc(idDoc);
-    	      result.setNroProgrVer(nroProgrVer);
-    	      result.setFlgTipoDel(flgTipoDel);
-    	      result.setFlgTipoTarget("V");
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+    	if (output.isInError()){
+    		aLogger.debug(output.getDefaultMessage());
+		 	aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+			throw new StoreException(output);
+		}	
+    	
+    	// restituisco l'ID DOC
+    	if (output.getResultBean().getIddocout() != null){
+		  idDoc = output.getResultBean().getIddocout().toString();  
+    	}
+    	if (idDoc== null || idDoc.equalsIgnoreCase("")){
+		  throw new Exception("La store procedure DelVerDoc ha ritornato id nullo");
+    	}
+    	// restituiso il tipo di operazione di cancellazione (F = Fisica, L = Logica)
+    	if (output.getResultBean().getFlgtipodelout() != null){
+		  flgTipoDel = output.getResultBean().getFlgtipodelout();  
+    	}
+    	if (flgTipoDel == null) {
+    	    throw new Exception("La store procedure DelVerDoc ha ritornato una operazione non valida");
+    	}
+    	if (!flgTipoDel.equals(K_CANCELLAZIONE_LOGICA)  && !flgTipoDel.equals(K_CANCELLAZIONE_FISICA)) {
+        	throw new Exception("La store procedure DelVerDoc ha ritornato una operazione non valida");
+    	}
+    	// restituisco il nro progressivo
+    	if (output.getResultBean().getNroprogrverout()!= null){
+    	  nroProgrVer = output.getResultBean().getNroprogrverout().toString();
+    	}
+    	if (nroProgrVer == null) {
+    	    throw new Exception("La store procedure DelVerDoc ha ritornato un nro versione nullo");
+    	}
+      
+    	// popolo il bean di out
+    	WSDeleteVersionBean  result = new WSDeleteVersionBean();
+    	result.setIdDoc(idDoc);
+    	result.setNroProgrVer(nroProgrVer);
+    	result.setFlgTipoDel(flgTipoDel);
+    	result.setFlgTipoTarget("V");
+    	return result;
+ 		
     }
     
     private String eseguiServizio(AurigaLoginBean loginBean, WSDeleteVersionBean bean) throws Exception {
-    	aLogger.debug("Eseguo il servizio di AurigaDocument.");
+    	aLogger.debug("Eseguo il servizio di DmpkCoreDel_ud_doc_ver.");
     	
     	String ret = null; 
 
@@ -251,7 +263,6 @@ public class WSDeleteVersion extends JAXWSAbstractAurigaService implements WSIDe
     	DelUdDocVerIn  input = new DelUdDocVerIn();
         input.setIdUdDocIn(bean.getIdDoc());
 		input.setNroProgrVerIn(bean.getNroProgrVer());
-		
 		
 		// ricavo il flag di cancellazione booleano
     	if (bean.getFlgTipoDel().equals(K_CANCELLAZIONE_LOGICA))
@@ -263,24 +274,26 @@ public class WSDeleteVersion extends JAXWSAbstractAurigaService implements WSIDe
 		input.setFlgTipoTargetIn(bean.getFlgTipoTarget());
     	    	
     	// eseguo il servizio
-    	try {
-    		 GestioneDocumenti servizio     = new GestioneDocumenti();
-    		 DelUdDocVerOut  servizioOut  = new DelUdDocVerOut();    
-    		 servizioOut = servizio.delUdDocVer(loginBean, input);
-    		 
-    		// Se il servizio e' andato in errore restituisco il messaggio di errore 	
-    		 if(StringUtils.isNotBlank(servizioOut.getDefaultMessage())) {
-	    	    	throw new Exception(servizioOut.getDefaultMessage());
-    		 }
-	    	 // Altrimenti restituisco l'URI   
-    		 ret = (servizioOut.getUriOut()!= null ? (StringUtils.isNotBlank(servizioOut.getUriOut()) ? servizioOut.getUriOut() : null) : null);
-    	}
-    	catch (Exception e){
-	 		throw new Exception(e.getMessage());	
-	 	}
+		GestioneDocumenti servizio     = new GestioneDocumenti();
+		DelUdDocVerOut  servizioOut  = new DelUdDocVerOut();    
+		servizioOut = servizio.delUdDocVer(loginBean, input);
+		 
+		// Se il servizio e' andato in errore restituisco il messaggio di errore 	
+		if(StringUtils.isNotBlank(servizioOut.getDefaultMessage())) {
+			StoreResultBean<DmpkCoreDel_ud_doc_verBean> output = new StoreResultBean<DmpkCoreDel_ud_doc_verBean>();
+			output.setDefaultMessage(servizioOut.getDefaultMessage());
+			output.setErrorContext(servizioOut.getErrorContext());
+			output.setErrorCode(servizioOut.getErrorCode());
+			aLogger.debug(output.getDefaultMessage());
+			aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+    	    throw new StoreException(output);	
+		}
+    	// Altrimenti restituisco l'URI   
+		ret = (servizioOut.getUriOut()!= null ? (StringUtils.isNotBlank(servizioOut.getUriOut()) ? servizioOut.getUriOut() : null) : null);
+	
     	return ret;
     }
-    
     
     /**
      * Genera il file XML contenente l'URI del folder camcellato
@@ -298,7 +311,7 @@ public class WSDeleteVersion extends JAXWSAbstractAurigaService implements WSIDe
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             aLogger.debug("generaXMLToken: token = " + xmlIn);
             aLogger.debug("generaXMLToken: tokenEsc = " + xmlInEsc);

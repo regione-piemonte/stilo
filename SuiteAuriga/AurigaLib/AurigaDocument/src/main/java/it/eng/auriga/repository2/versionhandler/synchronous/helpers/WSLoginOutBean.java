@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.versionhandler.synchronous.helpers;
 import java.io.Serializable;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -10,6 +11,7 @@ public class WSLoginOutBean implements Serializable {
 	private String idDominioOut;	
 	private String desDominioOut;	
 	private String flgTpDominioAutOut;
+	private String parametriconfigout;
 	
 	public String getCodIdConnectionTokenOut() {
 		return codIdConnectionTokenOut;
@@ -40,5 +42,11 @@ public class WSLoginOutBean implements Serializable {
 	}
 	public void setFlgTpDominioAutOut(String flgTpDominioAutOut) {
 		this.flgTpDominioAutOut = flgTpDominioAutOut;
+	}
+	public String getParametriconfigout() {
+		return parametriconfigout;
+	}
+	public void setParametriconfigout(String parametriconfigout) {
+		this.parametriconfigout = parametriconfigout;
 	}
 }

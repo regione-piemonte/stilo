@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.job.generaRelataPubbl;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -164,6 +165,7 @@ public class HsmArubaPdf {
 		return null;
 	}
 	
+	/*
 	public byte[] firmaPades(File input, BigDecimal idSpAoo)
 	{
 		byte[] fileFirmato = null;
@@ -209,14 +211,14 @@ public class HsmArubaPdf {
 			}
 			logger.info("arubaConfig: "+arubaConfig.getUser());
 			
-			/*PadesConfig padesConfig = new PadesConfig();
-			padesConfig.setLeftX("10");
-			padesConfig.setLeftY("10");
-			padesConfig.setRightX("60");
-			padesConfig.setRightY("60");
-			padesConfig.setTesto("Firmato da "+arubaConfig.getUser() +" in data " + new Date());
-			padesConfig.setNumPagina("1");
-			arubaConfig.setPadesConfig(padesConfig);*/
+			PadesConfig padesConfig = new PadesConfig();
+			//padesConfig.setLeftX("10");
+			//padesConfig.setLeftY("10");
+			//padesConfig.setRightX("60");
+			//padesConfig.setRightY("60");
+			//padesConfig.setTesto("Firmato da "+arubaConfig.getUser() +" in data " + new Date());
+			//padesConfig.setNumPagina("1");
+			//arubaConfig.setPadesConfig(padesConfig);
 			PadesConfig padesConfig = new PadesConfig();
 			arubaConfig.setPadesConfig(padesConfig);
 			hsmConfig.setClientConfig(arubaConfig);
@@ -281,5 +283,6 @@ public class HsmArubaPdf {
 		
 		return null;
 	}
+	*/
 	
 }

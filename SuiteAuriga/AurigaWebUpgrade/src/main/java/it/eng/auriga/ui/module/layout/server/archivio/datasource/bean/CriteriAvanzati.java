@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.archivio.datasource.bean;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -546,6 +547,9 @@ public class CriteriAvanzati implements Serializable {
 	
 	@XmlVariabile(nome="PresenzaOpere", tipo=TipoVariabile.SEMPLICE)
 	private String presenzaOpere;
+	
+	@XmlVariabile(nome="PresenzaConcessioni", tipo=TipoVariabile.SEMPLICE)
+	private String presenzaConcessioni;
 		
 	@XmlVariabile(nome="SottoTipologiaAtto", tipo=TipoVariabile.SEMPLICE)
 	private String sottoTipologiaAtto;
@@ -563,6 +567,15 @@ public class CriteriAvanzati implements Serializable {
 	
 	@XmlVariabile(nome="StatoClassFascDocumenti", tipo=TipoVariabile.SEMPLICE)
 	private String statoClassFascDocumenti;
+	
+	@XmlVariabile(nome="DtEsecutivitaDal", tipo=TipoVariabile.SEMPLICE)
+	@TipoData(tipo = Tipo.DATA_SENZA_ORA)
+	private Date dtEsecutivitaDal;
+	
+	@XmlVariabile(nome="DtEsecutivitaAl", tipo=TipoVariabile.SEMPLICE)
+	@TipoData(tipo = Tipo.DATA_SENZA_ORA)
+	private Date dtEsecutivitaAl;
+
 	
 	
 	public String getIdNode() {
@@ -1907,6 +1920,30 @@ public class CriteriAvanzati implements Serializable {
 
 	public void setStatoClassFascDocumenti(String statoClassFascDocumenti) {
 		this.statoClassFascDocumenti = statoClassFascDocumenti;
+	}
+
+	public Date getDtEsecutivitaDal() {
+		return dtEsecutivitaDal;
+	}
+
+	public void setDtEsecutivitaDal(Date dtEsecutivitaDal) {
+		this.dtEsecutivitaDal = dtEsecutivitaDal;
+	}
+
+	public Date getDtEsecutivitaAl() {
+		return dtEsecutivitaAl;
+	}
+
+	public void setDtEsecutivitaAl(Date dtEsecutivitaAl) {
+		this.dtEsecutivitaAl = dtEsecutivitaAl;
+	}
+
+	public String getPresenzaConcessioni() {
+		return presenzaConcessioni;
+	}
+
+	public void setPresenzaConcessioni(String presenzaConcessioni) {
+		this.presenzaConcessioni = presenzaConcessioni;
 	}
 
 	

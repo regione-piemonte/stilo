@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovapropostaatto2.items;
 
 import com.smartgwt.client.data.Record;
 import com.smartgwt.client.data.RecordList;
@@ -510,6 +511,11 @@ public class DettaglioMovimentiContabilia2Detail extends CustomDetail {
 		listaDatiGsaItem = new DatiGSAItem() {
 			
 			@Override
+			public String getEsercizioCreditoDebitoDefaultValue() {
+				return (String) annoMovimento.getValue();
+			}
+			
+			@Override
 			public String getImportoDefaultValue() {
 				if(importoModifica.getValue() != null && !"".equals((String) importoModifica.getValue())) {
 					return (String) importoModifica.getValue(); 
@@ -538,7 +544,7 @@ public class DettaglioMovimentiContabilia2Detail extends CustomDetail {
 					}
 				}
 				
-				//lRecord.setAttribute("codiceBP", codiceSoggetto.getValueAsString() != null && !"".equals(codiceSoggetto.getValueAsString()) ? codiceSoggetto.getValueAsString() : codiceClasseSoggetto.getValueAsString());
+//				lRecord.setAttribute("codiceBP", codiceSoggetto.getValueAsString() != null && !"".equals(codiceSoggetto.getValueAsString()) ? codiceSoggetto.getValueAsString() : codiceClasseSoggetto.getValueAsString());
 				lRecord.setAttribute("codiceCapitolo", numeroCapitolo.getValueAsString());
 				lRecord.setAttribute("entrataUscita", (String) flgEntrataUscita.getValue());
 				return lRecord;
@@ -692,6 +698,7 @@ public class DettaglioMovimentiContabilia2Detail extends CustomDetail {
 					lRecordDatiGsa.setAttribute("flgDareAvere", stc.getTokens()[6]);
 					lRecordDatiGsa.setAttribute("dataCompetenzaDa", stc.getTokens()[7] != null ? DateUtil.parseInput(stc.getTokens()[7]) : null);
 					lRecordDatiGsa.setAttribute("dataCompetenzaA", stc.getTokens()[8] != null ? DateUtil.parseInput(stc.getTokens()[8]) : null);
+					lRecordDatiGsa.setAttribute("esercizioCreditoDebito", stc.getTokens()[9]);
 					listaDatiGsa.add(lRecordDatiGsa);
 				}
 			}
@@ -718,6 +725,7 @@ public class DettaglioMovimentiContabilia2Detail extends CustomDetail {
 				datiGsa += "|*|" + (lRecordDatiGsa.getAttribute("flgDareAvere") != null ? lRecordDatiGsa.getAttribute("flgDareAvere") : "");
 				datiGsa += "|*|" + (lRecordDatiGsa.getAttributeAsDate("dataCompetenzaDa") != null ? DateUtil.format(lRecordDatiGsa.getAttributeAsDate("dataCompetenzaDa")) : "");
 				datiGsa += "|*|" + (lRecordDatiGsa.getAttributeAsDate("dataCompetenzaA") != null ? DateUtil.format(lRecordDatiGsa.getAttributeAsDate("dataCompetenzaA")) : "");
+				datiGsa += "|*|" + (lRecordDatiGsa.getAttribute("esercizioCreditoDebito") != null ? lRecordDatiGsa.getAttribute("esercizioCreditoDebito") : "");
 				datiGsa += "|**|";
 			}
 			lRecordToSave.setAttribute("datiGsa", datiGsa);		

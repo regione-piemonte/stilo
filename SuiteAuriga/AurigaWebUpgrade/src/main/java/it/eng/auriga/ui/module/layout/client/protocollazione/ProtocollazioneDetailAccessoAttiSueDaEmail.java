@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.Map;
 
@@ -499,9 +500,9 @@ public class ProtocollazioneDetailAccessoAttiSueDaEmail extends ProtocollazioneD
 //	}
 	
 	@Override
-	public void modificaDatiMode(Boolean abilAggiuntaFile) {
+	public void modificaDatiMode(String editMode, Boolean abilAggiuntaFile) {
 		
-		super.modificaDatiMode(abilAggiuntaFile);
+		super.modificaDatiMode(editMode, abilAggiuntaFile);
 
 		if (mezzoTrasmissioneItem != null) {
 			mezzoTrasmissioneItem.setCanEdit(false);

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.trovaclassiftitolario;
 
 
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsTrovaclassiftitolarioBean;
@@ -8,6 +9,8 @@ import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.auriga.module.business.beans.SpecializzazioneBean;
 import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
+import it.eng.document.function.StoreException;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -17,6 +20,8 @@ import java.util.List;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import it.eng.auriga.repository2.jaxws.webservices.common.JAXWSAbstractAurigaService;
@@ -64,6 +69,7 @@ public class WSTrovaClassifTitolario extends JAXWSAbstractAurigaService implemen
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
 
 
@@ -72,7 +78,8 @@ public class WSTrovaClassifTitolario extends JAXWSAbstractAurigaService implemen
     String outWS = null;
     String errMsg = null;
     String xmlIn = null;
-
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
+    
     try {
     	 aLogger.info("Inizio WSTrovaClassifTitolario");
     	
@@ -103,6 +110,11 @@ public class WSTrovaClassifTitolario extends JAXWSAbstractAurigaService implemen
         	 outWS =  callWS(loginBean,xml);
 	 		}
 	 		catch (Exception e){	 
+	 			if (e instanceof StoreException) {
+		    		if(((StoreException) e).getError()!=null){
+		    			errCode = ((StoreException) e).getError().getErrorCode();
+		    		}
+		    	}
 	 			if(e.getMessage()!=null)
 		 			 errMsg = "Errore = " + e.getMessage();
 		 		 else
@@ -149,7 +161,7 @@ public class WSTrovaClassifTitolario extends JAXWSAbstractAurigaService implemen
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 	 	}
 	 	else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	}            	
 	     aLogger.info("Fine WSTrovaClassifTitolario");
 	    
@@ -168,43 +180,35 @@ public class WSTrovaClassifTitolario extends JAXWSAbstractAurigaService implemen
 	}
     }
 
-        
-    private String callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {    	    
+    private String callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
     	aLogger.debug("Eseguo il WS DMPK_WS->TrovaClassifTitolario.");    	
+    	
     	String result = null;
     	
-    	try {    	
-    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsTrovaclassiftitolarioBean input = new DmpkWsTrovaclassiftitolarioBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		  
-    		  // Eseguo il servizio
-    		  Trovaclassiftitolario service = new Trovaclassiftitolario();
-    		  StoreResultBean<DmpkWsTrovaclassiftitolarioBean> output = service.execute(loginBean, input);
+    	// Inizializzo l'INPUT    		
+    	DmpkWsTrovaclassiftitolarioBean input = new DmpkWsTrovaclassiftitolarioBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+	  
+    	// Eseguo il servizio
+    	Trovaclassiftitolario service = new Trovaclassiftitolario();
+    	StoreResultBean<DmpkWsTrovaclassiftitolarioBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
-
-    		  
-    		  if (output.getResultBean().getXmlout()!=null)
-    			  result = output.getResultBean().getXmlout();
-    		  
-    		  
-    		  if (result== null || result.equalsIgnoreCase(""))
-    			  throw new Exception("La store procedure ha ritornato Xmlout nullo");
-    			  
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
- 		
+    	if (output.isInError()){
+    		aLogger.debug(output.getDefaultMessage());
+    		aLogger.debug(output.getErrorContext());
+    		aLogger.debug(output.getErrorCode());
+    		throw new StoreException(output);
+    	}	
+    	
+    	if (output.getResultBean().getXmlout()!=null)
+		  result = output.getResultBean().getXmlout();
+	  
+    	if (result== null || result.equalsIgnoreCase(""))
+		  throw new Exception("La store procedure ha ritornato Xmlout nullo");
+		  
+    	return result;
     }
-    
-    
     
 	/**
      * Genera il file XML contenente l'id del tipo doc aggiunto
@@ -220,7 +224,7 @@ public class WSTrovaClassifTitolario extends JAXWSAbstractAurigaService implemen
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             xml.append(xmlInEsc);
             aLogger.debug(xml.toString());            

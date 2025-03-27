@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.database.store.dmpk_ws.bean;
 
 import java.io.Serializable;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -27,6 +28,7 @@ public class DmpkWsUpdudBean extends StoreBean implements Serializable{
 	private java.lang.String errcontextout;
 	private java.lang.Integer errcodeout;
 	private java.lang.String errmsgout;
+	private java.lang.String attachmentfilexmin;
 	private java.lang.String listadocrectrlin;
 	public java.lang.Integer getParametro_1(){return parametro_1;}
     public java.lang.String getCodidconnectiontokenin(){return codidconnectiontokenin;}
@@ -39,6 +41,7 @@ public class DmpkWsUpdudBean extends StoreBean implements Serializable{
     public java.lang.String getErrcontextout(){return errcontextout;}
     public java.lang.Integer getErrcodeout(){return errcodeout;}
     public java.lang.String getErrmsgout(){return errmsgout;}
+    public java.lang.String getAttachmentfilexmin(){return attachmentfilexmin;}
     public java.lang.String getListadocrectrlin(){return listadocrectrlin;}
     
 	public void setParametro_1(java.lang.Integer value){this.parametro_1=value;}
@@ -52,6 +55,7 @@ public class DmpkWsUpdudBean extends StoreBean implements Serializable{
     public void setErrcontextout(java.lang.String value){this.errcontextout=value;}
     public void setErrcodeout(java.lang.Integer value){this.errcodeout=value;}
     public void setErrmsgout(java.lang.String value){this.errmsgout=value;}
+    public void setAttachmentfilexmin(java.lang.String value){this.attachmentfilexmin=value;}
     public void setListadocrectrlin(java.lang.String value){this.listadocrectrlin=value;}
     
     public String getStoreName(){

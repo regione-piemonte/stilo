@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.attributiDinamici.datasource;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -60,6 +61,7 @@ public class AttributiDinamiciDatasource extends AbstractServiceDataSource<Attri
 		boolean flgNomeAttrConSuff = getExtraparams().get("flgNomeAttrConSuff") != null && getExtraparams().get("flgNomeAttrConSuff").equalsIgnoreCase("true");
 		boolean flgDatiStorici = getExtraparams().get("flgDatiStorici") != null && getExtraparams().get("flgDatiStorici").equalsIgnoreCase("true");
 		boolean flgDettaglioUdAtto = getExtraparams().get("flgDettaglioUdAtto") != null && getExtraparams().get("flgDettaglioUdAtto").equalsIgnoreCase("true");
+		boolean flgSkipAttrSenzaCategoria = getExtraparams().get("flgSkipAttrSenzaCategoria") != null && getExtraparams().get("flgSkipAttrSenzaCategoria").equalsIgnoreCase("true");
 
 		AurigaLoginBean loginBean = getLoginBean();
 
@@ -115,6 +117,20 @@ public class AttributiDinamiciDatasource extends AbstractServiceDataSource<Attri
 			HashMap<String, DocumentBean> mappaDocumenti = new HashMap<String, DocumentBean>();
 
 			String valoriInErrorCatasti = null;
+			
+			if(flgSkipAttrSenzaCategoria) {
+				List<AttributoBean> attributiAddWithCategoria = null;
+				if (output.getAttributiAdd() != null) {
+					attributiAddWithCategoria = new ArrayList<AttributoBean>();
+					// considero solo gli attributi che hanno una categoria, gli altri li ignoro
+					for (AttributoBean attr : output.getAttributiAdd()) {
+						if(StringUtils.isNotBlank(attr.getCategoria())) {
+							attributiAddWithCategoria.add(attr);
+						}
+					}
+				}
+				output.setAttributiAdd(attributiAddWithCategoria);
+			}
 
 			if (StringUtils.isNotBlank(categoria)) {
 				List<AttributoBean> attributiAddCategoria = null;
@@ -133,7 +149,7 @@ public class AttributiDinamiciDatasource extends AbstractServiceDataSource<Attri
 				List<AttributoBean> attributiAddListaCategorie = null;
 				if (output.getAttributiAdd() != null) {
 					attributiAddListaCategorie = new ArrayList<AttributoBean>();
-					// considero solo gli attributi che devono essere mostrati nei tab dinamici o nell'header, gli altri li ignoro
+					// considero solo gli attributi che devono essere mostrati nei tab dinamici o nell'header e anche quelli senza categoria, gli altri li ignoro
 					for (AttributoBean attr : output.getAttributiAdd()) {
 						if(StringUtils.isBlank(attr.getCategoria()) || attr.getCategoria().startsWith("HEADER_") || input.getListaCategorie().contains(attr.getCategoria())) {
 							attributiAddListaCategorie.add(attr);

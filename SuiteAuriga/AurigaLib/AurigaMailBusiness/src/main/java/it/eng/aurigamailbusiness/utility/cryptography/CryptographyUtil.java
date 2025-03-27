@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+// 27.05.2014 gestione crittografia password
 
 // 18.12.2015 Federico Cacco
 // Modificata classe di crittografia in modo da poterne

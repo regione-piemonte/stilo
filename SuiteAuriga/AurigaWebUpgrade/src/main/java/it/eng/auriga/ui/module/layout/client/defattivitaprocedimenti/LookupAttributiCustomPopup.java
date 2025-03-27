@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.defattivitaprocedimenti;
 
 import it.eng.auriga.ui.module.layout.client.attributiCustom.AttributiCustomLayout;
 import it.eng.utility.ui.module.layout.client.portal.ModalWindow;
@@ -91,15 +92,18 @@ public abstract class LookupAttributiCustomPopup extends ModalWindow{
 						mapCriterion.put(criterion.getFieldName(), criterion);
 					}				
 				}
+				boolean hasFilter = false;
 				if(filterValues != null) {	
 					if(filterValues.getAttribute("appartenenza") != null && !"".equals(filterValues.getAttribute("appartenenza"))) {
 						mapCriterion.put("appartenenza", new Criterion("appartenenza", OperatorId.IEQUALS, filterValues.getAttribute("appartenenza")));
+						hasFilter = true;
 					}
 					if(filterValues.getAttribute("tipo") != null && !"".equals(filterValues.getAttribute("tipo"))) {
 						mapCriterion.put("tipo", new Criterion("tipo", OperatorId.EQUALS, filterValues.getAttribute("tipo")));
+						hasFilter = true;
 					}
 				}				
-				super.setCriteriaAndFirstSearch(new AdvancedCriteria(OperatorId.AND, mapCriterion.values().toArray(new Criterion[0])), (filterValues != null || autoSearch));
+				super.setCriteriaAndFirstSearch(new AdvancedCriteria(OperatorId.AND, mapCriterion.values().toArray(new Criterion[0])), (hasFilter || autoSearch));
 			}
 			
 			@Override

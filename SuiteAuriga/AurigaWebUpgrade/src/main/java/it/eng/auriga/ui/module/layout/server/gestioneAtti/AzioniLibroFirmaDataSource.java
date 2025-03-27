@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.gestioneAtti;
 
 import java.io.StringReader;
 import java.math.BigDecimal;
@@ -102,6 +103,59 @@ public class AzioniLibroFirmaDataSource extends AbstractDataSource<AttiBean,Atti
 		result.setListaRecord(inputList);
 		return result;
 	}
+	
+	public OperazioneMassivaInvioLibroFirmaBean ctrlInvioALibroFirma(OperazioneMassivaInvioLibroFirmaBean inputBean) throws Exception{
+		AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo(getSession());
+		String token = loginBean.getToken();
+		String idUserLavoro = loginBean.getIdUserLavoro();
+		List<DocInfoLibroFirma> listaRecordControlloLibroFirma = inputBean.getListaRecord();
+		if (!listaRecordControlloLibroFirma.isEmpty()) {
+			String inputListStr = new XmlUtilitySerializer().bindXmlList(listaRecordControlloLibroFirma);
+			
+			DmpkCore2InviarimuovidoclibrofirmaBean input = new DmpkCore2InviarimuovidoclibrofirmaBean();
+			input.setCodidconnectiontokenin(token);
+			input.setIduserlavoroin(StringUtils.isNotBlank(idUserLavoro) ? new BigDecimal(idUserLavoro) : null);
+			input.setAzionein("CtrlInvio");
+			input.setDocinfoin(inputListStr);
+			
+			DmpkCore2Inviarimuovidoclibrofirma store = new DmpkCore2Inviarimuovidoclibrofirma();
+			StoreResultBean<DmpkCore2InviarimuovidoclibrofirmaBean> output = store.execute(getLocale(), loginBean, input);
+	
+			if (StringUtils.isNotBlank(output.getDefaultMessage())) {
+				throw new StoreException(output);
+			}
+			HashMap<String, String> errorMessages = null;
+			if (inputBean.getErrorMessages() != null) {
+				errorMessages = inputBean.getErrorMessages();
+			} else {
+				errorMessages = new HashMap<String, String>();
+				inputBean.setErrorMessages(errorMessages);
+			}
+	
+			if (output.getResultBean().getEsitiout() != null && output.getResultBean().getEsitiout().length() > 0) {
+				List<String> idUdKo = new ArrayList<>();
+				StringReader sr = new StringReader(output.getResultBean().getEsitiout());
+				Lista lista = (Lista) SingletonJAXBContext.getInstance().createUnmarshaller().unmarshal(sr);
+				for (int i = 0; i < lista.getRiga().size(); i++) {
+					Vector<String> v = new XmlUtility().getValoriRiga(lista.getRiga().get(i));
+					if (v.get(3) != null && v.get(3).equalsIgnoreCase("ko")) {
+						idUdKo.add(v.get(0));
+						errorMessages.put(v.get(2), v.get(4));
+					}
+				}
+				List<DocInfoLibroFirma> listaRecordDaInviareLibroFirma = new ArrayList<>();
+				for (DocInfoLibroFirma recordDaInviareLibroFirma : listaRecordControlloLibroFirma) {
+					if (!idUdKo.contains(recordDaInviareLibroFirma.getIdUd())) {
+						listaRecordDaInviareLibroFirma.add(recordDaInviareLibroFirma);
+					}
+				}
+				inputBean.setListaRecord(listaRecordDaInviareLibroFirma);
+			}
+		}		
+		
+		return inputBean;
+		
+	}
 
 	public OperazioneMassivaInvioLibroFirmaBean mandaALibroFirmaCommon(OperazioneMassivaInvioLibroFirmaBean inputBean) throws Exception{
 		AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo(getSession());
@@ -132,7 +186,6 @@ public class AzioniLibroFirmaDataSource extends AbstractDataSource<AttiBean,Atti
 			}
 			errorMessages = errorMessagesCorretto;
 		
-			// Tolgo dalla input list tutti i record andati in errore
 			for (DocInfoLibroFirma record : inputBean.getListaRecord()) {
 				recordDaInviareLibroFirma.add(record);
 			}
@@ -178,48 +231,48 @@ public class AzioniLibroFirmaDataSource extends AbstractDataSource<AttiBean,Atti
 		return inputBean;
 	}
 	
-	public DocInfoLibroFirma effettuaNumerazionePerInvioALibroFirma(DocInfoLibroFirma attoBean) throws Exception {
+	public DocInfoLibroFirma effettuaNumerazionePerInvioALibroFirma(DocInfoLibroFirma docInfoLibroFirma) throws Exception {
 		HashMap<String, String> errorMessages = null;
-		if (attoBean.getErrorMessages() != null) {
-			errorMessages = attoBean.getErrorMessages();
+		if (docInfoLibroFirma.getErrorMessages() != null) {
+			errorMessages = docInfoLibroFirma.getErrorMessages();
 		} else {
 			errorMessages = new HashMap<String, String>();
-			attoBean.setErrorMessages(errorMessages);
+			docInfoLibroFirma.setErrorMessages(errorMessages);
 		}
 		// Verifico se devo saltare l'eventuale numerazione (ad esempio se provengo da ced o autotutele)
-		if (attoBean.getSkipNumerazioneEGenerazioniDaModello() == null || !attoBean.getSkipNumerazioneEGenerazioniDaModello()) {
+		if (docInfoLibroFirma.getSkipNumerazioneEGenerazioniDaModello() == null || !docInfoLibroFirma.getSkipNumerazioneEGenerazioniDaModello()) {
 			AttProcBean lAttProcBean = new AttProcBean();
-			lAttProcBean.setIdUd(attoBean.getIdUd());
-			lAttProcBean.setIdProcess(attoBean.getIdProcess());
-			lAttProcBean.setActivityName(attoBean.getActivityName());
+			lAttProcBean.setIdUd(docInfoLibroFirma.getIdUd());
+			lAttProcBean.setIdProcess(docInfoLibroFirma.getIdProcess());
+			lAttProcBean.setActivityName(docInfoLibroFirma.getActivityName());
 			try {
 				lAttProcBean = getCallExecAttDatasource().call(lAttProcBean);
 			} catch (Exception e) {
 				log.error("Errore nella chiamata alla CallExecAtt per invio a libro firma: " +  e.getMessage(), e);
-				attoBean.setEsitoNumerazioneOk(false);
-				errorMessages.put(attoBean.getIdUd(), "Errore nell'avanzamento del flusso");
-				return attoBean;
+				docInfoLibroFirma.setEsitoNumerazioneOk(false);
+				errorMessages.put(StringUtils.isNotBlank(docInfoLibroFirma.getSegnatura()) ? docInfoLibroFirma.getSegnatura() : docInfoLibroFirma.getIdUd(), "Errore nel recupero dei dati dell'atto");
+				return docInfoLibroFirma;
 			}
 			
 			String siglaRegistroAtto = lAttProcBean.getSiglaRegistroAtto();
 			String siglaRegistroAtto2 = lAttProcBean.getSiglaRegistroAtto2();
-			attoBean.setEsitoNumerazioneOk(true);
+			docInfoLibroFirma.setEsitoNumerazioneOk(true);
 			if (StringUtils.isNotBlank(siglaRegistroAtto) || StringUtils.isNotBlank(siglaRegistroAtto2)) {
 				// La chiamata a effettuaNumerazione aggiorna errorMessages in caso di errori
-				boolean esitoNumerazioneOk = effettuaNumerazione(lAttProcBean, errorMessages);
+				boolean esitoNumerazioneOk = effettuaNumerazione(lAttProcBean, docInfoLibroFirma.getSegnatura(), errorMessages);
 				if (!esitoNumerazioneOk) {
-					attoBean.setEsitoNumerazioneOk(esitoNumerazioneOk);
+					docInfoLibroFirma.setEsitoNumerazioneOk(esitoNumerazioneOk);
 				}
 			}
-			attoBean.setAttoProcedimento(lAttProcBean);
-			attoBean.setErrorMessages(errorMessages);
+			docInfoLibroFirma.setAttoProcedimento(lAttProcBean);
+			docInfoLibroFirma.setErrorMessages(errorMessages);
 		} else {
-			attoBean.setEsitoNumerazioneOk(true);
+			docInfoLibroFirma.setEsitoNumerazioneOk(true);
 		}
-		return attoBean;
+		return docInfoLibroFirma;
 	}
 	
-	private boolean effettuaNumerazione(AttProcBean lAttProcBean, HashMap<String, String> errorMessages) throws Exception {
+	private boolean effettuaNumerazione(AttProcBean lAttProcBean, String segnatura, HashMap<String, String> errorMessages) throws Exception {
 		boolean effettuaNumerazione = false;
 		List<TipoNumerazioneBean> listaTipiNumerazioneDaDare = new ArrayList<TipoNumerazioneBean>();
 		if(StringUtils.isNotBlank(lAttProcBean.getSiglaRegistroAtto())) {
@@ -259,7 +312,7 @@ public class AzioniLibroFirmaDataSource extends AbstractDataSource<AttiBean,Atti
 			DmpkCoreUpddocud dmpkCoreUpddocud = new DmpkCoreUpddocud();
 			StoreResultBean<DmpkCoreUpddocudBean> output = dmpkCoreUpddocud.execute(this.getLocale(), loginBean, input);
 			if (output.isInError()) {	
-				errorMessages.put(idUd, output.getDefaultMessage());
+				errorMessages.put(StringUtils.isNotBlank(segnatura) ? segnatura : idUd, output.getDefaultMessage());
 				return false;
 			}
 		}
@@ -287,7 +340,7 @@ public class AzioniLibroFirmaDataSource extends AbstractDataSource<AttiBean,Atti
 			} catch (Exception e) {
 				log.error("Errore nella chiamata alla get di NuovaPropostaAtto2CompletaDataSource: " +  e.getMessage(), e);
 				docInfoLibroFirma.setEsitoGenerazioniDaModelloOk(false);
-				errorMessages.put(docInfoLibroFirma.getIdUd(), "Errore nel recupero delle informazioni dell'unità documentale");
+				errorMessages.put(StringUtils.isNotBlank(docInfoLibroFirma.getSegnatura()) ? docInfoLibroFirma.getSegnatura() : docInfoLibroFirma.getIdUd(), "Errore nel recupero delle informazioni dell'unità documentale");
 				return docInfoLibroFirma;
 			}
 			setNuovaPropostaAtto2CompletaBeanFromAttProcBean(lNuovaPropostaAtto2CompletaBean, lAttProcBean);
@@ -297,7 +350,7 @@ public class AzioniLibroFirmaDataSource extends AbstractDataSource<AttiBean,Atti
 				} catch (Exception e) {
 					log.error("Errore nella generazione del file unione per invio a libro firma: " +  e.getMessage(), e);
 					docInfoLibroFirma.setEsitoGenerazioniDaModelloOk(false);
-					errorMessages.put(docInfoLibroFirma.getIdUd(), "Errore nella generazione del file unione");
+					errorMessages.put(StringUtils.isNotBlank(docInfoLibroFirma.getSegnatura()) ? docInfoLibroFirma.getSegnatura() : docInfoLibroFirma.getIdUd(), "Errore nella generazione del file unione");
 					return docInfoLibroFirma;
 				}
 			}
@@ -306,7 +359,7 @@ public class AzioniLibroFirmaDataSource extends AbstractDataSource<AttiBean,Atti
 			} catch (Exception e) {
 				log.error("Errore nella generazione dei file allegati per invio a libro firma: " +  e.getMessage(), e);
 				docInfoLibroFirma.setEsitoGenerazioniDaModelloOk(false);
-				errorMessages.put(docInfoLibroFirma.getIdUd(), "Errore nella generazione dei file allegati");
+				errorMessages.put(StringUtils.isNotBlank(docInfoLibroFirma.getSegnatura()) ? docInfoLibroFirma.getSegnatura() : docInfoLibroFirma.getIdUd(), "Errore nella generazione dei file allegati");
 				return docInfoLibroFirma;
 			}
 			try {
@@ -314,7 +367,7 @@ public class AzioniLibroFirmaDataSource extends AbstractDataSource<AttiBean,Atti
 			} catch (Exception e) {
 				log.error("Errore nella chiamata a salvaPrimarioEAllegatiPerOperazioniMassiveDiAvanzamento di NuovaPropostaAtto2CompletaDataSource: " +  e.getMessage(), e);
 				docInfoLibroFirma.setEsitoGenerazioniDaModelloOk(false);
-				errorMessages.put(docInfoLibroFirma.getIdUd(), "Errore nel salvataggio dei dati");
+				errorMessages.put(StringUtils.isNotBlank(docInfoLibroFirma.getSegnatura()) ? docInfoLibroFirma.getSegnatura() : docInfoLibroFirma.getIdUd(), "Errore nel salvataggio dei dati");
 				return docInfoLibroFirma;
 			}
 		} else {
@@ -338,12 +391,14 @@ public class AzioniLibroFirmaDataSource extends AbstractDataSource<AttiBean,Atti
 				lNuovaPropostaAtto2CompletaBean.setUriFilePrimario(lUnioneFileAttoBean.getUriVersIntegrale());
 				lNuovaPropostaAtto2CompletaBean.setNomeFilePrimario(lUnioneFileAttoBean.getNomeFileVersIntegrale());
 				lNuovaPropostaAtto2CompletaBean.setInfoFilePrimario(lUnioneFileAttoBean.getInfoFileVersIntegrale());
+				lNuovaPropostaAtto2CompletaBean.setRemoteUriFilePrimario(false);
 				lNuovaPropostaAtto2CompletaBean.setIsChangedFilePrimario(true);
 			}
 			if (StringUtils.isNotBlank(lUnioneFileAttoBean.getUri())) {
 				lNuovaPropostaAtto2CompletaBean.setUriFilePrimarioOmissis(lUnioneFileAttoBean.getUri());
 				lNuovaPropostaAtto2CompletaBean.setNomeFilePrimarioOmissis(lUnioneFileAttoBean.getNomeFile());
 				lNuovaPropostaAtto2CompletaBean.setInfoFilePrimarioOmissis(lUnioneFileAttoBean.getInfoFile());
+				lNuovaPropostaAtto2CompletaBean.setRemoteUriFilePrimarioOmissis(false);
 				lNuovaPropostaAtto2CompletaBean.setIsChangedFilePrimarioOmissis(true);
 			}
 		}

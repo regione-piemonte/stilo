@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.invioMail.datasource.bean;
 
 import java.util.List;
 
@@ -61,6 +62,9 @@ public class InvioMailBean extends OperazioneMassivaPostaElettronicaBean {
 	
 	// Lista indirizzi caricati dal foglio excel
 	private  List<DettagliXlsIndirizziEmailXmlBean>  dettagliXlsIndirizziEmail;
+	
+	//UO Lavoro Xls
+	private String uoLavoro;
 	
 	public String getMittente() {
 		return mittente;
@@ -309,6 +313,14 @@ public class InvioMailBean extends OperazioneMassivaPostaElettronicaBean {
 
 	public void setRigaXlsA(Integer rigaXlsA) {
 		this.rigaXlsA = rigaXlsA;
+	}
+
+	public String getUoLavoro() {
+		return uoLavoro;
+	}
+
+	public void setUoLavoro(String uoLavoro) {
+		this.uoLavoro = uoLavoro;
 	}
 
 	

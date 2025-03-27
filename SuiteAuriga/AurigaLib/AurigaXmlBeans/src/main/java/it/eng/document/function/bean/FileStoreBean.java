@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.util.Date;
 import java.util.List;
@@ -94,6 +95,9 @@ public class FileStoreBean {
 	
 	@XmlVariabile(nome="ID_UD_SCANSIONE_PROV_Ver", tipo = TipoVariabile.SEMPLICE)
 	private String idUdScansioneProv;
+	
+	@XmlVariabile(nome="IMPRONTA_PRE_FIRMA_DA_FILOP_Ver", tipo = TipoVariabile.SEMPLICE)
+	private String improntaPreFirmaDaFileOp;
 	
 	public String getDisplayFilename() {
 		return displayFilename;
@@ -298,6 +302,12 @@ public class FileStoreBean {
 	}
 	public void setIdUdScansioneProv(String idUdScansioneProv) {
 		this.idUdScansioneProv = idUdScansioneProv;
+	}
+	public String getImprontaPreFirmaDaFileOp() {
+		return improntaPreFirmaDaFileOp;
+	}
+	public void setImprontaPreFirmaDaFileOp(String improntaPreFirmaDaFileOp) {
+		this.improntaPreFirmaDaFileOp = improntaPreFirmaDaFileOp;
 	}
 	
 }

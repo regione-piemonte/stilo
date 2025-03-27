@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.servlet.bean;
 
 import java.io.Serializable;
 
@@ -32,6 +33,7 @@ public class MimeTypeFirmaBean implements Serializable {
 	private boolean pdfEditabile;
 	private boolean pdfConCommenti;
 	private Integer numPaginePdf;
+	private String improntaPreFirmaFileOp;
 
 	public boolean isFirmato() {
 		return firmato;
@@ -239,6 +241,14 @@ public class MimeTypeFirmaBean implements Serializable {
 
 	public void setNumPaginePdf(Integer numPaginePdf) {
 		this.numPaginePdf = numPaginePdf;
+	}
+
+	public String getImprontaPreFirmaFileOp() {
+		return improntaPreFirmaFileOp;
+	}
+
+	public void setImprontaPreFirmaFileOp(String improntaPreFirmaFileOp) {
+		this.improntaPreFirmaFileOp = improntaPreFirmaFileOp;
 	}
 
 }

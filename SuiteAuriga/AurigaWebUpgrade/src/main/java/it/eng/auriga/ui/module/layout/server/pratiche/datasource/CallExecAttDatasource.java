@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.pratiche.datasource;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -399,6 +400,7 @@ public class CallExecAttDatasource extends AbstractServiceDataSource<AttProcBean
 				bean.setDocActionsFirmaAutomaticaUseridFirmatario(scXmlDatiEvento.getDocActionsFirmaAutomaticaUseridFirmatario());
 				bean.setDocActionsFirmaAutomaticaFirmaInDelega(scXmlDatiEvento.getDocActionsFirmaAutomaticaFirmaInDelega());
 				bean.setDocActionsFirmaAutomaticaPassword(scXmlDatiEvento.getDocActionsFirmaAutomaticaPassword());
+				bean.setDocActionsFirmaAutomaticaAuthPIN(scXmlDatiEvento.getDocActionsFirmaAutomaticaAuthPIN());
 				bean.setInfoFirmaGrafica(scXmlDatiEvento.getInfoFirmaGrafica());
 				if (bean.getInfoFirmaGrafica() != null && StringUtils.isNotBlank(scXmlDatiEvento.getNroPagineFirmeGrafiche())) {
 					for (InfoFirmaGraficaBean lInfoFirmaGraficaBean : bean.getInfoFirmaGrafica()) {

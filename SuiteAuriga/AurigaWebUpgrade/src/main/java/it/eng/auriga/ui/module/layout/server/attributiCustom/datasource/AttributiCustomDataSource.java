@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.attributiCustom.datasource;
 
 import it.eng.auriga.database.store.dmpk_attributi_dinamici.bean.DmpkAttributiDinamiciDattributoBean;
 import it.eng.auriga.database.store.dmpk_attributi_dinamici.bean.DmpkAttributiDinamiciIuattributoBean;
@@ -230,7 +231,16 @@ public class AttributiCustomDataSource extends AbstractFetchDataSource<Attributi
 		input.setFlgvaloriunivociin(bean.getFlgValoriUnivociIn() != null && bean.getFlgValoriUnivociIn() ? new Integer(1) : new Integer(0));
 		input.setFlgprotectedin(bean.getFlgProtectedIn() != null && bean.getFlgProtectedIn() ? new Integer(1) : new Integer(0));
 		input.setFlgobbliginattrappin(bean.getFlgValoreObbligatorio() != null && bean.getFlgValoreObbligatorio() ? new Integer(1) : new Integer(0));
-		input.setSubtipoin("CKEDITOR".equals(bean.getTipo()) ? bean.getTipoEditorHtml() : null);
+		
+		input.setSubtipoin(null);
+		if (bean.getTipo() !=null && StringUtils.isNotBlank(bean.getTipo())){
+			if ("CKEDITOR".equals(bean.getTipo())){
+				input.setSubtipoin(bean.getTipoEditorHtml());
+			}
+			if ("COMBO-BOX".equals(bean.getTipo())){
+				input.setSubtipoin(bean.getTipoFiltroComboBox());
+			}
+		}
 		
 		DmpkAttributiDinamiciIuattributo dmpkAttributiDinamiciIuattributo = new DmpkAttributiDinamiciIuattributo();
 		StoreResultBean<DmpkAttributiDinamiciIuattributoBean> output = dmpkAttributiDinamiciIuattributo.execute(getLocale(), loginBean, input);
@@ -325,7 +335,16 @@ public class AttributiCustomDataSource extends AbstractFetchDataSource<Attributi
 		input.setFlgvaloriunivociin(bean.getFlgValoriUnivociIn() != null && bean.getFlgValoriUnivociIn() ? new Integer(1) : new Integer(0));
 		input.setFlgprotectedin(bean.getFlgProtectedIn() != null && bean.getFlgProtectedIn() ? new Integer(1) : new Integer(0));
 		input.setFlgobbliginattrappin(bean.getFlgValoreObbligatorio() != null && bean.getFlgValoreObbligatorio() ? new Integer(1) : new Integer(0));
-		input.setSubtipoin("CKEDITOR".equals(bean.getTipo()) ? bean.getTipoEditorHtml() : null);
+		
+		input.setSubtipoin(null);
+		if (bean.getTipo() !=null && StringUtils.isNotBlank(bean.getTipo())){
+			if ("CKEDITOR".equals(bean.getTipo())){
+				input.setSubtipoin(bean.getTipoEditorHtml());
+			}
+			if ("COMBO-BOX".equals(bean.getTipo())){
+				input.setSubtipoin(bean.getTipoFiltroComboBox());
+			}
+		}
 		
 		DmpkAttributiDinamiciIuattributo dmpkAttributiDinamiciIuattributo = new DmpkAttributiDinamiciIuattributo();
 		StoreResultBean<DmpkAttributiDinamiciIuattributoBean> output = dmpkAttributiDinamiciIuattributo.execute(getLocale(), loginBean, input);
@@ -472,8 +491,13 @@ public class AttributiCustomDataSource extends AbstractFetchDataSource<Attributi
 			}
 		}
 		
-		if(output.getResultBean().getSubtipoout() != null) {
-			result.setTipoEditorHtml(output.getResultBean().getSubtipoout());
+		if(output.getResultBean().getTipoout() != null) {
+			if ("CKEDITOR".equals(output.getResultBean().getTipoout())){
+				result.setTipoEditorHtml(output.getResultBean().getSubtipoout());
+			}
+			if ("COMBO-BOX".equals(output.getResultBean().getTipoout())){
+				result.setTipoFiltroComboBox(output.getResultBean().getSubtipoout() == null ? "" : output.getResultBean().getSubtipoout());
+			}
 		}
 
 		if (StringUtils.isNotBlank(result.getAttrQueryXValues())) {

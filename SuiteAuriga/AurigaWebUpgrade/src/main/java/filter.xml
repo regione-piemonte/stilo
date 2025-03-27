@@ -21,6 +21,7 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 
 				<entry key="scrivania">
 					<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterBean">
+						<property name="showFlgRicorsiva" value="true"></property>
 						<property name="fields">
 							<util:list
 								value-type="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
@@ -30,7 +31,6 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 									<property name="title" value="Cerca"></property>
 									<property name="type" value="stringa_full_text"></property>
 									<property name="categoria" value="REP_DOC"></property>
-									<property name="showFlgRicorsiva" value="true"></property>
 									<property name="showSelectAttributi" value="true"></property>
 								</bean>
 								<bean
@@ -658,9 +658,16 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 								<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
 									<property name="name" value="perizia"></property>
 									<property name="title" value="auriga_filter_scrivania_perizia_title"></property>
-									<property name="type" value="lista_scelta_perizie"></property>
+									<property name="type" value="lista_scelta"></property>
 									<property name="select" ref="PeriziaSelect"></property>
-								</bean>		
+								</bean>
+										
+								<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
+									<property name="name" value="concessione"></property>
+									<property name="title" value="auriga_filter_scrivania_concessione_title"></property>
+									<property name="type" value="lista_scelta"></property>
+									<property name="select" ref="ConcessioneSelect"></property>
+								</bean>
 								
 								<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
 									<property name="name" value="centroDiCosto"></property>
@@ -712,6 +719,12 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 									<property name="title" value="Presenza opere"></property>
 									<property name="type" value="lista_scelta"></property>
 									<property name="select" ref="SiNoSelect"></property>
+								</bean>	
+								<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
+									<property name="name" value="presenzaConcessioni"></property>
+									<property name="title" value="Presenza concessioni"></property>
+									<property name="type" value="lista_scelta"></property>
+									<property name="select" ref="SiNoSelect"></property>
 								</bean>		
 								<bean
 									class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
@@ -733,6 +746,7 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 				</entry>
 				<entry key="archivio">
 					<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterBean">
+						<property name="showFlgRicorsiva" value="true"></property>
 						<property name="fields">
 							<util:list
 								value-type="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
@@ -742,7 +756,6 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 									<property name="title" value="Cerca"></property>
 									<property name="type" value="stringa_full_text"></property>
 									<property name="categoria" value="REP_DOC"></property>
-									<property name="showFlgRicorsiva" value="true"></property>
 									<property name="showSelectAttributi" value="true"></property>
 								</bean>
 								<bean
@@ -1414,7 +1427,13 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 									<property name="title" value="auriga_filter_archivio_perizia_title"></property>
 									<property name="type" value="lista_scelta"></property>
 									<property name="select" ref="PeriziaSelect"></property>
-								</bean>									
+								</bean>			
+								<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
+									<property name="name" value="concessione"></property>
+									<property name="title" value="auriga_filter_scrivania_concessione_title"></property>
+									<property name="type" value="lista_scelta"></property>
+									<property name="select" ref="ConcessioneSelect"></property>
+								</bean>						
 								<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
 									<property name="name" value="centroDiCosto"></property>
 									<property name="title" value="auriga_filter_archivio_centroDiCosto"></property>
@@ -1500,6 +1519,12 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 									<property name="type" value="lista_scelta"></property>
 									<property name="select" ref="SiNoSelect"></property>
 								</bean>		
+								<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
+									<property name="name" value="presenzaConcessioni"></property>
+									<property name="title" value="Presenza concessioni"></property>
+									<property name="type" value="lista_scelta"></property>
+									<property name="select" ref="SiNoSelect"></property>
+								</bean>
 								<bean
 									class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
 									<property name="name" value="sottoTipologiaAtto"></property>
@@ -1532,12 +1557,18 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 									<property name="type" value="lista_scelta"></property>
 									<property name="select" ref="StatoClassFascDocumentiSelect"></property>									
 								</bean>
+								<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
+									<property name="name" value="dtEsecutivita"></property>
+									<property name="title" value="auriga_filter_archivio_dataEsecutivita_title"></property>
+									<property name="type" value="data_senza_ora"></property>
+								</bean>		
 							</util:list>
 						</property>
 					</bean>
 				</entry>
 				<entry key="archivio_pregresso">
 					<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterBean">
+						<property name="showFlgRicorsiva" value="true"></property>
 						<property name="fields">
 							<util:list
 								value-type="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
@@ -1547,7 +1578,6 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 									<property name="title" value="Cerca"></property>
 									<property name="type" value="stringa_full_text"></property>
 									<property name="categoria" value="REP_DOC"></property>
-									<property name="showFlgRicorsiva" value="true"></property>
 									<property name="showSelectAttributi" value="true"></property>
 								</bean>
 								<bean
@@ -1617,6 +1647,7 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 				<!-- FILTRI RELATIVI AD URBANISTICA -->
 				<entry key="richiestaAccessoAtti">
 					<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterBean">
+						<property name="showFlgRicorsiva" value="true"></property>
 						<property name="fields">
 							<util:list
 								value-type="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
@@ -1626,7 +1657,6 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 									<property name="title" value="Cerca"></property>
 									<property name="type" value="stringa_full_text"></property>
 									<property name="categoria" value="REP_DOC"></property>
-									<property name="showFlgRicorsiva" value="true"></property>
 									<property name="showSelectAttributi" value="true"></property>
 								</bean>
 								<bean
@@ -1841,6 +1871,7 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 				</entry>
 				<entry key="titolario">
 					<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterBean">
+						<property name="showFlgRicorsiva" value="true"></property>
 						<property name="fields">
 							<util:list
 								value-type="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
@@ -1850,7 +1881,6 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 									<property name="title" value="Cerca"></property>
 									<property name="type" value="stringa_full_text"></property>
 									<property name="categoria" value="DEF_CTX_CL"></property>
-									<property name="showFlgRicorsiva" value="true"></property>
 									<property name="showSelectAttributi" value="true"></property>
 								</bean>
 								<bean
@@ -2092,6 +2122,7 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 				</entry>
 				<entry key="organigramma">
 					<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterBean">
+						<property name="showFlgRicorsiva" value="true"></property>
 						<property name="fields">
 							<util:list
 								value-type="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
@@ -2101,7 +2132,6 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 									<property name="title" value="Cerca"></property>
 									<property name="type" value="stringa_full_text"></property>
 									<property name="categoria" value="DEF_CTX_SO"></property>
-									<property name="showFlgRicorsiva" value="true"></property>
 									<property name="showSelectAttributi" value="true"></property>
 								</bean>
 								<bean
@@ -2469,6 +2499,7 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 				</entry>
 				<entry key="anagrafiche_soggetti">
 					<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterBean">
+						<property name="showFlgRicorsiva" value="false"></property>
 						<property name="fields">
 							<util:list
 								value-type="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
@@ -2478,7 +2509,6 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 									<property name="title" value="Cerca"></property>
 									<property name="type" value="stringa_full_text"></property>
 									<property name="categoria" value="RUBRICA"></property>
-									<property name="showFlgRicorsiva" value="false"></property>
 									<property name="showSelectAttributi" value="true"></property>
 								</bean>
 								<bean
@@ -7568,7 +7598,55 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 					</bean>
 				</entry>
 				
-								
+				<entry key="monitoraggio_registrazioni_multiple_uscita">
+					<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterBean">
+						<property name="fields">
+							<util:list
+								value-type="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
+								<bean
+									class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
+									<property name="name" value="nroRichiesta"></property>
+									<property name="title" value="monitoraggio_registrazioni_multiple_uscita_filter_nroRichiesta"></property>
+									<property name="type" value="numero"></property>
+								</bean>
+								<bean
+									class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
+									<property name="name" value="tsSottomissioneRichiesta"></property>
+									<property name="title"
+										value="monitoraggio_registrazioni_multiple_uscita_filter_tsSottomissioneRichiesta"></property>
+									<property name="type" value="data_con_ora"></property>
+								</bean>
+								<bean
+									class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
+									<property name="name" value="nomeUtenteRichiesta"></property>
+									<property name="title" value="monitoraggio_registrazioni_multiple_uscita_filter_nomeUtenteRichiesta"></property>
+									<property name="type"
+										value="stringa_ricerca_estesa_case_insensitive_1"></property>
+								</bean>
+								<bean
+									class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
+									<property name="name" value="statoElaborazioneRichiesta"></property>
+									<property name="title" value="monitoraggio_registrazioni_multiple_uscita_filter_statoElaborazioneRichiesta"></property>
+									<property name="type" value="lista_scelta"></property>
+									<property name="select" ref="StatoElaborazioneRichiestaSelect"></property>
+								</bean>
+								<bean
+									class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
+									<property name="name" value="nroRegistrazioniRichieste"></property>
+									<property name="title" value="monitoraggio_registrazioni_multiple_uscita_filter_nroRegistrazioniRichieste"></property>
+									<property name="type" value="numero"></property>
+								</bean>
+								<bean
+									class="it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean">
+									<property name="name" value="nroRegistrazioniDaTrasmettere"></property>
+									<property name="title" value="monitoraggio_registrazioni_multiple_uscita_filter_nroRegistrazioniDaTrasmettere"></property>
+									<property name="type" value="numero"></property>
+								</bean>
+								<!-- DA AGGIUNGERE FILTRO PER TIPO RICHIESTA -->
+							</util:list>
+						</property>
+					</bean>
+				</entry>	
 			</util:map>
 		</property>
 	</bean>
@@ -8945,6 +9023,13 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 		<property name="canFilter" value="true"></property>
 		<property name="multiple" value="true"></property>
 	</bean>	
+	
+	<bean id="ConcessioneSelect" class="it.eng.utility.ui.module.layout.shared.bean.FilterSelectBean">
+		<property name="layout" ref="ConcessioniLayout"></property>
+		<property name="datasourceName" value="LoadComboConcessioneFilterDataSource"></property>
+		<property name="canFilter" value="true"></property>
+		<property name="multiple" value="false"></property>
+	</bean>	
 		
 	<bean id="FormatiElettroniciSelect"
 		class="it.eng.utility.ui.module.layout.shared.bean.FilterSelectBean">
@@ -9391,6 +9476,35 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 		</property>
 	</bean>
 	
+	<bean id="ConcessioniLayout"
+		class="it.eng.utility.ui.module.layout.shared.bean.FilterSelectLayoutBean">
+		<property name="fields">
+			<util:list
+				value-type="it.eng.utility.ui.module.layout.shared.bean.ItemFilterBean">
+				<bean class="it.eng.utility.ui.module.layout.shared.bean.ItemFilterBean">
+					<property name="name" value="idCodice"></property>
+					<property name="title" value="Id"></property>
+					<property name="type" value="TEXT"></property>
+					<property name="value" value="true"></property>
+				</bean>				
+				<bean class="it.eng.utility.ui.module.layout.shared.bean.ItemFilterBean">
+					<property name="name" value="codice"></property>
+					<property name="title" value="Cod."></property>
+					<property name="type" value="TEXT"></property>
+					<property name="value" value="false"></property>
+					<property name="width" value="100"></property>
+				</bean>
+				<bean class="it.eng.utility.ui.module.layout.shared.bean.ItemFilterBean">
+					<property name="name" value="descrizione"></property>
+					<property name="title" value="Descrizione"></property>
+					<property name="type" value="TEXT"></property>
+					<property name="value" value="false"></property>
+					<property name="width" value="250"></property>
+				</bean>
+			</util:list>
+		</property>
+	</bean>
+	
 	<bean id="TipoTracciatoFoglioLayout"
 		class="it.eng.utility.ui.module.layout.shared.bean.FilterSelectLayoutBean">
 		<property name="fields">
@@ -9628,15 +9742,6 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 					</bean>
 				</entry>
 				<entry key="lista_scelta_organigramma">
-					<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterTypeBean">
-						<property name="operators">
-							<util:list value-type="java.lang.String">
-								<value>EQUALS</value>
-							</util:list>
-						</property>
-					</bean>
-				</entry>
-				<entry key="lista_scelta_perizie">
 					<bean class="it.eng.utility.ui.module.layout.shared.bean.FilterTypeBean">
 						<property name="operators">
 							<util:list value-type="java.lang.String">
@@ -9929,6 +10034,20 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 				</entry>								
 			</util:map>
 		</property>
+	</bean>
+	
+	<bean id="StatoElaborazioneRichiestaSelect"
+		class="it.eng.utility.ui.module.layout.shared.bean.FilterSelectBean">
+		<property name="layout" ref="SimpleLayout"></property>
+		<property name="valueMap">
+			<util:map value-type="java.lang.String" key-type="java.lang.String">
+				<entry key="in_elaborazione" value="in elaborazione" />
+				<entry key="elaborata_con_successo" value="elaborata con successo" />
+				<entry key="elaborata_con_errori" value="elaborata con errori" />
+			</util:map>
+		</property>
+		<property name="canFilter" value="false"></property>
+		<property name="multiple" value="false"></property>
 	</bean>
 
 	<import resource="filterToHide.xml" />

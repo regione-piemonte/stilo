@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.archivio.datasource.bean;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -11,8 +12,10 @@ import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.ACL
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.AllegatoProtocolloBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.AltraViaProtBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.AssegnazioneBean;
+import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.ConcessioneBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DestInvioCCBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DocPraticaPregressaBean;
+import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.PeriziaBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.TaskBean;
 import it.eng.document.function.bean.FlagSottoFasc;
 import it.eng.document.function.bean.ValueBean;
@@ -76,6 +79,7 @@ public class ArchivioBean extends ArchivioXmlBean {
 	private Boolean abilAvvioIterWF;
 	private Boolean abilPresaInCarico;
 	private Boolean abilRestituzione;
+	private Boolean abilRilascia;
 	private Boolean abilArchiviazione;
 	private Boolean abilChiudiFascicolo;	
 	private Boolean abilRiapriFascicolo;
@@ -199,9 +203,19 @@ public class ArchivioBean extends ArchivioXmlBean {
 	/*Controllo per evitare salvataggi con dati/file non aggiornati*/
 	private String timestampGetData;
 	
+	// Per azione massiva di firma con segnatura di protocollo (se il documento è già numerato, non deve protocollare prima della firma)
+	private Boolean skipProtBeforeFirma;
+	
 	// Errori sui file
 	private HashMap<String, String> erroriFile;
-
+	
+	// ************* PERIZIE ADSP *************
+	private List<PeriziaBean> listaPerizie;
+	
+	// ************* CONCESSIONI ADSP *************
+	private List<ConcessioneBean> listaConcessioni;
+	
+		
 	public String getDesUserApertura() {
 		return desUserApertura;
 	}
@@ -1362,6 +1376,14 @@ public class ArchivioBean extends ArchivioXmlBean {
 		this.presenzaFascCollegati = presenzaFascCollegati;
 	}
 
+	public Boolean getSkipProtBeforeFirma() {
+		return skipProtBeforeFirma;
+	}
+
+	public void setSkipProtBeforeFirma(Boolean skipProtBeforeFirma) {
+		this.skipProtBeforeFirma = skipProtBeforeFirma;
+	}
+
 	public HashMap<String, String> getErroriFile() {
 		return erroriFile;
 	}
@@ -1374,6 +1396,30 @@ public class ArchivioBean extends ArchivioXmlBean {
 	}
 	public void setTimestampGetData(String timestampGetData) {
 		this.timestampGetData = timestampGetData;
+	}
+
+	public List<PeriziaBean> getListaPerizie() {
+		return listaPerizie;
+	}
+
+	public void setListaPerizie(List<PeriziaBean> listaPerizie) {
+		this.listaPerizie = listaPerizie;
+	}
+
+	public List<ConcessioneBean> getListaConcessioni() {
+		return listaConcessioni;
+	}
+
+	public void setListaConcessioni(List<ConcessioneBean> listaConcessioni) {
+		this.listaConcessioni = listaConcessioni;
+	}
+
+	public Boolean getAbilRilascia() {
+		return abilRilascia;
+	}
+
+	public void setAbilRilascia(Boolean abilRilascia) {
+		this.abilRilascia = abilRilascia;
 	}
 	
 }

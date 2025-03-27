@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.archivio;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -102,16 +103,19 @@ public abstract class LookupArchivioPopup extends ModalWindow {
 					value.put("parole", "");
 					int size = Layout.getAttributiValueMap(getNomeEntita()).keySet().size();
 					value.put("attributi", Layout.getAttributiValueMap(getNomeEntita()).keySet().toArray(new String[size]));
-					value.put("flgRicorsiva", true);
 					JSOHelper.setAttribute(lFulltextCriterion.getJsObj(), "value", value);		
 					mapCriterion.put("searchFulltext", lFulltextCriterion);
+					mapCriterion.put("flgRicercaRicorsiva", new Criterion("flgRicercaRicorsiva", OperatorId.EQUALS, "true"));
 				}
+				boolean hasFilter = false;
 				if(filterValues != null && settaRicercaConFilterValues) {
 					if(filterValues.getAttribute("flgUdFolder") != null && !"".equals(filterValues.getAttribute("flgUdFolder"))) {
 						mapCriterion.put("flgUdFolder", new Criterion("flgUdFolder", OperatorId.IEQUALS, filterValues.getAttribute("flgUdFolder")));
+						hasFilter = true;
 					}
 					if(filterValues.getAttribute("indirizzo") != null && !"".equals(filterValues.getAttribute("indirizzo"))) {
 						mapCriterion.put("indirizzo", new Criterion("indirizzo", OperatorId.IEQUALS, filterValues.getAttribute("indirizzo")));
+						hasFilter = true;
 					}
 					if(filterValues.getAttribute("tipoAttoRif") != null && !"".equals(filterValues.getAttribute("tipoAttoRif"))) {
 						Criterion lTipoDocCriterion = new Criterion("tipoDoc", OperatorId.IEQUALS);	
@@ -120,14 +124,15 @@ public abstract class LookupArchivioPopup extends ModalWindow {
 						value.put("desTipo", filterValues.getAttribute("nomeTipoAttoRif"));						
 						JSOHelper.setAttribute(lTipoDocCriterion.getJsObj(), "value", value);		
 						mapCriterion.put("tipoDoc", lTipoDocCriterion);
+						hasFilter = true;
 					}					
-				}				
-				super.setCriteriaAndFirstSearch(new AdvancedCriteria(OperatorId.AND, mapCriterion.values().toArray(new Criterion[0])), (filterValues != null || autoSearch));
+				}
+				super.setCriteriaAndFirstSearch(new AdvancedCriteria(OperatorId.AND, mapCriterion.values().toArray(new Criterion[0])), (hasFilter || autoSearch));
 			}
 			
 			@Override
 			public void setDefaultCriteriaAndFirstSearch(boolean autosearch) {
-				if(filterValues != null && settaRicercaConFilterValues) {					
+				if(filterValues != null && settaRicercaConFilterValues) {
 					setCriteriaAndFirstSearch(new AdvancedCriteria(), autosearch);
 				} else {
 					super.setDefaultCriteriaAndFirstSearch(autosearch);

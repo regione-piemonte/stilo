@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.versionhandler.synchronous.helpers;
 
 import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreTrovarepositoryobjBean;
 import it.eng.auriga.database.store.dmpk_elenchi_albi.bean.DmpkElenchiAlbiTrovacontenutielencoalboBean;
@@ -46,6 +47,8 @@ import eng.storefunction.StoreProcedureException;
 public class Find extends GenericHelper {
 
 	public static final String _OBJECT_CATEGORY_REP_DOC = "REP_DOC";
+	
+	public static final String _OBJECT_CATEGORY_ALBO_DOC = "ALBO_DOC";
 
 	public static final String _OBJECT_CATEGORY_DEF_CTX_CL = "DEF_CTX_CL";
 
@@ -430,6 +433,12 @@ public class Find extends GenericHelper {
 
 				filtroFullText = replaceConfiguredWildCards(conn, sTmp[2], filtroFullText);
 				try {
+					
+					String objectCategory = _OBJECT_CATEGORY_REP_DOC;
+					if (token.contains("#RESERVED_ALBO")) {
+						objectCategory = _OBJECT_CATEGORY_ALBO_DOC;
+					}
+					
 					// mi ricavo i campi protetti da passare alla ricerca di Lucene
 					String[] campiProtetti = getPrivacyFieldList(conn, token);
 					// mi creo il bean di login da usare per il LuceneHandler
@@ -438,7 +447,7 @@ public class Find extends GenericHelper {
 					lista = luceneHandler.searchFullTextRepository(
 							sTmp[2], // id dominio
 							schemaName,// nome schema
-							_OBJECT_CATEGORY_REP_DOC,
+							objectCategory,
 							checkAttrUsed, // attributi su cui cerco
 							filtroFullText, // valore da cercare
 							(searchAllTerms == null || searchAllTerms == 0) ? SearchType.TYPE_SEARCH_AT_LEAST_ONE_TERM : SearchType.TYPE_SEARCH_ALL_TERMS,

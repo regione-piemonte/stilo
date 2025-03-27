@@ -1,10 +1,12 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class DestinatariRegistrazioneMultiplaUscitaXmlBean {
 
+	private String flgStessaRegDestPrec;
 	private String uriExcel;
 	private String tipo;
 	private String denominazioneCognome;
@@ -30,7 +32,14 @@ public class DestinatariRegistrazioneMultiplaUscitaXmlBean {
 	private String nomiFileAllegati;
 	private Map<String, String> altreColonne = new LinkedHashMap<String, String>();
 	private Map<String, String> mappaIntestazioniColonneValore = new LinkedHashMap<String, String>();
+	private String numRigaInTabContFoglio;
 	
+	public String getFlgStessaRegDestPrec() {
+		return flgStessaRegDestPrec;
+	}
+	public void setFlgStessaRegDestPrec(String flgStessaRegDestPrec) {
+		this.flgStessaRegDestPrec = flgStessaRegDestPrec;
+	}
 	public String getUriExcel() {
 		return uriExcel;
 	}
@@ -180,5 +189,11 @@ public class DestinatariRegistrazioneMultiplaUscitaXmlBean {
 	}
 	public void setMappaIntestazioniColonneValore(Map<String, String> mappaIntestazioniColonneValore) {
 		this.mappaIntestazioniColonneValore = mappaIntestazioniColonneValore;
+	}
+	public String getNumRigaInTabContFoglio() {
+		return numRigaInTabContFoglio;
+	}
+	public void setNumRigaInTabContFoglio(String numRigaInTabContFoglio) {
+		this.numRigaInTabContFoglio = numRigaInTabContFoglio;
 	}
 }

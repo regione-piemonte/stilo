@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.Map;
 
@@ -41,6 +42,11 @@ public class ProtocollazioneUtil {
 				}
 				
 				@Override
+				public Record getRecordDettaglio() {
+					return recordDettaglio;
+				}
+			
+				@Override
 				public boolean isModalitaWizard() {
 					return false;
 				}
@@ -48,6 +54,11 @@ public class ProtocollazioneUtil {
 				@Override
 				public boolean isModalitaAllegatiGrid() {
 					return isAttivaModalitaAllegatiGrid(recordDettaglio);
+				}
+				
+				@Override
+				public boolean isPresentiFileConOmissis() {
+					return ProtocollazioneUtil.isPresentiFileConOmissis(recordDettaglio);
 				}
 				
 				@Override
@@ -202,6 +213,16 @@ public class ProtocollazioneUtil {
 				}
 				
 				@Override
+				public boolean isPregresso() {
+					return isUnitaDocPregresso(recordDettaglio);
+				}
+				
+				@Override
+				public Record getRecordDettaglio() {
+					return recordDettaglio;
+				}
+			
+				@Override
 				public boolean isModalitaWizard() {
 					return isAttivoProtocolloWizard(recordDettaglio);
 				}
@@ -209,6 +230,11 @@ public class ProtocollazioneUtil {
 				@Override
 				public boolean isModalitaAllegatiGrid() {
 					return isAttivaModalitaAllegatiGrid(recordDettaglio);
+				}
+				
+				@Override
+				public boolean isPresentiFileConOmissis() {
+					return ProtocollazioneUtil.isPresentiFileConOmissis(recordDettaglio);
 				}
 				
 				@Override
@@ -261,6 +287,16 @@ public class ProtocollazioneUtil {
 		return new ProtocollazioneDetailUscita("protocollazione_uscita") {
 			
 			@Override
+			public boolean isPregresso() {
+				return isUnitaDocPregresso(recordDettaglio);
+			}
+			
+			@Override
+			public Record getRecordDettaglio() {
+				return recordDettaglio;
+			}
+		
+			@Override
 			public boolean isModalitaWizard() {
 				return isAttivoProtocolloWizard(recordDettaglio);
 			}
@@ -268,6 +304,11 @@ public class ProtocollazioneUtil {
 			@Override
 			public boolean isModalitaAllegatiGrid() {
 				return isAttivaModalitaAllegatiGrid(recordDettaglio);
+			}
+			
+			@Override
+			public boolean isPresentiFileConOmissis() {
+				return ProtocollazioneUtil.isPresentiFileConOmissis(recordDettaglio);
 			}
 			
 			@Override
@@ -319,6 +360,16 @@ public class ProtocollazioneUtil {
 		return new ProtocollazioneDetailInterna("protocollazione_interna") {
 			
 			@Override
+			public boolean isPregresso() {
+				return isUnitaDocPregresso(recordDettaglio);
+			}
+			
+			@Override
+			public Record getRecordDettaglio() {
+				return recordDettaglio;
+			}
+		
+			@Override
 			public boolean isModalitaWizard() {
 				return isAttivoProtocolloWizard(recordDettaglio);
 			}
@@ -326,6 +377,11 @@ public class ProtocollazioneUtil {
 			@Override
 			public boolean isModalitaAllegatiGrid() {
 				return isAttivaModalitaAllegatiGrid(recordDettaglio);
+			}
+			
+			@Override
+			public boolean isPresentiFileConOmissis() {
+				return ProtocollazioneUtil.isPresentiFileConOmissis(recordDettaglio);
 			}
 			
 			@Override
@@ -417,6 +473,16 @@ public class ProtocollazioneUtil {
 			}
 				
 			@Override
+			public boolean isPregresso() {
+				return isUnitaDocPregresso(recordDettaglio);
+			}
+			
+			@Override
+			public Record getRecordDettaglio() {
+				return recordDettaglio;
+			}
+		
+			@Override
 			public boolean isModalitaWizard() {
 				return isAttivoProtocolloWizard(recordDettaglio);
 			}
@@ -424,6 +490,11 @@ public class ProtocollazioneUtil {
 			@Override
 			public boolean isModalitaAllegatiGrid() {
 				return isAttivaModalitaAllegatiGrid(recordDettaglio);
+			}
+			
+			@Override
+			public boolean isPresentiFileConOmissis() {
+				return ProtocollazioneUtil.isPresentiFileConOmissis(recordDettaglio);
 			}
 			
 			@Override
@@ -518,6 +589,16 @@ public class ProtocollazioneUtil {
 			}
 			
 			@Override
+			public boolean isPregresso() {
+				return isUnitaDocPregresso(recordDettaglio);
+			}
+			
+			@Override
+			public Record getRecordDettaglio() {
+				return recordDettaglio;
+			}
+		
+			@Override
 			public boolean isModalitaWizard() {
 				return isAttivoProtocolloWizard(recordDettaglio);
 			}
@@ -525,6 +606,11 @@ public class ProtocollazioneUtil {
 			@Override
 			public boolean isModalitaAllegatiGrid() {
 				return isAttivaModalitaAllegatiGrid(recordDettaglio);
+			}
+			
+			@Override
+			public boolean isPresentiFileConOmissis() {
+				return ProtocollazioneUtil.isPresentiFileConOmissis(recordDettaglio);
 			}
 			
 			@Override
@@ -571,6 +657,16 @@ public class ProtocollazioneUtil {
 			}
 			
 			@Override
+			public boolean isPregresso() {
+				return isUnitaDocPregresso(recordDettaglio);
+			}
+			
+			@Override
+			public Record getRecordDettaglio() {
+				return recordDettaglio;
+			}
+		
+			@Override
 			public boolean isModalitaWizard() {
 				return isAttivoProtocolloWizard(recordDettaglio);
 			}
@@ -578,6 +674,11 @@ public class ProtocollazioneUtil {
 			@Override
 			public boolean isModalitaAllegatiGrid() {
 				return isAttivaModalitaAllegatiGrid(recordDettaglio);
+			}
+			
+			@Override
+			public boolean isPresentiFileConOmissis() {
+				return ProtocollazioneUtil.isPresentiFileConOmissis(recordDettaglio);
 			}
 			
 			@Override
@@ -624,6 +725,16 @@ public class ProtocollazioneUtil {
 			}
 			
 			@Override
+			public boolean isPregresso() {
+				return isUnitaDocPregresso(recordDettaglio);
+			}
+			
+			@Override
+			public Record getRecordDettaglio() {
+				return recordDettaglio;
+			}
+		
+			@Override
 			public boolean isModalitaWizard() {
 				return isAttivoProtocolloWizard(recordDettaglio);
 			}
@@ -631,6 +742,11 @@ public class ProtocollazioneUtil {
 			@Override
 			public boolean isModalitaAllegatiGrid() {
 				return isAttivaModalitaAllegatiGrid(recordDettaglio);
+			}
+			
+			@Override
+			public boolean isPresentiFileConOmissis() {
+				return ProtocollazioneUtil.isPresentiFileConOmissis(recordDettaglio);
 			}
 			
 			@Override
@@ -670,6 +786,16 @@ public class ProtocollazioneUtil {
 		return new RepertorioDetailInterno("repertorio_interno") {
 			
 			@Override
+			public boolean isPregresso() {
+				return isUnitaDocPregresso(recordDettaglio);
+			}
+			
+			@Override
+			public Record getRecordDettaglio() {
+				return recordDettaglio;
+			}
+		
+			@Override
 			public boolean isModalitaWizard() {
 				return isAttivoProtocolloWizard(recordDettaglio);
 			}
@@ -677,6 +803,11 @@ public class ProtocollazioneUtil {
 			@Override
 			public boolean isModalitaAllegatiGrid() {
 				return isAttivaModalitaAllegatiGrid(recordDettaglio);
+			}
+			
+			@Override
+			public boolean isPresentiFileConOmissis() {
+				return ProtocollazioneUtil.isPresentiFileConOmissis(recordDettaglio);
 			}
 			
 			@Override
@@ -720,6 +851,16 @@ public class ProtocollazioneUtil {
 		return new RepertorioDetailUscita("repertorio_uscita") {
 			
 			@Override
+			public boolean isPregresso() {
+				return isUnitaDocPregresso(recordDettaglio);
+			}
+			
+			@Override
+			public Record getRecordDettaglio() {
+				return recordDettaglio;
+			}
+		
+			@Override
 			public boolean isModalitaWizard() {
 				return isAttivoProtocolloWizard(recordDettaglio);
 			}
@@ -727,6 +868,11 @@ public class ProtocollazioneUtil {
 			@Override
 			public boolean isModalitaAllegatiGrid() {
 				return isAttivaModalitaAllegatiGrid(recordDettaglio);
+			}
+			
+			@Override
+			public boolean isPresentiFileConOmissis() {
+				return ProtocollazioneUtil.isPresentiFileConOmissis(recordDettaglio);
 			}
 			
 			@Override
@@ -758,6 +904,13 @@ public class ProtocollazioneUtil {
 			}
 		};	
 	}
+	
+	public static boolean isUnitaDocPregresso(Record recordDettaglio) {
+		if(recordDettaglio != null && recordDettaglio.getAttributeAsBoolean("flgPregresso") != null && recordDettaglio.getAttributeAsBoolean("flgPregresso")) {
+			return true;
+		}			
+		return false;
+	}
 		
 	public static boolean isAttivoProtocolloWizard(Record recordDettaglio) {
 		boolean isIdUdValorizzato = recordDettaglio != null && recordDettaglio.getAttribute("idUd") != null && !"".equals(recordDettaglio.getAttribute("idUd"));
@@ -784,6 +937,13 @@ public class ProtocollazioneUtil {
 			if(recordDettaglio != null && nroAllegatiProtXModalitaGrid > 0 && recordDettaglio.getAttributeAsRecordList("listaAllegati") != null && recordDettaglio.getAttributeAsRecordList("listaAllegati").getLength() > nroAllegatiProtXModalitaGrid) {
 				return true;
 			}
+		}			
+		return false;
+	}
+	
+	public static boolean isPresentiFileConOmissis(Record recordDettaglio) {
+		if(recordDettaglio != null && recordDettaglio.getAttributeAsBoolean("flgPresentiFileConOmissis") != null && recordDettaglio.getAttributeAsBoolean("flgPresentiFileConOmissis")) {
+			return true;
 		}			
 		return false;
 	}

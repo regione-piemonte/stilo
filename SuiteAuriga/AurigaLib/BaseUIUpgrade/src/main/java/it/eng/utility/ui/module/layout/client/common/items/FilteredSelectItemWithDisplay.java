@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common.items;
 
 import it.eng.utility.Styles;
 import it.eng.utility.ui.module.core.client.UserInterfaceFactory;
@@ -33,7 +34,8 @@ public class FilteredSelectItemWithDisplay extends FilteredSelectItem {
     @Override
     public void setCanEdit(Boolean canEdit) {
     	super.setCanEdit(canEdit);
-    	setTextBoxStyle(canEdit ? it.eng.utility.Styles.textItem : it.eng.utility.Styles.textItemReadonly + " " + it.eng.utility.Styles.hideItemScrollBar);  
+//    	setTextBoxStyle(canEdit ? it.eng.utility.Styles.textItem : it.eng.utility.Styles.textItemReadonly + " " + it.eng.utility.Styles.hideItemScrollBar);  
+    	setTextBoxStyle(canEdit ? it.eng.utility.Styles.selectItemText : it.eng.utility.Styles.selectItemTextReadOnly + " " + it.eng.utility.Styles.hideItemScrollBar);
     	if (UserInterfaceFactory.isAttivaAccessibilita()){
  	//    	setCanFocus(canEdit ? true : false); 			
     		setCanFocus(true);

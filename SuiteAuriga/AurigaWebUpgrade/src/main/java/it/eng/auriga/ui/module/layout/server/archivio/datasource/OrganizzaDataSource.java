@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.archivio.datasource;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -9,6 +10,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreUpddocudBean;
+import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreUpdfolderBean;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.auriga.ui.module.layout.server.archivio.datasource.bean.ArchivioBean;
@@ -17,6 +19,9 @@ import it.eng.auriga.ui.module.layout.server.archivio.datasource.bean.AttributiU
 import it.eng.auriga.ui.module.layout.server.archivio.datasource.bean.OrganizzaBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.FolderCustomBean;
 import it.eng.client.DmpkCoreUpddocud;
+import it.eng.client.DmpkCoreUpdfolder;
+import it.eng.document.function.bean.FolderAppartenenzaBean;
+import it.eng.document.function.bean.XmlFascicoloIn;
 import it.eng.utility.ui.module.core.server.bean.AdvancedCriteria;
 import it.eng.utility.ui.module.core.server.bean.OrderByBean;
 import it.eng.utility.ui.module.core.server.bean.PaginatorBean;
@@ -41,40 +46,77 @@ public class OrganizzaDataSource extends AbstractDataSource<OrganizzaBean, Organ
 		HashMap<String, String> errorMessages = null;
 		
 		for(ArchivioBean ud : bean.getListaRecord()) {
-			DmpkCoreUpddocudBean input = new DmpkCoreUpddocudBean();
-			input.setCodidconnectiontokenin(token);
-			input.setIduserlavoroin(StringUtils.isNotBlank(idUserLavoro) ? new BigDecimal(idUserLavoro) : null);
-			List<AttributiUdFolderCustom> lList = new ArrayList<AttributiUdFolderCustom>();
-			if (bean.getListaFolderCustom() != null) {
-	        	for(FolderCustomBean folderCustomBean: bean.getListaFolderCustom()) {     
-	        		AttributiUdFolderCustom lAttributiUdFolderCustom = new AttributiUdFolderCustom();
-	        		lAttributiUdFolderCustom.setId(folderCustomBean.getId());
-	        		if(folderCustomBean.getFlgCapofila() != null && folderCustomBean.getFlgCapofila()) {
-	        			lAttributiUdFolderCustom.setTipoRelazione("CPF");
-	        		}
-	        		lList.add(lAttributiUdFolderCustom);
-	        	}
-			}	
-			AttributiUdBean lAttributiUdBean = new AttributiUdBean();
-			lAttributiUdBean.setFolderCustom(lList);
-	        if(inAppend) {
-	        	lAttributiUdBean.setAppendFolderCustom("1");
-	        }				        
-	        lAttributiUdBean.setLivRiservatezza(bean.getLivelloRiservatezza() != null ? new BigDecimal(bean.getLivelloRiservatezza()).intValue() + "" : null);
-			
-			XmlUtilitySerializer lXmlUtilitySerializer = new XmlUtilitySerializer();
-			String attributiUdDocXml = lXmlUtilitySerializer.bindXml(lAttributiUdBean);	
-	       
-	        input.setFlgtipotargetin("D");
-			input.setIduddocin(new BigDecimal(ud.getIdDocPrimario()));
-			input.setAttributiuddocxmlin(attributiUdDocXml);
-			
-			DmpkCoreUpddocud dmpkCoreUpddocud = new DmpkCoreUpddocud();
-			StoreResultBean<DmpkCoreUpddocudBean> output = dmpkCoreUpddocud.execute(getLocale(),loginBean, input);
-			
-			if(output.getDefaultMessage() != null) {
-				if(errorMessages == null) errorMessages = new HashMap<String, String>();
-				errorMessages.put(ud.getIdUdFolder(), output.getDefaultMessage());
+			if(ud.getFlgUdFolder() != null && ud.getFlgUdFolder().equals("F")) {
+				DmpkCoreUpdfolderBean input = new DmpkCoreUpdfolderBean();
+				input.setCodidconnectiontokenin(token);
+				input.setIduserlavoroin(StringUtils.isNotBlank((CharSequence) idUserLavoro) ? new BigDecimal(idUserLavoro) : null);
+				input.setIdfolderin(new BigDecimal(ud.getIdUdFolder()));
+				
+				XmlFascicoloIn xmlFascicoloIn = new XmlFascicoloIn();
+				
+				List<FolderAppartenenzaBean> listaFolderAppartenenza = new ArrayList<FolderAppartenenzaBean>();
+				if (bean.getListaFolderCustom() != null) {
+					for(FolderCustomBean folderCustomBean: bean.getListaFolderCustom()) {     
+						FolderAppartenenzaBean folder = new FolderAppartenenzaBean();
+						folder.setIdFolder(new BigDecimal(folderCustomBean.getId()));
+						
+						listaFolderAppartenenza.add(folder);
+					}
+				}
+				xmlFascicoloIn.setFolderAppartenenza(listaFolderAppartenenza);
+				
+				if(inAppend) {
+					xmlFascicoloIn.setAppendFolderAppartenenza("1");
+				}
+				xmlFascicoloIn.setLivRiservatezza(bean.getLivelloRiservatezza() != null ? new BigDecimal(bean.getLivelloRiservatezza()).intValue() + "" : null);
+
+				XmlUtilitySerializer lXmlUtilitySerializer = new XmlUtilitySerializer();
+				input.setAttributixmlin(lXmlUtilitySerializer.bindXml((Object) xmlFascicoloIn));
+				
+				DmpkCoreUpdfolder dmpkCoreUpdfolder = new DmpkCoreUpdfolder();
+				StoreResultBean<DmpkCoreUpdfolderBean> output = dmpkCoreUpdfolder.execute(this.getLocale(), loginBean, input);
+				
+				if(output.getDefaultMessage() != null) {
+					if(errorMessages == null) errorMessages = new HashMap<String, String>();
+					errorMessages.put(ud.getIdUdFolder(), output.getDefaultMessage());
+				}
+				
+			} else {
+				DmpkCoreUpddocudBean input = new DmpkCoreUpddocudBean();
+				input.setCodidconnectiontokenin(token);
+				input.setIduserlavoroin(StringUtils.isNotBlank(idUserLavoro) ? new BigDecimal(idUserLavoro) : null);
+				List<AttributiUdFolderCustom> lList = new ArrayList<AttributiUdFolderCustom>();
+				if (bean.getListaFolderCustom() != null) {
+					for(FolderCustomBean folderCustomBean: bean.getListaFolderCustom()) {     
+						AttributiUdFolderCustom lAttributiUdFolderCustom = new AttributiUdFolderCustom();
+						lAttributiUdFolderCustom.setId(folderCustomBean.getId());
+						if(folderCustomBean.getFlgCapofila() != null && folderCustomBean.getFlgCapofila()) {
+							lAttributiUdFolderCustom.setTipoRelazione("CPF");
+						}
+						lList.add(lAttributiUdFolderCustom);
+					}
+				}	
+				AttributiUdBean lAttributiUdBean = new AttributiUdBean();
+				lAttributiUdBean.setFolderCustom(lList);
+				if(inAppend) {
+					lAttributiUdBean.setAppendFolderCustom("1");
+				}				        
+				lAttributiUdBean.setLivRiservatezza(bean.getLivelloRiservatezza() != null ? new BigDecimal(bean.getLivelloRiservatezza()).intValue() + "" : null);
+
+				XmlUtilitySerializer lXmlUtilitySerializer = new XmlUtilitySerializer();
+				String attributiUdDocXml = lXmlUtilitySerializer.bindXml(lAttributiUdBean);	
+
+				input.setFlgtipotargetin("D");
+				input.setIduddocin(new BigDecimal(ud.getIdDocPrimario()));
+				input.setAttributiuddocxmlin(attributiUdDocXml);
+
+				DmpkCoreUpddocud dmpkCoreUpddocud = new DmpkCoreUpddocud();
+				StoreResultBean<DmpkCoreUpddocudBean> output = dmpkCoreUpddocud.execute(getLocale(),loginBean, input);
+
+				if(output.getDefaultMessage() != null) {
+					if(errorMessages == null) errorMessages = new HashMap<String, String>();
+					errorMessages.put(ud.getIdUdFolder(), output.getDefaultMessage());
+				}
 			}
 		}
 		

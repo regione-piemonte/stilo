@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.pratiche.nuovapropostaatto2.datasource;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -264,7 +265,6 @@ import it.eng.jaxb.variabili.SezioneCache.Variabile.Lista;
 import it.eng.services.fileop.InfoFileUtility;
 import it.eng.spring.utility.SpringAppContext;
 import it.eng.utility.DocumentConfiguration;
-import it.eng.utility.FirmaUtility;
 import it.eng.utility.PdfUtility;
 import it.eng.utility.XmlListaSimpleBean;
 import it.eng.utility.module.config.StorageImplementation;
@@ -1246,15 +1246,25 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 		
 		// Resp. visto alternativo bilancio
 		List<RespVisAltBilancioBean> listaRespVisAltBilancio = new ArrayList<RespVisAltBilancioBean>();
-		if (StringUtils.isNotBlank(lDocumentoXmlOutBean.getIdScrivaniaRespVisAltBilancio())) {
-			RespVisAltBilancioBean lRespVisAltBilancioBean = new RespVisAltBilancioBean();
-			lRespVisAltBilancioBean.setResponsabileVistoAlternativoBilancio(lDocumentoXmlOutBean.getIdScrivaniaRespVisAltBilancio());
-			lRespVisAltBilancioBean.setResponsabileVistoAlternativoBilancioFromLoadDett(lDocumentoXmlOutBean.getIdScrivaniaRespVisAltBilancio());									
-			lRespVisAltBilancioBean.setCodUoResponsabileVistoAlternativoBilancio(lDocumentoXmlOutBean.getLivelliUOScrivaniaRespVisAltBilancio());
-			lRespVisAltBilancioBean.setDesResponsabileVistoAlternativoBilancio(lDocumentoXmlOutBean.getDesScrivaniaRespVisAltBilancio());
-			listaRespVisAltBilancio.add(lRespVisAltBilancioBean);
-		} else {
-			listaRespVisAltBilancio.add(new RespVisAltBilancioBean());
+//		if (StringUtils.isNotBlank(lDocumentoXmlOutBean.getIdScrivaniaRespVisAltBilancio())) {
+//			RespVisAltBilancioBean lRespVisAltBilancioBean = new RespVisAltBilancioBean();
+//			lRespVisAltBilancioBean.setResponsabileVistoAlternativoBilancio(lDocumentoXmlOutBean.getIdScrivaniaRespVisAltBilancio());
+//			lRespVisAltBilancioBean.setResponsabileVistoAlternativoBilancioFromLoadDett(lDocumentoXmlOutBean.getIdScrivaniaRespVisAltBilancio());									
+//			lRespVisAltBilancioBean.setCodUoResponsabileVistoAlternativoBilancio(lDocumentoXmlOutBean.getLivelliUOScrivaniaRespVisAltBilancio());
+//			lRespVisAltBilancioBean.setDesResponsabileVistoAlternativoBilancio(lDocumentoXmlOutBean.getDesScrivaniaRespVisAltBilancio());
+//			listaRespVisAltBilancio.add(lRespVisAltBilancioBean);
+//		} else {
+//			listaRespVisAltBilancio.add(new RespVisAltBilancioBean());
+//		}
+		if (lDocumentoXmlOutBean.getRespVisAltBilancio() != null && lDocumentoXmlOutBean.getRespVisAltBilancio().size() > 0) {
+			for (ScrivaniaEstensoreBean lScrivaniaRespVisAltBilancioBean : lDocumentoXmlOutBean.getRespVisAltBilancio()) {
+				RespVisAltBilancioBean lRespVisAltBilancioBean = new RespVisAltBilancioBean();
+				lRespVisAltBilancioBean.setResponsabileVistoAlternativoBilancio(lScrivaniaRespVisAltBilancioBean.getIdSV());
+				lRespVisAltBilancioBean.setResponsabileVistoAlternativoBilancioFromLoadDett(lScrivaniaRespVisAltBilancioBean.getIdSV());
+				lRespVisAltBilancioBean.setCodUoResponsabileVistoAlternativoBilancio(lScrivaniaRespVisAltBilancioBean.getCodUO());
+				lRespVisAltBilancioBean.setDesResponsabileVistoAlternativoBilancio(lScrivaniaRespVisAltBilancioBean.getDescrizione());
+				listaRespVisAltBilancio.add(lRespVisAltBilancioBean);
+			}
 		}
 		bean.setListaRespVisAltBilancio(listaRespVisAltBilancio);
 				
@@ -1446,9 +1456,7 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 		bean.setFlgVantaggiEconomici(lDocumentoXmlOutBean.getFlgVantaggiEconomici() == Flag.SETTED);
 		bean.setFlgDecretoReggio(lDocumentoXmlOutBean.getFlgDecretoReggio() == Flag.SETTED);
 		bean.setFlgAvvocatura(lDocumentoXmlOutBean.getFlgAvvocatura() == Flag.SETTED);
-		bean.setFlgDeterminaArchiviazione(lDocumentoXmlOutBean.getFlgDetArchiviazione() == Flag.SETTED);
-		
-		// il check "contributi" non è esclusivo come gli altri sopra
+		bean.setFlgDeterminaArchiviazione(lDocumentoXmlOutBean.getFlgDetArchiviazione() == Flag.SETTED);		
 		bean.setFlgContributi(lDocumentoXmlOutBean.getFlgContributi() == Flag.SETTED);
 		
 		bean.setFlgSpesa(lDocumentoXmlOutBean.getFlgDetConSpesa());
@@ -1491,6 +1499,7 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 		bean.setFlgFondiPNRRRadio(lDocumentoXmlOutBean.getFlgFondiPNRRRadio());		
 		bean.setFlgFondiPNRR(lDocumentoXmlOutBean.getFlgFondiPNRR() == Flag.SETTED);
 		bean.setFlgFondiPNRRRigen(lDocumentoXmlOutBean.getFlgFondiPNRRRigen() == Flag.SETTED);
+		bean.setFlgLiquidazioneMAASPNC(lDocumentoXmlOutBean.getFlgLiquidazioneMAASPNC() == Flag.SETTED);
 		bean.setFlgFondiPRU(lDocumentoXmlOutBean.getFlgFondiPRU() == Flag.SETTED);
 		bean.setFlgVistoUtenze(lDocumentoXmlOutBean.getFlgVistoUtenze() == Flag.SETTED);
 		bean.setFlgVistoCapitolatiSottoSoglia(lDocumentoXmlOutBean.getFlgVistoCapitolatiSottoSoglia() == Flag.SETTED);
@@ -1518,7 +1527,7 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 		bean.setFlgControlloLegittimita(lDocumentoXmlOutBean.getFlgControlloLegittimita());	
 		bean.setMotivazioniEsclControlloLegittimita(lDocumentoXmlOutBean.getMotivazioniEsclControlloLegittimita());
 		
-		/* Dati scheda - Dest. vantaggio */		
+		/* Dati scheda - Dest. vantaggio / Dettagli vantaggi economici/contributi */		
 		
 		List<DestVantaggioBean> listaDestVantaggio = new ArrayList<DestVantaggioBean>();
 		if (lDocumentoXmlOutBean.getDestinatariVantaggio() != null && lDocumentoXmlOutBean.getDestinatariVantaggio().size() > 0) {
@@ -1536,6 +1545,17 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 			listaDestVantaggio.add(new DestVantaggioBean());
 		}
 		bean.setListaDestVantaggio(listaDestVantaggio);
+		
+		bean.setNormaAttribuzione(lDocumentoXmlOutBean.getNormaAttribuzione());
+		bean.setDesNormaAttribuzione(lDocumentoXmlOutBean.getDesNormaAttribuzione());
+		bean.setRespProcAttribuzione(lDocumentoXmlOutBean.getIdSvRespProcAttribuzione());
+		bean.setCodUoRespProcAttribuzione(lDocumentoXmlOutBean.getCodUoRespProcAttribuzione());
+		bean.setDesRespProcAttribuzione(lDocumentoXmlOutBean.getDesRespProcAttribuzione());
+		if(StringUtils.isNotBlank(lDocumentoXmlOutBean.getCodUoRespProcAttribuzione()) && StringUtils.isNotBlank(lDocumentoXmlOutBean.getDesUoRespProcAttribuzione())) {
+			bean.setUffRespProcAttribuzione(lDocumentoXmlOutBean.getCodUoRespProcAttribuzione() + " - " + lDocumentoXmlOutBean.getDesUoRespProcAttribuzione());
+		}
+		bean.setModalitaAttribuzione(lDocumentoXmlOutBean.getModalitaAttribuzione());
+		bean.setDesModalitaAttribuzione(lDocumentoXmlOutBean.getDesModalitaAttribuzione());
 				
 		/* Dati scheda - Ruoli e visti per dati contabili */		
 		
@@ -1924,8 +1944,20 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 		if(lDocumentoXmlOutBean.getListaMovimentiContabiliSICRA() != null) {			
 			for(int i = 0; i < lDocumentoXmlOutBean.getListaMovimentiContabiliSICRA().size(); i++) {
 				MovimentiContabiliSICRABean lMovimentiContabiliSICRABean = new MovimentiContabiliSICRABean();
-				lMovimentiContabiliSICRABean.setId(i + "");				
-				BeanUtilsBean2.getInstance().getPropertyUtils().copyProperties(lMovimentiContabiliSICRABean, lDocumentoXmlOutBean.getListaMovimentiContabiliSICRA().get(i)); 
+				lMovimentiContabiliSICRABean.setId(i + "");
+				BeanUtilsBean2.getInstance().getPropertyUtils().copyProperties(lMovimentiContabiliSICRABean, lDocumentoXmlOutBean.getListaMovimentiContabiliSICRA().get(i));
+				if(StringUtils.isBlank(lMovimentiContabiliSICRABean.getDenominazioneSogg())) {
+					boolean isPersonaFisica = lMovimentiContabiliSICRABean.getTipoSoggetto() != null && "fisica".equalsIgnoreCase(lMovimentiContabiliSICRABean.getTipoSoggetto());
+					if(isPersonaFisica) {
+						if(StringUtils.isNotBlank(lMovimentiContabiliSICRABean.getCognomeSogg()) && StringUtils.isNotBlank(lMovimentiContabiliSICRABean.getNomeSogg())) {
+							lMovimentiContabiliSICRABean.setDenominazioneSogg(lMovimentiContabiliSICRABean.getCognomeSogg() + " " + lMovimentiContabiliSICRABean.getNomeSogg());
+						} else if(StringUtils.isNotBlank(lMovimentiContabiliSICRABean.getCognomeSogg())) {
+							lMovimentiContabiliSICRABean.setDenominazioneSogg(lMovimentiContabiliSICRABean.getCognomeSogg());
+						} else if(StringUtils.isNotBlank(lMovimentiContabiliSICRABean.getNomeSogg())) {
+							lMovimentiContabiliSICRABean.setDenominazioneSogg(lMovimentiContabiliSICRABean.getNomeSogg());
+						}
+					}
+				}
 				bean.getListaInvioMovimentiContabiliSICRA().add(lMovimentiContabiliSICRABean);
 			}
 		}
@@ -4546,14 +4578,25 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 		
 		// Resp. visto alternativo bilancio
 		
-		String respVisAltBilancio = "";
+//		String respVisAltBilancio = "";
+		List<SimpleValueBean> listaRespVisAltBilancio = new ArrayList<SimpleValueBean>();
 		if(skipCtrlAttributiCustomCablati || (showAttributoCustomCablato(setAttributiCustomCablati, "ID_SV_RESP_VISTO_ALTERNATIVO_BILANCIO"))) {
 			if("altro".equals(flgVistoBilancio)) {		
 				if(bean.getListaRespVisAltBilancio() != null && bean.getListaRespVisAltBilancio().size() > 0) {
-					respVisAltBilancio = bean.getListaRespVisAltBilancio().get(0).getResponsabileVistoAlternativoBilancio();								
+//					respVisAltBilancio = bean.getListaRespVisAltBilancio().get(0).getResponsabileVistoAlternativoBilancio();
+					if(bean.getListaRespVisAltBilancio() != null) {
+						for(RespVisAltBilancioBean lRespVisAltBilancioBean : bean.getListaRespVisAltBilancio()) {
+							if(StringUtils.isNotBlank(lRespVisAltBilancioBean.getResponsabileVistoAlternativoBilancio())) {
+								SimpleValueBean lSimpleValueBean = new SimpleValueBean();
+								lSimpleValueBean.setValue(lRespVisAltBilancioBean.getResponsabileVistoAlternativoBilancio());
+								listaRespVisAltBilancio.add(lSimpleValueBean);						
+							}
+						}
+					}
 				}
 			}
-			putVariabileSempliceSezioneCache(sezioneCacheAttributiDinamici, "ID_SV_RESP_VISTO_ALTERNATIVO_BILANCIO_Ud", respVisAltBilancio);			
+//			putVariabileSempliceSezioneCache(sezioneCacheAttributiDinamici, "ID_SV_RESP_VISTO_ALTERNATIVO_BILANCIO_Ud", respVisAltBilancio);
+			putVariabileListaSezioneCache(sezioneCacheAttributiDinamici, "ID_SV_RESP_VISTO_ALTERNATIVO_BILANCIO_Ud", new XmlUtilitySerializer().createVariabileLista(listaRespVisAltBilancio));	
 		}
 		
 		// Tipo bilancio
@@ -4861,7 +4904,6 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 			putVariabileSempliceSezioneCache(sezioneCacheAttributiDinamici, "TASK_RESULT_2_DET_ARCHIVIAZIONE_Doc", flgDeterminaArchiviazione);
 		}
 		
-		// il check "contributi" non è esclusivo come gli altri sopra
 		String flgContributi = "";
 		if(skipCtrlAttributiCustomCablati || (showAttributoCustomCablato(setAttributiCustomCablati, "TASK_RESULT_2_FLG_CONTRIBUTI"))) {
 			flgContributi =  bean.getFlgContributi() != null && bean.getFlgContributi() ? "1" : "";
@@ -5088,7 +5130,13 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 			}
 			putVariabileSempliceSezioneCache(sezioneCacheAttributiDinamici, "TASK_RESULT_2_FONDI_PNRR_RIGEN_Doc", flgFondiPNRRRigen);
 		}		
-				 
+		
+		String flgLiquidazioneMAASPNC = "";
+		if(skipCtrlAttributiCustomCablati || (showAttributoCustomCablato(setAttributiCustomCablati, "TASK_RESULT_2_MAAS_PNC"))) {
+			flgLiquidazioneMAASPNC =  bean.getFlgLiquidazioneMAASPNC() != null && bean.getFlgLiquidazioneMAASPNC() ? "1" : "";
+			putVariabileSempliceSezioneCache(sezioneCacheAttributiDinamici, "TASK_RESULT_2_MAAS_PNC_Doc", flgLiquidazioneMAASPNC); 
+		}
+		
 		String flgFondiPRU = "";
 		if(skipCtrlAttributiCustomCablati || (showAttributoCustomCablato(setAttributiCustomCablati, "TASK_RESULT_2_FONDI_PRU"))) {
 			flgFondiPRU = bean.getFlgFondiPRU() != null && bean.getFlgFondiPRU() ? "1" : "";
@@ -5269,11 +5317,11 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 			putVariabileSempliceSezioneCache(sezioneCacheAttributiDinamici, "MOTIVAZIONI_ESCL_CONTROLLO_LEGITTIMITA_Doc", motivazioniEsclControlloLegittimita);		
 		}
 		
-		/* Dati scheda - Dest. vantaggio */				
+		/* Dati scheda - Dest. vantaggio / Dettagli vantaggi economici/contributi */				
 		
 		List<DestinatarioVantaggioBean> listaDestVantaggio = new ArrayList<DestinatarioVantaggioBean>();	
 		if(skipCtrlAttributiCustomCablati || (showAttributoCustomCablato(setAttributiCustomCablati, "DEST_VANTAGGIO"))) {
-			if("1".equals(flgVantaggiEconomici)) {			
+			if("1".equals(flgVantaggiEconomici) || "1".equals(flgContributi)) {			
 				if(bean.getListaDestVantaggio() != null) {
 					for(DestVantaggioBean lDestVantaggioBean : bean.getListaDestVantaggio()) {
 						if(StringUtils.isNotBlank(lDestVantaggioBean.getTipoPersona()) && (StringUtils.isNotBlank(lDestVantaggioBean.getRagioneSociale()) || (StringUtils.isNotBlank(lDestVantaggioBean.getCognome()) && StringUtils.isNotBlank(lDestVantaggioBean.getNome())))) {
@@ -5296,6 +5344,30 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 			 * Utilizzando il metodo createVariabileListaSkipNullValues anzichè createVariabileLista non vengono passate in input le colonne non mappate o NULL
 			 */
 			putVariabileListaSezioneCache(sezioneCacheAttributiDinamici, "DEST_VANTAGGIO_Doc", new XmlUtilitySerializer().createVariabileListaSkipNullValues(listaDestVantaggio));
+		}
+		
+		if(skipCtrlAttributiCustomCablati || (showAttributoCustomCablato(setAttributiCustomCablati, "DETT_VANTAGGI_CONTRIBUTI"))) {	
+			String normaAttribuzione = "";
+			if(skipCtrlAttributiCustomCablati || (showAttributoCustomCablato(setAttributiCustomCablati, "NORMA_ATTRIBUZIONE"))) {	
+				if("1".equals(flgVantaggiEconomici) || "1".equals(flgContributi)) {			
+					normaAttribuzione = bean.getNormaAttribuzione() != null ? bean.getNormaAttribuzione() : "";
+				}
+				putVariabileSempliceSezioneCache(sezioneCacheAttributiDinamici, "NORMA_ATTRIBUZIONE_Doc", normaAttribuzione);	
+			}
+			String respProcAttribuzione = "";
+			if(skipCtrlAttributiCustomCablati || (showAttributoCustomCablato(setAttributiCustomCablati, "RESP_PROC_ATTRIBUZIONE"))) {	
+				if("1".equals(flgVantaggiEconomici) || "1".equals(flgContributi)) {			
+					respProcAttribuzione = bean.getRespProcAttribuzione() != null ? bean.getRespProcAttribuzione() : "";
+				}
+				putVariabileSempliceSezioneCache(sezioneCacheAttributiDinamici, "RESP_PROC_ATTRIBUZIONE_Doc", respProcAttribuzione);	
+			}
+			String modalitaAttribuzione = "";
+			if(skipCtrlAttributiCustomCablati || (showAttributoCustomCablato(setAttributiCustomCablati, "MODALITA_ATTRIBUZIONE"))) {	
+				if("1".equals(flgVantaggiEconomici) || "1".equals(flgContributi)) {			
+					modalitaAttribuzione = bean.getModalitaAttribuzione() != null ? bean.getModalitaAttribuzione() : "";
+				}
+				putVariabileSempliceSezioneCache(sezioneCacheAttributiDinamici, "MODALITA_ATTRIBUZIONE_Doc", modalitaAttribuzione);	
+			}
 		}
 				
 		/* Dati scheda - Ruoli e visti per dati contabili */	
@@ -6739,10 +6811,11 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 			List<AllegatoParteIntSeparatoBean> listaAllegatiParteIntSeparatiVersIntegrale = new ArrayList<AllegatoParteIntSeparatoBean>();
 			List<AllegatoParteIntSeparatoBean> listaAllegatiParteIntSeparatiVersXPubbl = new ArrayList<AllegatoParteIntSeparatoBean>();
 			if (bean.getListaAllegati() != null) {
-				boolean flgPubblicaAllegatiSeparati = bean.getFlgPubblicaAllegatiSeparati() != null && bean.getFlgPubblicaAllegatiSeparati(); // se è true tutti gli allegati sono da pubblicare separatamente		
+				boolean flgPubblicazioneAllegatiUguale = bean.getFlgPubblicazioneAllegatiUguale() != null && bean.getFlgPubblicazioneAllegatiUguale();
+				boolean flgPubblicaAllegatiSeparati = flgPubblicazioneAllegatiUguale && bean.getFlgPubblicaAllegatiSeparati() != null && bean.getFlgPubblicaAllegatiSeparati(); // se è true tutti gli allegati sono da pubblicare separatamente		
 				for (AllegatoProtocolloBean lAllegatoProtocolloBean : bean.getListaAllegati()){
 					boolean flgParteDispositivo = lAllegatoProtocolloBean.getFlgParteDispositivo() != null && lAllegatoProtocolloBean.getFlgParteDispositivo();
-					boolean flgPubblicaSeparato = lAllegatoProtocolloBean.getFlgPubblicaSeparato() != null && lAllegatoProtocolloBean.getFlgPubblicaSeparato();
+					boolean flgPubblicaSeparato = !flgPubblicazioneAllegatiUguale && lAllegatoProtocolloBean.getFlgPubblicaSeparato() != null && lAllegatoProtocolloBean.getFlgPubblicaSeparato();
 					boolean flgNoPubblAllegato = lAllegatoProtocolloBean.getFlgNoPubblAllegato() != null && lAllegatoProtocolloBean.getFlgNoPubblAllegato();				
 					if (flgParteDispositivo) { // se è parte integrante						
 						if(bean.getFlgMostraDatiSensibili() != null && bean.getFlgMostraDatiSensibili()) {
@@ -7209,8 +7282,11 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 		if (pNuovaPropostaAtto2CompletaBean.getListaAllegati() != null) {
 			for (AllegatoProtocolloBean lAllegatoProtocolloBean : pNuovaPropostaAtto2CompletaBean.getListaAllegati()){
 				if (lAllegatoProtocolloBean.getFlgParteDispositivo() != null && lAllegatoProtocolloBean.getFlgParteDispositivo()) { // se è parte integrante
-					if (pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati() == null || !pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati()) { // se tutti gli allegati non sono pubblicati separatamente (ho messo qui il controllo e non a monte perchè ci sono anche i pareri da gestire nel ciclo for e quelli non guardano il flag di pubblicazione separata)
-						if (lAllegatoProtocolloBean.getFlgPubblicaSeparato() == null || !lAllegatoProtocolloBean.getFlgPubblicaSeparato()) { // se non è da pubblicare separatamente						
+					boolean flgPubblicazioneAllegatiUguale = pNuovaPropostaAtto2CompletaBean.getFlgPubblicazioneAllegatiUguale() != null && pNuovaPropostaAtto2CompletaBean.getFlgPubblicazioneAllegatiUguale();
+					boolean flgPubblicaAllegatiSeparati = flgPubblicazioneAllegatiUguale && pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati() != null && pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati();
+					boolean flgPubblicaSeparato = !flgPubblicazioneAllegatiUguale && lAllegatoProtocolloBean.getFlgPubblicaSeparato() != null && lAllegatoProtocolloBean.getFlgPubblicaSeparato();				
+					if (!flgPubblicaAllegatiSeparati) { // se tutti gli allegati non sono pubblicati separatamente (ho messo qui il controllo e non a monte perchè ci sono anche i pareri da gestire nel ciclo for e quelli non guardano il flag di pubblicazione separata)
+						if (!flgPubblicaSeparato) { // se non è da pubblicare separatamente						
 							lAllegatoProtocolloBean.setIdUdAppartenenza(idUd);
 							aggiungiAllegato(listaFileDaUnire, lAllegatoProtocolloBean);
 						}
@@ -7240,9 +7316,12 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 		if (pNuovaPropostaAtto2CompletaBean.getListaAllegati() != null) {
 			for (AllegatoProtocolloBean lAllegatoProtocolloBean : pNuovaPropostaAtto2CompletaBean.getListaAllegati()){
 				if (lAllegatoProtocolloBean.getFlgParteDispositivo() != null && lAllegatoProtocolloBean.getFlgParteDispositivo()) { // se è parte integrante
+					boolean flgPubblicazioneAllegatiUguale = pNuovaPropostaAtto2CompletaBean.getFlgPubblicazioneAllegatiUguale() != null && pNuovaPropostaAtto2CompletaBean.getFlgPubblicazioneAllegatiUguale();
+					boolean flgPubblicaAllegatiSeparati = flgPubblicazioneAllegatiUguale && pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati() != null && pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati();
+					boolean flgPubblicaSeparato = !flgPubblicazioneAllegatiUguale && lAllegatoProtocolloBean.getFlgPubblicaSeparato() != null && lAllegatoProtocolloBean.getFlgPubblicaSeparato();				
 					if (lAllegatoProtocolloBean.getFlgNoPubblAllegato() == null || !lAllegatoProtocolloBean.getFlgNoPubblAllegato()) { // se non è escluso dalla pubblicazione
-						if (pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati() == null || !pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati()) { // se tutti gli allegati non sono pubblicati separatamente (ho messo qui il controllo e non a monte perchè ci sono anche i pareri da gestire nel ciclo for e quelli non guardano il flag di pubblicazione separata)											
-							if (lAllegatoProtocolloBean.getFlgPubblicaSeparato() == null || !lAllegatoProtocolloBean.getFlgPubblicaSeparato()) { // se non è da pubblicare separatamente
+						if (!flgPubblicaAllegatiSeparati) { // se tutti gli allegati non sono pubblicati separatamente (ho messo qui il controllo e non a monte perchè ci sono anche i pareri da gestire nel ciclo for e quelli non guardano il flag di pubblicazione separata)											
+							if (!flgPubblicaSeparato) { // se non è da pubblicare separatamente
 								lAllegatoProtocolloBean.setIdUdAppartenenza(idUd);
 								if (lAllegatoProtocolloBean.getFlgDatiSensibili() != null && lAllegatoProtocolloBean.getFlgDatiSensibili()) {
 									aggiungiAllegatoOmissis(listaFileDaUnireOmissis, lAllegatoProtocolloBean);
@@ -8206,8 +8285,9 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 							// se è un allegato parte integrante & separato & non escluso dalla pubblicazione allora lo devo aggiungere nella lista da mandare in pubblicazione
 							boolean flgParteDispositivo = lAllegatoProtocolloBean.getFlgParteDispositivo() != null && lAllegatoProtocolloBean.getFlgParteDispositivo();
 							boolean flgNoPubblAllegato = lAllegatoProtocolloBean.getFlgNoPubblAllegato() != null && lAllegatoProtocolloBean.getFlgNoPubblAllegato();
-							boolean flgPubblicaSeparato = lAllegatoProtocolloBean.getFlgPubblicaSeparato() != null && lAllegatoProtocolloBean.getFlgPubblicaSeparato();
-							boolean flgPubblicaAllegatiSeparati = pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati();
+							boolean flgPubblicazioneAllegatiUguale = bean.getFlgPubblicazioneAllegatiUguale() != null && bean.getFlgPubblicazioneAllegatiUguale();
+							boolean flgPubblicaAllegatiSeparati = flgPubblicazioneAllegatiUguale && pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati() != null && pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati();
+							boolean flgPubblicaSeparato = !flgPubblicazioneAllegatiUguale && lAllegatoProtocolloBean.getFlgPubblicaSeparato() != null && lAllegatoProtocolloBean.getFlgPubblicaSeparato();
 							boolean flgDatiSensibili = lAllegatoProtocolloBean.getFlgDatiSensibili() != null && lAllegatoProtocolloBean.getFlgDatiSensibili();
 							if (flgParteDispositivo && !flgNoPubblAllegato && (flgPubblicaAllegatiSeparati || flgPubblicaSeparato)) {
 								// metto la versione omissis se c'è, altrimenti la versione integrale
@@ -8404,10 +8484,12 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 			bean.setFlgVistoDirSup2Editabile(lOpzUOInDettAttoXmlBean.getFlgVistoDirSup2Editabile() == Flag.SETTED);
 			bean.setFlgVistoDirSup2ValoreDefault(lOpzUOInDettAttoXmlBean.getFlgVistoDirSup2ValoreDefault() == Flag.SETTED);
 			bean.setFlgVistoDirSup2ValoriSelectScrivanie(lOpzUOInDettAttoXmlBean.getFlgVistoDirSup2ValoriSelectScrivanie());
-			bean.setFlgVistoDirSup2ValoreDefaultSelectScrivanie(lOpzUOInDettAttoXmlBean.getFlgVistoDirSup2ValoreDefaultSelectScrivanie());			
+			bean.setFlgVistoDirSup2ValoreDefaultSelectScrivanie(lOpzUOInDettAttoXmlBean.getFlgVistoDirSup2ValoreDefaultSelectScrivanie());	
+			
+			return bean;
 		}
 
-		return bean;
+		return null;
 	}
 	
 	public UnioneFileAttoBean unioneFile(NuovaPropostaAtto2CompletaBean pNuovaPropostaAtto2CompletaBean) throws Exception {
@@ -8418,7 +8500,15 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 		
 		boolean flgPostDiscussione = getExtraparams().get("flgPostDiscussione") != null ? new Boolean(getExtraparams().get("flgPostDiscussione")) : false;	
 		// se ATTIVA_UNIONE_PARERI_TESTO_COORD_ATTI_COLLEG == true uniamo anche i pareri al file unione
-		if(flgPostDiscussione && ParametriDBUtil.getParametroDBAsBoolean(getSession(), "ATTIVA_UNIONE_PARERI_TESTO_COORD_ATTI_COLLEG")) {
+		if(flgPostDiscussione) {
+			if(ParametriDBUtil.getParametroDBAsBoolean(getSession(), "ATTIVA_UNIONE_PARERI_TESTO_COORD_ATTI_COLLEG")) {
+				if (pNuovaPropostaAtto2CompletaBean.getListaAllegati() != null) {
+					for (int i = 0; i < pNuovaPropostaAtto2CompletaBean.getListaAllegati().size(); i++){
+						pNuovaPropostaAtto2CompletaBean.getListaAllegati().get(i).setFlgParereDaUnire(true);
+					}
+				}
+			}
+		} else if(ParametriDBUtil.getParametroDBAsBoolean(getSession(), "ATTIVA_UNIONE_PARERI_EXTRA_DISCUSSIONE")) {
 			if (pNuovaPropostaAtto2CompletaBean.getListaAllegati() != null) {
 				for (int i = 0; i < pNuovaPropostaAtto2CompletaBean.getListaAllegati().size(); i++){
 					pNuovaPropostaAtto2CompletaBean.getListaAllegati().get(i).setFlgParereDaUnire(true);
@@ -8490,15 +8580,18 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 			if (pNuovaPropostaAtto2CompletaBean.getListaAllegati() != null) {
 				for (AllegatoProtocolloBean lAllegatoProtocolloBean : pNuovaPropostaAtto2CompletaBean.getListaAllegati()){
 					if (lAllegatoProtocolloBean.getFlgParteDispositivo() != null && lAllegatoProtocolloBean.getFlgParteDispositivo()) {
-						lAllegatoProtocolloBean.setIdUdAppartenenza(pNuovaPropostaAtto2CompletaBean.getIdUd());
-						if (StringUtils.isNotBlank(lAllegatoProtocolloBean.getUriFileAllegato())) {
-							if (!skipFirmaAllegatiFirmati(lAllegatoProtocolloBean.getUriFileAllegato(), lAllegatoProtocolloBean.getInfoFile())){
-								aggiungiAllegato(listaFileDaFirmare, lAllegatoProtocolloBean);
-							}
-						} 
-						if (lAllegatoProtocolloBean.getFlgDatiSensibili() != null && lAllegatoProtocolloBean.getFlgDatiSensibili() && StringUtils.isNotBlank(lAllegatoProtocolloBean.getUriFileOmissis())){
-							if (!skipFirmaAllegatiFirmati(lAllegatoProtocolloBean.getUriFileOmissis(), lAllegatoProtocolloBean.getInfoFileOmissis())) {
-								aggiungiAllegatoOmissis(listaFileDaFirmare, lAllegatoProtocolloBean);
+						// Se il file è stato generato da modello e ha il flag genDaModelloDaFirmare lo ignoro, in quanto viene già passato come file da firmare nella lista listaRecordModelliGeneratiDaFirmare
+						if (lAllegatoProtocolloBean.getFlgGenDaModelloDaFirmare() == null || !lAllegatoProtocolloBean.getFlgGenDaModelloDaFirmare()) {
+							lAllegatoProtocolloBean.setIdUdAppartenenza(pNuovaPropostaAtto2CompletaBean.getIdUd());
+							if (StringUtils.isNotBlank(lAllegatoProtocolloBean.getUriFileAllegato())) {
+								if (!skipFirmaAllegatiFirmati(lAllegatoProtocolloBean.getUriFileAllegato(), lAllegatoProtocolloBean.getInfoFile())){
+									aggiungiAllegato(listaFileDaFirmare, lAllegatoProtocolloBean);
+								}
+							} 
+							if (lAllegatoProtocolloBean.getFlgDatiSensibili() != null && lAllegatoProtocolloBean.getFlgDatiSensibili() && StringUtils.isNotBlank(lAllegatoProtocolloBean.getUriFileOmissis())){
+								if (!skipFirmaAllegatiFirmati(lAllegatoProtocolloBean.getUriFileOmissis(), lAllegatoProtocolloBean.getInfoFileOmissis())) {
+									aggiungiAllegatoOmissis(listaFileDaFirmare, lAllegatoProtocolloBean);
+								}
 							}
 						}
 					}
@@ -8513,7 +8606,20 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 			lTaskFileDaFirmareBean.setFiles(listaFileDaFirmareTimbrati);
 		} else {
 			lTaskFileDaFirmareBean.setFiles(listaFileDaFirmare);
-		}		
+		}	
+		String logFileDaFirmare = "";
+		AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo(getSession());
+		if (loginBean != null) {
+			logFileDaFirmare = "(UtenteLoggato: " + loginBean.getDenominazione() + ", Delega: " + loginBean.getDelegaDenominazione() + ") Chiamata a getFileDaFirmare restituisce i file ";
+		}
+		if (lTaskFileDaFirmareBean.getFiles() != null && lTaskFileDaFirmareBean.getFiles().size() > 0) {	
+			for (FileDaFirmareBean lFileDaFirmareBean : lTaskFileDaFirmareBean.getFiles()) {
+				logFileDaFirmare += "[File " + lFileDaFirmareBean.getNomeFile() + " " + lFileDaFirmareBean.getUri() + "]";	
+			}
+		} else {
+			logFileDaFirmare += "[Nessun file]";
+		}
+		logger.debug(logFileDaFirmare);
 		return lTaskFileDaFirmareBean;		
 	}
 	
@@ -8533,9 +8639,10 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 		if (pNuovaPropostaAtto2CompletaBean.getListaAllegati() != null) {
 			for (AllegatoProtocolloBean lAllegatoProtocolloBean : pNuovaPropostaAtto2CompletaBean.getListaAllegati()){
 				boolean flgParteDispositivo = lAllegatoProtocolloBean.getFlgParteDispositivo() != null && lAllegatoProtocolloBean.getFlgParteDispositivo();
-				boolean flgNoPubblAllegato = lAllegatoProtocolloBean.getFlgNoPubblAllegato() != null && lAllegatoProtocolloBean.getFlgNoPubblAllegato();
-				boolean flgPubblicaSeparato = lAllegatoProtocolloBean.getFlgPubblicaSeparato() != null && lAllegatoProtocolloBean.getFlgPubblicaSeparato();
-				boolean flgPubblicaAllegatiSeparati = pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati();
+				boolean flgNoPubblAllegato = lAllegatoProtocolloBean.getFlgNoPubblAllegato() != null && lAllegatoProtocolloBean.getFlgNoPubblAllegato();								
+				boolean flgPubblicazioneAllegatiUguale = pNuovaPropostaAtto2CompletaBean.getFlgPubblicazioneAllegatiUguale() != null && pNuovaPropostaAtto2CompletaBean.getFlgPubblicazioneAllegatiUguale();
+				boolean flgPubblicaAllegatiSeparati = flgPubblicazioneAllegatiUguale && pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati() != null && pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati();
+				boolean flgPubblicaSeparato = !flgPubblicazioneAllegatiUguale && lAllegatoProtocolloBean.getFlgPubblicaSeparato() != null && lAllegatoProtocolloBean.getFlgPubblicaSeparato();				
 				boolean flgDatiSensibili = lAllegatoProtocolloBean.getFlgDatiSensibili() != null && lAllegatoProtocolloBean.getFlgDatiSensibili();
 				if (flgParteDispositivo && !flgNoPubblAllegato && (flgPubblicaAllegatiSeparati || flgPubblicaSeparato)) {
 					String idUd = pNuovaPropostaAtto2CompletaBean.getIdUd() != null ? String.valueOf(pNuovaPropostaAtto2CompletaBean.getIdUd()) : null;
@@ -8557,7 +8664,7 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 			}
 		}
 		lTaskFileDaFirmareBean.setFiles(listaFileDaFirmare);
-		return lTaskFileDaFirmareBean;		
+		return lTaskFileDaFirmareBean;	
 	}
 	
 	public TaskFileDaFirmareBean getFileAllegatiDaFirmare(NuovaPropostaAtto2CompletaBean pNuovaPropostaAtto2CompletaBean) throws StorageException, Exception{
@@ -8567,22 +8674,38 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 		if (pNuovaPropostaAtto2CompletaBean.getListaAllegati() != null) {
 			for (AllegatoProtocolloBean lAllegatoProtocolloBean : pNuovaPropostaAtto2CompletaBean.getListaAllegati()){
 				if (lAllegatoProtocolloBean.getFlgParteDispositivo() != null && lAllegatoProtocolloBean.getFlgParteDispositivo()) {
-					String idUd = pNuovaPropostaAtto2CompletaBean.getIdUd() != null ? String.valueOf(pNuovaPropostaAtto2CompletaBean.getIdUd()) : null;
-					lAllegatoProtocolloBean.setIdUdAppartenenza(idUd);
-					if (StringUtils.isNotBlank(lAllegatoProtocolloBean.getUriFileAllegato())) {
-						if (!skipFirmaAllegatiFirmati(lAllegatoProtocolloBean.getUriFileAllegato(), lAllegatoProtocolloBean.getInfoFile())){
-							aggiungiAllegato(listaFileAllegatiDaFirmare, lAllegatoProtocolloBean);
-						}
-					} 
-					if (lAllegatoProtocolloBean.getFlgDatiSensibili() != null && lAllegatoProtocolloBean.getFlgDatiSensibili() && StringUtils.isNotBlank(lAllegatoProtocolloBean.getUriFileOmissis())) {
-						if (!skipFirmaAllegatiFirmati(lAllegatoProtocolloBean.getUriFileOmissis(), lAllegatoProtocolloBean.getInfoFileOmissis())){
-							aggiungiAllegatoOmissis(listaFileAllegatiDaFirmare, lAllegatoProtocolloBean);
+					// Se il file è stato generato da modello e ha il flag genDaModelloDaFirmare lo ignoro, in quanto viene già passato come file da firmare nella lista listaRecordModelliGeneratiDaFirmare
+					if (lAllegatoProtocolloBean.getFlgGenDaModelloDaFirmare() == null || !lAllegatoProtocolloBean.getFlgGenDaModelloDaFirmare()) {
+						String idUd = pNuovaPropostaAtto2CompletaBean.getIdUd() != null ? String.valueOf(pNuovaPropostaAtto2CompletaBean.getIdUd()) : null;
+						lAllegatoProtocolloBean.setIdUdAppartenenza(idUd);
+						if (StringUtils.isNotBlank(lAllegatoProtocolloBean.getUriFileAllegato())) {
+							if (!skipFirmaAllegatiFirmati(lAllegatoProtocolloBean.getUriFileAllegato(), lAllegatoProtocolloBean.getInfoFile())){
+								aggiungiAllegato(listaFileAllegatiDaFirmare, lAllegatoProtocolloBean);
+							}
+						} 
+						if (lAllegatoProtocolloBean.getFlgDatiSensibili() != null && lAllegatoProtocolloBean.getFlgDatiSensibili() && StringUtils.isNotBlank(lAllegatoProtocolloBean.getUriFileOmissis())) {
+							if (!skipFirmaAllegatiFirmati(lAllegatoProtocolloBean.getUriFileOmissis(), lAllegatoProtocolloBean.getInfoFileOmissis())){
+								aggiungiAllegatoOmissis(listaFileAllegatiDaFirmare, lAllegatoProtocolloBean);
+							}
 						}
 					}
 				}
 			}
 		}
 		lTaskFileDaFirmareBean.setFiles(listaFileAllegatiDaFirmare);
+		String logFileDaFirmare = "";
+		AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo(getSession());
+		if (loginBean != null) {
+			logFileDaFirmare = "(UtenteLoggato: " + loginBean.getDenominazione() + ", Delega: " + loginBean.getDelegaDenominazione() + ") Chiamata a getFileAllegatiDaFirmare restituisce i file ";
+		}
+		if (lTaskFileDaFirmareBean.getFiles() != null && lTaskFileDaFirmareBean.getFiles().size() > 0) {	
+			for (FileDaFirmareBean lFileDaFirmareBean : lTaskFileDaFirmareBean.getFiles()) {
+				logFileDaFirmare += "[File " + lFileDaFirmareBean.getNomeFile() + " " + lFileDaFirmareBean.getUri() + "]";	
+			}
+		} else {
+			logFileDaFirmare += "[Nessun file]";
+		}
+		logger.debug(logFileDaFirmare);
 		return lTaskFileDaFirmareBean;		
 	}
 	
@@ -8594,22 +8717,38 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 		if (pNuovaPropostaAtto2CompletaBean.getListaAllegati() != null) {
 			for (AllegatoProtocolloBean lAllegatoProtocolloBean : pNuovaPropostaAtto2CompletaBean.getListaAllegati()){
 				if (lAllegatoProtocolloBean.getFlgParteDispositivo() != null && lAllegatoProtocolloBean.getFlgParteDispositivo()) {
-					String idUd = pNuovaPropostaAtto2CompletaBean.getIdUd() != null ? String.valueOf(pNuovaPropostaAtto2CompletaBean.getIdUd()) : null;
-					lAllegatoProtocolloBean.setIdUdAppartenenza(idUd);
-					if (StringUtils.isNotBlank(lAllegatoProtocolloBean.getUriFileAllegato())){
-						if (!skipFirmaAllegatiFirmati(lAllegatoProtocolloBean.getUriFileAllegato(), lAllegatoProtocolloBean.getInfoFile())){
-							aggiungiAllegato(listaFileAllegatiDaFirmare, lAllegatoProtocolloBean);
-						}
-					} 
-					if (!skipOmissisInFirmaAdozioneAtto && lAllegatoProtocolloBean.getFlgDatiSensibili() != null && lAllegatoProtocolloBean.getFlgDatiSensibili() && StringUtils.isNotBlank(lAllegatoProtocolloBean.getUriFileOmissis())){
-						if (!skipFirmaAllegatiFirmati(lAllegatoProtocolloBean.getUriFileOmissis(), lAllegatoProtocolloBean.getInfoFileOmissis())){
-							aggiungiAllegatoOmissis(listaFileAllegatiDaFirmare, lAllegatoProtocolloBean);
+					// Se il file è stato generato da modello e ha il flag genDaModelloDaFirmare lo ignoro, in quanto viene già passato come file da firmare nella lista listaRecordModelliGeneratiDaFirmare
+					if (lAllegatoProtocolloBean.getFlgGenDaModelloDaFirmare() == null || !lAllegatoProtocolloBean.getFlgGenDaModelloDaFirmare()) {
+						String idUd = pNuovaPropostaAtto2CompletaBean.getIdUd() != null ? String.valueOf(pNuovaPropostaAtto2CompletaBean.getIdUd()) : null;
+						lAllegatoProtocolloBean.setIdUdAppartenenza(idUd);
+						if (StringUtils.isNotBlank(lAllegatoProtocolloBean.getUriFileAllegato())){
+							if (!skipFirmaAllegatiFirmati(lAllegatoProtocolloBean.getUriFileAllegato(), lAllegatoProtocolloBean.getInfoFile())){
+								aggiungiAllegato(listaFileAllegatiDaFirmare, lAllegatoProtocolloBean);
+							}
+						} 
+						if (!skipOmissisInFirmaAdozioneAtto && lAllegatoProtocolloBean.getFlgDatiSensibili() != null && lAllegatoProtocolloBean.getFlgDatiSensibili() && StringUtils.isNotBlank(lAllegatoProtocolloBean.getUriFileOmissis())){
+							if (!skipFirmaAllegatiFirmati(lAllegatoProtocolloBean.getUriFileOmissis(), lAllegatoProtocolloBean.getInfoFileOmissis())){
+								aggiungiAllegatoOmissis(listaFileAllegatiDaFirmare, lAllegatoProtocolloBean);
+							}
 						}
 					}
 				}
 			}
 		}
 		lTaskFileDaFirmareBean.setFiles(listaFileAllegatiDaFirmare);
+		String logFileDaFirmare = "";
+		AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo(getSession());
+		if (loginBean != null) {
+			logFileDaFirmare = "(UtenteLoggato: " + loginBean.getDenominazione() + ", Delega: " + loginBean.getDelegaDenominazione() + ") Chiamata a getFileAllegatiDaFirmareWithFileUnione restituisce i file ";
+		}
+		if (lTaskFileDaFirmareBean.getFiles() != null && lTaskFileDaFirmareBean.getFiles().size() > 0) {	
+			for (FileDaFirmareBean lFileDaFirmareBean : lTaskFileDaFirmareBean.getFiles()) {
+				logFileDaFirmare += "[File " + lFileDaFirmareBean.getNomeFile() + " " + lFileDaFirmareBean.getUri() + "]";	
+			}
+		} else {
+			logFileDaFirmare += "[Nessun file]";
+		}
+		logger.debug(logFileDaFirmare);
 		return lTaskFileDaFirmareBean;		
 	}
 	
@@ -8739,10 +8878,11 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 		List<AllegatoParteIntSeparatoBean> listaAllegatiParteIntSeparatiVersIntegrale = new ArrayList<AllegatoParteIntSeparatoBean>();
 		List<AllegatoParteIntSeparatoBean> listaAllegatiParteIntSeparatiVersXPubbl = new ArrayList<AllegatoParteIntSeparatoBean>();
 		if (pNuovaPropostaAtto2CompletaBean.getListaAllegati() != null) {
-			boolean flgPubblicaAllegatiSeparati = pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati() != null && pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati(); // se è true tutti gli allegati sono da pubblicare separatamente		
+			boolean flgPubblicazioneAllegatiUguale = pNuovaPropostaAtto2CompletaBean.getFlgPubblicazioneAllegatiUguale() != null && pNuovaPropostaAtto2CompletaBean.getFlgPubblicazioneAllegatiUguale();
+			boolean flgPubblicaAllegatiSeparati = flgPubblicazioneAllegatiUguale && pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati() != null && pNuovaPropostaAtto2CompletaBean.getFlgPubblicaAllegatiSeparati(); // se è true tutti gli allegati sono da pubblicare separatamente		
 			for (AllegatoProtocolloBean lAllegatoProtocolloBean : pNuovaPropostaAtto2CompletaBean.getListaAllegati()){
 				boolean flgParteDispositivo = lAllegatoProtocolloBean.getFlgParteDispositivo() != null && lAllegatoProtocolloBean.getFlgParteDispositivo();
-				boolean flgPubblicaSeparato = lAllegatoProtocolloBean.getFlgPubblicaSeparato() != null && lAllegatoProtocolloBean.getFlgPubblicaSeparato();
+				boolean flgPubblicaSeparato = !flgPubblicazioneAllegatiUguale && lAllegatoProtocolloBean.getFlgPubblicaSeparato() != null && lAllegatoProtocolloBean.getFlgPubblicaSeparato();
 				boolean flgNoPubblAllegato = lAllegatoProtocolloBean.getFlgNoPubblAllegato() != null && lAllegatoProtocolloBean.getFlgNoPubblAllegato();				
 				if (flgParteDispositivo) { // se è parte integrante						
 					if(flgMostraDatiSensibili) {
@@ -9727,16 +9867,44 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 			logger.debug("#######INIZIO for in compilazioneAutomaticaListaModelliPdf######");
 			for(int i = 0; i < bean.getListaRecordModelli().size(); i++) {
 				CompilaModelloAttivitaBean modelloBean = bean.getListaRecordModelli().get(i);
-				logger.debug("#######INIZIO getDatiXGenDaModello in compilazioneAutomaticaListaModelliPdf######");
-				String templateValues = getDatiXGenDaModello(bean.getDettaglioBean(), modelloBean.getNomeModello(), null);				
-				logger.debug("#######FINE getDatiXGenDaModello in compilazioneAutomaticaListaModelliPdf######");
-				if(StringUtils.isNotBlank(modelloBean.getIdModello())) {
+				if (StringUtils.isNotBlank(modelloBean.getIdDocAllegatoDaFirmare())) {
+					// Se ho l'id doc considero il modello già generato, e prendo il file dall'allegato del dettaglio
+					// Verifico se l'allegato da firmare è presente negli allegati del dettaglio
+					boolean allegatoDaFirmareTrovato = false;
+					AllegatoProtocolloBean allegatoDaFirmare = null;
+					if (bean.getDettaglioBean() != null && bean.getDettaglioBean().getListaAllegati() != null) {
+						List<AllegatoProtocolloBean> listaAllegati = bean.getDettaglioBean().getListaAllegati();
+						try {
+							BigDecimal idDocAllegatoDaFirmare = new BigDecimal(modelloBean.getIdDocAllegatoDaFirmare());
+							for (AllegatoProtocolloBean allegato : listaAllegati) {
+								if (allegato.getIdDocAllegato() != null && allegato.getIdDocAllegato().compareTo(idDocAllegatoDaFirmare) == 0) {
+									allegatoDaFirmare = allegato;
+									allegatoDaFirmareTrovato = true;
+								}
+							}
+						} catch (Exception e) {
+							throw new Exception("L'allegato da firmare non è presente nella lista allegati");
+						}
+						if (allegatoDaFirmareTrovato) {
+							modelloBean.setUriFileGenerato(allegatoDaFirmare.getUriFileAllegato());
+							modelloBean.setInfoFileGenerato(allegatoDaFirmare.getInfoFile());
+						} else {
+							throw new Exception("L'allegato da firmare non è presente nella lista allegati");
+						}
+					}
+				} else if(StringUtils.isNotBlank(modelloBean.getIdModello())) {
+					logger.debug("#######INIZIO getDatiXGenDaModello in compilazioneAutomaticaListaModelliPdf######");
+					String templateValues = getDatiXGenDaModello(bean.getDettaglioBean(), modelloBean.getNomeModello(), null);				
+					logger.debug("#######FINE getDatiXGenDaModello in compilazioneAutomaticaListaModelliPdf######");
 					logger.debug("#######INIZIO modelloBean.getIdModello() IS NOT BLANK in compilazioneAutomaticaListaModelliPdf######");
 					FileDaFirmareBean lFileDaFirmareBean = ModelliUtil.fillTemplate(bean.getProcessId(), modelloBean.getIdModello(), templateValues, true, getSession());			
 					modelloBean.setUriFileGenerato(lFileDaFirmareBean.getUri());
 					modelloBean.setInfoFileGenerato(lFileDaFirmareBean.getInfoFile());			
 					logger.debug("#######FINE modelloBean.getIdModello() IS NOT BLANK in compilazioneAutomaticaListaModelliPdf######");
 				} else {
+					logger.debug("#######INIZIO getDatiXGenDaModello in compilazioneAutomaticaListaModelliPdf######");
+					String templateValues = getDatiXGenDaModello(bean.getDettaglioBean(), modelloBean.getNomeModello(), null);				
+					logger.debug("#######FINE getDatiXGenDaModello in compilazioneAutomaticaListaModelliPdf######");
 					logger.debug("#######INIZIO modelloBean.getIdModello() IS BLANK in compilazioneAutomaticaListaModelliPdf######");
 					logger.debug("#######INIZIO fillTemplateAndConvertToPdf in compilazioneAutomaticaListaModelliPdf######");
 					File fileModelloPdf = ModelliUtil.fillTemplateAndConvertToPdf(bean.getProcessId(), modelloBean.getUri(), modelloBean.getTipoModello(), templateValues, getSession());
@@ -9772,6 +9940,7 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 					String userIdFirmaAuto = modelloBean.getUserIdFirmaAuto();
 					String firmaInDelegaFirmaAuto = modelloBean.getFirmaInDelegaFirmaAuto();
 					String passwordFirmaAuto = modelloBean.getPasswordFirmaAuto();					
+					String pinFirmaAuto = modelloBean.getPinFirmaAuto();					
 					FirmaHsmBean lFirmaHsmBean = new FirmaHsmBean();					
 					List<FileDaFirmare> listaFileDaFirmare = new ArrayList<>();
 					// Settare i parametri del file da firmare
@@ -9803,6 +9972,7 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 						lFirmaHsmBean.setUsernameDelegante("");
 					}
 					lFirmaHsmBean.setPassword(passwordFirmaAuto);
+					lFirmaHsmBean.setAuthPIN(pinFirmaAuto);
 					// Parametri per eventuale firma Medas
 					// lFirmaHsmBean.setCodiceOtp(codiceOtp);
 					// lFirmaHsmBean.setCertId(certId);
@@ -9848,7 +10018,20 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 				}
 			}			
 			logger.debug("#######FINE for in compilazioneAutomaticaListaModelliPdf######");
+		}	
+		String logFileDaFirmare = "";
+		AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo(getSession());
+		if (loginBean != null) {
+			logFileDaFirmare = "(UtenteLoggato: " + loginBean.getDenominazione() + ", Delega: " + loginBean.getDelegaDenominazione() + ") Chiamata a compilazioneAutomaticaListaModelliPdf restituisce i file ";
 		}
+		if (bean.getListaRecordModelli() != null && bean.getListaRecordModelli().size() > 0) {	
+			for (CompilaModelloAttivitaBean lCompilaModelloAttivitaBean : bean.getListaRecordModelli()) {
+				logFileDaFirmare += "[File " + lCompilaModelloAttivitaBean.toString() + "]";	
+			}
+		} else {
+			logFileDaFirmare += "[Nessun file]";
+		}
+		logger.debug(logFileDaFirmare);
 		return bean;
 	}
 	
@@ -9933,39 +10116,45 @@ public class NuovaPropostaAtto2CompletaDataSource extends AbstractDataSource<Nuo
 		NuovaPropostaAtto2CompletaBean lNuovaPropostaAtto2CompletaBean = pTaskNuovaPropostaAtto2CompletaFileFirmatiBean.getProtocolloOriginale();
 		if (pTaskNuovaPropostaAtto2CompletaFileFirmatiBean.getFileFirmati() != null && pTaskNuovaPropostaAtto2CompletaFileFirmatiBean.getFileFirmati().getFiles() != null) {
 			boolean firmaNonValida = false;
+			String logFileAggiornati = "";
+			AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo(getSession());
+			if (loginBean != null) {
+				logFileAggiornati = "(UtenteLoggato: " + loginBean.getDenominazione() + ", Delega: " + loginBean.getDelegaDenominazione() + ") Chiamata a aggiornaFileFirmati per i file ";
+			}
 			for (FileDaFirmareBean lFileDaFirmareBean : pTaskNuovaPropostaAtto2CompletaFileFirmatiBean.getFileFirmati().getFiles()) {
 				String idFile = lFileDaFirmareBean.getIdFile();
 				if (lFileDaFirmareBean.getInfoFile().isFirmato() && !lFileDaFirmareBean.getInfoFile().isFirmaValida()) {
 					if (idFile.startsWith("primarioOmissis")) {
-						logger.error("La firma del file primario " + lFileDaFirmareBean.getNomeFile() + " (vers. con omissis) risulta essere non valida: "
-								+ lFileDaFirmareBean.getUri());
+						logger.error("La firma del file primario " + lFileDaFirmareBean.getNomeFile() + " (vers. con omissis) risulta essere non valida: " + lFileDaFirmareBean.getUri());
 					} else if (idFile.startsWith("primario")) {
-						logger.error("La firma del file primario " + lFileDaFirmareBean.getNomeFile() + " risulta essere non valida: "
-								+ lFileDaFirmareBean.getUri());
+						logger.error("La firma del file primario " + lFileDaFirmareBean.getNomeFile() + " risulta essere non valida: " + lFileDaFirmareBean.getUri());
 					} else if (idFile.startsWith("allegatoOmissis")) {
-						logger.error("La firma del file allegato " + lFileDaFirmareBean.getNomeFile() + " (vers. con omissis) risulta essere non valida: "
-								+ lFileDaFirmareBean.getUri());
+						logger.error("La firma del file allegato " + lFileDaFirmareBean.getNomeFile() + " (vers. con omissis) risulta essere non valida: " + lFileDaFirmareBean.getUri());
 					} else if (idFile.startsWith("allegato")) {
-						logger.error("La firma del file allegato " + lFileDaFirmareBean.getNomeFile() + " risulta essere non valida: "
-								+ lFileDaFirmareBean.getUri());
+						logger.error("La firma del file allegato " + lFileDaFirmareBean.getNomeFile() + " risulta essere non valida: " + lFileDaFirmareBean.getUri());
 					}  else if (idFile.startsWith("fileGenerato")) {
-						logger.error("La firma del file generato " + lFileDaFirmareBean.getNomeFile() + " risulta essere non valida: "
-								+ lFileDaFirmareBean.getUri());
+						logger.error("La firma del file generato " + lFileDaFirmareBean.getNomeFile() + " risulta essere non valida: " + lFileDaFirmareBean.getUri());
 					}
 					firmaNonValida = true;
 				}
 				if (idFile.startsWith("primarioOmissis")) {
+					logFileAggiornati += "[File primario omissis " + lFileDaFirmareBean.getNomeFile() + " " + lFileDaFirmareBean.getUri() + "]";
 					aggiornaPrimarioOmissisFirmato(lNuovaPropostaAtto2CompletaBean, lFileDaFirmareBean);
 				} else if (idFile.startsWith("primario")) {
 					aggiornaPrimarioFirmato(lNuovaPropostaAtto2CompletaBean, lFileDaFirmareBean);
+					logFileAggiornati += "[File primario " + lFileDaFirmareBean.getNomeFile() + " " + lFileDaFirmareBean.getUri() + "]";
 				} else if (idFile.startsWith("allegatoOmissis")) {
 					aggiornaAllegatoOmissisFirmato(lNuovaPropostaAtto2CompletaBean, lFileDaFirmareBean);
+					logFileAggiornati += "[File allegato omissis " + lFileDaFirmareBean.getNomeFile() + " " + lFileDaFirmareBean.getUri() + "]";
 				} else if (idFile.startsWith("allegato")) {
 					aggiornaAllegatoFirmato(lNuovaPropostaAtto2CompletaBean, lFileDaFirmareBean);
+					logFileAggiornati += "[File allegato " + lFileDaFirmareBean.getNomeFile() + " " + lFileDaFirmareBean.getUri() + "]";
 				} else if (idFile.startsWith("fileGenerato")) {
 					aggiornaFileGeneratoFirmato(lNuovaPropostaAtto2CompletaBean, lFileDaFirmareBean);
+					logFileAggiornati += "[File generato " + lFileDaFirmareBean.getNomeFile() + " " + lFileDaFirmareBean.getUri() + "]";
 				} 
 			}
+			logger.debug(logFileAggiornati);
 			if (firmaNonValida) {
 				throw new StoreException("La firma di uno o più file risulta essere non valida");
 			}

@@ -1,4 +1,8 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.invioMail;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import com.smartgwt.client.data.DSCallback;
 import com.smartgwt.client.data.DSRequest;
@@ -35,7 +39,7 @@ public class InvioMailMultiXlsLayout extends CustomDetail {
 		this(pWindow, pTipoRel, vm, pListaRecord, null);
 	}
 
-	public InvioMailMultiXlsLayout(Window pWindow, String pTipoRel, ValuesManager vm, RecordList pListaRecord, TipologiaMail tipologiaMailGestioneModelli) {
+	public InvioMailMultiXlsLayout(Window pWindow, final String pTipoRel, final ValuesManager vm, RecordList pListaRecord, final TipologiaMail tipologiaMailGestioneModelli) {
 
 		super("InvioMailMultiDestinatariXlsLayoutNew", vm);
 
@@ -44,14 +48,10 @@ public class InvioMailMultiXlsLayout extends CustomDetail {
 
 		tipoRel = pTipoRel;
 		listaRecord = pListaRecord;
-
-		setWidth100();
-		setHeight100();
-		setOverflow(Overflow.VISIBLE);
-
+		
 		form = new InvioMailMultiXlsForm(tipologiaMailGestioneModelli, pTipoRel, vm);
 		form.setMargin(10);
-
+		
 		setAlign(Alignment.CENTER);
 		setTop(50);
 
@@ -63,7 +63,6 @@ public class InvioMailMultiXlsLayout extends CustomDetail {
 		layout.addMember(form);
 
 		addMember(layout);
-
 	}
 
 	public boolean getFormFlgSalvaInviatiDefaultValue() {
@@ -127,7 +126,7 @@ public class InvioMailMultiXlsLayout extends CustomDetail {
 			Layout.addMessage(
 					new MessageBean(I18NUtil.getMessages().invio_mail_form_multi_destinatari_xls_esitoInvio_OK_value(idJobOut), "", MessageType.INFO));
 		}
-		//window.markForDestroy();
+		window.markForDestroy();
 	}
 
 	public InvioMailMultiXlsForm getForm() {
@@ -207,5 +206,12 @@ public class InvioMailMultiXlsLayout extends CustomDetail {
 			isPec = true;
 		}
 		return isPec;
+	}
+	
+	// Questo metodo ritorna la mappa di tutte le UO con specificità SCELTA_UO_LAVORO
+	public static LinkedHashMap<String, String> getUoCollegateUtenteValueMap(Map<String, String> uoSpecificaSceltaUOLavoroValueMap) {
+		LinkedHashMap<String, String> ret = new LinkedHashMap<String, String>();
+		ret.putAll(uoSpecificaSceltaUOLavoroValueMap);
+		return ret;
 	}
 }

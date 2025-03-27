@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.sinadoc.database.store.dmpk_load_combo_sinapoli.store.impl;
 
 import it.eng.sinadoc.database.store.dmpk_load_combo_sinapoli.bean.DmpkLoadComboSinapoliDmfn_load_combo_sinapoliBean;
 import it.eng.storeutil.HibernateStoreUtil;

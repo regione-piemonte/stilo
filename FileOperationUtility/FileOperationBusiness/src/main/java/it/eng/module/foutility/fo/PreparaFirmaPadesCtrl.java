@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.module.foutility.fo;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -80,22 +81,22 @@ public class PreparaFirmaPadesCtrl extends AbstractFileController {
 					File fileSenzaCommenti = output.getPropOfType(FormatRecognitionCtrl.FILE_SENZA_COMMENTI, File.class);
 					
 					if( fileSenzaCommenti==null ){
-						log.debug("file privo di commenti non trovato, provo a usare uso il file estratto");
+						log.debug(requestKey + " file privo di commenti non trovato, provo a usare uso il file estratto");
 						inputFile = output.getPropOfType( UnpackCtrl.EXTRACTED_FILE, File.class );
 						log.debug("File estratto " + inputFile);
 						if( inputFile==null ){
-							log.warn("file sbustato non trovato, uso il file di input");
+							log.warn(requestKey + " file sbustato non trovato, uso il file di input");
 							inputFile = input.getInputFile();
-							log.debug("Uso il file di input per la funzione di timbro");
+							log.debug(requestKey + " Uso il file di input per la funzione di timbro");
 						} else {
-							log.debug("Uso il file sbustato per la funzione di timbro");
+							log.debug(requestKey + " Uso il file sbustato per la funzione di timbro");
 						}
 					} else {
 						log.debug("Uso il file senza commenti per la funzione di timbro");
 						inputFile = fileSenzaCommenti;
 					}
 				} else {
-					log.debug("Uso il file staticizzato per la funzione di timbro");
+					log.debug(requestKey + " Uso il file staticizzato per la funzione di timbro");
 					inputFile = fileStaticizzato;
 				}
 				log.info(requestKey + " - Elaborazione file " + inputFile);
@@ -113,32 +114,32 @@ public class PreparaFirmaPadesCtrl extends AbstractFileController {
 				// verifico che il mimetype corrisponda a quello dei pdf
 				try {
 					String presenzaXform = output.getPropOfType( FormatRecognitionCtrl.FILE_XFORM, String.class);
-					log.debug("presenzaXform ricavato per il file " + presenzaXform);
+					log.debug(requestKey + " presenzaXform ricavato per il file " + presenzaXform);
 					
 					if(presenzaXform!=null && presenzaXform.equalsIgnoreCase( "true" )){
-						log.error("errore, formato file pdf editabile - non timbrabile");
+						log.error(requestKey + " errore, formato file pdf editabile - non timbrabile");
 						output.addError(response, FileOpMessage.TIMBRO_OP_FORMAT_PDFXFORM, VerificationStatusType.ERROR);
 						output.addResult( PreparaFirmaPadesCtrlCode, response );
 						return ret;
 					}
 					if(mimeType==null || !mimeType.match( "application/pdf" )){
-						log.error("errore, formato file non pdf");
+						log.error(requestKey + " errore, formato file non pdf");
 						output.addError(response, FileOpMessage.TIMBRO_OP_FORMAT_NOTPDF, VerificationStatusType.ERROR);
 						output.addResult( PreparaFirmaPadesCtrlCode, response );
 						return ret;
 					}
 				} catch (MimeTypeParseException e) {
-					log.error("errore, formato file non pdf");
+					log.error(requestKey + " errore, formato file non pdf");
 					output.addError(response, FileOpMessage.TIMBRO_OP_FORMAT_NOTPDF, VerificationStatusType.ERROR);
 					output.addResult( PreparaFirmaPadesCtrlCode, response );
 					return ret;
 				}
 			} else {
-				log.debug("Uso il file convertito per la funzione di timbro");
+				log.debug(requestKey + " Uso il file convertito per la funzione di timbro");
 			}
 			
 			
-			log.info("Elaborazione file " + inputFile );
+			log.info(requestKey + " Elaborazione file " + inputFile );
 			
 			InputPreparaFirmaPadesType ipfp=((InputPreparaFirmaPadesType) customInput);
 			if( ipfp!=null && inputFile!=null ){
@@ -152,104 +153,116 @@ public class PreparaFirmaPadesCtrl extends AbstractFileController {
 				int coordinataXRiquadroFirma = 0;
 				int coordinataYRiquadroFirma = 0;
 				Integer paginaFirma = 0;
+				float heightA4 = PageSize.A4.getHeight();
+				float widthA4 = PageSize.A4.getWidth();
+				
+				int margineLateraleInt = 20;
+				try{
+					margineLateraleInt = Integer.parseInt(margineLaterale);
+					log.info(requestKey + " margineLaterale " +margineLateraleInt);
+				} catch(Exception e){
+					log.error(requestKey + " Errore nella configurazione del margine laterale della griglia di firma, verra' utilizzato il default");
+				}
+				int margineInfInt = 20;
+				try{
+					margineInfInt = Integer.parseInt(margineInf);
+					log.info(requestKey + " margineInf " +margineInfInt);
+				} catch(Exception e){
+					log.error(requestKey + " Errore nella configurazione del margine inferiore della griglia di firma, verra' utilizzato il default");
+				}
+				
+				int numeroColonneFoglioInt = 3;
+				try{
+					numeroColonneFoglioInt = Integer.parseInt(numeroColonneFoglio);
+					log.info(requestKey + " numeroColonneFoglio " +numeroColonneFoglioInt);
+				} catch(Exception e){
+					log.error(requestKey + " Errore nella configurazione del numero di colonne della griglia di firma, verra' utilizzato il default");
+				}
+				int numeroRigheFoglioInt = 8;
+				try{
+					numeroRigheFoglioInt = Integer.parseInt(numeroRigheFoglio);
+					log.info(requestKey + " numeroRigheFoglioInt " +numeroRigheFoglioInt);
+				} catch(Exception e){
+					log.error(requestKey + " Errore nella configurazione del numero di righe della griglia di firma, verra' utilizzato il default");
+				}
+				
 				if(infoFirma!=null){
 					ampiezzaRiquadroFirma = infoFirma.getAmpiezzaRiquadroFirma();
 					if( ampiezzaRiquadroFirma==null || ampiezzaRiquadroFirma== 0 ){
-						int ampiezzaRiquadroDefInt = 190;
+						int ampiezzaRiquadroDefInt = 0;
 						try{
 							ampiezzaRiquadroDefInt = Integer.parseInt(ampiezzaRiquadroDefault);
 						} catch(Exception e){
-							log.error("Errore nella configurazione dell'ampiezza del riquadro di firma, verra' utilizzato il default");
+							log.error(requestKey + " Errore nella configurazione dell'ampiezza del riquadro di firma, verra' utilizzato il default");
+						}
+						if(ampiezzaRiquadroDefInt==0){
+							ampiezzaRiquadroDefInt = (int)((widthA4 - (2 * margineLateraleInt))/numeroColonneFoglioInt);
 						}
 						ampiezzaRiquadroFirma = ampiezzaRiquadroDefInt;
 					}
-					log.info("ampiezzaRiquadroFirma " +ampiezzaRiquadroFirma);
+					log.info(requestKey + " ampiezzaRiquadroFirma " +ampiezzaRiquadroFirma);
 					
 					altezzaRiquadroFirma = infoFirma.getAltezzaRiquadroFirma();
 					if( altezzaRiquadroFirma==null || altezzaRiquadroFirma== 0 ){
-						int altezzaRiquadroDefInt = 100;
+						int altezzaRiquadroDefInt = 0;
 						try{
 							altezzaRiquadroDefInt = Integer.parseInt(altezzaRiquadroDefault);
 						} catch(Exception e){
-							log.error("Errore nella configurazione dell'altezza del riquadro di firma, verra' utilizzato il default");
+							log.error(requestKey + " Errore nella configurazione dell'altezza del riquadro di firma, verra' utilizzato il default");
+						}
+						if(altezzaRiquadroDefInt==0){
+							altezzaRiquadroDefInt = (int)((heightA4 - (2 * margineInfInt))/numeroRigheFoglioInt);
 						}
 						altezzaRiquadroFirma = altezzaRiquadroDefInt;
 					}
-					log.info("altezzaRiquadroFirma " +altezzaRiquadroFirma);
+					log.info(requestKey + " altezzaRiquadroFirma " +altezzaRiquadroFirma);
 					
 					if( infoFirma.getCoordinataXRiquadroFirma()!=null){
 						coordinataXRiquadroFirma = infoFirma.getCoordinataXRiquadroFirma();
-						log.info("coordinataXRiquadroFirma " +coordinataXRiquadroFirma);
+						log.info(requestKey + " coordinataXRiquadroFirma " +coordinataXRiquadroFirma);
 					}
 					if( infoFirma.getCoordinataYRiquadroFirma()!=null){
 						coordinataYRiquadroFirma = infoFirma.getCoordinataYRiquadroFirma();
-						log.info("coordinataYRiquadroFirma " +coordinataYRiquadroFirma);
+						log.info(requestKey + " coordinataYRiquadroFirma " +coordinataYRiquadroFirma);
 					}
 					
-					float heightA4 = PageSize.A4.getHeight();
-					float widthA4 = PageSize.A4.getWidth();
+					
 					Integer riqFirmaVerticale = infoFirma.getAreaVerticale();
 					Integer riqFirmaOrizzontale = infoFirma.getAreaOrizzontale();
 					if( riqFirmaVerticale!=null && riqFirmaOrizzontale!=null ){
-						log.info("heightA4 " +heightA4 + " widthA4 " + widthA4);
-						log.info("riqFirma orizzontale " +riqFirmaOrizzontale + " verticale " +riqFirmaVerticale);
-						
-						int margineLateraleInt = 20;
-						try{
-							margineLateraleInt = Integer.parseInt(margineLaterale);
-						} catch(Exception e){
-							log.error("Errore nella configurazione del margine laterale della griglia di firma, verra' utilizzato il default");
-						}
-						int margineInfInt = 20;
-						try{
-							margineInfInt = Integer.parseInt(margineInf);
-						} catch(Exception e){
-							log.error("Errore nella configurazione del margine inferiore della griglia di firma, verra' utilizzato il default");
-						}
-						
-						int numeroColonneFoglioInt = 3;
-						try{
-							numeroColonneFoglioInt = Integer.parseInt(numeroColonneFoglio);
-						} catch(Exception e){
-							log.error("Errore nella configurazione del numero di colonne della griglia di firma, verra' utilizzato il default");
-						}
-						int numeroRigheFoglioInt = 8;
-						try{
-							numeroRigheFoglioInt = Integer.parseInt(numeroRigheFoglio);
-						} catch(Exception e){
-							log.error("Errore nella configurazione del numero di righe della griglia di firma, verra' utilizzato il default");
-						}
+						log.info(requestKey + " heightA4 " +heightA4 + " widthA4 " + widthA4);
+						log.info(requestKey + " riqFirma orizzontale " +riqFirmaOrizzontale + " verticale " +riqFirmaVerticale);
 						
 						if( riqFirmaOrizzontale>numeroColonneFoglioInt || riqFirmaOrizzontale<=0){
 							//errore
-							log.error("errore, numero di colonna della griglia di firma non consentito");
+							log.error(requestKey + " errore, numero di colonna della griglia di firma non consentito");
 							output.addError(response, FileOpMessage.VISIBLE_SIGN_COLUMN_ERROR, VerificationStatusType.ERROR);
 							output.addResult( PreparaFirmaPadesCtrlCode, response );
 							return ret;
 						}
 						if( riqFirmaVerticale>numeroRigheFoglioInt || riqFirmaVerticale<=0){
 							//errore
-							log.error("errore, numero di riga della griglia di firma non consentito");
+							log.error(requestKey + " errore, numero di riga della griglia di firma non consentito");
 							output.addError(response, FileOpMessage.VISIBLE_SIGN_ROW_ERROR, VerificationStatusType.ERROR);
 							output.addResult( PreparaFirmaPadesCtrlCode, response );
 							return ret;
 						}
 						
-						coordinataXRiquadroFirma = ((int)(widthA4/numeroColonneFoglioInt * (riqFirmaOrizzontale-1)))+margineLateraleInt;
-						coordinataYRiquadroFirma = ((int)(heightA4/numeroRigheFoglioInt * (riqFirmaVerticale-1)))+margineInfInt;
-						log.info("coordinataXRiquadroFirma " +coordinataXRiquadroFirma);
-						log.info("coordinataYRiquadroFirma " +coordinataYRiquadroFirma);
+						coordinataXRiquadroFirma = ((int)((widthA4 - (2 * margineLateraleInt))/numeroColonneFoglioInt) * (riqFirmaOrizzontale-1))+margineLateraleInt;
+						coordinataYRiquadroFirma = ((int)((heightA4 - (2 * margineInfInt))/numeroRigheFoglioInt) * (riqFirmaVerticale-1))+margineInfInt;
+						log.info(requestKey + " coordinataXRiquadroFirma " +coordinataXRiquadroFirma);
+						log.info(requestKey + " coordinataYRiquadroFirma " +coordinataYRiquadroFirma);
 						
 						if( (coordinataXRiquadroFirma+ampiezzaRiquadroFirma)>widthA4){
 							//errore
-							log.error("errore, con i parametri richiesti la firma grafica andrebbe fuori dai limiti di pagina");
+							log.error(requestKey + " errore, con i parametri richiesti la firma grafica andrebbe fuori dai limiti di pagina");
 							output.addError(response, FileOpMessage.VISIBLE_SIGN_LIMIT_ERROR, VerificationStatusType.ERROR);
 							output.addResult( PreparaFirmaPadesCtrlCode, response );
 							return ret;
 						}
 						if( (coordinataYRiquadroFirma+altezzaRiquadroFirma)>heightA4){
 							//errore
-							log.error("errore, con i parametri richiesti la firma grafica andrebbe fuori dai limiti di pagina");
+							log.error(requestKey + " errore, con i parametri richiesti la firma grafica andrebbe fuori dai limiti di pagina");
 							output.addError(response, FileOpMessage.VISIBLE_SIGN_LIMIT_ERROR, VerificationStatusType.ERROR);
 							output.addResult( PreparaFirmaPadesCtrlCode, response );
 							return ret;
@@ -490,12 +503,13 @@ public class PreparaFirmaPadesCtrl extends AbstractFileController {
 		float widthA4 = PageSize.A4.getWidth();
 		System.out.println(widthA4 + " " + heightA4);
 		Integer riqFirmaVerticale = 2;
-		Integer riqFirmaOrizzontale = 3;
+		Integer riqFirmaOrizzontale = 1;
 		float x  = (int)(widthA4/3 * (riqFirmaOrizzontale-1));
-		float y  = (int)(heightA4/8 * (riqFirmaVerticale-1));
+		float y  = (int)((heightA4-40)/6 * (riqFirmaVerticale-1))+20;
 		
 		System.out.println(x+" "+y);
 		
+		System.out.println(((heightA4-40)/6 * (riqFirmaVerticale-1)));
 		
 	}
 }

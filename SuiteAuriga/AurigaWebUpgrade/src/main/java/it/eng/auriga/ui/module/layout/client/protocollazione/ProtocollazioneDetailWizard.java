@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.Map;
 
@@ -246,6 +247,11 @@ public abstract class ProtocollazioneDetailWizard extends ProtocollazioneDetail 
 
 		createDetailSectionAllegati();
 		layoutDatiPrincipaliWizard.addMember(detailSectionAllegati);
+		
+		if (showDetailSectionVerificaPreFirma()) {
+			createDetailSectionVerificaPreFirma();
+			layoutDatiPrincipaliWizard.addMember(detailSectionVerificaPreFirma);
+		}
 
 		if(!showDetailSectionAssegnazioneBeforeDestinatari()) {
 			createDetailSectionAssegnazione();
@@ -277,6 +283,10 @@ public abstract class ProtocollazioneDetailWizard extends ProtocollazioneDetail 
 		markDetailSectionFolderCustom.setVisibility(Visibility.HIDDEN);
 		layoutDatiPrincipaliWizard.addMember(markDetailSectionFolderCustom);
 		layoutDatiPrincipaliWizard.addMember(detailSectionFolderCustom);
+		
+		createDetailSectionRelVsPraticheApplEsterne();
+		detailSectionRelVsPraticheApplEsterne.setVisible(false);
+		layoutDatiPrincipaliWizard.addMember(detailSectionRelVsPraticheApplEsterne);
 		
 		if(showDetailSectionAltreVie() && !showDetailSectionAltreVieAfterHeader()) {
 			createDetailSectionAltreVie();
@@ -1240,6 +1250,14 @@ public abstract class ProtocollazioneDetailWizard extends ProtocollazioneDetail 
 					}
 					
 					@Override
+					public boolean getShowVersioneOmissis() {
+						if(isPresentiFileConOmissis()) {
+							return true;
+						}
+						return super.getShowVersioneOmissis();
+					}
+					
+					@Override
 					public boolean getShowFlgParere() {
 						return showFlgParereInAllegatiItem();
 					}
@@ -1465,6 +1483,14 @@ public abstract class ProtocollazioneDetailWizard extends ProtocollazioneDetail 
 					@Override
 					public boolean isAttivaAllegatoUd() {
 						return AurigaLayout.getParametroDBAsBoolean("ATTIVA_ALLEGATO_UD");
+					}
+					
+					@Override
+					public boolean getShowVersioneOmissis() {
+						if(isPresentiFileConOmissis()) {
+							return true;
+						}
+						return super.getShowVersioneOmissis();
 					}
 				};
 				// Aggiungo solo gli attributi che devo visulizzare nella protocollazione, ma non metto le cose che sono solamente per gli atti 
@@ -2572,9 +2598,9 @@ public abstract class ProtocollazioneDetailWizard extends ProtocollazioneDetail 
 	}
 
 	@Override
-	public void modificaDatiMode(Boolean abilAggiuntaFile) {
+	public void modificaDatiMode(String editMode, Boolean abilAggiuntaFile) {
 		
-		super.modificaDatiMode(abilAggiuntaFile);
+		super.modificaDatiMode(editMode, abilAggiuntaFile);
 		
 		if(isModalitaWizard()) {
 			if(showDetailSectionCanaleDataRicezione()) {

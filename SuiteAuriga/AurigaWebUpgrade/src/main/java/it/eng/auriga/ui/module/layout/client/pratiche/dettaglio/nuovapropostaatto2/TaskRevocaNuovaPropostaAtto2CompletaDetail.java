@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovapropostaatto2;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -161,7 +162,6 @@ public class TaskRevocaNuovaPropostaAtto2CompletaDetail extends RevocaNuovaPropo
 	
 	protected DettaglioPraticaLayout dettaglioPraticaLayout;
 	
-	protected RecordList listaRecordModelli;
 	protected Record allegatoGeneratoDaModelloTask;
 	
 	protected Set<String> esitiTaskOk;	
@@ -277,8 +277,6 @@ public class TaskRevocaNuovaPropostaAtto2CompletaDetail extends RevocaNuovaPropo
 		
 		this.dettaglioPraticaLayout = dettaglioPraticaLayout;
 		
-		this.listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
-
 		RecordList listaEsitiTaskOk = lRecordEvento != null ? lRecordEvento.getAttributeAsRecordList("esitiTaskOk") : null;
 		if(listaEsitiTaskOk != null && listaEsitiTaskOk.getLength() > 0) {
 			esitiTaskOk = new HashSet<String>();
@@ -439,6 +437,7 @@ public class TaskRevocaNuovaPropostaAtto2CompletaDetail extends RevocaNuovaPropo
 			final TabSet tabSetDatiStorici = new TabSet();
 
 			GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");
+			lGwtRestService.addParam("flgSkipAttrSenzaCategoria", "true");
 			// lGwtRestService.addParam("suffisso", "_CMMI");
 			lGwtRestService.addParam("nomeFlussoWF", nomeFlussoWF);
 			lGwtRestService.addParam("processNameWF", processNameWF);
@@ -986,6 +985,8 @@ public class TaskRevocaNuovaPropostaAtto2CompletaDetail extends RevocaNuovaPropo
 					rowidDoc = lRecord.getAttribute("rowidDoc");
 					tipoDocumento = lRecord.getAttribute("tipoDocumento");
 					if (isEseguibile() && !isReadOnly()) {
+						// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+						RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 						if(listaRecordModelli != null && listaRecordModelli.getLength() > 0) {
 							RecordList listaAllegati = lRecord.getAttributeAsRecordList("listaAllegati");
 							for (int i = 0; i < listaRecordModelli.getLength(); i++) {
@@ -2028,51 +2029,111 @@ public class TaskRevocaNuovaPropostaAtto2CompletaDetail extends RevocaNuovaPropo
 						listaWarnings.add("Manca l'indicazione dei destinatari della notifica tramite PEC. ");
 					}
 				}
-				if(isDeterminaConSpesa() && isAttivoContabilia() && showAttributoCustomCablato("MOVIMENTO_CONTABILIA") && !"".equals(getValueAsString("idPropostaAMC"))) {
-					RecordList listaMovimentiContabilia = movimentiContabiliForm != null ? movimentiContabiliForm.getValueAsRecordList("listaMovimentiContabilia") : null;
-					boolean isMovimentiContabiliaWithCodiceGSA = false;
-					boolean isMovimentiContabiliaWithCodiceGSASenzaDatiGSA = false;
-					if(listaMovimentiContabilia != null) {
-						for(int i = 0; i < listaMovimentiContabilia.getLength(); i++) {
-							if(listaMovimentiContabilia.get(i).getAttribute("codiceGsa") != null && !"".equals(listaMovimentiContabilia.get(i).getAttribute("codiceGsa"))) {
-								isMovimentiContabiliaWithCodiceGSA = true;
-								if(listaMovimentiContabilia.get(i).getAttribute("datiGsa") == null || "".equals(listaMovimentiContabilia.get(i).getAttribute("datiGsa"))) {
-									isMovimentiContabiliaWithCodiceGSASenzaDatiGSA = true;
+				if(isDeterminaConSpesa()) {
+					if(isAttivoContabilia() && showAttributoCustomCablato("MOVIMENTO_CONTABILIA") && !"".equals(getValueAsString("idPropostaAMC"))) {
+						RecordList listaMovimentiContabilia = movimentiContabiliForm != null ? movimentiContabiliForm.getValueAsRecordList("listaMovimentiContabilia") : null;
+						boolean isMovimentiContabiliaWithCodiceGSA = false;
+						boolean isMovimentiContabiliaWithCodiceGSASenzaDatiGSA = false;
+						if(listaMovimentiContabilia != null) {
+							for(int i = 0; i < listaMovimentiContabilia.getLength(); i++) {
+								if(listaMovimentiContabilia.get(i).getAttribute("codiceGsa") != null && !"".equals(listaMovimentiContabilia.get(i).getAttribute("codiceGsa"))) {
+									boolean isCodiceGsaEditabile = false;
+									String codGSAEditabili = AurigaLayout.getParametroDB("LISTA_COD_GSA_EDITABILI");
+									if(codGSAEditabili != null && !"".equals(codGSAEditabili)) {
+										StringSplitterClient st = new StringSplitterClient(codGSAEditabili, ";");
+										Set<String> setCodGSAEditabili = new HashSet<String>();
+										for (String token : st.getTokens()) {
+											setCodGSAEditabili.add(token);
+										}
+										// solo se codiceGsa in LISTA_COD_GSA_EDITABILI (valori separati da ;)
+										if(setCodGSAEditabili.contains(listaMovimentiContabilia.get(i).getAttribute("codiceGsa"))) {
+											isCodiceGsaEditabile = true;							
+										}
+									} else {
+										isCodiceGsaEditabile = true;	
+									}
+									if(isCodiceGsaEditabile) {
+										isMovimentiContabiliaWithCodiceGSA = true;								
+										if(listaMovimentiContabilia.get(i).getAttribute("datiGsa") == null || "".equals(listaMovimentiContabilia.get(i).getAttribute("datiGsa"))) {
+											isMovimentiContabiliaWithCodiceGSASenzaDatiGSA = true;
+										}	
+									}
 								}
 							}
 						}
-					}
-					if(showAttributoCustomCablato("TASK_RESULT_2_RIL_GSA") && _FLG_NO.equals(getValueAsString("flgDatiRilevantiGSA")) && isMovimentiContabiliaWithCodiceGSA) {
-						listaWarnings.add("ATTENZIONE: ci sono movimenti contabili che hanno dati GSA ma è stata selezionata l'opzione \"Dati rilevanti GSA = NO\".");
-					}
-					if(showAttributoCustomCablato("TASK_RESULT_2_RIL_GSA") && _FLG_SI.equals(getValueAsString("flgDatiRilevantiGSA")) && !isMovimentiContabiliaWithCodiceGSA) {
-						listaWarnings.add("ATTENZIONE: NON ci sono movimenti contabili che hanno dati GSA ma è stata selezionata l'opzione \"Dati rilevanti GSA = SI\".");
-					}
-					if(showAttributoCustomCablato("DATI_CONTABILIA_DETT_GSA") && getFlgEditabileAttributoCustomCablato("DATI_CONTABILIA_DETT_GSA")) {
-						if(isMovimentiContabiliaWithCodiceGSASenzaDatiGSA) {
+						if(showAttributoCustomCablato("TASK_RESULT_2_RIL_GSA") && _FLG_NO.equals(getValueAsString("flgDatiRilevantiGSA")) && isMovimentiContabiliaWithCodiceGSA) {
+							listaWarnings.add("ATTENZIONE: ci sono movimenti contabili che hanno dati GSA ma è stata selezionata l'opzione \"Dati rilevanti GSA = NO\".");
+						}						
+						if(isDatiRilevantiGSA() && !isMovimentiContabiliaWithCodiceGSA) {
+							if(showAttributoCustomCablato("DATI_GSA") && getFlgEditabileAttributoCustomCablato("DATI_GSA")) {
+								RecordList listaMovimentiGSA = movimentiGSAForm != null ? movimentiGSAForm.getValueAsRecordList("listaMovimentiGSA") : null;
+								boolean isMovimentiGSAWithDatiGSA = false;
+								if(listaMovimentiGSA != null) {
+									for(int i = 0; i < listaMovimentiGSA.getLength(); i++) {
+										if(listaMovimentiGSA.get(i).getAttribute("datiGsa") != null && !"".equals(listaMovimentiGSA.get(i).getAttribute("datiGsa"))) {
+											isMovimentiGSAWithDatiGSA = true;
+											break;
+										}
+									}
+								}
+								if(!isMovimentiGSAWithDatiGSA) {
+									messaggio = null;
+									attrEsito = null;
+									Layout.addMessage(new MessageBean("E' obbligatorio compilare almeno un movimento con dati GSA per poter procedere", "", MessageType.ERROR));	
+									return;
+								}
+							} else if(showAttributoCustomCablato("DATI_CONTABILIA_DETT_GSA") && getFlgEditabileAttributoCustomCablato("DATI_CONTABILIA_DETT_GSA")) {
+								messaggio = null;
+								attrEsito = null;
+								Layout.addMessage(new MessageBean("E' obbligatorio compilare almeno un movimento con dati GSA per poter procedere", "", MessageType.ERROR));	
+								return;
+							}
+						}						
+						if(isDatiRilevantiGSA() && showAttributoCustomCablato("DATI_CONTABILIA_DETT_GSA") && getFlgEditabileAttributoCustomCablato("DATI_CONTABILIA_DETT_GSA") && isMovimentiContabiliaWithCodiceGSASenzaDatiGSA) {
 							messaggio = null;
 							attrEsito = null;
 							Layout.addMessage(new MessageBean("E' obbligatorio compilare i dati GSA sui movimenti contabili che hanno il cod. perim. sanitario valorizzato", "", MessageType.ERROR));
-							return;
+							return;						
 						}
-					}
-				}				
-				if(isDeterminaSenzaSpesa() && isDatiRilevantiGSA() && showAttributoCustomCablato("DATI_GSA") && getFlgEditabileAttributoCustomCablato("DATI_GSA")) {
-					RecordList listaMovimentiGSA = movimentiGSAForm != null ? movimentiGSAForm.getValueAsRecordList("listaMovimentiGSA") : null;
-					boolean isMovimentiGSAWithDatiGSA = false;
-					if(listaMovimentiGSA != null) {
-						for(int i = 0; i < listaMovimentiGSA.getLength(); i++) {
-							if(listaMovimentiGSA.get(i).getAttribute("datiGsa") != null && !"".equals(listaMovimentiGSA.get(i).getAttribute("datiGsa"))) {
-								isMovimentiGSAWithDatiGSA = true;
-								break;
+					} else {
+						if(showAttributoCustomCablato("DATI_GSA") && getFlgEditabileAttributoCustomCablato("DATI_GSA")) {
+							RecordList listaMovimentiGSA = movimentiGSAForm != null ? movimentiGSAForm.getValueAsRecordList("listaMovimentiGSA") : null;
+							boolean isMovimentiGSAWithDatiGSA = false;
+							if(listaMovimentiGSA != null) {
+								for(int i = 0; i < listaMovimentiGSA.getLength(); i++) {
+									if(listaMovimentiGSA.get(i).getAttribute("datiGsa") != null && !"".equals(listaMovimentiGSA.get(i).getAttribute("datiGsa"))) {
+										isMovimentiGSAWithDatiGSA = true;
+										break;
+									}
+								}
+							}
+							if(isDatiRilevantiGSA() && !isMovimentiGSAWithDatiGSA) {
+								messaggio = null;
+								attrEsito = null;
+								Layout.addMessage(new MessageBean("E' obbligatorio compilare almeno un movimento con dati GSA per poter procedere", "", MessageType.ERROR));	
+								return;
 							}
 						}
 					}
-					if(!isMovimentiGSAWithDatiGSA) {
-						messaggio = null;
-						attrEsito = null;
-						Layout.addMessage(new MessageBean("E' obbligatorio compilare almeno un movimento con dati GSA per poter procedere", "", MessageType.ERROR));	
-						return;
+				}
+				if(isDeterminaSenzaSpesa()) {
+					if(showAttributoCustomCablato("DATI_GSA") && getFlgEditabileAttributoCustomCablato("DATI_GSA")) {
+						RecordList listaMovimentiGSA = movimentiGSAForm != null ? movimentiGSAForm.getValueAsRecordList("listaMovimentiGSA") : null;
+						boolean isMovimentiGSAWithDatiGSA = false;
+						if(listaMovimentiGSA != null) {
+							for(int i = 0; i < listaMovimentiGSA.getLength(); i++) {
+								if(listaMovimentiGSA.get(i).getAttribute("datiGsa") != null && !"".equals(listaMovimentiGSA.get(i).getAttribute("datiGsa"))) {
+									isMovimentiGSAWithDatiGSA = true;
+									break;
+								}
+							}
+						}
+						if(isDatiRilevantiGSA() && !isMovimentiGSAWithDatiGSA) {
+							messaggio = null;
+							attrEsito = null;
+							Layout.addMessage(new MessageBean("E' obbligatorio compilare almeno un movimento con dati GSA per poter procedere", "", MessageType.ERROR));	
+							return;
+						}
 					}
 				}
 				if (listaWarnings != null && listaWarnings.size() > 0) {
@@ -2136,6 +2197,8 @@ public class TaskRevocaNuovaPropostaAtto2CompletaDetail extends RevocaNuovaPropo
 	}
 	
 	public RecordList getListaRecordModelliXEsitoPreAvanzamentoFlusso(String esito) {
+		// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+		RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 		if (listaRecordModelli != null && listaRecordModelli.getLength() > 0) {	
 			RecordList listaRecordModelliConEsitoUguale = new RecordList();		
 			RecordList listaRecordModelliSenzaEsito = new RecordList();		
@@ -2163,6 +2226,8 @@ public class TaskRevocaNuovaPropostaAtto2CompletaDetail extends RevocaNuovaPropo
 	}
 	
 	public RecordList getListaRecordModelliXEsitoPostAvanzamentoFlusso(String esito) {
+		// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+		RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 		if (listaRecordModelli != null && listaRecordModelli.getLength() > 0) {	
 			RecordList listaRecordModelliConEsitoUguale = new RecordList();		
 			RecordList listaRecordModelliSenzaEsito = new RecordList();		
@@ -2949,6 +3014,7 @@ public class TaskRevocaNuovaPropostaAtto2CompletaDetail extends RevocaNuovaPropo
 			String userIdFirmatario = recordEvento != null ? recordEvento.getAttribute("docActionsFirmaAutomaticaUseridFirmatario") : null;
 			String firmaInDelega = recordEvento != null ? recordEvento.getAttribute("docActionsFirmaAutomaticaFirmaInDelega") : null;
 			String password = recordEvento != null ? recordEvento.getAttribute("docActionsFirmaAutomaticaPassword") : null;
+			String authPin = recordEvento != null ? recordEvento.getAttribute("docActionsFirmaAutomaticaAuthPIN") : null;
 			String providerFirma = recordEvento != null ? recordEvento.getAttribute("docActionsFirmaAutomaticaProvider") : null;
 			String hsmTipoFirmaAtti = AurigaLayout.getParametroDB("HSM_TIPO_FIRMA_ATTI");
 			String username;
@@ -2960,7 +3026,7 @@ public class TaskRevocaNuovaPropostaAtto2CompletaDetail extends RevocaNuovaPropo
 				username = userIdFirmatario;
 				usernameDelegante = "";
 			}
-			FirmaUtility.firmaMultiplaHsmAutomatica(true, recordList.toArray(), username, usernameDelegante, password, providerFirma, hsmTipoFirmaAtti, callbackFirmaEseguita, callbackFirmaNonEseguita);
+			FirmaUtility.firmaMultiplaHsmAutomatica(true, recordList.toArray(), username, usernameDelegante, password, authPin, providerFirma, hsmTipoFirmaAtti, callbackFirmaEseguita, callbackFirmaNonEseguita);
 		 } else {
 			 // Proseguo normalmente
 			 callbackFirmaEseguita.execute(signedFiles, filesAndUd);
@@ -4200,7 +4266,10 @@ public class TaskRevocaNuovaPropostaAtto2CompletaDetail extends RevocaNuovaPropo
 				}
 				
 				int posModello = -1;
-				if(listaRecordModelliGenerati.get(i).getAttributeAsBoolean("flgCreaNuovoDoc")) {
+				if (listaRecordModelliGenerati.get(i).getAttribute("idDocAllegatoDaFirmare") != null && !listaRecordModelliGenerati.get(i).getAttribute("idDocAllegatoDaFirmare").equalsIgnoreCase("")) {
+					// Sono sicuro di trovare una corrispondenza perchè l'ho già trovata in compilazioneAutomaticaListaModelliPdf di NuovaPropostaAtto2CompletaDataSource
+					posModello = getPosAllegatoFromIdDoc(listaRecordModelliGenerati.get(i).getAttribute("idDocAllegatoDaFirmare"), listaAllegati);
+				} else if(listaRecordModelliGenerati.get(i).getAttributeAsBoolean("flgCreaNuovoDoc")) {
 					posModello = getPosAllegatoFromTipoSenzaIdDocConFileGenDaModelloDaFirmareNonFirmato(idTipoModello, listaAllegati);
 				} else {
 					posModello = getPosAllegatoFromTipo(idTipoModello, listaAllegati);

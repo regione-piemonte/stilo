@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.lock;
 
 import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreLockdocBean;
 import it.eng.auriga.database.store.dmpk_core.store.Lockdoc;
@@ -9,6 +10,8 @@ import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.auriga.module.business.beans.SpecializzazioneBean;
 import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
+import it.eng.document.function.StoreException;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -17,6 +20,8 @@ import java.util.ArrayList;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -67,6 +72,7 @@ public class WSLock extends JAXWSAbstractAurigaService implements WSILock{
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
 
 
@@ -76,6 +82,7 @@ public class WSLock extends JAXWSAbstractAurigaService implements WSILock{
       
     String errMsg = null;
     String xmlIn = null;
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
     
     try {
     	 aLogger.info("Inizio WSLock");
@@ -112,6 +119,11 @@ public class WSLock extends JAXWSAbstractAurigaService implements WSILock{
  			 outServizio =  eseguiServizio(loginBean,outWS); 	 		
 	 		}
 	 	catch (Exception e){	 
+	 		if (e instanceof StoreException) {
+	    		if(((StoreException) e).getError()!=null){
+	    			errCode = ((StoreException) e).getError().getErrorCode();
+	    		}
+	    	}
 	 		if(e.getMessage()!=null)
 	 			 errMsg = "Errore = " + e.getMessage();
 	 		 else
@@ -158,7 +170,7 @@ public class WSLock extends JAXWSAbstractAurigaService implements WSILock{
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 	 	 }
 	 	 else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	 }
 	 			        	
 	     aLogger.info("Fine WSLock");
@@ -180,96 +192,81 @@ public class WSLock extends JAXWSAbstractAurigaService implements WSILock{
 
     
     private String eseguiServizio(AurigaLoginBean loginBean, WSLockBean bean) throws Exception {
-    	aLogger.debug("Eseguo il servizio di AurigaDocument.");
+    	aLogger.debug("Eseguo il servizio  DMPK_CORE.LockDoc");
     	
     	String ret = null;
     	
-		// creo l'input
+    	// Inizializzo l'INPUT  
 		BigDecimal idDocIn       = (bean.getIdDoc() != null) ? new BigDecimal(bean.getIdDoc()) : null;	    		
 		
-	    try {	    	
-	    	    // **********************************************************
-	    	    // Eseguo il DMPK_CORE.LockDoc
-	    	    // **********************************************************
-	    	    aLogger.debug("Eseguo il servizio  DMPK_CORE.LockDoc");
-	    	
-	    	    DmpkCoreLockdocBean lLockdocBean = new DmpkCoreLockdocBean();
-	    	    lLockdocBean.setCodidconnectiontokenin(loginBean.getToken());
-	    	    lLockdocBean.setIduserlavoroin(StringUtils.isNotBlank(loginBean.getIdUserLavoro()) ? new BigDecimal(loginBean.getIdUserLavoro()) : null);
-	    	    lLockdocBean.setIddocin(idDocIn);
-	    	    lLockdocBean.setFlgtipolockin("I");		// Imposto il lock I = implicito 
-	    	    
-	    	    
-	    	    Lockdoc lLockdoc = new Lockdoc();			
-				
-				StoreResultBean<DmpkCoreLockdocBean> lStoreResultBean = lLockdoc.execute(loginBean, lLockdocBean);
-				if (lStoreResultBean.isInError()){
-					aLogger.debug(lStoreResultBean.getDefaultMessage());
-					aLogger.debug(lStoreResultBean.getErrorContext());
-					aLogger.debug(lStoreResultBean.getErrorCode());
-					throw new Exception(lStoreResultBean.getDefaultMessage());
-				}
-	    		
-				// Leggo l'URI del file elettronico
-				if(lStoreResultBean.getResultBean().getUriverout()!=null)
-					ret = lStoreResultBean.getResultBean().getUriverout();
-				else
-					throw new Exception("La store procedure DMPK_CORE.LockDoc ha ritornato Uriverout nullo");
-	 		}
-	 	catch (Exception e){
-	 		throw new Exception(e.getMessage());	
-	 	}
+	    DmpkCoreLockdocBean input = new DmpkCoreLockdocBean();
+	    input.setCodidconnectiontokenin(loginBean.getToken());
+	    input.setIduserlavoroin(StringUtils.isNotBlank(loginBean.getIdUserLavoro()) ? new BigDecimal(loginBean.getIdUserLavoro()) : null);
+	    input.setIddocin(idDocIn);
+	    input.setFlgtipolockin("I");		// Imposto il lock I = implicito 
+	    
+	    Lockdoc service = new Lockdoc();			
+		StoreResultBean<DmpkCoreLockdocBean> output = service.execute(loginBean, input);
+		
+		if (output.isInError()){
+			aLogger.debug(output.getDefaultMessage());
+			aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+			throw new StoreException(output);
+		}
+		
+		// Leggo l'URI del file elettronico
+		if(output.getResultBean().getUriverout()!=null)
+			ret = output.getResultBean().getUriverout();
+		else
+			throw new Exception("La store procedure DMPK_CORE.LockDoc ha ritornato Uriverout nullo");
+		
 	 	return ret;    	
     }
     
     private WSLockBean callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-    	    	
-    	aLogger.debug("Eseguo il WS DmpkWsLockCheckOut.");
+    	aLogger.debug("Eseguo il WS DMPK_WS->LockCheckOut.");
     	
     	String idDoc       = null;
     	String xml         = null;    	
 
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsLockcheckoutBean input = new DmpkWsLockcheckoutBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		  input.setFlgtipowsin("L");       							// operazione di Lock = "L"
-      		
-    		  // Eseguo il servizio
-    		  Lockcheckout service = new Lockcheckout();
-    		  StoreResultBean<DmpkWsLockcheckoutBean> output = service.execute(loginBean, input);
+    	// Inizializzo l'INPUT    		
+    	DmpkWsLockcheckoutBean input = new DmpkWsLockcheckoutBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+    	input.setFlgtipowsin("L");       							// operazione di Lock = "L"
+	
+    	// Eseguo il servizio
+    	Lockcheckout service = new Lockcheckout();
+    	StoreResultBean<DmpkWsLockcheckoutBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
+    	if (output.isInError()){
+    		aLogger.debug(output.getDefaultMessage());
+    		aLogger.debug(output.getErrorContext());
+    		aLogger.debug(output.getErrorCode());
+    		throw new StoreException(output);
+    	}
 
-    		  // restituisco l'ID DOC
-    		  if (output.getResultBean().getIddocout() != null){
-    			  idDoc = output.getResultBean().getIddocout().toString();  
-    		  }
-    		  if (idDoc== null || idDoc.equalsIgnoreCase("")){
-    			  throw new Exception("La store procedure LockCheckout ha ritornato id doc nullo");
-    		  }
-    		  
-    		  // restituisco l'XML
-    		  if(output.getResultBean().getXmlout()!=null){
-    			  xml = output.getResultBean().getXmlout();  
-    		  }
-    		      		      		       	      
-      	      // popolo il bean di out
-    		  WSLockBean result = new WSLockBean();
-    		  result.setXml(xml);
-    		  result.setIdDoc(idDoc);
-    		  
-    			  
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+    	// restituisco l'ID DOC
+    	if (output.getResultBean().getIddocout() != null){
+		  idDoc = output.getResultBean().getIddocout().toString();  
+    	}
+    	if (idDoc== null || idDoc.equalsIgnoreCase("")){
+		  throw new Exception("La store procedure LockCheckout ha ritornato id doc nullo");
+    	}
+	  
+    	// restituisco l'XML
+    	if(output.getResultBean().getXmlout()!=null){
+		  xml = output.getResultBean().getXmlout();  
+    	}
+	      		      		       	      
+    	// popolo il bean di out
+    	WSLockBean result = new WSLockBean();
+    	result.setXml(xml);
+    	result.setIdDoc(idDoc);
+		  
+	  return result;
     }
-    
     
 	/**
      * Genera il file XML contenente l'id del folder aggiunto
@@ -287,7 +284,7 @@ public class WSLock extends JAXWSAbstractAurigaService implements WSILock{
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             aLogger.debug("generaXMLToken: token = " + xmlIn);
             aLogger.debug("generaXMLToken: tokenEsc = " + xmlInEsc);

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.registriNumerazione.datasource.bean;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -6,7 +7,7 @@ import java.util.List;
 
 import it.eng.document.TipoData;
 import it.eng.document.TipoData.Tipo;
-
+import java.util.Map;
 
 public class RegistriNumerazioneBean  extends RegistriNumerazioneXmlBean{
 
@@ -20,7 +21,7 @@ public class RegistriNumerazioneBean  extends RegistriNumerazioneXmlBean{
 	@TipoData(tipo = Tipo.DATA)
 	private Date dtUltimoCambioStato;
 
-	private String rowId;
+	private String rowid;
 	private BigDecimal nroIniziale;
 	private Boolean flgLocked;
 	private String flgAmmEscXTipiDoc;
@@ -35,13 +36,12 @@ public class RegistriNumerazioneBean  extends RegistriNumerazioneXmlBean{
 	
 	private List<TipiDocAmmEscBean> listaTipiDocAmmEsc;
 	
+	// Attributi dinamici
+	 private Map<String, Object> valori;
+	 private Map<String, String> tipiValori;
+	 	
 	
-	public String getRowId() {
-		return rowId;
-	}
-	public void setRowId(String rowId) {
-		this.rowId = rowId;
-	}
+	
 	public Date getDtInizioVld() {
 		return dtInizioVld;
 	}
@@ -133,8 +133,24 @@ public class RegistriNumerazioneBean  extends RegistriNumerazioneXmlBean{
 		this.listaTipiDocAmmEsc = listaTipiDocAmmEsc;
 	}
 
-	
-	
+	public Map<String, Object> getValori() {
+		return valori;
+	}
+	public void setValori(Map<String, Object> valori) {
+		this.valori = valori;
+	}
+	public Map<String, String> getTipiValori() {
+		return tipiValori;
+	}
+	public void setTipiValori(Map<String, String> tipiValori) {
+		this.tipiValori = tipiValori;
+	}
+	public String getRowid() {
+		return rowid;
+	}
+	public void setRowid(String rowid) {
+		this.rowid = rowid;
+	}	
 	
 	
 }

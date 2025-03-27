@@ -1,7 +1,7 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
@@ -157,6 +157,12 @@ public class CreaModDocumentoInBean implements Serializable {
 	@XmlVariabile(nome = "#@DestinatariEsterni", tipo = TipoVariabile.LISTA)
 	private List<DestinatariBean> destinatari;
 	
+	@XmlVariabile(nome = "FLG_SEGNA_INVIO_MAIL_EXTRA_SISTEMA_Ud", tipo = TipoVariabile.SEMPLICE)
+	private Integer flgSegnaInvioMailExtraSistema;
+	
+	@XmlVariabile(nome = "FLG_INVIATA_MAIL_EXTRA_SISTEMA_Ud", tipo = TipoVariabile.SEMPLICE)
+	private Integer flgInviataMailExtraSistema;
+	
 	@XmlVariabile(nome = "#@FogliXlsDestinatari", tipo = TipoVariabile.LISTA)
 	private List<FogliXlsDestinatari> fogliXlsDestinatari;
 
@@ -177,6 +183,9 @@ public class CreaModDocumentoInBean implements Serializable {
 
 	@XmlVariabile(nome = "#@FolderCustom", tipo = TipoVariabile.LISTA)
 	private List<FolderCustom> folderCustom;
+	
+	@XmlVariabile(nome = "RelVsPraticheApplEsterne", tipo = TipoVariabile.LISTA)
+	private List<RelVsPraticheApplEsterneXmlBean> relVsPraticheApplEsterne;
 
 	@XmlVariabile(nome = "#EmailProv", tipo = TipoVariabile.NESTED)
 	private EmailProvBean emailProv;
@@ -223,6 +232,9 @@ public class CreaModDocumentoInBean implements Serializable {
 
 	@XmlVariabile(nome = "#@AltriSoggettiEsterni", tipo = TipoVariabile.LISTA)
 	private List<SoggettoEsternoBean> altriSoggettiEsterni;
+
+	@XmlVariabile(nome = "#@AltriSoggettiInt", tipo = TipoVariabile.LISTA)
+	private List<SoggettoInternoBean> altriSoggettiInterni;
 
 	@XmlVariabile(nome = "MODIFICATO_DISPOSITIVO_ATTO_Doc", tipo = TipoVariabile.SEMPLICE)
 	private String modificatoDispositivoAtto;
@@ -284,6 +296,9 @@ public class CreaModDocumentoInBean implements Serializable {
 	
 	@XmlVariabile(nome = "PERIZIA_ADSP_Ud", tipo = TipoVariabile.LISTA)
 	private List<PeriziaXmlBean> listaPerizie;
+	
+	@XmlVariabile(nome = "COD_CONCESSIONE_Ud", tipo = TipoVariabile.LISTA)
+	private List<ConcessioneXmlInBean> listaConcessioni;
 	
 	@XmlAttributiCustom
 	private SezioneCache sezioneCacheAttributiDinamici;
@@ -364,21 +379,75 @@ public class CreaModDocumentoInBean implements Serializable {
 	@XmlVariabile(nome = "#RichPubblicazione.Note", tipo = TipoVariabile.SEMPLICE)
 	private String notePubblicazione;
 	
-	@XmlVariabile(nome = "RICH_ACCESSO_CIVICO_PRESENTI_CONTROINTERESSATI_Doc", tipo = TipoVariabile.SEMPLICE)
-	private String flgPresentiControinteressati;
+	@XmlVariabile(nome = "INDIRIZZO_MITT_EMAIL_ID_Ud", tipo = TipoVariabile.SEMPLICE)
+	private String idCasellaMittente;
 	
-	@XmlVariabile(nome = "RICH_ACCESSO_CIVICO_DATI_CONTROINTERESSATI_Doc", tipo = TipoVariabile.LISTA)
-	private List<ControinteressatiXmlBean> listaControinteressati;
+	@XmlVariabile(nome = "OPZ_PROT_AUTO_IN_ITER_FIRMA_Ud", tipo = TipoVariabile.SEMPLICE)
+	private String opzProtAutoInIterFirma;
+	
+	@XmlVariabile(nome = "OPZ_REG_AUTO_IN_ITER_FIRMA_Ud", tipo = TipoVariabile.SEMPLICE)
+	private String opzRegAutoInIterFirma;
+	
+	@XmlVariabile(nome = "DES_REGISTRO_REG_AUTO_IN_ITER_FIRMA_Ud", tipo = TipoVariabile.SEMPLICE)
+	private String desRegistroRegAutoInIterFirma;
+	
+	@XmlVariabile(nome = "COD_CATEGORIA_REG_AUTO_IN_ITER_FIRMA_Ud", tipo = TipoVariabile.SEMPLICE)
+	private String codCategoriaRegAutoInIterFirma;
+	
+	@XmlVariabile(nome = "ID_UO_REG_POST_ITER_FIRMA_Ud", tipo = TipoVariabile.SEMPLICE)
+	private String idUoRegPostIterFirma;
+	
+	@XmlVariabile(nome = "FLG_EMAIL_AUTO_TERMINE_ITER_FIRMA_REG_Ud", tipo = TipoVariabile.SEMPLICE)
+	private Integer flgEmailAutoTermineIterFirmaReg;
 	
 	@XmlVariabile(nome = "#IdOperRegistrazione", tipo = TipoVariabile.SEMPLICE)
 	private String idOperRegistrazione;
 	
 	@XmlVariabile(nome = "#TimestampGetData", tipo = TipoVariabile.SEMPLICE)
 	private String timestampGetData;
-	 	
+
+	// jira auriga-559
+	@XmlVariabile(nome = "#IdFoglioRegMassiva", tipo = TipoVariabile.SEMPLICE)
+	private String idFoglioRegMassiva;
+	
+	@XmlVariabile(nome = "#NroRigaFoglioRegMassiva", tipo = TipoVariabile.SEMPLICE)
+	private String nroRigaFoglioRegMassiva;
+	// fine auriga-559
+	
+	@XmlVariabile(nome = "BODY_EMAIL_Ud", tipo = TipoVariabile.SEMPLICE)
+	private String bodyEmail;
+	
+	// Istanze concessione ADSP
+	
+	@XmlVariabile(nome = "PROC_CONC_ADSP_TIPO_AVVIO_Doc", tipo = TipoVariabile.SEMPLICE)
+	private String tipoAvvioProcConcADSP;
+	
+	@XmlVariabile(nome = "PROC_CONC_ADSP_ID_DOC_AVVIO_Doc", tipo = TipoVariabile.SEMPLICE)
+	private String idDocAvvioProcConcADSP;
+	
+	@XmlVariabile(nome = "PROC_CONC_ADSP_GG_TERMINE_Doc", tipo = TipoVariabile.SEMPLICE)
+	private String sceltaGiorniTermineProcConcADSP;
+	
+	@XmlVariabile(nome = "PROC_CONC_ADSP_FLG_TERMINI_MODIFICATI_Doc", tipo = TipoVariabile.SEMPLICE)
+	private String flgTerminiModificatiProcConcADSP;
+	
+	@XmlVariabile(nome = "#AzioneScollegaDaIstanzaSUAPadre", tipo = TipoVariabile.SEMPLICE)
+	private String azioneScollegaDaIstanzaSUAPadre;	
+
+	@XmlVariabile(nome = "@Allegati", tipo = TipoVariabile.LISTA)
+	private List<AttachWSBean> listaAllegati;
+
 	/*********************
 	 * GETTER AND SETTER *
 	 *********************/
+	
+	public List<AttachWSBean> getListaAllegati() {
+		return listaAllegati;
+	}
+
+	public void setListaAllegati(List<AttachWSBean> listaAllegati) {
+		this.listaAllegati = listaAllegati;
+	}
 	
 	public List<String> getCampiDaAggiornare() {
 		return campiDaAggiornare;
@@ -716,6 +785,14 @@ public class CreaModDocumentoInBean implements Serializable {
 		this.destinatari = destinatari;
 	}
 
+	public Integer getFlgSegnaInvioMailExtraSistema() {
+		return flgSegnaInvioMailExtraSistema;
+	}
+
+	public void setFlgSegnaInvioMailExtraSistema(Integer flgSegnaInvioMailExtraSistema) {
+		this.flgSegnaInvioMailExtraSistema = flgSegnaInvioMailExtraSistema;
+	}
+
 	public List<DistribuzioneBean> getGruppi() {
 		return gruppi;
 	}
@@ -762,6 +839,14 @@ public class CreaModDocumentoInBean implements Serializable {
 
 	public void setFolderCustom(List<FolderCustom> folderCustom) {
 		this.folderCustom = folderCustom;
+	}
+
+	public List<RelVsPraticheApplEsterneXmlBean> getRelVsPraticheApplEsterne() {
+		return relVsPraticheApplEsterne;
+	}
+
+	public void setRelVsPraticheApplEsterne(List<RelVsPraticheApplEsterneXmlBean> relVsPraticheApplEsterne) {
+		this.relVsPraticheApplEsterne = relVsPraticheApplEsterne;
 	}
 
 	public EmailProvBean getEmailProv() {
@@ -874,6 +959,14 @@ public class CreaModDocumentoInBean implements Serializable {
 
 	public void setStatoConservazione(String statoConservazione) {
 		this.statoConservazione = statoConservazione;
+	}
+
+	public List<SoggettoInternoBean> getAltriSoggettiInterni() {
+		return altriSoggettiInterni;
+	}
+
+	public void setAltriSoggettiInterni(List<SoggettoInternoBean> altriSoggettiInterni) {
+		this.altriSoggettiInterni = altriSoggettiInterni;
 	}
 
 	public List<SoggettoEsternoBean> getAltriSoggettiEsterni() {
@@ -1244,20 +1337,60 @@ public class CreaModDocumentoInBean implements Serializable {
 		this.notePubblicazione = notePubblicazione;
 	}
 
-	public String getFlgPresentiControinteressati() {
-		return flgPresentiControinteressati;
+	public String getIdCasellaMittente() {
+		return idCasellaMittente;
 	}
 
-	public void setFlgPresentiControinteressati(String flgPresentiControinteressati) {
-		this.flgPresentiControinteressati = flgPresentiControinteressati;
+	public void setIdCasellaMittente(String idCasellaMittente) {
+		this.idCasellaMittente = idCasellaMittente;
 	}
 
-	public List<ControinteressatiXmlBean> getListaControinteressati() {
-		return listaControinteressati;
+	public String getOpzProtAutoInIterFirma() {
+		return opzProtAutoInIterFirma;
 	}
 
-	public void setListaControinteressati(List<ControinteressatiXmlBean> listaControinteressati) {
-		this.listaControinteressati = listaControinteressati;
+	public void setOpzProtAutoInIterFirma(String opzProtAutoInIterFirma) {
+		this.opzProtAutoInIterFirma = opzProtAutoInIterFirma;
+	}
+
+	public String getOpzRegAutoInIterFirma() {
+		return opzRegAutoInIterFirma;
+	}
+
+	public void setOpzRegAutoInIterFirma(String opzRegAutoInIterFirma) {
+		this.opzRegAutoInIterFirma = opzRegAutoInIterFirma;
+	}
+
+	public String getDesRegistroRegAutoInIterFirma() {
+		return desRegistroRegAutoInIterFirma;
+	}
+
+	public void setDesRegistroRegAutoInIterFirma(String desRegistroRegAutoInIterFirma) {
+		this.desRegistroRegAutoInIterFirma = desRegistroRegAutoInIterFirma;
+	}
+
+	public String getCodCategoriaRegAutoInIterFirma() {
+		return codCategoriaRegAutoInIterFirma;
+	}
+
+	public void setCodCategoriaRegAutoInIterFirma(String codCategoriaRegAutoInIterFirma) {
+		this.codCategoriaRegAutoInIterFirma = codCategoriaRegAutoInIterFirma;
+	}
+
+	public String getIdUoRegPostIterFirma() {
+		return idUoRegPostIterFirma;
+	}
+
+	public void setIdUoRegPostIterFirma(String idUoRegPostIterFirma) {
+		this.idUoRegPostIterFirma = idUoRegPostIterFirma;
+	}
+
+	public Integer getFlgEmailAutoTermineIterFirmaReg() {
+		return flgEmailAutoTermineIterFirmaReg;
+	}
+
+	public void setFlgEmailAutoTermineIterFirmaReg(Integer flgEmailAutoTermineIterFirmaReg) {
+		this.flgEmailAutoTermineIterFirmaReg = flgEmailAutoTermineIterFirmaReg;
 	}
 
 	public static long getSerialversionuid() {
@@ -1288,4 +1421,83 @@ public class CreaModDocumentoInBean implements Serializable {
 		this.timestampGetData = timestampGetData;
 	}
 
+	public String getIdFoglioRegMassiva() {
+		return idFoglioRegMassiva;
+	}
+
+	public void setIdFoglioRegMassiva(String idFoglioRegMassiva) {
+		this.idFoglioRegMassiva = idFoglioRegMassiva;
+	}
+
+	public String getNroRigaFoglioRegMassiva() {
+		return nroRigaFoglioRegMassiva;
+	}
+
+	public void setNroRigaFoglioRegMassiva(String nroRigaFoglioRegMassiva) {
+		this.nroRigaFoglioRegMassiva = nroRigaFoglioRegMassiva;
+	}
+	
+	public String getBodyEmail() {
+		return bodyEmail;
+	}
+
+	public void setBodyEmail(String bodyEmail) {
+		this.bodyEmail = bodyEmail;
+	}
+
+	public String getTipoAvvioProcConcADSP() {
+		return tipoAvvioProcConcADSP;
+	}
+
+	public void setTipoAvvioProcConcADSP(String tipoAvvioProcConcADSP) {
+		this.tipoAvvioProcConcADSP = tipoAvvioProcConcADSP;
+	}
+
+	public String getIdDocAvvioProcConcADSP() {
+		return idDocAvvioProcConcADSP;
+	}
+
+	public void setIdDocAvvioProcConcADSP(String idDocAvvioProcConcADSP) {
+		this.idDocAvvioProcConcADSP = idDocAvvioProcConcADSP;
+	}
+
+	public String getSceltaGiorniTermineProcConcADSP() {
+		return sceltaGiorniTermineProcConcADSP;
+	}
+
+	public void setSceltaGiorniTermineProcConcADSP(String sceltaGiorniTermineProcConcADSP) {
+		this.sceltaGiorniTermineProcConcADSP = sceltaGiorniTermineProcConcADSP;
+	}
+
+	public String getFlgTerminiModificatiProcConcADSP() {
+		return flgTerminiModificatiProcConcADSP;
+	}
+
+	public void setFlgTerminiModificatiProcConcADSP(String flgTerminiModificatiProcConcADSP) {
+		this.flgTerminiModificatiProcConcADSP = flgTerminiModificatiProcConcADSP;
+	}
+
+	public String getAzioneScollegaDaIstanzaSUAPadre() {
+		return azioneScollegaDaIstanzaSUAPadre;
+	}
+
+	public void setAzioneScollegaDaIstanzaSUAPadre(String azioneScollegaDaIstanzaSUAPadre) {
+		this.azioneScollegaDaIstanzaSUAPadre = azioneScollegaDaIstanzaSUAPadre;
+	}
+
+	public Integer getFlgInviataMailExtraSistema() {
+		return flgInviataMailExtraSistema;
+	}
+
+	public void setFlgInviataMailExtraSistema(Integer flgInviataMailExtraSistema) {
+		this.flgInviataMailExtraSistema = flgInviataMailExtraSistema;
+	}
+
+	public List<ConcessioneXmlInBean> getListaConcessioni() {
+		return listaConcessioni;
+	}
+
+	public void setListaConcessioni(List<ConcessioneXmlInBean> listaConcessioni) {
+		this.listaConcessioni = listaConcessioni;
+	}
 }

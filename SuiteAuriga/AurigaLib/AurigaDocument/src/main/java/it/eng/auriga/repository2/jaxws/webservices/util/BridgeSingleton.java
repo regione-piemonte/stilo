@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.util;
 
 /**
  * Antonio Vendramini: ricava quale sia l'ente al quale collegarsi in base ad una associazione codiceApplicazione.IstanzaApplicazione = CodiceEnte

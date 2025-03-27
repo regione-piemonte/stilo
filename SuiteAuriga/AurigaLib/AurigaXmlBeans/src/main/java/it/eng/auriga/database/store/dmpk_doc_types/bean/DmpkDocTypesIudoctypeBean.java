@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.database.store.dmpk_doc_types.bean;
 
 import java.io.Serializable;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -65,7 +66,9 @@ public class DmpkDocTypesIudoctypeBean extends StoreBean implements Serializable
 	private java.math.BigDecimal idprocesstypein;
 	private java.lang.String nomeprocesstypein;
 	private java.lang.String abilitazionipubblin;
-	private java.lang.String flgrichfirmadigitalein;
+	private java.math.BigDecimal flgrichfilein;
+	private java.math.BigDecimal flgrichfirmadigitalein;
+	private java.math.BigDecimal flgrichfirmavalidain;
 	public java.lang.Integer getParametro_1(){return parametro_1;}
     public java.lang.String getCodidconnectiontokenin(){return codidconnectiontokenin;}
     public java.math.BigDecimal getIduserlavoroin(){return iduserlavoroin;}
@@ -115,7 +118,9 @@ public class DmpkDocTypesIudoctypeBean extends StoreBean implements Serializable
     public java.math.BigDecimal getIdprocesstypein(){return idprocesstypein;}
     public java.lang.String getNomeprocesstypein(){return nomeprocesstypein;}
     public java.lang.String getAbilitazionipubblin(){return abilitazionipubblin;}
-    public java.lang.String getFlgrichfirmadigitalein(){return flgrichfirmadigitalein;}
+    public java.math.BigDecimal getFlgrichfilein(){return flgrichfilein;}
+    public java.math.BigDecimal getFlgrichfirmadigitalein(){return flgrichfirmadigitalein;}
+    public java.math.BigDecimal getFlgrichfirmavalidain(){return flgrichfirmavalidain;}
     
 	public void setParametro_1(java.lang.Integer value){this.parametro_1=value;}
     public void setCodidconnectiontokenin(java.lang.String value){this.codidconnectiontokenin=value;}
@@ -166,7 +171,9 @@ public class DmpkDocTypesIudoctypeBean extends StoreBean implements Serializable
     public void setIdprocesstypein(java.math.BigDecimal value){this.idprocesstypein=value;}
     public void setNomeprocesstypein(java.lang.String value){this.nomeprocesstypein=value;}
     public void setAbilitazionipubblin(java.lang.String value){this.abilitazionipubblin=value;}
-    public void setFlgrichfirmadigitalein(java.lang.String value){this.flgrichfirmadigitalein=value;}
+    public void setFlgrichfilein(java.math.BigDecimal value){this.flgrichfilein=value;}
+    public void setFlgrichfirmadigitalein(java.math.BigDecimal value){this.flgrichfirmadigitalein=value;}
+    public void setFlgrichfirmavalidain(java.math.BigDecimal value){this.flgrichfirmavalidain=value;}
     
     public String getStoreName(){
     	return storeName;

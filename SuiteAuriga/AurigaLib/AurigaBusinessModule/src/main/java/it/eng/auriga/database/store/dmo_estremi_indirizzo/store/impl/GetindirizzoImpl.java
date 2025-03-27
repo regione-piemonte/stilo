@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.database.store.dmo_estremi_indirizzo.store.impl;
 
 import it.eng.auriga.database.store.dmo_estremi_indirizzo.bean.DmoEstremiIndirizzoGetindirizzoBean;
 import it.eng.storeutil.HibernateStoreUtil;

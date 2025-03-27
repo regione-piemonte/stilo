@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.versionhandler.synchronous;
 
 import it.eng.auriga.function.bean.FindElenchiAlbiResultBean;
 import it.eng.auriga.function.bean.FindRepositoryObjectBean;
@@ -256,6 +257,9 @@ public class SynchronousVersionHandler implements VersionHandler {
 
 	// Istanza di Lucene Handler per il V.H.
 	protected LuceneHandler luceneHandler = null;
+	
+	// Istanza di Lucene Handler per il V.H. Albo
+	protected LuceneHandler luceneHandlerAlbo = null;
 
 	public static final String _LISTA_VUOTA_STR = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><Lista></Lista>";
 
@@ -288,15 +292,23 @@ public class SynchronousVersionHandler implements VersionHandler {
 	protected SynchronousVersionHandler(Properties properties) throws VersionHandlerException {
 	}
 
-	/*****************************************************************************
-	 * Getter per il Lucene Handler
-	 ****************************************************************************/
 	public LuceneHandler getLuceneHandler() {
 		return luceneHandler;
 	}
 
 	public void setLuceneHandler(LuceneHandler luceneHandler) {
 		this.luceneHandler = luceneHandler;
+	}
+
+	/*****************************************************************************
+	 * Getter per il Lucene Handler Albo
+	 ****************************************************************************/
+	public LuceneHandler getLuceneHandlerAlbo() {
+		return luceneHandlerAlbo;
+	}
+
+	public void setLuceneHandlerAlbo(LuceneHandler luceneHandlerAlbo) {
+		this.luceneHandlerAlbo = luceneHandlerAlbo;
 	}
 
 	/**
@@ -396,11 +408,19 @@ public class SynchronousVersionHandler implements VersionHandler {
 			String customFilters, String colsOrderBy, String flgDescOrderBy, Integer flgSenzaPaginazione, Integer numPagina, Integer numRighePagina,
 			Integer online, String colsToReturn, String percorsoRicerca, String flagTipoRicerca, String finalita, Integer overflowLimitIn)
 			throws VersionHandlerException {
-		if (find == null)
-			find = new Find(aLogger, specialLogger, luceneHandler);
-		return find.findRepositoryObject(conn, token, userIdLavoro, filtroFullText, checkAttributes, formatoEstremiReg, searchAllTerms, flgUdFolder,
-				idFolderSearchIn, flgSubfoderSearchIn, advancedFilters, customFilters, colsOrderBy, flgDescOrderBy, flgSenzaPaginazione, numPagina,
-				numRighePagina, online, colsToReturn, percorsoRicerca, flagTipoRicerca, finalita, null, overflowLimitIn);
+		if (token.contains("#RESERVED_ALBO") && luceneHandlerAlbo != null) {
+			aLogger.error("--- USO INDICE LUCENE PER ALBO ---");
+			Find findAlbo = new Find(aLogger, specialLogger, luceneHandlerAlbo);
+			return findAlbo.findRepositoryObject(conn, token, userIdLavoro, filtroFullText, checkAttributes, formatoEstremiReg, searchAllTerms, flgUdFolder,
+					idFolderSearchIn, flgSubfoderSearchIn, advancedFilters, customFilters, colsOrderBy, flgDescOrderBy, flgSenzaPaginazione, numPagina,
+					numRighePagina, online, colsToReturn, percorsoRicerca, flagTipoRicerca, finalita, null, overflowLimitIn);
+		} else {			
+			if (find == null)
+				find = new Find(aLogger, specialLogger, luceneHandler);
+			return find.findRepositoryObject(conn, token, userIdLavoro, filtroFullText, checkAttributes, formatoEstremiReg, searchAllTerms, flgUdFolder,
+					idFolderSearchIn, flgSubfoderSearchIn, advancedFilters, customFilters, colsOrderBy, flgDescOrderBy, flgSenzaPaginazione, numPagina,
+					numRighePagina, online, colsToReturn, percorsoRicerca, flagTipoRicerca, finalita, null, overflowLimitIn);
+		}
 
 	}
 	

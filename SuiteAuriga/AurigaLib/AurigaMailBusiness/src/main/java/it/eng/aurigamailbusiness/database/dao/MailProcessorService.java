@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.aurigamailbusiness.database.dao;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -379,13 +380,17 @@ public class MailProcessorService {
 	private void saveInSessionRecipients(EmailBean bean, Session session) throws InterruptedException, Exception {
 
 		if (!ListUtil.isEmpty(bean.getDestinatari())) {
-			log.debug("Salvo i destinatari della mail: " + bean.getDestinatari());
+			log.error("Salvo i destinatari della mail: " + bean.getDestinatari());
+			log.error("destinatari della mail: " + bean.getDestinatari().size());
+			int i = 0;
 			for (TDestinatariEmailMgoBean dest : bean.getDestinatari()) {
 				if (Thread.currentThread().isInterrupted()) {
 					// thread elaborazione messaggio interrotto, interrompo
 					// l'operazione corrente
 					throw new InterruptedException();
 				}
+				log.error("dest: "+i+" " + dest.getAccountDestinatario());
+				i++;
 				// modifica Jacopo 20/11/2015 setto il valore di idRubrica a
 				// null
 				// perchè tale

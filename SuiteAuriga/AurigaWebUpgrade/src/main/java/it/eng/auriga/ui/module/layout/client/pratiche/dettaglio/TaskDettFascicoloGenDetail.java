@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -475,9 +476,11 @@ public class TaskDettFascicoloGenDetail extends CustomDetail implements TaskFlus
 
 			@Override
 			public boolean showOperazioniTimbraturaAllegato(Record allegatoRecord) {
-				String estremiProtUd = allegatoRecord.getAttribute("estremiProtUd") != null ? allegatoRecord.getAttribute("estremiProtUd") : "";
-				if(estremiProtUd != null && !"".equals(estremiProtUd)) {		
-					return true;
+				if(AurigaLayout.showOperazioniTimbratura()) {
+					String estremiProtUd = allegatoRecord.getAttribute("estremiProtUd") != null ? allegatoRecord.getAttribute("estremiProtUd") : "";
+					if(estremiProtUd != null && !"".equals(estremiProtUd)) {		
+						return true;
+					}
 				}
 				return false;
 			}
@@ -1557,8 +1560,7 @@ public class TaskDettFascicoloGenDetail extends CustomDetail implements TaskFlus
 		dettaglioPraticaLayout.caricaDettaglioEventoSuccessivo(nome);
 	}
 
-	public void caricaAttributiDinamiciFolder(final String nomeFlussoWF, final String processNameWF, final String activityName, final String folderType,
-			final String rowidFolder) {
+	public void caricaAttributiDinamiciFolder(final String nomeFlussoWF, final String processNameWF, final String activityName, final String folderType, final String rowidFolder) {
 		if (folderType != null && !"".equals(folderType)) {
 			Record lRecordLoad = new Record();
 			lRecordLoad.setAttribute("idFolderType", folderType);
@@ -1567,11 +1569,25 @@ public class TaskDettFascicoloGenDetail extends CustomDetail implements TaskFlus
 				@Override
 				public void execute(Record object) {
 					final boolean isReload = (attributiAddFolderTabs != null && attributiAddFolderTabs.size() > 0);
+					if(attributiAddFolderLayouts != null) {
+						for (String key : attributiAddFolderLayouts.keySet()) {
+							// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+							if(key != null && !key.startsWith("HEADER_")) {
+								try { attributiAddFolderLayouts.get(key).destroy(); } catch(Exception e) {}
+							}
+						}
+					}
+					if(attributiAddFolderDetails != null) {
+						for (String key : attributiAddFolderDetails.keySet()) {
+							try { attributiAddFolderDetails.get(key).destroy(); } catch(Exception e) {}				
+						}
+					}
 					attributiAddFolderTabs = (LinkedHashMap<String, String>) object.getAttributeAsMap("gruppiAttributiCustomTipoFolder");
 					attributiAddFolderLayouts = new HashMap<String, VLayout>();
 					attributiAddFolderDetails = new HashMap<String, AttributiDinamiciDetail>();
 					if (attributiAddFolderTabs != null && attributiAddFolderTabs.size() > 0) {
 						GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");
+						lGwtRestService.addParam("flgSkipAttrSenzaCategoria", "true");
 						lGwtRestService.addParam("flgNomeAttrConSuff", "true");
 						lGwtRestService.addParam("nomeFlussoWF", nomeFlussoWF);
 						lGwtRestService.addParam("processNameWF", processNameWF);
@@ -1794,5 +1810,26 @@ public class TaskDettFascicoloGenDetail extends CustomDetail implements TaskFlus
 			}
 		});
 	}
-
+	
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();		
+		if(attributiAddFolderLayouts != null) {
+			for (String key : attributiAddFolderLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddFolderLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddFolderDetails != null) {
+			for (String key : attributiAddFolderDetails.keySet()) {
+				try { attributiAddFolderDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
+		attributiAddFolderTabs = null;
+		attributiAddFolderLayouts = null;		
+		attributiAddFolderDetails = null;
+	}
+	
 }

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.iterAtti;
 
 import java.util.LinkedHashMap;
 
@@ -47,7 +48,7 @@ public class SelezionaTipoAttoDetail extends CustomDetail {
 	private NumericItem annoCopiaItem;
 	private CheckboxItem flgCopiaAllegatiPareriItem;
 	
-	public SelezionaTipoAttoDetail(SelezionaTipoAttoWindow pWindow, String organoCollegiale){
+	public SelezionaTipoAttoDetail(SelezionaTipoAttoWindow pWindow, String organoCollegiale, String codCircoscrizione){
 		super(pWindow.getNomeEntita());
 		
 		instance = this;
@@ -65,7 +66,11 @@ public class SelezionaTipoAttoDetail extends CustomDetail {
 		scegliTipoForm.setValuesManager(vm);
 		
 		GWTRestDataSource attoConFlussoWFDS = new GWTRestDataSource("LoadComboAttoConFlussoWFDataSource");
-		attoConFlussoWFDS.addParam("organoCollegiale", organoCollegiale);
+		if(codCircoscrizione != null && !"".equalsIgnoreCase(codCircoscrizione)) {
+			attoConFlussoWFDS.addParam("organoCollegiale", organoCollegiale + "_CIRC");
+		} else {
+			attoConFlussoWFDS.addParam("organoCollegiale", organoCollegiale);
+		}
 		idTipoProc = new SelectItem("idTipoProc", "Atto di tipo") {
 			
 			@Override

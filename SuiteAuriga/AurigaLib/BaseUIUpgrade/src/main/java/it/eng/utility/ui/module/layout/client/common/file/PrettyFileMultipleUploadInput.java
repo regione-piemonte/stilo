@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common.file;
 
 import it.eng.utility.ui.module.core.client.callback.UploadMultipleItemCallBackHandler;
 import it.eng.utility.ui.module.core.client.i18n.I18NUtil;
@@ -99,7 +100,7 @@ public class PrettyFileMultipleUploadInput extends Canvas{
 	public String getInnerHTML() { 
 		if (UserInterfaceFactory.isAttivaAccessibilita()){
 			setIndiceTab(getTabIndex().intValue());
-			return "<form NAME=\"form1\" action=\"" + _action + "\" STYLE=\"cursor: pointer; margin: 0px; padding: 0px;\" ENCTYPE=\"multipart/form-data\" method=\"post\" target=\"" + _target + "\">" +
+			return "<form NAME=\"form1\" id=\"formMultipleUpload"+ smartId +"\" action=\"" + _action + "\" STYLE=\"cursor: pointer; margin: 0px; padding: 0px;\" ENCTYPE=\"multipart/form-data\" method=\"post\" target=\"" + _target + "\">" +
 					"<label class=\"" + mCssAndDimensionFileInput.getCssClass() + "\" tabIndex=\"-1\">" +
 					"<input name=\"smartId\" id=\"smartId\" type=\"hidden\" style=\"cursor: pointer;\" value=\"" + smartId + "\" tabIndex=\"-1\"/> " +	
 					"<input name=\"isExternalPortlet\" id=\"isExternalPortlet\" type=\"hidden\" style=\"cursor: pointer;\" value=\"" + Layout.isExternalPortlet + "\" tabIndex=\"-1\"/> " +	
@@ -299,6 +300,10 @@ public class PrettyFileMultipleUploadInput extends Canvas{
 	
 	public native void focusOnInputFile (int tabIndex)/*-{
 	 	$doc.getElementById("uploadFileMultiploInput_"+tabIndex).click();
+	}-*/;
+	
+	public native void focusOnInputFileBySmartId (String smartId)/*-{
+		$doc.getElementById("uploadFileMultiploInput_"+smartId).click();
 	}-*/;
 	
 	public native void resetInputFile ()/*-{

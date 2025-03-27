@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.applicazioniEsterne.datasource;
 
 import java.io.StringReader;
 import java.math.BigDecimal;
@@ -31,6 +32,12 @@ import it.eng.utility.ui.module.core.server.datasource.AbstractFetchDataSource;
 import it.eng.utility.ui.module.core.server.datasource.annotation.Datasource;
 import it.eng.utility.ui.module.core.shared.message.MessageType;
 import it.eng.utility.ui.user.AurigaUserUtil;
+import it.eng.xml.XmlUtilitySerializer;
+import it.eng.auriga.ui.module.layout.server.common.SezioneCacheAttributiDinamici;
+import it.eng.auriga.ui.module.layout.server.common.datasource.bean.AttributiDinamiciXmlBean;
+import it.eng.jaxb.variabili.SezioneCache;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 
@@ -184,6 +191,9 @@ public class ApplicazioniEsterneDataSource extends AbstractFetchDataSource<ApplE
 		result.setDtUltimoAggiornamento(bean.getDtUltimoAggiornamento());
 		result.setUtenteUltimoAggiornamento(bean.getUtenteUltimoAggiornamento());
 		result.setFlgSistema(bean.getFlgSistema());
+		
+		result.setRowid(output.getResultBean().getRowidout());
+		
 		return result;
 	}
 
@@ -204,6 +214,9 @@ public class ApplicazioniEsterneDataSource extends AbstractFetchDataSource<ApplE
 		input.setFlgusacredenzialipropriein(bean.getFlgUsaCredenzialiDiverse() != null && bean.getFlgUsaCredenzialiDiverse() ? new Integer(1) : new Integer(0));
 		input.setFlgignorewarningin(new Integer(1));
 		
+		// Salvo gli attributi		
+		input.setAttributiaddin(getXMLAttributiDinamici(bean));
+				
 		// Inizializzo l'OUTPUT
 		DmpkDefSecurityIuapplicazioneesterna service = new DmpkDefSecurityIuapplicazioneesterna();
 		StoreResultBean<DmpkDefSecurityIuapplicazioneesternaBean> result = service.execute(getLocale(), loginBean, input);
@@ -236,6 +249,9 @@ public class ApplicazioniEsterneDataSource extends AbstractFetchDataSource<ApplE
 		input.setDescrizioneapplistanzain(bean.getNome());
 		input.setFlgusacredenzialipropriein(bean.getFlgUsaCredenzialiDiverse() != null && bean.getFlgUsaCredenzialiDiverse() ? new Integer(1) : new Integer(0));
 		input.setFlgignorewarningin(new Integer(1));
+		
+		// Salvo gli attributi
+		input.setAttributiaddin(getXMLAttributiDinamici(bean));
 		
 		// Inizializzo l'OUTPUT
 		DmpkDefSecurityIuapplicazioneesterna service = new DmpkDefSecurityIuapplicazioneesterna();
@@ -283,4 +299,22 @@ public class ApplicazioniEsterneDataSource extends AbstractFetchDataSource<ApplE
 		}
 		return bean;
 	}
+	
+	private String getXMLAttributiDinamici(ApplEstBean bean) throws Exception {
+    	
+    	// Salvo gli attributi custom
+		AttributiDinamiciXmlBean lAttributiDinamiciXmlBean = new AttributiDinamiciXmlBean();
+		
+		// Attributi dinamici
+		Map<String, Object> valori = bean.getValori() != null ? bean.getValori() : new HashMap<String, Object>();
+		Map<String, String> tipiValori = bean.getTipiValori() != null ? bean.getTipiValori() : new HashMap<String, String>();
+		SezioneCache sezioneCacheAttributiDinamici = SezioneCacheAttributiDinamici.createSezioneCacheAttributiDinamici(null, valori, tipiValori, getSession());
+		lAttributiDinamiciXmlBean.setSezioneCacheAttributiDinamici(sezioneCacheAttributiDinamici);
+		
+		String xmlAttributiDinamici = null;
+		XmlUtilitySerializer lXmlUtilitySerializer = new XmlUtilitySerializer();
+		xmlAttributiDinamici = lXmlUtilitySerializer.bindXml(lAttributiDinamiciXmlBean);
+		
+		return xmlAttributiDinamici;
+	}	 
 }

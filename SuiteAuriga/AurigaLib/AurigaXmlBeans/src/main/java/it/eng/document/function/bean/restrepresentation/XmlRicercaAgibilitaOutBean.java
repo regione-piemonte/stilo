@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean.restrepresentation;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -95,6 +96,12 @@ public class XmlRicercaAgibilitaOutBean {
 	//token da utilizzare per le connessioni alle store
 	@XmlVariabile(nome = "ConnToken", tipo = TipoVariabile.SEMPLICE)
 	private String connectionToken;
+	
+	@XmlVariabile(nome = "IdRicerca", tipo = TipoVariabile.SEMPLICE)
+	private String idRicerca;
+	
+	@XmlVariabile(nome = "TipoRequest", tipo = TipoVariabile.SEMPLICE)
+	private String tipoRequest;
 
 	public String getIdUDProtocolloRisposta() {
 		return idUDProtocolloRisposta;
@@ -262,6 +269,22 @@ public class XmlRicercaAgibilitaOutBean {
 
 	public void setConnectionToken(String connectionToken) {
 		this.connectionToken = connectionToken;
+	}
+
+	public String getIdRicerca() {
+		return idRicerca;
+	}
+
+	public void setIdRicerca(String idRicerca) {
+		this.idRicerca = idRicerca;
+	}
+
+	public String getTipoRequest() {
+		return tipoRequest;
+	}
+
+	public void setTipoRequest(String tipoRequest) {
+		this.tipoRequest = tipoRequest;
 	}
 		
 }

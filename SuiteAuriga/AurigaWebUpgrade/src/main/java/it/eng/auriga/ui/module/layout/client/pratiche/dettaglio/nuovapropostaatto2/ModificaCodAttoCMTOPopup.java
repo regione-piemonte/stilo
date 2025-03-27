@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovapropostaatto2;
 
 import com.smartgwt.client.data.DSCallback;
 import com.smartgwt.client.data.DSRequest;
@@ -61,7 +62,7 @@ public class ModificaCodAttoCMTOPopup extends ModalWindow {
 		
 		window = this;
 		
-		setTitle("Modifica cod. atto/LL.PP./beni e servizi");
+		setTitle("Modifica cod. atto");
 		
 		setAutoCenter(true);
 		setHeight(300);
@@ -210,6 +211,12 @@ public class ModificaCodAttoCMTOPopup extends ModalWindow {
 			
 			@Override
 			public void onChanged(ChangedEvent event) {
+				if (event.getValue() != null && NuovaPropostaAtto2CompletaDetail._FLG_SI.equalsIgnoreCase((String)event.getValue())) {
+					if(showFlgBeniServiziItem()) {
+						flgBeniServiziItem.setValue(NuovaPropostaAtto2CompletaDetail._FLG_NO);
+//						flgBeniServiziItem.fireEvent(new ChangedEvent(flgBeniServiziItem.getJsObj()));
+					}
+				}
 				form.markForRedraw();
 			}
 		});
@@ -234,8 +241,9 @@ public class ModificaCodAttoCMTOPopup extends ModalWindow {
 			}
 		});
 		
-		numProgettoLLPPItem = new TextItem("numProgettoLLPP", getTitleNumProgettoLLPPItem());
+		numProgettoLLPPItem = new TextItem("numProgettoLLPP", "&nbsp;&nbsp;" + getTitleNumProgettoLLPPItem());
 		numProgettoLLPPItem.setColSpan(1);
+		numProgettoLLPPItem.setWidth(150);
 		if(isRequiredNumProgettoLLPPItem()) {
 			numProgettoLLPPItem.setAttribute("obbligatorio", true);
 		}
@@ -282,6 +290,12 @@ public class ModificaCodAttoCMTOPopup extends ModalWindow {
 			
 			@Override
 			public void onChanged(ChangedEvent event) {
+				if (event.getValue() != null && NuovaPropostaAtto2CompletaDetail._FLG_SI.equalsIgnoreCase((String)event.getValue())) {
+					if(showFlgLLPPItem()) {
+						flgLLPPItem.setValue(NuovaPropostaAtto2CompletaDetail._FLG_NO);
+//						flgLLPPItem.fireEvent(new ChangedEvent(flgLLPPItem.getJsObj()));
+					}
+				}
 				form.markForRedraw();
 			}
 		});
@@ -306,8 +320,9 @@ public class ModificaCodAttoCMTOPopup extends ModalWindow {
 			}
 		});
 		
-		numProgettoBeniServiziItem = new TextItem("numProgettoBeniServizi", getTitleNumProgettoBeniServiziItem());
+		numProgettoBeniServiziItem = new TextItem("numProgettoBeniServizi", "&nbsp;&nbsp;" + getTitleNumProgettoBeniServiziItem());
 		numProgettoBeniServiziItem.setColSpan(1);
+		numProgettoBeniServiziItem.setWidth(150);
 		if(isRequiredNumProgettoBeniServiziItem()) {
 			numProgettoBeniServiziItem.setAttribute("obbligatorio", true);
 		}
@@ -357,7 +372,7 @@ public class ModificaCodAttoCMTOPopup extends ModalWindow {
 						public void execute(DSResponse response, Object rawData, DSRequest request) {
 							if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
 								Record result = response.getData()[0];
-								Layout.addMessage(new MessageBean("Modifica cod. atto/LL.PP./beni e servizi avvenuta con successo", "", MessageType.INFO));
+								Layout.addMessage(new MessageBean("Modifica effettuata con successo", "", MessageType.INFO));
 								if(callback != null) {
 									callback.execute(result);
 								}
@@ -502,7 +517,7 @@ public class ModificaCodAttoCMTOPopup extends ModalWindow {
 	}
 	
 	public String getTitleAnnoProgettoLLPPItem() {
-		return "Progetto - Anno";
+		return "Anno";
 	}
 	
 	public boolean isRequiredAnnoProgettoLLPPItem() {
@@ -514,7 +529,7 @@ public class ModificaCodAttoCMTOPopup extends ModalWindow {
 	}
 	
 	public String getTitleNumProgettoLLPPItem() {
-		return "N.";
+		return "N. Commessa";
 	}
 	
 	public boolean isRequiredNumProgettoLLPPItem() {
@@ -526,7 +541,7 @@ public class ModificaCodAttoCMTOPopup extends ModalWindow {
 	}
 	
 	public String getTitleFlgBeniServiziItem() {
-		return "Beni e Servizi";
+		return "Beni e Servizi / ALTRO";
 	}
 	
 	public boolean isRequiredFlgBeniServiziItem() {
@@ -542,7 +557,7 @@ public class ModificaCodAttoCMTOPopup extends ModalWindow {
 	}
 	
 	public String getTitleAnnoProgettoBeniServiziItem() {
-		return "Progetto - Anno";
+		return "Anno";
 	}
 	
 	public boolean isRequiredAnnoProgettoBeniServiziItem() {
@@ -554,7 +569,7 @@ public class ModificaCodAttoCMTOPopup extends ModalWindow {
 	}
 	
 	public String getTitleNumProgettoBeniServiziItem() {
-		return "N.";
+		return "N. Commessa";
 	}
 	
 	public boolean isRequiredNumProgettoBeniServiziItem() {

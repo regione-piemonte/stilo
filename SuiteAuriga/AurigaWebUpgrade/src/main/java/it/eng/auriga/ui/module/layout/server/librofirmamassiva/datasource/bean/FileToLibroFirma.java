@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.librofirmamassiva.datasource.bean;
 
 import java.util.Date;
 
@@ -37,6 +38,8 @@ public class FileToLibroFirma {
 	private Date dataOraScadenzaCertificatoFirma;
 	@NumeroColonna(numero = "12")
 	private String tipoFirmaQA;
+	@NumeroColonna(numero = "13")
+	private String cfFirmatario;
 	
 	public String getIdDoc() {
 		return idDoc;
@@ -110,4 +113,11 @@ public class FileToLibroFirma {
 	public void setTipoFirmaQA(String tipoFirmaQA) {
 		this.tipoFirmaQA = tipoFirmaQA;
 	}
+	public String getCfFirmatario() {
+		return cfFirmatario;
+	}
+	public void setCfFirmatario(String cfFirmatario) {
+		this.cfFirmatario = cfFirmatario;
+	}
+	
 }

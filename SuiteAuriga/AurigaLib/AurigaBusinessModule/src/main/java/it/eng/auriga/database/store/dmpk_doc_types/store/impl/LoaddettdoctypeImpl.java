@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.database.store.dmpk_doc_types.store.impl;
 
 import it.eng.auriga.database.store.dmpk_doc_types.bean.DmpkDocTypesLoaddettdoctypeBean;
 import it.eng.storeutil.HibernateStoreUtil;
@@ -7,7 +8,6 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Types;
-import oracle.jdbc.OracleTypes;
 
 import it.eng.core.business.HibernateUtil;
 import it.eng.core.business.subject.SubjectBean;
@@ -36,7 +36,7 @@ public class LoaddettdoctypeImpl  {
 	    CallableStatement call = null;			
 		try{
 			//Creo il Callbackstatement
-			call = connection.prepareCall("{? = call DMPK_DOC_TYPES.LOADDETTDOCTYPE(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");			
+			call = connection.prepareCall("{? = call DMPK_DOC_TYPES.LOADDETTDOCTYPE(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");			
 			SubjectBean subject =  SubjectUtil.subject.get();
 			if (StringUtils.isNotEmpty(subject.getUuidtransaction())){
 				HibernateUtil.addStatement(subject.getUuidtransaction(), call);
@@ -80,12 +80,14 @@ public class LoaddettdoctypeImpl  {
 			call.registerOutParameter(38, Types.CLOB);
 			call.registerOutParameter(39, Types.CLOB);
 			call.registerOutParameter(40, Types.CLOB);
-			call.registerOutParameter(41, Types.VARCHAR);
-			call.registerOutParameter(42, Types.INTEGER);
-			call.registerOutParameter(43, Types.INTEGER);
-			call.registerOutParameter(44, Types.VARCHAR);
+			call.registerOutParameter(41, Types.DECIMAL);
+			call.registerOutParameter(42, Types.DECIMAL);
+			call.registerOutParameter(43, Types.DECIMAL);
+			call.registerOutParameter(44, Types.INTEGER);
 			call.registerOutParameter(45, Types.INTEGER);
 			call.registerOutParameter(46, Types.VARCHAR);
+			call.registerOutParameter(47, Types.INTEGER);
+			call.registerOutParameter(48, Types.VARCHAR);
 			
 			HibernateStoreUtil util = new HibernateStoreUtil();
 			
@@ -140,12 +142,14 @@ public class LoaddettdoctypeImpl  {
 			util.settinParameterOnBean(call,bean,wrapperBean,"xmlattraddxdocdeltipoout",38,Types.CLOB); 
 			util.settinParameterOnBean(call,bean,wrapperBean,"attributiaddout",39,Types.CLOB); 
 			util.settinParameterOnBean(call,bean,wrapperBean,"abilitazionipubblout",40,Types.CLOB); 
-			util.settinParameterOnBean(call,bean,wrapperBean,"flgrichfirmadigitaleout",41,Types.VARCHAR); 
-			util.settinParameterOnBean(call,bean,wrapperBean,"bachsizeout",42,Types.INTEGER); 
-			util.settinParameterOnBean(call,bean,wrapperBean,"flgmostraaltriattrout",43,Types.INTEGER); 
-			util.settinParameterOnBean(call,bean,wrapperBean,"errcontextout",44,Types.VARCHAR); 
-			util.settinParameterOnBean(call,bean,wrapperBean,"errcodeout",45,Types.INTEGER); 
-			util.settinParameterOnBean(call,bean,wrapperBean,"errmsgout",46,Types.VARCHAR); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"flgrichfileout",41,Types.DECIMAL); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"flgrichfirmadigitaleout",42,Types.DECIMAL); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"flgrichfirmavalidaout",43,Types.DECIMAL); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"bachsizeout",44,Types.INTEGER); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"flgmostraaltriattrout",45,Types.INTEGER); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"errcontextout",46,Types.VARCHAR); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"errcodeout",47,Types.INTEGER); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"errmsgout",48,Types.VARCHAR); 
 						
 		}catch(Exception e){
 			if (e instanceof SQLException){

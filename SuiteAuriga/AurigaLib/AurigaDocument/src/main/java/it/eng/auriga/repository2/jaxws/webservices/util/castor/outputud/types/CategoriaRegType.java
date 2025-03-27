@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+/*
  * This class was automatically generated with 
  * <a href="http://www.castor.org">Castor 1.0.4</a>, using an XML
  * Schema.

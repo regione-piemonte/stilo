@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.io.Serializable;
 
@@ -26,6 +27,8 @@ public class AbilitazioniFascicoloOut implements Serializable {
 	private Boolean presaInCarico;
 	@XmlVariabile(nome="Restituzione", tipo=TipoVariabile.SEMPLICE)
 	private Boolean restituzione;
+	@XmlVariabile(nome="Rilascia", tipo=TipoVariabile.SEMPLICE)
+	private Boolean rilascia;
 	@XmlVariabile(nome="Archiviazione", tipo=TipoVariabile.SEMPLICE)
 	private Boolean archiviazione;	
 	@XmlVariabile(nome="Chiusura", tipo=TipoVariabile.SEMPLICE)
@@ -221,5 +224,11 @@ public class AbilitazioniFascicoloOut implements Serializable {
 	}
 	public void setGestioneCollegamentiFolder(Boolean gestioneCollegamentiFolder) {
 		this.gestioneCollegamentiFolder = gestioneCollegamentiFolder;
+	}
+	public Boolean getRilascia() {
+		return rilascia;
+	}
+	public void setRilascia(Boolean rilascia) {
+		this.rilascia = rilascia;
 	}
 }

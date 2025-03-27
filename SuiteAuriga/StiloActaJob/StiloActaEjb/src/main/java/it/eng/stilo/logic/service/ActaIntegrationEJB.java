@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.stilo.logic.service;
 
 import java.io.ByteArrayInputStream;
 
@@ -1815,9 +1816,11 @@ public class ActaIntegrationEJB {
 		String serieDescription = "";
 		String voceTitolario = "";
 		if( ente!=null && ente.equalsIgnoreCase("RP")){
-			if(organization.getDocumentType().getId().equalsIgnoreCase("REG")){
+			if(organization.getDocumentType().getId().startsWith("REG")){
 				//gestisco in modo diverso solo il caso dei registri
-				
+				serieCode = organization.getDocumentType().getName();
+				serieDescription = organization.getId().getAooCode() + " " + organization.getDocumentType().getDescription();
+				voceTitolario = organization.getDocumentType().getVoceTitolario();
 			} else {
 				serieCode = organization.getDocumentType().getName();
 				serieDescription = organization.getId().getAooCode() + " " + organization.getDocumentType().getDescription();

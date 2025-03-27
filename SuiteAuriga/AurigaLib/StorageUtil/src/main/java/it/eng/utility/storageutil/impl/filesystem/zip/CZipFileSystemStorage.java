@@ -1,7 +1,9 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.storageutil.impl.filesystem.zip;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -75,9 +77,9 @@ public class CZipFileSystemStorage extends FileSystemStorage {
 		// File primaryDocumentStoredFolder =
 		// primaryDocumentStoredFile.getParentFile();
 		File primaryDocumentStoredFolder = new File(storageFolder.getAbsolutePath() + File.separator);
-		if (!primaryDocumentStoredFolder.exists())
+		if (!primaryDocumentStoredFolder.exists()) {
 			primaryDocumentStoredFolder.mkdirs();
-
+		}
 		File zipFile = new File(primaryDocumentStoredFolder.getAbsolutePath() + relativePath + "." + this.archiveExt);
 		try {
 			StorageUtil.compressToCryptedZipFile(is, zipFile.getAbsolutePath(), 16384);
@@ -90,10 +92,11 @@ public class CZipFileSystemStorage extends FileSystemStorage {
 		}
 
 		temporaryRepository.deleteRelativeFile(relativePath);
-		if (zipFile.exists())
+		if (zipFile.exists()) {
 			return zipFile.getAbsolutePath();
-		else
+		} else {
 			return "";
+		}
 	}
 
 	private File getRealId(String id) {
@@ -123,10 +126,11 @@ public class CZipFileSystemStorage extends FileSystemStorage {
 			logger.debug("storageFolder " + storageFolder.getAbsolutePath());
 
 			String persistentFilePath = persistTemporaryFile(relativePath, storageFolder);
-			if (persistentFilePath.length() > this.baseFolder.getAbsolutePath().length())
+			if (persistentFilePath.length() > this.baseFolder.getAbsolutePath().length()) {
 				return persistentFilePath.substring(this.baseFolder.getAbsolutePath().length());
-			else
+			} else {
 				return "";
+			}
 		} catch (Exception e) {
 			throw new StorageException(e);
 		}
@@ -145,10 +149,11 @@ public class CZipFileSystemStorage extends FileSystemStorage {
 			logger.debug("storageFolder " + storageFolder.getAbsolutePath());
 
 			String persistentFilePath = persistTemporaryFile(relativePath, storageFolder);
-			if (persistentFilePath.length() > this.baseFolder.getAbsolutePath().length())
+			if (persistentFilePath.length() > this.baseFolder.getAbsolutePath().length()) {
 				return persistentFilePath.substring(this.baseFolder.getAbsolutePath().length());
-			else
+			} else {
 				return "";
+			}
 		} catch (Exception e) {
 			throw new StorageException(e);
 		}
@@ -167,10 +172,11 @@ public class CZipFileSystemStorage extends FileSystemStorage {
 			logger.debug("storageFolder " + storageFolder.getAbsolutePath());
 
 			String persistentFilePath = persistTemporaryFile(relativePath, storageFolder);
-			if (persistentFilePath.length() > this.baseFolder.getAbsolutePath().length())
+			if (persistentFilePath.length() > this.baseFolder.getAbsolutePath().length()) {
 				return persistentFilePath.substring(this.baseFolder.getAbsolutePath().length());
-			else
+			} else {
 				return "";
+			}
 		} catch (Exception e) {
 			throw new StorageException(e);
 		}
@@ -189,10 +195,11 @@ public class CZipFileSystemStorage extends FileSystemStorage {
 			logger.debug("storageFolder " + storageFolder.getAbsolutePath());
 
 			String persistentFilePath = persistTemporaryFile(relativePath, storageFolder);
-			if (persistentFilePath.length() > this.baseFolder.getAbsolutePath().length())
+			if (persistentFilePath.length() > this.baseFolder.getAbsolutePath().length()) {
 				return persistentFilePath.substring(this.baseFolder.getAbsolutePath().length());
-			else
+			} else {
 				return "";
+			}
 		} catch (Exception e) {
 			throw new StorageException(e);
 		}
@@ -211,68 +218,16 @@ public class CZipFileSystemStorage extends FileSystemStorage {
 	@Override
 	public InputStream retrieve(String id) throws StorageException {
 		try {
-			File file = getRealId(id);
-			if (file == null || !file.exists())
-				throw new StorageException(id + ": id non valido");
-			this.getTemporaryRepository().storeInputStreamToRelativeFile(new FileInputStream(file), id);
-
-			File zip = this.getTemporaryRepository().retrieveFileFromRelativePath(id);
+			File zip = saveCZipInTemporaryRepository(id);
 			String filename = FilenameUtils.getName(zip.getPath());
+			String baseName = FilenameUtils.getBaseName(filename);
 
-			FileInputStream fis = new FileInputStream(zip);
-
-			File tmp = File.createTempFile("file", null);
-			FileOutputStream fos = new FileOutputStream(tmp);
-
-			byte[] passwordBytes = null;
-
-			byte[] buffer = new byte[16384];
-
-			int middle = (new Long(zip.length()).intValue() - 36) / 2;
-
-			int byte_count = 0;
-			int writed_byte_count = 0;
-
-			while ((byte_count = fis.read(buffer)) > 0) {
-				if ((writed_byte_count <= middle) && (middle < (writed_byte_count + byte_count))) {
-					if ((middle - writed_byte_count) > 0) {
-						fos.write(buffer, 0, (middle - writed_byte_count));
-					}
-					if ((middle - writed_byte_count + 36) < byte_count) {
-						passwordBytes = (byte[]) ArrayUtils.subarray(buffer, (middle - writed_byte_count),
-								(middle - writed_byte_count + 36));
-						fos.write(buffer, (middle - writed_byte_count + 36),
-								(byte_count + writed_byte_count - middle - 36));
-					} else {
-						passwordBytes = (byte[]) ArrayUtils.subarray(buffer, (middle - writed_byte_count), byte_count);
-					}
-				} else if ((writed_byte_count < (middle + 36)) && ((middle + 36) < (writed_byte_count + byte_count))) {
-					passwordBytes = ArrayUtils.addAll(passwordBytes,
-							(byte[]) ArrayUtils.subarray(buffer, 0, (middle + 36 - writed_byte_count)));
-					fos.write(buffer, (middle + 36 - writed_byte_count),
-							(byte_count + writed_byte_count - middle - 36));
-				} else {
-					fos.write(buffer, 0, byte_count);
-				}
-				writed_byte_count += byte_count;
-			}
-			fis.close();
-			fos.close();
-
-			String password = new String(passwordBytes);
-			logger.debug("password:" + password);
-
-			ZipFile zipFile = new ZipFile(tmp);
-			logger.debug("File valido" + zipFile.isValidZipFile());
-
-			if (zipFile.isEncrypted()) {
-				logger.debug("File cifrato" + zipFile.isEncrypted());
-				zipFile.setPassword(password);
-			}
+			ZipFile zipFile = returnZipFileWithPasswordFromFSCZip(zip, baseName);
+			
 			FileHeader fileHeader = zipFile.getFileHeader(FilenameUtils.getBaseName(filename));
 			return zipFile.getInputStream(fileHeader);
-
 		} catch (Exception e) {
+			logger.error("Errore di lettura/scrittura file", e);
 			throw new StorageException(e);
 		}
 	}
@@ -280,77 +235,22 @@ public class CZipFileSystemStorage extends FileSystemStorage {
 	@Override
 	public File retrieveFile(String id) throws StorageException {
 		try {
-			File file = getRealId(id);
-			if (file == null || !file.exists())
-				throw new StorageException(id + ": id non valido");
-			this.getTemporaryRepository().storeInputStreamToRelativeFile(new FileInputStream(file), id);
-
-			File zip = this.getTemporaryRepository().retrieveFileFromRelativePath(id);
+			File zip = saveCZipInTemporaryRepository(id);
 			String filename = FilenameUtils.getName(zip.getPath());
-
-			FileInputStream fis = new FileInputStream(zip);
-
-			File tmp = File.createTempFile("file", null);
-			FileOutputStream fos = new FileOutputStream(tmp);
-
-			byte[] passwordBytes = new byte[36];
-
-			byte[] buffer = new byte[16384];
-
-			int middle = (new Long(zip.length()).intValue() - 36) / 2;
-
-			int byte_count = 0;
-			int writed_byte_count = 0;
-
-			while ((byte_count = fis.read(buffer)) > 0) {
-				if ((writed_byte_count <= middle) && (middle < (writed_byte_count + byte_count))) {
-					if ((middle - writed_byte_count) > 0) {
-						fos.write(buffer, 0, (middle - writed_byte_count));
-					}
-					if ((middle - writed_byte_count + 36) < byte_count) {
-						passwordBytes = (byte[]) ArrayUtils.subarray(buffer, (middle - writed_byte_count),
-								(middle - writed_byte_count + 36));
-						fos.write(buffer, (middle - writed_byte_count + 36),
-								(byte_count + writed_byte_count - middle - 36));
-					} else {
-						passwordBytes = (byte[]) ArrayUtils.subarray(buffer, (middle - writed_byte_count), byte_count);
-					}
-				} else if ((writed_byte_count < (middle + 36)) && ((middle + 36) < (writed_byte_count + byte_count))) {
-					passwordBytes = (byte[]) ArrayUtils.subarray(buffer, 0, (middle + 36 - writed_byte_count));
-					fos.write(buffer, (middle + 36 - writed_byte_count),
-							(byte_count + writed_byte_count - middle - 36));
-				} else {
-					fos.write(buffer, 0, byte_count);
-				}
-				writed_byte_count += byte_count;
-			}
-			try {
-				fis.close();
-			} catch (Exception e) {
-			}
-			try {
-				fos.close();
-			} catch (Exception e) {
-			}
-
-			String password = new String(passwordBytes);
-			logger.debug("password:" + password);
-
-			ZipFile zipFile = new ZipFile(tmp);
-			logger.debug("File cifrato" + zipFile.isValidZipFile());
-
-			if (zipFile.isEncrypted()) {
-				logger.debug("File cifrato" + zipFile.isValidZipFile());
-				zipFile.setPassword(password);
-			}
 			String baseName = FilenameUtils.getBaseName(filename);
-			FileHeader fileHeader = zipFile.getFileHeader(baseName);
 
-			File fileToReturn = new File(zip.getParentFile().getAbsoluteFile() + File.separator + baseName);
+			ZipFile zipFile = returnZipFileWithPasswordFromFSCZip(zip, baseName);
+			
+			FileHeader fileHeader = zipFile.getFileHeader(FilenameUtils.getBaseName(filename));
+			String suffix = "" + (Math.random() * Integer.MAX_VALUE);
+			suffix = suffix.replaceAll("[\\.E]", "");
+			File fileToReturn = new File(zip.getParentFile().getAbsoluteFile() + File.separator + baseName + suffix);
 			OutputStream outputStream = new FileOutputStream(fileToReturn);
-			IOUtils.copy(zipFile.getInputStream(fileHeader), outputStream);
+			InputStream fileHeaderInputStream =  zipFile.getInputStream(fileHeader);
+			IOUtils.copy(fileHeaderInputStream, outputStream);
 			try {
 				outputStream.close();
+				fileHeaderInputStream.close();
 			} catch (Exception e) {
 			}
 			return fileToReturn;
@@ -362,6 +262,76 @@ public class CZipFileSystemStorage extends FileSystemStorage {
 			logger.error("Errore di lettura/scrittura file", e);
 			throw new StorageException(e);
 		}
+	}
+	
+	@Override
+	public File retrievRealFile(String id) throws StorageException {
+		return retrieveFile(id);
+	}
+
+	private File saveCZipInTemporaryRepository(String id) throws StorageException, FileNotFoundException {
+		File file = getRealId(id);
+		if (file == null || !file.exists()) {
+			throw new StorageException(id + ": id non valido");
+		}
+		String suffix = "" + (Math.random() * Integer.MAX_VALUE);
+		suffix = suffix.replaceAll("[\\.E]", "");
+		String idCZipTempRep = id + suffix;
+		this.getTemporaryRepository().storeInputStreamToRelativeFile(new FileInputStream(file), idCZipTempRep);
+		File zip = this.getTemporaryRepository().retrieveFileFromRelativePath(idCZipTempRep);
+		return zip;
+	}
+	
+	// Estrae un file FSCZIP e ne restituisce il rispettivo ZipFile con già la password settata
+	private ZipFile returnZipFileWithPasswordFromFSCZip(File zip, String baseName) throws FileNotFoundException, IOException, ZipException {
+
+		FileInputStream fis = new FileInputStream(zip);
+
+		File tmp = new File(zip.getParentFile().getAbsoluteFile() + File.separator + baseName + ".zip");
+		FileOutputStream fos = new FileOutputStream(tmp);
+
+		byte[] passwordBytes = null;
+
+		byte[] buffer = new byte[16384];
+
+		int middle = (new Long(zip.length()).intValue() - 36) / 2;
+
+		int byte_count = 0;
+		int writed_byte_count = 0;
+
+		while ((byte_count = fis.read(buffer)) > 0) {
+			if ((writed_byte_count <= middle) && (middle < (writed_byte_count + byte_count))) {
+				if ((middle - writed_byte_count) > 0) {
+					fos.write(buffer, 0, (middle - writed_byte_count));
+				}
+				if ((middle - writed_byte_count + 36) < byte_count) {
+					passwordBytes = (byte[]) ArrayUtils.subarray(buffer, (middle - writed_byte_count), (middle - writed_byte_count + 36));
+					fos.write(buffer, (middle - writed_byte_count + 36), (byte_count + writed_byte_count - middle - 36));
+				} else {
+					passwordBytes = (byte[]) ArrayUtils.subarray(buffer, (middle - writed_byte_count), byte_count);
+				}
+			} else if ((writed_byte_count < (middle + 36)) && ((middle + 36) < (writed_byte_count + byte_count))) {
+				passwordBytes = ArrayUtils.addAll(passwordBytes, (byte[]) ArrayUtils.subarray(buffer, 0, (middle + 36 - writed_byte_count)));
+				fos.write(buffer, (middle + 36 - writed_byte_count), (byte_count + writed_byte_count - middle - 36));
+			} else {
+				fos.write(buffer, 0, byte_count);
+			}
+			writed_byte_count += byte_count;
+		}
+		fis.close();
+		fos.close();
+
+		String password = new String(passwordBytes);
+		logger.debug("password:" + password);
+
+		ZipFile zipFile = new ZipFile(tmp);
+		logger.debug("File valido" + zipFile.isValidZipFile());
+
+		if (zipFile.isEncrypted()) {
+			logger.debug("File cifrato" + zipFile.isEncrypted());
+			zipFile.setPassword(password);
+		}
+		return zipFile;
 	}
 
 	public String getArchiveExt() {

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.module.foutility.fo;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -434,6 +435,7 @@ public class OutputSignerBeanConverter {
 									RDN serialNumber = serialNumbers[0];
 									if (serialNumber != null && serialNumber.getFirst() != null) {
 										subjectDn.setSerialNumber(IETFUtils.valueToString(serialNumber.getFirst().getValue()));
+										subjectDn.setCodiceFiscale(CertificateUtil.getCodiceFiscaleFromSerialNumber(subjectDn.getSerialNumber()));
 									} else {
 										subjectDn.setSerialNumber(x509NameSubject.get("SERIALNUMBER"));
 									}
@@ -515,7 +517,7 @@ public class OutputSignerBeanConverter {
 								if (serialNumbers != null && serialNumbers.length > 0) {
 									RDN serialNumber = serialNumbers[0];
 									if (serialNumber != null && serialNumber.getFirst() != null) {
-										issuerDn.setSerialNumber(IETFUtils.valueToString(serialNumber.getFirst().getValue()));
+										issuerDn.setSerialNumber(IETFUtils.valueToString(serialNumber.getFirst().getValue()));										
 									} else {
 										issuerDn.setSerialNumber(x509NameIssuer.get("SERIALNUMBER"));
 									}

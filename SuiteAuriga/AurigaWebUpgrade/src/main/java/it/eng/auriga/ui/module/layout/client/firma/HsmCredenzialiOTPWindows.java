@@ -1,56 +1,28 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.firma;
 
-import java.util.LinkedHashMap;
-
-import com.smartgwt.client.data.DSCallback;
-import com.smartgwt.client.data.DSRequest;
-import com.smartgwt.client.data.DSResponse;
 import com.smartgwt.client.data.Record;
 import com.smartgwt.client.types.Alignment;
 import com.smartgwt.client.types.FormItemType;
 import com.smartgwt.client.widgets.Button;
 import com.smartgwt.client.widgets.Window;
 import com.smartgwt.client.widgets.form.DynamicForm;
-import com.smartgwt.client.widgets.form.FormItemIfFunction;
-import com.smartgwt.client.widgets.form.fields.FormItem;
 import com.smartgwt.client.widgets.form.fields.PasswordItem;
-import com.smartgwt.client.widgets.form.fields.events.ClickEvent;
-import com.smartgwt.client.widgets.form.fields.events.ClickHandler;
-import com.smartgwt.client.widgets.form.fields.events.IconClickEvent;
-import com.smartgwt.client.widgets.form.fields.events.IconClickHandler;
 import com.smartgwt.client.widgets.layout.HLayout;
 import com.smartgwt.client.widgets.layout.VLayout;
 
-import it.eng.auriga.ui.module.layout.client.AurigaLayout;
 import it.eng.auriga.ui.module.layout.client.i18n.I18NUtil;
-import it.eng.utility.ui.module.core.client.datasource.GWTRestDataSource;
-import it.eng.utility.ui.module.core.shared.message.MessageBean;
-import it.eng.utility.ui.module.core.shared.message.MessageType;
-import it.eng.utility.ui.module.layout.client.Layout;
-import it.eng.utility.ui.module.layout.client.common.items.ImgButtonItem;
-import it.eng.utility.ui.module.layout.client.common.items.SelectItem;
 import it.eng.utility.ui.module.layout.client.common.items.TextItem;
 
 public abstract class HsmCredenzialiOTPWindows extends Window {
 
 	private Window _this = this;
-	
 	private DynamicForm formCredenzialiOTP;
-	
-	private TextItem usernameCredenzialiOTPItem;
-	private PasswordItem passwordCredenzialiOTPItem;
-	;
-	
-//	private boolean firmaHsmRequireRemoteGenerationOtp;
-//	private boolean firmaHsmRequireCaricamentoCertificati;
-	
+		
 	private final int TITLE_WIDTH = 120;
 
-	//public HsmCredenzialiWindowNuova(boolean firmaHsmRequireRemoteGenerationOtp, boolean firmaHsmRequireCaricamentoCertificati) {
 	public HsmCredenzialiOTPWindows(Record preimpostazioni) {
-		
-//		this.firmaHsmRequireRemoteGenerationOtp = firmaHsmRequireRemoteGenerationOtp;
-//		this.firmaHsmRequireCaricamentoCertificati = firmaHsmRequireCaricamentoCertificati;
+
 		setIsModal(true);
 		setModalMaskOpacity(50);
 		setAutoCenter(true);
@@ -85,6 +57,14 @@ public abstract class HsmCredenzialiOTPWindows extends Window {
 		String otpUsername = preimpostazioni.getAttribute("otpUsername");
 		if (otpUsername != null && !"".equals(otpUsername)) {
 			formCredenzialiOTP.setValue("otpUsername", otpUsername);
+		}
+		
+		boolean canSavePasswordRichOtp = preimpostazioni.getAttributeAsBoolean("canSavePasswordRichOtp");
+		if (canSavePasswordRichOtp) {
+			String otpPassword = preimpostazioni.getAttribute("otpPassword");
+			if (otpPassword != null && !"".equalsIgnoreCase(otpPassword)) {
+				formCredenzialiOTP.setValue("otpPassword", otpPassword);
+			}
 		}
 		
 		show();

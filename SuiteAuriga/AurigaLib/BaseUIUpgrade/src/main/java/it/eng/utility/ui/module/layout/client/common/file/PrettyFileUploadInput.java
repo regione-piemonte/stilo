@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common.file;
 
 import com.smartgwt.client.types.Alignment;
 import com.smartgwt.client.types.Overflow;
@@ -92,7 +93,7 @@ public class PrettyFileUploadInput extends Canvas {
 	public String getInnerHTML() { 
 	 	if (UserInterfaceFactory.isAttivaAccessibilita()){
 	 		setIndiceTab(getTabIndex().intValue());
-			return "<form NAME=\"form1\" action=\"" + _action + "\" STYLE=\"cursor: " + mCssAndDimensionFileInput.getCursor().getValue() + "; margin: 0px; padding: 0px;\" ENCTYPE=\"multipart/form-data\" method=\"post\" target=\"" + _target + "\">" +
+			return "<form NAME=\"form1\" id=\"formSingleUpload"+ smartId +"\" action=\"" + _action + "\" STYLE=\"cursor: " + mCssAndDimensionFileInput.getCursor().getValue() + "; margin: 0px; padding: 0px;\" ENCTYPE=\"multipart/form-data\" method=\"post\" target=\"" + _target + "\">" +
 				   "<label style=\"cursor: " + mCssAndDimensionFileInput.getCursor().getValue() + ";\" class=\"" + mCssAndDimensionFileInput.getCssClass() + "\" tabIndex=\"-1\">" +
 				   "<input name=\"smartId\" id=\"smartId\" type=\"hidden\" style=\"cursor: " + mCssAndDimensionFileInput.getCursor().getValue() + ";\" value=\"" + smartId + "\" tabIndex=\"-1\"/> " +	
 				   "<input name=\"isExternalPortlet\" id=\"isExternalPortlet\" type=\"hidden\" style=\"cursor: " + mCssAndDimensionFileInput.getCursor().getValue() + ";\" value=\"" + Layout.isExternalPortlet + "\" tabIndex=\"-1\"/> " +		
@@ -276,6 +277,10 @@ public class PrettyFileUploadInput extends Canvas {
 	
 	public native void focusOnInputFile (int tabIndex)/*-{
 		$doc.getElementById("uploadFileInput_"+tabIndex).click();
+	}-*/;
+	
+	public native void focusOnInputFileBySmartId (String smartId)/*-{
+		$doc.getElementById("uploadFileInput_"+smartId).click();
 	}-*/;
 	
 //	public native void focusOnInputFile (int tabIndex)/*-{

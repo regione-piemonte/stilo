@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -14,7 +15,6 @@ public class AllegatoProtocolloBean {
 	private String idTipoFileAllegato;
 	private String descTipoFileAllegato;
 	private String listaTipiFileAllegato;
-	private String flgRichiestaFirmaDigitale;
 	private String dictionaryEntrySezione;
 	private String descrizioneFileAllegato;
 	private BigDecimal idDocAllegato;
@@ -51,7 +51,6 @@ public class AllegatoProtocolloBean {
 	private String nroPagFileUnioneOmissis;	
 	private Boolean flgDatiSensibili;
 	private Boolean flgSostituisciVerPrec;
-	private Boolean flgDaFirmare;
 	private Boolean flgDaProtocollare;
 	private String idUdAppartenenza;	
 	private String ruoloUd;	
@@ -145,12 +144,6 @@ public class AllegatoProtocolloBean {
 	public String getListaTipiFileAllegato() {
 		return listaTipiFileAllegato;
 	}
-	public String getFlgRichiestaFirmaDigitale() {
-		return flgRichiestaFirmaDigitale;
-	}
-	public void setFlgRichiestaFirmaDigitale(String flgRichiestaFirmaDigitale) {
-		this.flgRichiestaFirmaDigitale = flgRichiestaFirmaDigitale;
-	}
 	public void setListaTipiFileAllegato(String listaTipiFileAllegato) {
 		this.listaTipiFileAllegato = listaTipiFileAllegato;
 	}
@@ -226,7 +219,6 @@ public class AllegatoProtocolloBean {
 	public void setIsChanged(Boolean isChanged) {
 		this.isChanged = isChanged;
 	}
-	
 	public Boolean getFlgProvEsterna() {
 		return flgProvEsterna;
 	}
@@ -370,12 +362,6 @@ public class AllegatoProtocolloBean {
 	}
 	public void setFlgSostituisciVerPrec(Boolean flgSostituisciVerPrec) {
 		this.flgSostituisciVerPrec = flgSostituisciVerPrec;
-	}
-	public Boolean getFlgDaFirmare() {
-		return flgDaFirmare;
-	}
-	public void setFlgDaFirmare(Boolean flgDaFirmare) {
-		this.flgDaFirmare = flgDaFirmare;
 	}
 	public Boolean getFlgDaProtocollare() {
 		return flgDaProtocollare;

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.scrivania;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -359,6 +360,7 @@ public class ScrivaniaTree extends CustomSimpleTree {
 						((ScrivaniaLayout) layout).setAbilFolderizzazione(record.getAttributeAsBoolean("abilFolderizzazione")); 
 						((ScrivaniaLayout) layout).setAbilAssegnazione(record.getAttributeAsBoolean("abilAssegnazione")); 
 						((ScrivaniaLayout) layout).setAbilRestituzione(record.getAttributeAsBoolean("abilRestituzione")); 
+						((ScrivaniaLayout) layout).setAbilRilascia(record.getAttributeAsBoolean("abilRilascia"));
 						((ScrivaniaLayout) layout).setAbilSmistamento(record.getAttributeAsBoolean("abilSmistamento")); 
 						((ScrivaniaLayout) layout).setAbilSmistamentoCC(record.getAttributeAsBoolean("abilSmistamentoCC")); 
 						((ScrivaniaLayout) layout).setAbilInvioPerConoscenza(record.getAttributeAsBoolean("abilInvioPerConoscenza")); 
@@ -380,6 +382,7 @@ public class ScrivaniaTree extends CustomSimpleTree {
 						((ScrivaniaLayout) layout).setAbilChiudiFascicoloMultiButton(record.getAttributeAsBoolean("abilChiudiFascicoloMultiButton")); 
 						((ScrivaniaLayout) layout).setAbilRiapriFascicoloMultiButton(record.getAttributeAsBoolean("abilRiapriFascicoloMultiButton")); 
 						((ScrivaniaLayout) layout).setAbilSegnaComeVisionatoMultiButton(record.getAttributeAsBoolean("abilSegnaComeVisionatoMultiButton")); 
+						((ScrivaniaLayout) layout).setAbilSegnaInvioEmailExtraSistemaMultiButton(record.getAttributeAsBoolean("abilSegnaInvioEmailExtraSistemaMultiButton")); 
 
 						GWTRestDataSource archivioDS = new GWTRestDataSource("ArchivioDatasource", "idUdFolder", FieldType.TEXT);
 						archivioDS.addParam("setNullFlgSubfolderSearch", "true");
@@ -519,23 +522,32 @@ public class ScrivaniaTree extends CustomSimpleTree {
 						
 						// ottavio - AURIGA-357 : il filtro "Data ricezione" deve apparire in tutte e solo le sezioni con ci_nodo che inizia con D.2A o F.2A o DF.2A o D.2CC o F.2CC o DF.2CC  
 						//if (idNode != null && (idNode.startsWith("FD.2A") || idNode.startsWith("D.2A") || idNode.startsWith("F.2A"))) {
-						if (idNode != null && (idNode.startsWith("D.2A")  || 
-								               idNode.startsWith("F.2A")  || 
-								               idNode.startsWith("DF.2A") || 
-								               idNode.startsWith("D.2CC") ||
-								               idNode.startsWith("F.2CC") ||
-								               idNode.startsWith("DF.2CC")
-								              )
-						   ) {
+						/** FIX BUG: Per le sezioni della scrivania di Conoscenza con ci_nodo D.2A.L.R & D.2CC.DL.R il filto Data ricezione riferito alle variabili DataAssegnSmistDa – DataAssegnSmistA
+						 *  và nascosto, và mostrato il filtro Data ricezione riferito alle variabili DataAssegnSmistDa – DataAssegnSmistA
+						 */
+						
+						/**
+						 * COMPETENZA
+						 */
+						if (idNode != null && (idNode.startsWith("D.2A") || 
+											   idNode.startsWith("F.2A") || 
+											   idNode.startsWith("DF.2A"))) {
 							extraparam.put("showFilterRicevutiPerCompetenza", "S");
 						} else {
 							extraparam.put("showFilterRicevutiPerCompetenza", "N");
 						}
-						if (idNode != null && (idNode.startsWith("FD.2CC") || idNode.startsWith("D.2CC") || idNode.startsWith("F.2CC"))) {
+						
+						/**
+						 * CONOSCENZA
+						 */
+						if (idNode != null && (idNode.startsWith("D.2CC") || 
+								   			   idNode.startsWith("F.2CC") ||
+								   			   idNode.startsWith("DF.2CC"))) {
 							extraparam.put("showFilterRicevutiPerConoscenzaCC", "S");
 						} else {
 							extraparam.put("showFilterRicevutiPerConoscenzaCC", "N");
 						}
+						
 						
 						// ottavio - AURIGA-357 : il filtro "Data notifica" deve apparire in tutte e solo le sezioni con ci_nodo che inizia con D.2NA o F.2NA o FD.2NA 
 						if (idNode != null && (idNode.startsWith("D.2NA")  || 
@@ -634,20 +646,36 @@ public class ScrivaniaTree extends CustomSimpleTree {
 							extraparam.put("showFilterDataPresaInCarico", "N");
 						}
 						
-						// Filtro per ADSP
-						if ( idNode != null  && idNode.startsWith("D.") && AurigaLayout.isAttivoClienteADSP()) {								
+						// Filtro perizia per ADSP
+						if ( idNode != null  && (idNode.startsWith("D.") || idNode.startsWith("F.")) && AurigaLayout.isAttivoClienteADSP()) {								
 							extraparam.put("showFilterPerizia", "S");							
 					    }
 						else{
 							extraparam.put("showFilterPerizia", "N");
 						}
 						
-						// Filtro per ADSP
-						if ( idNode != null  && idNode.startsWith("D.") && AurigaLayout.isAttivoClienteADSP()) {								
+						// Filtro concessione per ADSP
+						if ( idNode != null  && (idNode.startsWith("D.") || idNode.startsWith("F.")) && AurigaLayout.isAttivoClienteADSP()) {								
+							extraparam.put("showFilterConcessione", "S");							
+					    }
+						else{
+							extraparam.put("showFilterConcessione", "N");
+						}
+						
+						// Filtro Presenza opere (solo per ADSP)
+						if ( idNode != null  && (idNode.startsWith("D.") || idNode.startsWith("F.") ) && AurigaLayout.isAttivoClienteADSP()) {		
 							extraparam.put("showFilterPresenzaOpere", "S");							
 					    }
 						else{
 							extraparam.put("showFilterPresenzaOpere", "N");
+						}
+						
+						// Filtro Presenza concessioni (solo per ADSP)
+						if ( idNode != null  && (idNode.startsWith("D.") || idNode.startsWith("F.") ) && AurigaLayout.isAttivoClienteADSP()) {
+							extraparam.put("showFilterPresenzaConcessioni", "S");							
+					    }
+						else{
+							extraparam.put("showFilterPresenzaConcessioni", "N");
 						}
 						
 						// Filtro per ADSP
@@ -920,8 +948,8 @@ public class ScrivaniaTree extends CustomSimpleTree {
 
 							@Override
 							public void execute(Record recordPref) {
-								Layout.addMessage(new MessageBean(checked ? "sezione da aprire all'accesso alla scrivania attivata" : 
-									"sezione da aprire all'accesso alla scrivania disattivata", "", MessageType.INFO));
+								Layout.addMessage(new MessageBean(checked ? "Sezione da aprire all'accesso alla scrivania attivata" : 
+									"Sezione da aprire all'accesso alla scrivania disattivata", "", MessageType.INFO));
 							}
 							
 						});
@@ -1132,22 +1160,41 @@ public class ScrivaniaTree extends CustomSimpleTree {
 		loadUserPreference(prefKey, prefName, userId, true, new ServiceCallback<Record>() {
 
 			@Override
-			public void execute(Record recordPref) {
-
+			public void execute(final Record recordPref) {
 				if (recordPref != null) {
 					recordPref.setAttribute("value", value);
-					preferenceDS.updateData(recordPref);
+					preferenceDS.updateData(recordPref, new DSCallback() {
+						
+						@Override
+						public void execute(DSResponse dsResponse, Object data, DSRequest dsRequest) {
+							if (dsResponse.getStatus() == DSResponse.STATUS_SUCCESS) {
+								if (successMessage != null && !"".equals(successMessage)) {
+									AurigaLayout.addMessage(new MessageBean(successMessage, "", MessageType.INFO));
+								}
+								if (callback != null) {
+									callback.execute(recordPref);
+								}
+							}
+						}
+					});
 				} else {
-					Record record = new Record();
+					final Record record = new Record();
 					record.setAttribute("prefName", prefName);
 					record.setAttribute("value", value);
-					preferenceDS.addData(record);
-				}
-				if (successMessage != null && !"".equals(successMessage)) {
-					AurigaLayout.addMessage(new MessageBean(successMessage, "", MessageType.INFO));
-				}
-				if (callback != null) {
-					callback.execute(recordPref);
+					preferenceDS.addData(record, new DSCallback() {
+						
+						@Override
+						public void execute(DSResponse dsResponse, Object data, DSRequest dsRequest) {
+							if (dsResponse.getStatus() == DSResponse.STATUS_SUCCESS) {
+								if (successMessage != null && !"".equals(successMessage)) {
+									AurigaLayout.addMessage(new MessageBean(successMessage, "", MessageType.INFO));
+								}
+								if (callback != null) {
+									callback.execute(null);
+								}
+							}
+						}
+					});
 				}
 			}
 		});

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.firma;
 
 import java.util.LinkedHashMap;
 
@@ -13,6 +14,7 @@ import com.smartgwt.client.widgets.Window;
 import com.smartgwt.client.widgets.form.DynamicForm;
 import com.smartgwt.client.widgets.form.FormItemIfFunction;
 import com.smartgwt.client.widgets.form.fields.FormItem;
+import com.smartgwt.client.widgets.form.fields.HiddenItem;
 import com.smartgwt.client.widgets.form.fields.PasswordItem;
 import com.smartgwt.client.widgets.form.fields.events.ClickEvent;
 import com.smartgwt.client.widgets.form.fields.events.ClickHandler;
@@ -36,15 +38,16 @@ public abstract class HsmCredenzialiWindows extends Window {
 	private DynamicForm formUsernameHsm;
 	private DynamicForm formListaCertificatiHsm;
 	private DynamicForm formPasswordHsm;
+	private DynamicForm formPinHsm;
 	private DynamicForm formCodiceOtpHsm;
 	
 	private SelectItem listaCertificatiSelect;
+	private HiddenItem authByPINPasswordAsSeparateFiledsItem;
 	private PasswordItem passwordTextItem;
+	private PasswordItem pinTextItem;
 	private TextItem otpCodeTextItem;
 	private ImgButtonItem generazioneRemotaOtpSmsImgButton;
 	private ImgButtonItem generazioneRemotaOtpCallImgButton;
-	private boolean isFirmaRemotaWithWS;
-	
 	
 	private final int TITLE_WIDTH = 220;
 
@@ -99,8 +102,17 @@ public abstract class HsmCredenzialiWindows extends Window {
 		
 			addItem(passwordLayout);
 		}
+		HLayout pinLayout = createPinLayout(preimpostazioni);
 		VLayout vFillLayout = new VLayout();
 		vFillLayout.setHeight("100%");
+		
+		final boolean authByPINPasswordAsSeparateFileds = preimpostazioni.getAttributeAsBoolean("authByPINPasswordAsSeparateFileds");
+
+		if (authByPINPasswordAsSeparateFileds) {
+			formUsernameHsm.setValue("authByPINPasswordAsSeparateFileds", authByPINPasswordAsSeparateFileds);
+			passwordTextItem.setTitle(setTitleAlign("Password", TITLE_WIDTH, false));
+			addItem(pinLayout);
+		}
 		
 		addItem(optLayout);
 		addItem(vSpacerLayout);
@@ -128,78 +140,31 @@ public abstract class HsmCredenzialiWindows extends Window {
 			formUsernameHsm.setValue("usernameDelegante", usernameDelegante);
 		}
 		
+		boolean canSavePasswordFirmaNonAutomatica = preimpostazioni.getAttributeAsBoolean("canSavePasswordFirmaNonAutomatica");
+		boolean canSavePinFirmaNonAutomatica = preimpostazioni.getAttributeAsBoolean("canSavePinFirmaNonAutomatica");
+		if (authByPINPasswordAsSeparateFileds) {
+			if (canSavePasswordFirmaNonAutomatica) {
+				String password = preimpostazioni.getAttribute("password");
+				if (password != null && !"".equalsIgnoreCase(password)) {
+					formPasswordHsm.setValue("password", password);
+				}
+			}
+			if (canSavePinFirmaNonAutomatica) {
+				String authPIN = preimpostazioni.getAttribute("authPIN");
+				if (authPIN != null && !"".equalsIgnoreCase(authPIN)) {
+					formPinHsm.setValue("authPIN", authPIN);
+				}
+			}
+		} else {
+			if (canSavePasswordFirmaNonAutomatica) {
+				String password = preimpostazioni.getAttribute("password");
+				if (password != null && !"".equalsIgnoreCase(password)) {
+					formPasswordHsm.setValue("password", password);
+				}
+			}
+		}	
 		show();
 	}
-
-//	public HsmCredenzialiWindows(Record preimpostazioni) {
-//		
-//		setIsModal(true);
-//		setModalMaskOpacity(50);
-//		setAutoCenter(true);
-//		setWidth(550);
-//		setHeight(270);
-//		setKeepInParentRect(true);
-//		setTitle(I18NUtil.getMessages().hsmCredenzialiWindow_title());
-//		setShowModalMask(true);
-//		setShowCloseButton(false);
-//		setShowMaximizeButton(false);
-//		setShowMinimizeButton(false);
-//		setAlign(Alignment.CENTER);
-//		setTop(50);
-//
-//		VLayout vSpacerLayout = new VLayout();
-//		vSpacerLayout.setHeight(10);
-//		
-//		HLayout codiceFiscaleLayout = createUsernameLayout();
-//		HLayout listaCertificatiLayout = createListaCertificatiLayout();
-//		HLayout optLayout = createOtpLayout();
-//		HLayout passwordLayout = createPasswordLayout();
-//		VLayout confermaLayout = createConfermaLayout();
-//		if(!isFirmaRemotaWithWS) {
-//			addItem(vSpacerLayout);
-//			addItem(codiceFiscaleLayout);
-//			if(nascondiListaCertificati()){
-//				passwordTextItem.setCanEdit(true);
-//				passwordTextItem.setTextBoxStyle(it.eng.utility.Styles.textItem);
-//				otpCodeTextItem.setCanEdit(true);
-//			} else {
-//				addItem(listaCertificatiLayout);
-//			}
-//				
-//				addItem(passwordLayout);
-//		}
-//		
-//		VLayout vFillLayout = new VLayout();
-//		vFillLayout.setHeight("100%");
-//		
-//		addItem(optLayout);
-//		addItem(vSpacerLayout);
-//		addItem(confermaLayout);
-//		addItem(vFillLayout);
-//		
-//		setShowTitle(true);
-//		
-//		String username = preimpostazioni.getAttribute("username");
-//		String codFiscaleLoggato = AurigaLayout.getUtenteLoggato().getCodFiscale(); 
-//		if (username != null && !"".equals(username)) {
-//			formUsernameHsm.setValue("username", username);
-//			if (!nascondiListaCertificati()) {
-//				caricaListaCertificati();
-//			}
-//		} else if (codFiscaleLoggato != null && !"".equals(codFiscaleLoggato)) {
-//			formUsernameHsm.setValue("username", codFiscaleLoggato);
-//			if (!nascondiListaCertificati()) {
-//				caricaListaCertificati();
-//			}
-//		}
-//		
-//		String usernameDelegante = preimpostazioni.getAttribute("usernameDelegante");
-//		if (usernameDelegante != null && !"".equals(usernameDelegante) && mostraUsernameDelegante()) {
-//			formUsernameHsm.setValue("usernameDelegante", usernameDelegante);
-//		}
-//		
-//		show();
-//	}
 
 	protected HLayout createUsernameLayout() {
 
@@ -411,6 +376,8 @@ public abstract class HsmCredenzialiWindows extends Window {
 		formPasswordHsm.setWrapItemTitles(false);
 		formPasswordHsm.setColWidths("20", "*");
 		formPasswordHsm.setAlign(Alignment.CENTER);
+		
+		authByPINPasswordAsSeparateFiledsItem = new HiddenItem("authByPINPasswordAsSeparateFileds");
 
 		passwordTextItem = new PasswordItem();
 		passwordTextItem.setName("password");
@@ -419,9 +386,10 @@ public abstract class HsmCredenzialiWindows extends Window {
 		passwordTextItem.setType(FormItemType.PASSWORD_ITEM.getValue());
 		passwordTextItem.setStartRow(true);
 		passwordTextItem.setCanEdit(false);
+		passwordTextItem.setAttribute("obbligatorio", true);
 		passwordTextItem.setTextBoxStyle(it.eng.utility.Styles.textItemReadonly);
 
-		formPasswordHsm.setItems(passwordTextItem);
+		formPasswordHsm.setItems(authByPINPasswordAsSeparateFiledsItem, passwordTextItem);
 
 		HLayout hLayout = new HLayout();
 		
@@ -485,6 +453,34 @@ public abstract class HsmCredenzialiWindows extends Window {
 
 		return layout;
 	}
+	
+	
+	protected HLayout createPinLayout(Record preimpostazioni) {
+
+		VLayout hSpacerLayout = new VLayout();
+		hSpacerLayout.setWidth(20);
+		
+		formPinHsm = new DynamicForm();
+		formPinHsm.setNumCols(10);
+		formPinHsm.setCellPadding(5);
+		formPinHsm.setWrapItemTitles(false);
+		formPinHsm.setColWidths("20", "*");
+		formPinHsm.setAlign(Alignment.CENTER);
+		
+		pinTextItem = new PasswordItem();
+		pinTextItem.setName("authPIN");
+		pinTextItem.setTitle(setTitleAlign("PIN", TITLE_WIDTH, false));
+		pinTextItem.setWidth(200);
+		pinTextItem.setStartRow(true);
+
+		formPinHsm.setItems(pinTextItem);
+
+		HLayout hLayout = new HLayout();
+		
+		hLayout.addMember(formPinHsm);
+
+		return hLayout;
+	}
 
 	public String getUsername() {
 		return formUsernameHsm.getValueAsString("username");
@@ -500,6 +496,10 @@ public abstract class HsmCredenzialiWindows extends Window {
 
 	public String getCodiceOtp() {
 		return formCodiceOtpHsm.getValueAsString("codiceOtp");
+	}
+	
+	public String getPin() {
+		return formPinHsm.getValueAsString("authPIN");
 	}
 	
 	public String getCertId() {

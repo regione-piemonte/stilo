@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.versionhandler.synchronous.helpers;
 
 import it.eng.auriga.database.store.dmpk_login.bean.DmpkLoginLoginBean;
 import it.eng.auriga.database.store.dmpk_login.bean.DmpkLoginLoginconcredenzialiesterneBean;
@@ -46,7 +47,7 @@ public class LoginWS extends GenericHelper{
 	 * @throws VersionHandlerException
 	 */
 	public String[] externalLogin(Connection conn, String userId, String password, String extAppl, String istanzaAppl, String dbSchema) throws VersionHandlerException {
-		String[] result =  new String[4];
+		String[] result =  new String[5];
 		
 		try {
 			
@@ -86,12 +87,14 @@ public class LoginWS extends GenericHelper{
 			result[1] = outServizio.getDesUserOut();
 			result[2] = outServizio.getIdDominioOut();
 			result[3] = outServizio.getDesDominioOut();
+			result[4] = outServizio.getParametriconfigout();
 			
 			aLogger.debug("Eseguita store per External Login");
 			aLogger.debug("CodIdConnectionTokenOut: " + result[0]);
 			aLogger.debug("DesUserOut: " + result[1]);			
 			aLogger.debug("IdDominioOut: " + result[2]);
 			aLogger.debug("DesDominioOut: " + result[3]);
+			aLogger.debug("Parametriconfigout: " + result[4]);
 			
 			return result;
 			
@@ -198,6 +201,7 @@ public class LoginWS extends GenericHelper{
 		 String desUserOut              = null;
 		 String desDominioOut           = null;
 		 String flgTpDominioAutOut      = null;
+		 String parametriconfigout      = null;
 		 		 
 		 try { 
 			    WSLoginOutBean  result = new WSLoginOutBean();
@@ -244,11 +248,17 @@ public class LoginWS extends GenericHelper{
 		    			 desDominioOut = output.getResultBean().getDesdominioout().toString();  
 		    		  }
 		    		 
+		    		 // restituisco Parametriconfigout
+		    		 if (output.getResultBean().getParametriconfigout()!= null){
+		    			 parametriconfigout = output.getResultBean().getParametriconfigout();  
+		    		 }
+		    		 
 		    		 // popolo il bean di out
 		    		 result.setIdDominioOut(idDominioOut);
 		    		 result.setCodIdConnectionTokenOut(codIdConnectionTokenOut);
 		    		 result.setDesUserOut(desUserOut);
 	   	      		 result.setDesDominioOut(desDominioOut);
+	   	      		 result.setParametriconfigout(parametriconfigout);
 			    }
 			    
 			    // Login INTERNA

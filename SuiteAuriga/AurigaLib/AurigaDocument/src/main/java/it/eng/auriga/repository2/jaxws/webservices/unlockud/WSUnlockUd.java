@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.unlockud;
 
 import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreUnlockudBean;
 import it.eng.auriga.database.store.dmpk_core.store.Unlockud;
@@ -9,6 +10,8 @@ import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.auriga.module.business.beans.SpecializzazioneBean;
 import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
+import it.eng.document.function.StoreException;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -17,6 +20,8 @@ import java.util.ArrayList;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -67,6 +72,7 @@ public class WSUnlockUd extends JAXWSAbstractAurigaService implements WSIUnlockU
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
 
 
@@ -76,6 +82,7 @@ public class WSUnlockUd extends JAXWSAbstractAurigaService implements WSIUnlockU
       
     String errMsg = null;
     String xmlIn = null;
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
     
     try {
     	 aLogger.info("Inizio WSUnlockUd");
@@ -112,6 +119,11 @@ public class WSUnlockUd extends JAXWSAbstractAurigaService implements WSIUnlockU
  			 outServizio =  eseguiServizio(loginBean,outWS); 	 		
 	 		}
 	 	catch (Exception e){	 
+	 		if (e instanceof StoreException) {
+	    		if(((StoreException) e).getError()!=null){
+	    			errCode = ((StoreException) e).getError().getErrorCode();
+	    		}
+	    	}
 	 		if(e.getMessage()!=null)
 	 			 errMsg = "Errore = " + e.getMessage();
 	 		 else
@@ -158,7 +170,7 @@ public class WSUnlockUd extends JAXWSAbstractAurigaService implements WSIUnlockU
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 	 	 }
 	 	 else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	 }
 	 			        	
 	     aLogger.info("Fine WSUnlockUd");
@@ -180,83 +192,70 @@ public class WSUnlockUd extends JAXWSAbstractAurigaService implements WSIUnlockU
 
     
     private String eseguiServizio(AurigaLoginBean loginBean, WSUnlockUdBean bean) throws Exception {
-    	aLogger.debug("Eseguo il servizio di AurigaDocument.");
+    	aLogger.debug("Eseguo il servizio  DMPK_CORE.UnlockUd");
     	
     	String ret = null;
     	
-		// creo l'input
+    	// Inizializzo l'INPUT    		
 		BigDecimal idUdIn       = (bean.getIdUd() != null) ? new BigDecimal(bean.getIdUd()) : null;	    		
+		DmpkCoreUnlockudBean input = new DmpkCoreUnlockudBean();
+	    input.setCodidconnectiontokenin(loginBean.getToken());
+	    input.setIduserlavoroin(StringUtils.isNotBlank(loginBean.getIdUserLavoro()) ? new BigDecimal(loginBean.getIdUserLavoro()) : null);
+	    input.setIdudin(idUdIn);
+	    
+	    // Eseguo il servizio
+	    Unlockud service = new Unlockud();			
+		StoreResultBean<DmpkCoreUnlockudBean> output = service.execute(loginBean, input);
+		if (output.isInError()){
+			aLogger.debug(output.getDefaultMessage());
+			aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+			throw new StoreException(output);
+		}
 		
-	    try {	    	
-	    	    // **********************************************************
-	    	    // Eseguo il DMPK_CORE.UnlockUd
-	    	    // **********************************************************
-	    	    aLogger.debug("Eseguo il servizio  DMPK_CORE.UnlockUd");
-	    	
-	    	    DmpkCoreUnlockudBean lUnlockUdBean = new DmpkCoreUnlockudBean();
-	    	    lUnlockUdBean.setCodidconnectiontokenin(loginBean.getToken());
-	    	    lUnlockUdBean.setIduserlavoroin(StringUtils.isNotBlank(loginBean.getIdUserLavoro()) ? new BigDecimal(loginBean.getIdUserLavoro()) : null);
-	    	    lUnlockUdBean.setIdudin(idUdIn);
-	    	    
-	    	    Unlockud lUnlockUd = new Unlockud();			
-				
-				StoreResultBean<DmpkCoreUnlockudBean> lStoreResultBean = lUnlockUd.execute(loginBean, lUnlockUdBean);
-				if (lStoreResultBean.isInError()){
-					aLogger.debug(lStoreResultBean.getDefaultMessage());
-					aLogger.debug(lStoreResultBean.getErrorContext());
-					aLogger.debug(lStoreResultBean.getErrorCode());
-					throw new Exception(lStoreResultBean.getDefaultMessage());
-				}
-	    		
-				// Leggo l'XML 
-				if(lStoreResultBean.getResultBean().getDocudxmlout()!=null)
-					ret = lStoreResultBean.getResultBean().getDocudxmlout();
-				else
-					throw new Exception("La store procedure DMPK_CORE.UnlockUd ha ritornato Uriverout nullo");
-	 		}
-	 	catch (Exception e){
-	 		throw new Exception(e.getMessage());	
-	 	}
+		// Leggo l'XML 
+		if(output.getResultBean().getDocudxmlout()!=null)
+			ret = output.getResultBean().getDocudxmlout();
+		else
+			throw new Exception("La store procedure DMPK_CORE.UnlockUd ha ritornato Uriverout nullo");
+	 	
 	 	return ret;    	
     }
     
     private WSUnlockUdBean callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-    	    	
-    	aLogger.debug("Eseguo il WS DMPK_WS.LeggiEstremiXIdentificazioneUD");
+    	aLogger.debug("Eseguo il WS DMPK_WS->LeggiEstremiXIdentificazioneUD");
     	
     	String idUd       = null;
+    	    		
+    	// Inizializzo l'INPUT    		
+    	DmpkWsLeggiestremixidentificazioneudBean input = new DmpkWsLeggiestremixidentificazioneudBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+	      		      		
+    	// Eseguo il servizio
+    	Leggiestremixidentificazioneud service = new Leggiestremixidentificazioneud();
+    	StoreResultBean<DmpkWsLeggiestremixidentificazioneudBean> output = service.execute(loginBean, input);
 
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsLeggiestremixidentificazioneudBean input = new DmpkWsLeggiestremixidentificazioneudBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		      		      		
-    		  // Eseguo il servizio
-    		  Leggiestremixidentificazioneud service = new Leggiestremixidentificazioneud();
-    		  StoreResultBean<DmpkWsLeggiestremixidentificazioneudBean> output = service.execute(loginBean, input);
+	  	if (output.isInError()){
+	  		aLogger.debug(output.getDefaultMessage());
+		 	aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+			throw new StoreException(output);
+		}	
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
-
-    		  // restituisco l'ID UD
-    		  if (output.getResultBean().getIdudout() != null){
-    			  idUd = output.getResultBean().getIdudout().toString();  
-    		  }
-    		  if (idUd== null || idUd.equalsIgnoreCase("")){
-    			  throw new Exception("La store procedure UnlockUd ha ritornato id ud nullo");
-    		  }
-    		  
-      	      // popolo il bean di out
-    		  WSUnlockUdBean result = new WSUnlockUdBean();
-    		  result.setIdUd(idUd);
-    			  
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+	  	// restituisco l'ID UD
+	  	if (output.getResultBean().getIdudout() != null){
+		  idUd = output.getResultBean().getIdudout().toString();  
+	  	}
+	  	if (idUd== null || idUd.equalsIgnoreCase("")){
+		  throw new Exception("La store procedure UnlockUd ha ritornato id ud nullo");
+	  	}
+	  
+	  	// popolo il bean di out
+	  	WSUnlockUdBean result = new WSUnlockUdBean();
+	  	result.setIdUd(idUd);
+		  
+	  	return result;
     }
         
 	/**
@@ -275,7 +274,7 @@ public class WSUnlockUd extends JAXWSAbstractAurigaService implements WSIUnlockU
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             xml.append(xmlInEsc);
             aLogger.debug(xml.toString());

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.gestioneContenutiAmministrazioneTrasparente;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -1187,7 +1188,7 @@ public class SezionePopup extends ModalWindow {
 	private void manageDettaglioUD(String idUd) {
 		Record lRecord = new Record();
 		lRecord.setAttribute("idUd", idUd);
-		new DettaglioRegProtAssociatoWindow(lRecord, "Dettaglio prot. NÂ° " + nroRegNumItem.getValueAsString() + "/" + annoRegNumItem.getValueAsString());
+		new DettaglioRegProtAssociatoWindow(lRecord, "Dettaglio prot. N° " + nroRegNumItem.getValueAsString() + "/" + annoRegNumItem.getValueAsString());
 	}
 
 	protected void manageOnClickCreaDocumento() {

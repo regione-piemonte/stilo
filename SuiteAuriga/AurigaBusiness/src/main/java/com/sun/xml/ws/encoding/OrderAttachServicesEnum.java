@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package com.sun.xml.ws.encoding;
 
 /**
  * Enum che definisce una lista dei servizi esposti che necessitano dell'ordinamento degli attachment lato server all'interno del request MIME

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.fillmodelwithvalues;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -41,6 +42,7 @@ import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.jaxws.jaxbBean.fillModelWithValues.FillModelWithValues;
 import it.eng.auriga.repository2.jaxws.jaxbBean.fillModelWithValues.TipoModelloType;
 import it.eng.auriga.repository2.jaxws.webservices.common.JAXWSAbstractAurigaService;
+import it.eng.document.function.StoreException;
 import it.eng.jaxb.context.SingletonJAXBContext;
 import it.eng.jaxb.variabili.SezioneCache;
 import it.eng.jaxb.variabili.SezioneCache.Variabile;
@@ -90,10 +92,13 @@ public class WSFillModelWithValues extends JAXWSAbstractAurigaService implements
 	public final String serviceImplementation(final String user, final String token, final String codiceApplicazione, final String istanzaAppl,
 			final Connection conn, final Document xmlDomDoc, final String xml, final String schemaDb, final String idDominio, final String desDominio,
 			final String tipoDominio,
+			final String parametriconfigout,
 		      final WSTrace wsTraceBean) throws Exception {
 
 		String risposta = null;
 		String errMsg = null;
+		Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
+		
 		try {
 			aLogger.info("Inizio WSFillModelWithValues");
 
@@ -139,6 +144,11 @@ public class WSFillModelWithValues extends JAXWSAbstractAurigaService implements
 				fileCompilato = iniettaValoriSuModello(loginBean, xml, uriModello, templatesValue);
 
 			} catch (Exception e) {
+				if (e instanceof StoreException) {
+		    		if(((StoreException) e).getError()!=null){
+		    			errCode = ((StoreException) e).getError().getErrorCode();
+		    		}
+		    	}
 				errMsg = e.getMessage() != null ? "Errore = " + e.getMessage() : "Errore nella generazione del documento.";  
 				aLogger.debug(errMsg, e);
 			}
@@ -167,7 +177,7 @@ public class WSFillModelWithValues extends JAXWSAbstractAurigaService implements
 			if (errMsg == null) {
 				risposta = generaXMLRisposta(JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 			} else {
-				risposta = generaXMLRisposta(JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO, errMsg, "", "");
+				risposta = generaXMLRisposta(JAXWSAbstractAurigaService.FALLIMENTO, errCode, errMsg, "", "");
 			}
 			aLogger.info("Fine WSFillModelWithValues");
 			return risposta;
@@ -195,26 +205,26 @@ public class WSFillModelWithValues extends JAXWSAbstractAurigaService implements
 	}
 
 	private String estraiModello(AurigaLoginBean loginBean, FillModelWithValues datiModello) throws Exception {
+		aLogger.debug("Eseguo il WS DmpkModelliDocExtractvermodello.");
+		
+		// Recupero l'uri del modello della copertina
+		Extractvermodello retrieveVersion = new Extractvermodello();
+		
+		DmpkModelliDocExtractvermodelloBean modelloBean = new DmpkModelliDocExtractvermodelloBean();
+		modelloBean.setCodidconnectiontokenin(loginBean.getToken());
+		
+		modelloBean.setNomemodelloin(datiModello.getNomeModello());
+		StoreResultBean<DmpkModelliDocExtractvermodelloBean> output = retrieveVersion.execute(loginBean, modelloBean);
 
-		try {
-			// Recupero l'uri del modello della copertina
-			Extractvermodello retrieveVersion = new Extractvermodello();
-			
-			DmpkModelliDocExtractvermodelloBean modelloBean = new DmpkModelliDocExtractvermodelloBean();
-			modelloBean.setCodidconnectiontokenin(loginBean.getToken());
-			// modelloBean.setIduserlavoroin(StringUtils.isNotBlank(idUserLavoro) ? new BigDecimal(idUserLavoro) : null);
-			modelloBean.setNomemodelloin(datiModello.getNomeModello());
-			StoreResultBean<DmpkModelliDocExtractvermodelloBean> resultModello = retrieveVersion.execute(loginBean, modelloBean);
-
-			String uriModelloCopertinaDaCompilare = resultModello.getResultBean().getUriverout();
-			if (!resultModello.isInError()){
-				return uriModelloCopertinaDaCompilare;
-			}else {
-				throw new Exception((resultModello.getDefaultMessage() != null && !"".equalsIgnoreCase(resultModello.getDefaultMessage())) ? resultModello.getDefaultMessage() : "Errore nel recupero del modello");
-			}
-		}catch (Exception e) {
-			throw new Exception("Errore nel recupero del modello " + datiModello.getNomeModello(), e);
+		if (output.isInError()){
+			aLogger.debug(output.getDefaultMessage());
+    		aLogger.debug(output.getErrorContext());
+    		aLogger.debug(output.getErrorCode());
+    		throw new StoreException(output);
 		}
+		
+		String uriModelloCopertinaDaCompilare = output.getResultBean().getUriverout();
+		return uriModelloCopertinaDaCompilare;
 	}
 	
 	private String convertiInSezioneCache(FillModelWithValues datiModello, DataHandler[] attachments) throws Exception {
@@ -309,5 +319,4 @@ public class WSFillModelWithValues extends JAXWSAbstractAurigaService implements
 			throw new Exception(e.getMessage() != null && !"".equalsIgnoreCase(e.getMessage()) ? e.getMessage() : "Errore nella generazione del documento");
 		}
 	}
-
 }

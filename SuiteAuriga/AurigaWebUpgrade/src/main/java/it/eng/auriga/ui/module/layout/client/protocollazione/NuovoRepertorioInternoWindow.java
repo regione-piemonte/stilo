@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -8,6 +9,7 @@ import com.smartgwt.client.data.RecordList;
 
 import it.eng.auriga.ui.module.layout.client.AurigaLayout;
 import it.eng.utility.ui.module.core.client.callback.ServiceCallback;
+import it.eng.utility.ui.module.layout.client.Layout;
 import it.eng.utility.ui.module.layout.client.portal.ModalWindow;
 
 public abstract class NuovoRepertorioInternoWindow extends ModalWindow {
@@ -85,12 +87,25 @@ public abstract class NuovoRepertorioInternoWindow extends ModalWindow {
 	 * in tal caso ritornerà solo quella se ho un'unica UO di registrazione il metodo ovviamente restituirà solo quella
 	 */
 	public boolean hasDefaultValue() {
-		// se ho una sola UO collegata e il mittente è obbligatorio la setto lo stesso, anche se non è attiva la preimpostazione del mittente
-		if(getUoProtocollanteValueMap().size() == 1) {
+		
+		if(AurigaLayout.getParametroDBAsBoolean("INIBITA_SEL_MITT_UO_PROT_USCITA") && !Layout.isPrivilegioAttivo("SMR") && getSelezioneUoProtocollanteValueMap().size() == 1) {
 			return true;
 		}
-		return AurigaLayout.getParametroDBAsBoolean("PREIMP_UO_COME_MITT_PROT_UI") && (getSelezioneUoProtocollanteValueMap().size() == 1)
-				&& (AurigaLayout.getIdUOPuntoProtAttivato() == null || "".equals(AurigaLayout.getIdUOPuntoProtAttivato()) );
+		/**
+		 * Nuova gestione tramite parametro DB PREIMP_UO_COME_MITT_PROT_UI, viene pre-impostato il mittente con valore di default se 
+		 * il parametro è true e se è presente una sola uo-protocollante al contrario dei controlli precedenti
+		 */
+		return AurigaLayout.getParametroDBAsBoolean("PREIMP_UO_COME_MITT_PROT_UI") && getUoProtocollanteValueMap().size() == 1;
+		
+		// se ho una sola UO collegata e il mittente è obbligatorio la setto lo stesso, anche se non è attiva la preimpostazione del mittente
+
+//		if(getUoProtocollanteValueMap().size() == 1) {
+//			return true;
+//		}
+		
+//		return AurigaLayout.getParametroDBAsBoolean("PREIMP_UO_COME_MITT_PROT_UI") && (getSelezioneUoProtocollanteValueMap().size() == 1)
+//				&& (AurigaLayout.getIdUOPuntoProtAttivato() == null || "".equals(AurigaLayout.getIdUOPuntoProtAttivato()) );
+		
 	}
  
 	protected LinkedHashMap<String, String> getUoProtocollanteValueMap() {

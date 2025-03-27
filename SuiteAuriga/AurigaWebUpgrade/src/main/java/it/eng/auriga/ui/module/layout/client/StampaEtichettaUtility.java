@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client;
 
 import com.smartgwt.client.data.Record;
 
@@ -19,7 +20,8 @@ public class StampaEtichettaUtility {
 
 	public static void stampaEtichetta(String title, String appletJarName, String nomeStampante, String portaStampanteTimbraturaCartaceo, Record[] pRecordsEtichette, String numeroCopie, StampaEtichettaCallback callback) {
 	
-		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO")) {
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") &&
+		   (AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg") == null || "a".equalsIgnoreCase(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg")))){
 			if (numeroCopie != null && !"".equals(numeroCopie) && !"0".equals(numeroCopie)) {
 				String modalitaStampaEtichetta = AurigaLayout.getParametroDB("MODALITA_STAMPA_ETICHETTA");
 				if (modalitaStampaEtichetta == null || "".equalsIgnoreCase(modalitaStampaEtichetta) || "APPLET".equalsIgnoreCase(modalitaStampaEtichetta) || BrowserUtility.detectIfIEBrowser()) {

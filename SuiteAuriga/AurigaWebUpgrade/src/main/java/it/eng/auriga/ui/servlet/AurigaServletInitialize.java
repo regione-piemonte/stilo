@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.servlet;
 
 import it.eng.converter.DateConverter;
 import it.eng.core.business.subject.SubjectBean;
@@ -92,8 +93,16 @@ public class AurigaServletInitialize extends ServletInitialize {
 			OpenOfficeConfiguration lOpenOfficeConfiguration = (OpenOfficeConfiguration)SpringAppContext.getContext().getBean("officemanager");
 			OpenOfficeConverter.configure(lOpenOfficeConfiguration);
 		} catch (OpenOfficeException e) {
-			// TODO Auto-generated catch block
 			logger.error("Errore configurazione OpenOfficeConverter", e);
+		}
+		
+		try {
+			if (SpringAppContext.getContext().containsBean("unoofficemanager")) {
+				OpenOfficeConfiguration lUnoOpenOfficeConfiguration = (OpenOfficeConfiguration)SpringAppContext.getContext().getBean("unoofficemanager");
+				OpenOfficeConverter.configure(lUnoOpenOfficeConfiguration);
+			}
+		} catch (OpenOfficeException e) {
+			logger.error("Errore configurazione OpenOfficeConverter per librerie uno", e);
 		}
 		
 		//Inizializzo il PdfReader, settandogli la proprietà per poter leggere tutti i pdf protetti da password in modifica

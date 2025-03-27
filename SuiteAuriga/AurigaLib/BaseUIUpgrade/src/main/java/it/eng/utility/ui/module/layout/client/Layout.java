@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -594,7 +595,6 @@ public class Layout extends VLayout {
 				lFilterFieldBean.setRequired((Boolean) lMap.get("required"));
 				lFilterFieldBean.setRequiredIfPrivilegi((Boolean) lMap.get("requiredIfPrivilegi"));
 				lFilterFieldBean.setCategoria((String) lMap.get("categoria"));
-				lFilterFieldBean.setShowFlgRicorsiva((Boolean) lMap.get("showFlgRicorsiva"));
 				lFilterFieldBean.setShowSelectAttributi((Boolean) lMap.get("showSelectAttributi"));
 				lFilterFieldBean.setRequiredForDepends((Boolean) lMap.get("requiredForDepends"));
 				lFilterFieldBean.setLookupType((String) lMap.get("lookupType"));
@@ -671,6 +671,7 @@ public class Layout extends VLayout {
 				fields.add(lFilterFieldBean);
 			}
 			filter.setFields(fields);
+			filter.setShowFlgRicorsiva((String) prop.get("showFlgRicorsiva"));
 			return filter;
 		} else
 			return null;
@@ -1107,20 +1108,21 @@ public class Layout extends VLayout {
 		if (portlet != null) {
 			portlet.markForDestroy();
 			openedPortlets.remove(portlet);
-
 //			if (menu.getMenuItem(nomeEntita) != null) {
 //				menu.getMenuItem(nomeEntita).set_baseStyle(it.eng.utility.Styles.menuItem);
 //			}
 			menu.markForRedraw();
 
-			int index = 0;
+			int index = -1;
 			for (String lStringId : openedWindows) {
+				index++;
 				if (lStringId.equals(nomeEntita)) {
 					break;
-				} else
-					index++;
+				}
 			}
-			openedWindows.remove(index);
+			if(index != -1) {
+				openedWindows.remove(index);
+			}
 		}
 	}
 

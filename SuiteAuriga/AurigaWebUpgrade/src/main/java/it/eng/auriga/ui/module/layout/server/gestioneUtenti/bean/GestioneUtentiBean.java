@@ -1,5 +1,7 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.gestioneUtenti.bean;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -50,9 +52,13 @@ public class GestioneUtentiBean extends GestioneUtentiXmlBean {
 	private Map<String, String> tipiValori;
 
 	private String accountDefLocked;
-
 	
 	private Boolean flgDisattivaNotifDocDaPrendereInCarico;
+	private Boolean flgPresaInCaricoAutomaticaInRegUd;
+	private Date tsCheckNotifDocDaPrendereInCarico;
+	private String esitoNotifDocDaPrendereInCarico;
+	private String msgErrNotifDocDaPrendereInCarico;
+	private String nroDocNotifDocDaPrendereInCarico; 
 	
 	public String getCognome() {
 		return cognome;
@@ -373,5 +379,45 @@ public class GestioneUtentiBean extends GestioneUtentiXmlBean {
 
 	public void setFlgDisattivaNotifDocDaPrendereInCarico(Boolean flgDisattivaNotifDocDaPrendereInCarico) {
 		this.flgDisattivaNotifDocDaPrendereInCarico = flgDisattivaNotifDocDaPrendereInCarico;
+	}
+
+	public Date getTsCheckNotifDocDaPrendereInCarico() {
+		return tsCheckNotifDocDaPrendereInCarico;
+	}
+
+	public void setTsCheckNotifDocDaPrendereInCarico(Date tsCheckNotifDocDaPrendereInCarico) {
+		this.tsCheckNotifDocDaPrendereInCarico = tsCheckNotifDocDaPrendereInCarico;
+	}
+
+	public String getEsitoNotifDocDaPrendereInCarico() {
+		return esitoNotifDocDaPrendereInCarico;
+	}
+
+	public void setEsitoNotifDocDaPrendereInCarico(String esitoNotifDocDaPrendereInCarico) {
+		this.esitoNotifDocDaPrendereInCarico = esitoNotifDocDaPrendereInCarico;
+	}
+
+	public String getMsgErrNotifDocDaPrendereInCarico() {
+		return msgErrNotifDocDaPrendereInCarico;
+	}
+
+	public void setMsgErrNotifDocDaPrendereInCarico(String msgErrNotifDocDaPrendereInCarico) {
+		this.msgErrNotifDocDaPrendereInCarico = msgErrNotifDocDaPrendereInCarico;
+	}
+
+	public String getNroDocNotifDocDaPrendereInCarico() {
+		return nroDocNotifDocDaPrendereInCarico;
+	}
+
+	public void setNroDocNotifDocDaPrendereInCarico(String nroDocNotifDocDaPrendereInCarico) {
+		this.nroDocNotifDocDaPrendereInCarico = nroDocNotifDocDaPrendereInCarico;
+	}
+
+	public Boolean getFlgPresaInCaricoAutomaticaInRegUd() {
+		return flgPresaInCaricoAutomaticaInRegUd;
+	}
+
+	public void setFlgPresaInCaricoAutomaticaInRegUd(Boolean flgPresaInCaricoAutomaticaInRegUd) {
+		this.flgPresaInCaricoAutomaticaInRegUd = flgPresaInCaricoAutomaticaInRegUd;
 	}
 }

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import com.smartgwt.client.data.Record;
 import com.smartgwt.client.types.Alignment;
@@ -229,7 +230,14 @@ public abstract class OpzioniInvioAssegnazionePopup extends ModalWindow {
 //			flgMantieniCopiaUdItem.setWidth(1);
 //			if (AurigaLayout.getParametroDBAsBoolean("ATTIVA_DEFAULT_MANTIENI_COPIA_IN_ASS_DOC")) {
 //				flgMantieniCopiaUdItem.setDefaultValue(true);			
-//			}	
+//			}
+//			flgMantieniCopiaUdItem.setShowIfCondition(new FormItemIfFunction() {
+//				
+//				@Override
+//				public boolean execute(FormItem item, Object value, DynamicForm form) {
+//					return !AurigaLayout.getParametroDBAsBoolean("SEMPRE_MANTIENI_COPIA_IN_ASS_DOC");
+//				}
+//			});	
 			
 			if(tipoDestinatario != null && ("LD".equalsIgnoreCase(tipoDestinatario)
 					|| "G".equalsIgnoreCase(tipoDestinatario))) {

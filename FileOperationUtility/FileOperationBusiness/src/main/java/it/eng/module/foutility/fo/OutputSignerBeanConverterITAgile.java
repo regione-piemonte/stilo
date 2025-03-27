@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.module.foutility.fo;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -221,9 +222,13 @@ public class OutputSignerBeanConverterITAgile {
 								Map<String, String> x509NameSubject = CertificateUtil.getX509Name(x509Certificato, "Subject");
 								DnType subjectDn = new DnType();
 								certificato.setSubject(firma.getSigVerifyResult().getSignerInformations().getSignerInformation().get(0).getCertificato().getSubject());
+								
 								if (firma.getSigVerifyResult().getSignerInformations().getSignerInformation().get(0).getCertificato().getSubject() != null)
 									subjectDn.setName(bonificaSubject(firma.getSigVerifyResult().getSignerInformations().getSignerInformation().get(0).getCertificato().getSubject().getName()));
 
+								if (firma.getSigVerifyResult().getSignerInformations().getSignerInformation().get(0).getCertificato().getSubject().getCodiceFiscale() != null)
+									subjectDn.setCodiceFiscale(CertificateUtil.getCodiceFiscaleFromSerialNumber(firma.getSigVerifyResult().getSignerInformations().getSignerInformation().get(0).getCertificato().getSubject().getCodiceFiscale()));
+								
 								RDN[] cns = x500name.getRDNs(BCStyle.CN);
 								if (cns != null && cns.length > 0) {
 									RDN cn = cns[0];
@@ -268,6 +273,9 @@ public class OutputSignerBeanConverterITAgile {
 								certificato.setIssuer(issuerDn);
 								if (firma.getSigVerifyResult().getSignerInformations().getSignerInformation().get(0).getCertificato().getIssuer() != null)
 									issuerDn.setName(bonificaSubject(firma.getSigVerifyResult().getSignerInformations().getSignerInformation().get(0).getCertificato().getIssuer().getName()));
+								
+								if (firma.getSigVerifyResult().getSignerInformations().getSignerInformation().get(0).getCertificato().getCodiceFiscale() != null)
+									issuerDn.setCodiceFiscale(CertificateUtil.getCodiceFiscaleFromSerialNumber(firma.getSigVerifyResult().getSignerInformations().getSignerInformation().get(0).getCertificato().getCodiceFiscale()));
 
 								RDN[] cns = x500nameIssuer.getRDNs(BCStyle.CN);
 								if (cns != null && cns.length > 0) {

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean.albopretorio;
 
 import java.util.Date;
 import java.util.List;
@@ -36,7 +37,10 @@ public class AlboUDBean {
 
 	@NumeroColonna(numero = "18")
 	private String oggetto;
-
+	
+	@NumeroColonna(numero = "31")
+	private String idDocType;
+	
 	@NumeroColonna(numero = "32")
 	private String tipo;
 
@@ -157,7 +161,15 @@ public class AlboUDBean {
 	public void setOggetto(String oggetto) {
 		this.oggetto = oggetto;
 	}
+	
+	public String getIdDocType() {
+		return idDocType;
+	}
 
+	public void setIdDocType(String idDocType) {
+		this.idDocType = idDocType;
+	}
+	
 	public String getTipo() {
 		return tipo;
 	}

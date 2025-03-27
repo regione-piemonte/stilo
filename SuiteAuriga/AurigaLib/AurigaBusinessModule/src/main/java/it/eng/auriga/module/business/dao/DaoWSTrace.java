@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.module.business.dao;
 
 import org.apache.log4j.Logger;
 import org.hibernate.Session;
@@ -9,6 +10,7 @@ import it.eng.core.business.DaoGenericOperations;
 import it.eng.core.business.HibernateUtil;
 import it.eng.core.business.TFilterFetch;
 import it.eng.core.business.TPagingList;
+import it.eng.core.business.converter.UtilPopulate;
 
 public class DaoWSTrace extends DaoGenericOperations<WSTrace>{
 
@@ -44,8 +46,24 @@ public class DaoWSTrace extends DaoGenericOperations<WSTrace>{
 
 	@Override
 	public WSTrace update(WSTrace bean) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		Session session = null;
+		Transaction ltransaction = null;
+		try {
+			session = HibernateUtil.begin();
+			ltransaction = session.beginTransaction();
+			if (bean != null) {
+				WSTrace beanToUpdate = (WSTrace) UtilPopulate.populate(bean, WSTrace.class, null);			
+				session.update(beanToUpdate);
+			}
+			session.flush();
+			ltransaction.commit();
+			return bean;
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			HibernateUtil.release(session);
+		}
+	
 	}
 
 	@Override

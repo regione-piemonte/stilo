@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -36,6 +37,9 @@ public class DestinatariOutBean implements Serializable {
 
 	@NumeroColonna(numero = "18")
 	private String descrizioneMezzoTrasmissioneDestinatario;
+	
+	@NumeroColonna(numero = "19")
+	private String flgObbligDettagliMezzoTrasmissioneDestinatario;
 
 	@NumeroColonna(numero = "20")
     @TipoData(tipo=Tipo.DATA_SENZA_ORA)
@@ -189,6 +193,14 @@ public class DestinatariOutBean implements Serializable {
 	public void setDescrizioneMezzoTrasmissioneDestinatario(
 			String descrizioneMezzoTrasmissioneDestinatario) {
 		this.descrizioneMezzoTrasmissioneDestinatario = descrizioneMezzoTrasmissioneDestinatario;
+	}
+
+	public String getFlgObbligDettagliMezzoTrasmissioneDestinatario() {
+		return flgObbligDettagliMezzoTrasmissioneDestinatario;
+	}
+
+	public void setFlgObbligDettagliMezzoTrasmissioneDestinatario(String flgObbligDettagliMezzoTrasmissioneDestinatario) {
+		this.flgObbligDettagliMezzoTrasmissioneDestinatario = flgObbligDettagliMezzoTrasmissioneDestinatario;
 	}
 
 	public Date getDataRaccomandataDestinatario() {

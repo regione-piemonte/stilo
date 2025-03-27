@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -135,15 +136,20 @@ public class TaskDettUdGenDetail extends ProtocollazioneDetailBozze implements T
 	}
 	
 	@Override
+	public boolean isModalitaWizard() {
+		return false;
+	}	
+	
+	@Override
 	public boolean isModalitaAllegatiGrid() {
 		return false;
 	}
 	
 	@Override
-	public boolean isModalitaWizard() {
+	public boolean isPresentiFileConOmissis() {
 		return false;
-	}	
-
+	}
+	
 	public void afterCaricaAttributiDinamiciDoc() {
 		super.afterCaricaAttributiDinamiciDoc();
 		try {
@@ -154,6 +160,11 @@ public class TaskDettUdGenDetail extends ProtocollazioneDetailBozze implements T
 			}
 		} catch (Exception e) {
 		}
+		afterShow();
+	}
+	
+	public void afterShow() {
+		
 	}
 	
 	public boolean hasActionUnioneFile() {
@@ -1007,8 +1018,7 @@ public class TaskDettUdGenDetail extends ProtocollazioneDetailBozze implements T
 		dettaglioPraticaLayout.caricaDettaglioEventoSuccessivo(nome);
 	}
 
-	public void caricaAttributiDinamiciDoc(final String nomeFlussoWF, final String processNameWF, final String activityName, final String idTipoDocumento,
-			final String rowidDoc) {
+	public void caricaAttributiDinamiciDoc(final String nomeFlussoWF, final String processNameWF, final String activityName, final String idTipoDocumento, final String rowidDoc) {
 		if (idTipoDocumento != null && !"".equals(idTipoDocumento)) {
 			Record lRecordLoad = new Record();
 			lRecordLoad.setAttribute("idTipoDocumento", idTipoDocumento);
@@ -1017,11 +1027,25 @@ public class TaskDettUdGenDetail extends ProtocollazioneDetailBozze implements T
 				@Override
 				public void execute(Record object) {
 					final boolean isReload = (attributiAddDocTabs != null && attributiAddDocTabs.size() > 0);
+					if(attributiAddDocLayouts != null) {
+						for (String key : attributiAddDocLayouts.keySet()) {
+							// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+							if(key != null && !key.startsWith("HEADER_")) {
+								try { attributiAddDocLayouts.get(key).destroy(); } catch(Exception e) {}
+							}
+						}
+					}
+					if(attributiAddDocDetails != null) {
+						for (String key : attributiAddDocDetails.keySet()) {
+							try { attributiAddDocDetails.get(key).destroy(); } catch(Exception e) {}				
+						}
+					}
 					attributiAddDocTabs = (LinkedHashMap<String, String>) object.getAttributeAsMap("gruppiAttributiCustomTipoDoc");
 					attributiAddDocLayouts = new HashMap<String, VLayout>();
 					attributiAddDocDetails = new HashMap<String, AttributiDinamiciDetail>();
 					if (attributiAddDocTabs != null && attributiAddDocTabs.size() > 0) {
 						GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");
+						lGwtRestService.addParam("flgSkipAttrSenzaCategoria", "true");
 						lGwtRestService.addParam("flgNomeAttrConSuff", "true");
 						lGwtRestService.addParam("nomeFlussoWF", nomeFlussoWF);
 						lGwtRestService.addParam("processNameWF", processNameWF);
@@ -1193,5 +1217,26 @@ public class TaskDettUdGenDetail extends ProtocollazioneDetailBozze implements T
 	public boolean showModelliSelectItem() {
 		return false;
 	}
-
+	
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();		
+		if(attributiAddDocLayouts != null) {
+			for (String key : attributiAddDocLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddDocLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddDocDetails != null) {
+			for (String key : attributiAddDocDetails.keySet()) {
+				try { attributiAddDocDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
+		attributiAddDocTabs = null;
+		attributiAddDocLayouts = null;		
+		attributiAddDocDetails = null;
+	}
+	
 }

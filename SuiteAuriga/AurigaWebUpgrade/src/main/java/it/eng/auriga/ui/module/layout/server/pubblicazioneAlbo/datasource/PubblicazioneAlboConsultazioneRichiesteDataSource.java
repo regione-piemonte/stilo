@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.pubblicazioneAlbo.datasource;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -1037,6 +1038,7 @@ public class PubblicazioneAlboConsultazioneRichiesteDataSource extends AurigaAbs
 		pubblicazioneAlboBean.setAbilProrogaPubblicazione(lDocumentoXmlOutBean.getAbilProrogaPubblicazione() != null && lDocumentoXmlOutBean.getAbilProrogaPubblicazione());
 		pubblicazioneAlboBean.setAbilAnnullamentoPubblicazione(lDocumentoXmlOutBean.getAbilAnnullamentoPubblicazione() != null && lDocumentoXmlOutBean.getAbilAnnullamentoPubblicazione());
 		pubblicazioneAlboBean.setAbilRettificaPubblicazione(lDocumentoXmlOutBean.getAbilRettificaPubblicazione() != null && lDocumentoXmlOutBean.getAbilRettificaPubblicazione());
+		pubblicazioneAlboBean.setAbilModifica(lDocumentoXmlOutBean.getAbilModifica() != null && lDocumentoXmlOutBean.getAbilModifica());
 		
 		// Richieste pubblicazione
 		pubblicazioneAlboBean.setFlgPresenzaPubblicazioni(lDocumentoXmlOutBean.getFlgPresenzaPubblicazioni());

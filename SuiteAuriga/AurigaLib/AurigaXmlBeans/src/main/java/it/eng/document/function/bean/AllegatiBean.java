@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.io.File;
 import java.io.Serializable;
@@ -65,6 +66,7 @@ public class AllegatiBean implements Serializable {
 	private List<Boolean> flgOriginaleCartaceo;	
 	private List<Boolean> flgCopiaSostitutiva;
 	private List<Boolean> flgGenAutoDaModello;
+	private List<Boolean> flgTimbraFilePostReg;
 	private List<Boolean> flgDaProtocollare;
 	private List<String> idUdFrom;
 	private List<String> idUdAllegato;
@@ -360,6 +362,12 @@ public class AllegatiBean implements Serializable {
 	}
 	public void setFlgGenAutoDaModello(List<Boolean> flgGenAutoDaModello) {
 		this.flgGenAutoDaModello = flgGenAutoDaModello;
+	}
+	public List<Boolean> getFlgTimbraFilePostReg() {
+		return flgTimbraFilePostReg;
+	}
+	public void setFlgTimbraFilePostReg(List<Boolean> flgTimbraFilePostReg) {
+		this.flgTimbraFilePostReg = flgTimbraFilePostReg;
 	}
 	public List<Boolean> getFlgDaProtocollare() {
 		return flgDaProtocollare;

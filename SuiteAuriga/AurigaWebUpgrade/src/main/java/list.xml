@@ -290,8 +290,10 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 								<value>attoAutAnnullamento</value>
 								<value>tsPresaInCarico</value>
 								<value>dtEsecutivita</value>
+								<value>dtAdozione</value>
 								<value>flgImmediatamenteEseg</value>
 								<value>perizie</value>	
+								<value>concessioni</value>
 								<value>centroDiCosto</value>	
 								<value>dataScadenza</value>
 								<value>flgSottopostoControlloRegAmm</value>
@@ -350,8 +352,10 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 								<value>attoAutAnnullamento</value>
 								<value>tsPresaInCarico</value>
 								<value>dtEsecutivita</value>
+								<value>dtAdozione</value>
 								<value>flgImmediatamenteEseg</value>
 								<value>perizie</value>	
+								<value>concessioni</value>
 								<value>centroDiCosto</value>	
 								<value>dataScadenza</value>
 								<value>tsScansione</value>
@@ -702,6 +706,9 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 								<value>flgAbilUtilizzo</value>
 								<value>flgAbilFirma</value>
 								<value>flgAllegato</value>
+								<value>flgRichFirmaDigitale</value>
+								<value>flgRichFile</value>
+								<value>flgRichFirmaValida</value>								
 							</util:list>
 						</property>
 						<property name="colonneOrdinabili">
@@ -728,7 +735,7 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
 							</util:list>
 						</property>
 					</bean>
-				</entry>
+				</entry>				
 				<entry key="regoleCampionamentoAtti">
 					<bean class="it.eng.utility.ui.module.layout.shared.bean.ListaBean">
 						<property name="key" value="regoleCampionamentoAtti"></property>

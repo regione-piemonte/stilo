@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common.filter.item;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -17,7 +18,6 @@ import com.smartgwt.client.widgets.form.fields.TextItem;
 import it.eng.utility.ui.module.core.client.UserInterfaceFactory;
 import it.eng.utility.ui.module.core.client.i18n.I18NUtil;
 import it.eng.utility.ui.module.layout.client.Layout;
-import it.eng.utility.ui.module.layout.client.common.items.CheckboxItem;
 import it.eng.utility.ui.module.layout.client.common.items.CustomItem;
 import it.eng.utility.ui.module.layout.client.common.items.CustomItemFormField;
 
@@ -108,22 +108,6 @@ public class FullTextItem extends CustomItem {
 				listFormFields.add(attributi);
 			}
 		}
-			
-		Boolean showFlgRicorsiva = property.get("showFlgRicorsiva") != null ? new Boolean(property.get("showFlgRicorsiva")) : false;		
-		if(showFlgRicorsiva){
-			CustomItemFormField flgRicorsiva = new CustomItemFormField("flgRicorsiva", I18NUtil.getMessages().filterFullTextItem_flgRicorsiva_title(), this);		
-			if (UserInterfaceFactory.getParametroDBAsBoolean("HIDE_FILTER_FULLTEXT_REP_DOC") && "REP_DOC".equals(categoria)) {
-				flgRicorsiva.setTitle(null);
-				flgRicorsiva.setShowTitle(false);	
-			}
-			CheckboxItem flgRicorsivaEditorType = new CheckboxItem();
-			flgRicorsivaEditorType.setWidth("*");
-			flgRicorsivaEditorType.setShowTitle(false);
-			flgRicorsiva.setEditorType(flgRicorsivaEditorType);			
-			flgRicorsiva.setEndRow(false);		
-			flgRicorsiva.setColSpan(1);	
-			listFormFields.add(flgRicorsiva);
-		}
 			 
 		return listFormFields.toArray(new CustomItemFormField[listFormFields.size()]);	
 	}
@@ -140,11 +124,6 @@ public class FullTextItem extends CustomItem {
 				int size = Layout.getAttributiValueMap(property.get("nomeEntita")).keySet().size();
 				_form.setValue("attributi", Layout.getAttributiValueMap(property.get("nomeEntita")).keySet().toArray(new String[size]));	
 			}
-		}
-		
-		Boolean showFlgRicorsiva = property.get("showFlgRicorsiva") != null ? new Boolean(property.get("showFlgRicorsiva")) : false;
-		if(showFlgRicorsiva){
-			_form.setValue("flgRicorsiva", true);		
 		}
 		
 		return new Record(_form.getValues());

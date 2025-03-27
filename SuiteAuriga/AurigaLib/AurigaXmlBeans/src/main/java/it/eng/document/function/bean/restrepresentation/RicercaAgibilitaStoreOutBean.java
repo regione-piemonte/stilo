@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean.restrepresentation;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -64,6 +65,10 @@ public class RicercaAgibilitaStoreOutBean {
 	
 	//Testo in chiaro da mettere vicino al barcode
 	private String testoInChiaroBarcode;
+	
+	private String idRicerca;
+	
+	private String tipoRequest;
 	
 	//Destinatari ai quali inviare la mail
 	private String destinatariMail;
@@ -265,6 +270,22 @@ public class RicercaAgibilitaStoreOutBean {
 
 	public void setConnectionToken(String connectionToken) {
 		this.connectionToken = connectionToken;
+	}
+
+	public String getIdRicerca() {
+		return idRicerca;
+	}
+
+	public void setIdRicerca(String idRicerca) {
+		this.idRicerca = idRicerca;
+	}
+
+	public String getTipoRequest() {
+		return tipoRequest;
+	}
+
+	public void setTipoRequest(String tipoRequest) {
+		this.tipoRequest = tipoRequest;
 	}
 
 	

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+//package it.eng.dm.engine.servicetask.utility;
 //
 //import it.eng.dm.sira.service.bean.NaturaOST;
 //import it.eng.dm.sira.service.bean.SiraRelOstCaratterizzazione;

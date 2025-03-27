@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -48,6 +49,8 @@ public class Firmatario implements Serializable {
 	private String idUtenteLavoroFirma;
 	@NumeroColonna(numero = "15")
 	private String idUtenteLoggatoFirma;
+	@NumeroColonna(numero = "16")
+	private String cfFirmatario;
 	
 	public String getCommonName() {
 		return commonName;
@@ -171,6 +174,14 @@ public class Firmatario implements Serializable {
 	
 	public static long getSerialversionuid() {
 		return serialVersionUID;
+	}
+
+	public String getCfFirmatario() {
+		return cfFirmatario;
+	}
+	
+	public void setCfFirmatario(String cfFirmatario) {
+		this.cfFirmatario = cfFirmatario;
 	}
 
 }

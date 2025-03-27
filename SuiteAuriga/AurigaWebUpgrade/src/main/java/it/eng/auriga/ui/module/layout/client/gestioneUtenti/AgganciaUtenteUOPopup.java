@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.gestioneUtenti;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -162,11 +163,8 @@ public abstract class AgganciaUtenteUOPopup extends ModalWindow {
 	private HiddenItem idRuoloItem;
 	private HiddenItem descrizioneRuoloItem;
 	private HiddenItem flgUoPuntoProtocolloItem;
-	
-	// ottavio
 	private HiddenItem flgUoAbilRegistrazioneEItem;
 	private HiddenItem flgUoAbilRegistrazioneUItem;
-	
 	private HiddenItem listaUOPuntoProtocolloEscluseItem;
 	private HiddenItem listaUOPuntoProtocolloIncluseItem;
 	private HiddenItem listaUOPuntoProtocolloEreditarietaAbilitataItem;
@@ -489,6 +487,82 @@ public abstract class AgganciaUtenteUOPopup extends ModalWindow {
 				 flgVisPropAttiInIterItem.setCanEdit(false);	 
 			 }
 		 }
+		 
+		 
+		// Se sono in "new" allora setto i flag con i default
+		if (mode!=null && !mode.equalsIgnoreCase("") && mode.equalsIgnoreCase("new") ){
+		
+			// Se il parametro DB DEFAULT_REL_UO_USER_REGE = true
+			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGE")) {
+				// Il check "registrazione in entrata" va preimpostato a spuntato
+				flgRegistrazioneEItem.setValue(true);
+				formMain.setValue("flgRegistrazioneE", true);  
+			}
+			
+			// Se il parametro DB DEFAULT_REL_UO_USER_REGIU = true
+			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGIU")) {
+				// Il check "registrazione in uscita/interna" va preimpostato a spuntato
+				flgRegistrazioneUIItem.setValue(true);
+				formMain.setValue("flgRegistrazioneUI", true);
+			}
+			
+				
+			// Se il parametro DB DEFAULT_REL_UO_USER_GEST_ATTI = true
+			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_GEST_ATTI")) {
+				// Il check "avvio/gestione atti proposti" va preimpostato a spuntato
+				flgGestAttiItem.setValue(true);
+				formMain.setValue("flgGestAtti", true);
+				
+				// in queesto caso forzo il flag flgVisPropAttiInIterItem e lo disabilito
+				flgVisPropAttiInIterItem.setValue(true);
+				formMain.setValue("flgVisPropAttiInIter", true);
+				
+				flgVisPropAttiInIterItem.setCanEdit(false);
+				
+				if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_ABIL_TIPI_ATTI_IN_REL_USER_UO")) {
+					if(flgGestAttiItem.getValueAsBoolean() != null && flgGestAttiItem.getValueAsBoolean()) {
+						flgGestAttiTuttiItem.setValue(true);
+						formMain.setValue("flgGestAttiTutti", true);
+						listaTipiGestAttiSelezionatiItem.clearValue();
+						selezionaTipiGestAttiButton.hide();
+					} else {
+						flgGestAttiTuttiItem.setValue(false);
+						formMain.setValue("flgGestAttiTutti", false);
+					}
+					if(flgVisPropAttiInIterItem.getValueAsBoolean() != null && flgVisPropAttiInIterItem.getValueAsBoolean()) {
+						flgVisPropAttiInIterTuttiItem.setValue(true);
+						formMain.setValue("flgVisPropAttiInIterTutti", true);
+						listaTipiVisPropAttiInIterSelezionatiItem.clearValue();
+						selezionaTipiVisPropAttiInIterButton.hide();
+					} else {
+						flgVisPropAttiInIterTuttiItem.setValue(false);
+						formMain.setValue("flgVisPropAttiInIterTutti", false);
+					}
+				}
+			}
+
+			// Se il parametro DB DEFAULT_REL_UO_USER_VIS_ATTI = true
+			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_VIS_ATTI")) {
+				// Il check "visualizzazione atti proposti" va preimpostato a spuntato
+				flgVisPropAttiInIterItem.setValue(true);
+				formMain.setValue("flgVisPropAttiInIter", true);
+
+				if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_ABIL_TIPI_ATTI_IN_REL_USER_UO")) {
+					if(flgVisPropAttiInIterItem.getValueAsBoolean() != null && flgVisPropAttiInIterItem.getValueAsBoolean()) {
+						flgVisPropAttiInIterTuttiItem.setValue(true);
+						formMain.setValue("flgVisPropAttiInIterTutti", true);
+					}
+				}
+			}
+		
+			// Se il parametro DB DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS = true
+			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS")) {
+				// Il check "accesso limitato doc. assegnata personalmente" va preimpostato a spuntato
+				flgAccessoDocLimSVItem.setValue(true);
+				formMain.setValue("flgAccessoDocLimSV", true);
+			}
+		}
+		 
 	}
 	
 	private void disegnaForm() {
@@ -520,11 +594,8 @@ public abstract class AgganciaUtenteUOPopup extends ModalWindow {
 		idRuoloItem                       = new HiddenItem("idRuolo");
 		descrizioneRuoloItem              = new HiddenItem("descrizioneRuolo");
 		flgUoPuntoProtocolloItem          = new HiddenItem("flgUoPuntoProtocollo");
-		
-		// ottavio
 		flgUoAbilRegistrazioneEItem       = new HiddenItem("flgUoAbilRegistrazioneE");
 		flgUoAbilRegistrazioneUItem       = new HiddenItem("flgUoAbilRegistrazioneU");
-		
 		listaUOPuntoProtocolloIncluseItem = new HiddenItem("listaUOPuntoProtocolloIncluse");
 		listaUOPuntoProtocolloEscluseItem = new HiddenItem("listaUOPuntoProtocolloEscluse");
 		listaUOPuntoProtocolloEreditarietaAbilitataItem = new HiddenItem("listaUOPuntoProtocolloEreditarietaAbilitata");
@@ -569,9 +640,7 @@ public abstract class AgganciaUtenteUOPopup extends ModalWindow {
 					}	
 				}
 				
-				// ottavio
-				//updateFlg(event.getItem().getValue());
-				updateFlg();
+				updateFlg_onChangeTipoAssegnazione();
 				
 				formMain.markForRedraw();
 			}
@@ -625,13 +694,13 @@ public abstract class AgganciaUtenteUOPopup extends ModalWindow {
 				formMain.setValue("descrizioneRuolo", record.getAttributeAsString("value"));
 			}
 		};
-		ruoloItem.setShowIfCondition(new FormItemIfFunction() {
-			
-			@Override
-			public boolean execute(FormItem item, Object value, DynamicForm form) {
-				return (!isTipoDiAssegnazioneL());
-			}
-		});
+//		ruoloItem.setShowIfCondition(new FormItemIfFunction() {
+//			
+//			@Override
+//			public boolean execute(FormItem item, Object value, DynamicForm form) {
+//				return (!isTipoDiAssegnazioneL());
+//			}
+//		});
 		
 		ruoloItem.setShowTitle(true);
 		ruoloItem.setValueField("key");
@@ -1042,8 +1111,6 @@ public abstract class AgganciaUtenteUOPopup extends ModalWindow {
 					idRuoloItem,
 			        descrizioneRuoloItem,
 			        flgUoPuntoProtocolloItem,
-			        
-			        // ottavio
 			        flgUoAbilRegistrazioneEItem,
 			        flgUoAbilRegistrazioneUItem,
 			        listaUOPuntoProtocolloIncluseItem,
@@ -1083,8 +1150,6 @@ public abstract class AgganciaUtenteUOPopup extends ModalWindow {
 					idRuoloItem,
 			        descrizioneRuoloItem,
 			        flgUoPuntoProtocolloItem,
-			        
-			        // ottavio
 			        flgUoAbilRegistrazioneEItem,
 			        flgUoAbilRegistrazioneUItem,
 			        listaUOPuntoProtocolloIncluseItem,
@@ -1193,14 +1258,11 @@ public abstract class AgganciaUtenteUOPopup extends ModalWindow {
 												formMain.setValue("typeNodo", data.get(i).getAttribute("typeNodo"));
 												formMain.setValue("flgUoPuntoProtocollo", data.get(i).getAttribute("flgPuntoProtocollo"));
 												
-												
-												// ottavio
 												formMain.setValue("flgUoAbilRegistrazioneE", data.get(i).getAttribute("flgUoAbilRegistrazioneE"));
 												formMain.setValue("flgUoAbilRegistrazioneU", data.get(i).getAttribute("flgUoAbilRegistrazioneU"));
 												
-												// ottavio
-												//updateFlg(tipoDiAssegnazioneSelectItem.getValueAsString());
-												updateFlg();
+												updateFlg_onChangeUO();
+												
 												formMain.markForRedraw();
 												
 												formMain.clearErrors(true);
@@ -1266,20 +1328,16 @@ public abstract class AgganciaUtenteUOPopup extends ModalWindow {
 					formMain.setValue("idUo", record.getAttributeAsString("idUo"));
 					formMain.setValue("descrizione", record.getAttributeAsString("descrizioneOrig"));
 					formMain.setValue("flgUoPuntoProtocollo", record.getAttributeAsString("flgPuntoProtocollo"));
-					
-					// ottavio
 					formMain.setValue("flgUoAbilRegistrazioneE", record.getAttributeAsString("flgUoAbilRegistrazioneE"));
 					formMain.setValue("flgUoAbilRegistrazioneU", record.getAttributeAsString("flgUoAbilRegistrazioneU"));
-					
 					formMain.setValue("listaUOPuntoProtocolloEscluse", "");
 					formMain.setValue("listaUOPuntoProtocolloIncluse", "");
 					formMain.setValue("listaUOPuntoProtocolloEreditarietaAbilitata", "");
 					formMain.clearErrors(true);
 					
-					// ottavio
-					updateFlg();
+					updateFlg_onChangeUO();
+					
 					formMain.markForRedraw();
-
 					
 					Scheduler.get().scheduleDeferred(new ScheduledCommand() {
 						
@@ -1307,8 +1365,6 @@ public abstract class AgganciaUtenteUOPopup extends ModalWindow {
 					formMain.setValue("listaUOPuntoProtocolloEscluse", "");
 					formMain.setValue("listaUOPuntoProtocolloIncluse", "");
 					formMain.setValue("listaUOPuntoProtocolloEreditarietaAbilitata", "");
-					
-					// ottavio
 					formMain.setValue("flgUoAbilRegistrazioneE", "");
 					formMain.setValue("flgUoAbilRegistrazioneU", "");
 					
@@ -1340,11 +1396,8 @@ public abstract class AgganciaUtenteUOPopup extends ModalWindow {
 						formMain.setValue("listaUOPuntoProtocolloEscluse", "");
 						formMain.setValue("listaUOPuntoProtocolloIncluse", "");
 						formMain.setValue("listaUOPuntoProtocolloEreditarietaAbilitata", "");
-						
-						// ottavio
 						formMain.setValue("flgUoAbilRegistrazioneE", "");
 						formMain.setValue("flgUoAbilRegistrazioneU", "");
-						
 						
 						formMain.clearErrors(true);
 						Scheduler.get().scheduleDeferred(new ScheduledCommand() {
@@ -1690,21 +1743,17 @@ public abstract class AgganciaUtenteUOPopup extends ModalWindow {
 			formMain.setValue("organigramma", tipo + idOrganigramma);
 			formMain.setValue("idUo", idOrganigramma);
 			formMain.setValue("typeNodo", tipo);
-			// mDynamicForm.setValue("descrizione", ""); // da settare
 			formMain.setValue("codRapido", record.getAttribute("codRapidoUo"));
 			formMain.setValue("descrizione", record.getAttribute("nome"));
 			formMain.setValue("descrizioneEstesa", record.getAttribute("denominazioneEstesa"));
-						
-			// ottavio
 			formMain.setValue("flgUoAbilRegistrazioneE", record.getAttributeAsString("abilitaUoProtEntrata"));
 			formMain.setValue("flgUoAbilRegistrazioneU", record.getAttributeAsString("abilitaUoProtUscita"));
 			
 			formMain.clearErrors(true);
 			
-			// ottavio
-			updateFlg();
-			formMain.markForRedraw();					
+			updateFlg_onChangeUO();
 			
+			formMain.markForRedraw();					
 			
 			Scheduler.get().scheduleDeferred(new ScheduledCommand() {
 				
@@ -2392,66 +2441,58 @@ public abstract class AgganciaUtenteUOPopup extends ModalWindow {
 			}
 	    }
 		
-		/*
-		private void updateFlg(Object tipoDiAssegnazione){
-			
-			if (tipoDiAssegnazione != null && !tipoDiAssegnazione.equals("")){
+		
+		
+		private void updateFlg_onChangeUO(){
+		
+			// Se il cliente e' A2A
+			if (AurigaLayout.isAttivoClienteA2A()) {
+				// Il check "registrazione in entrata" va preimpostato prendendo il valore dalla UO
+				if (isUoAbilRegistrazioneE()){
+					flgRegistrazioneEItem.setValue(true);
+					formMain.setValue("flgRegistrazioneE", true);	
+				}
+				else{
+					flgRegistrazioneEItem.setValue(false);
+					formMain.setValue("flgRegistrazioneE", false);	
+				}
 				
-				// Se "A" (Appartenenza gerarchica) o "D" (Funzionale/delega)
-				if (tipoDiAssegnazione.equals("A") || tipoDiAssegnazione.equals("D")){
-					
-					// Se il parametro DB DEFAULT_REL_UO_USER_REGE = true
-					if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGE")) {
-						// Il check "registrazione in entrata" va preimpostato a spuntato
-						flgRegistrazioneEItem.setValue(true);
-						formMain.setValue("flgRegistrazioneE", true);  
-					}
-					
-					// Se il parametro DB DEFAULT_REL_UO_USER_REGU = true
+				// Il check "registrazione in uscita" va preimpostato prendendo il valore dalla UO solo se quest'ultimo è 1, 
+				// altrimenti si considera il parametro che indica il default (ovvero se la colonna della UO è 0 ma parametro DEFAULT_REL_UO_USER_REGIU = true il  flag "registrazione in uscita/interna" si spunta comunque)
+				if (isUoAbilRegistrazioneU()){
+					flgRegistrazioneUIItem.setValue(true);
+					formMain.setValue("flgRegistrazioneUI", true);	
+				}
+				else{
 					if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGIU")) {
-						// Il check "registrazione in uscita/interna" va preimpostato a spuntato
 						flgRegistrazioneUIItem.setValue(true);
 						formMain.setValue("flgRegistrazioneUI", true);
 					}
-					
-					// Se il parametro DB DEFAULT_REL_UO_USER_GEST_ATTI = true
-					if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_GEST_ATTI")) {
-						// Il check "avvio/gestione atti proposti" va preimpostato a spuntato
-						flgGestAttiItem.setValue(true);
-						formMain.setValue("flgGestAtti", true);
-						
-						// in queesto caso forzo il flag flgVisPropAttiInIterItem e lo disabilito
-						flgVisPropAttiInIterItem.setValue(true);
-						formMain.setValue("flgVisPropAttiInIter", true);
-						
-						flgVisPropAttiInIterItem.setCanEdit(false);
-					}
-
-					// Se il parametro DB DEFAULT_REL_UO_USER_VIS_ATTI = true
-					if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_VIS_ATTI")) {
-						// Il check "visualizzazione atti proposti" va preimpostato a spuntato
-						flgVisPropAttiInIterItem.setValue(true);
-						formMain.setValue("flgVisPropAttiInIter", true);
-					}
-				}
-				
-				// Se "L" (postazione ombra)
-				if (tipoDiAssegnazione.equals("L")){
-					
-					// Se il parametro DB DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS = true
-					if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS")) {
-						// Il check "accesso limitato doc. assegnata personalmente" va preimpostato a spuntato
-						flgAccessoDocLimSVItem.setValue(true);
-						formMain.setValue("flgAccessoDocLimSV", true);
+					else{
+						flgRegistrazioneUIItem.setValue(false);
+						formMain.setValue("flgRegistrazioneUI", false);
 					}
 				}
 			}
 		}
-      */
 		
-		// ottavio
+		
+		private void updateFlg_onChangeTipoAssegnazione(){
+			
+			// Se il valore selezionato e' "Postazione ombra" (L) allora setto il valore del parametro DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS
+			if(isTipoDiAssegnazioneL()) {
+				// Se il parametro DB DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS = true
+				if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS")) {
+					// Il check "accesso limitato doc. assegnata personalmente" va preimpostato a spuntato
+					flgAccessoDocLimSVItem.setValue(true);
+					formMain.setValue("flgAccessoDocLimSV", true);
+				}
+			}
+		}
+		
+		/*
 		private void updateFlg(){			
-					
+				
 			// Se il cliente e' A2A
 			if (AurigaLayout.isAttivoClienteA2A()) {
 				// Il check "registrazione in entrata" va preimpostato prendendo il valore dalla UO
@@ -2553,6 +2594,8 @@ public abstract class AgganciaUtenteUOPopup extends ModalWindow {
 			}
 		}
 
+		*/
+		
 		
 		@Override
 		public void manageOnCloseClick() {		
@@ -2595,7 +2638,6 @@ public abstract class AgganciaUtenteUOPopup extends ModalWindow {
 			return true;
 		}
 		
-		// ottavio
 		private boolean isUoAbilRegistrazioneE() {
 			return (flgUoAbilRegistrazioneEItem.getValue()!=null && flgUoAbilRegistrazioneEItem.getValue().equals("true"));
 		}

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.function;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -17,14 +18,9 @@ public class WSFileUtils {
 
 		File fileOut = null;
 		try {
-			// Salvo inputStream in un file temp
-			// File fileTemp = saveInputStreamToFile(inputStreamIn);
 
-			// Salvo il file nello storage
-			String uriVer = DocumentStorage.storeInput(inputStreamIn, idDominio, null); // store(fileTemp, idDominio);
-
-			// Cancello il file temp
-			// fileTemp.delete();
+			// Salvo il file nello storage dei temporaeni
+			String uriVer = DocumentStorage.storeInputTemp(inputStreamIn, null);
 
 			// Estraggo il file
 			fileOut = (DocumentStorage.extract(uriVer, idDominio));
@@ -41,7 +37,7 @@ public class WSFileUtils {
 
 		String uriVer = null;
 		try {
-			uriVer = DocumentStorage.storeInput(inputStreamIn, idDominio, null); // store(fileTemp, idDominio);
+			uriVer = DocumentStorage.storeInputTemp(inputStreamIn, null);
 		} catch (Exception e1) {
 			throw new Exception(e1.getMessage());
 		}

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.module.foutility.fo;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -6,7 +7,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -34,7 +34,6 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 
@@ -59,12 +58,12 @@ import it.eng.module.foutility.beans.generated.InputSigVerifyType;
 import it.eng.module.foutility.beans.generated.MessageType;
 import it.eng.module.foutility.beans.generated.ResponseSigVerify;
 import it.eng.module.foutility.beans.generated.SigVerifyResultType;
-import it.eng.module.foutility.beans.generated.SignerInformationType;
-import it.eng.module.foutility.beans.generated.VerificationStatusType;
 import it.eng.module.foutility.beans.generated.SigVerifyResultType.SigVerifyResult;
 import it.eng.module.foutility.beans.generated.SigVerifyResultType.SigVerifyResult.SignerInformations;
+import it.eng.module.foutility.beans.generated.SignerInformationType;
 import it.eng.module.foutility.beans.generated.SignerInformationType.Certificato;
 import it.eng.module.foutility.beans.generated.SignerInformationType.Marca;
+import it.eng.module.foutility.beans.generated.VerificationStatusType;
 import it.eng.module.foutility.util.CertificateUtil;
 import it.eng.module.foutility.util.CheckPdfCommenti;
 import it.eng.module.foutility.util.CheckPdfEditabili;
@@ -772,6 +771,7 @@ public class SigVerifyCtrl extends AbstractFileController {
 			dnType.setOu(signatureBean.getCertificato().getUnitaOrganizzativa());
 			dnType.setO(signatureBean.getCertificato().getOrganizzazione());
 			dnType.setSerialNumber(signatureBean.getCertificato().getSeriale());
+			dnType.setCodiceFiscale(CertificateUtil.getCodiceFiscaleFromSerialNumber(signatureBean.getCertificato().getIdentificativoFirmatario()));
 												
 			// Verifica di expiration sui CERTIFICATI
 			AbstractResponseOperationType sigValResultCERT = new AbstractResponseOperationType();
@@ -875,6 +875,7 @@ public class SigVerifyCtrl extends AbstractFileController {
 			dnType.setOu(signatureBean.getCertificato().getUnitaOrganizzativa());
 			dnType.setO(signatureBean.getCertificato().getOrganizzazione());
 			dnType.setSerialNumber(signatureBean.getCertificato().getSeriale());
+			dnType.setCodiceFiscale(CertificateUtil.getCodiceFiscaleFromSerialNumber(signatureBean.getCertificato().getSeriale()));
 												
 			// Verifica di expiration sui CERTIFICATI
 			AbstractResponseOperationType sigValResultCERT = new AbstractResponseOperationType();

@@ -1,13 +1,18 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.hsm.xades;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.servlet.http.HttpSession;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import it.eng.auriga.ui.module.layout.server.firmaHsm.bean.FirmaHsmBean;
 import it.eng.auriga.ui.module.layout.server.firmaXades.bean.FirmaXadesBean;
 import it.eng.hsm.HsmBaseUtility;
+import it.eng.hsm.HsmClientFactory;
 import it.eng.hsm.client.Hsm;
 import it.eng.hsm.client.bean.MessageBean;
 import it.eng.hsm.client.bean.ResponseStatus;
@@ -27,37 +32,77 @@ public class HsmXadesUtility extends HsmBaseUtility {
 	
 	private static Logger log = Logger.getLogger(HsmXadesUtility.class);
 	
-	public byte[] sigilloXades(byte[] bytesFileDaFirmare, FirmaXadesBean FirmaXadesBean) throws Exception {
-		HsmType hsmType = HsmType.INFOCERT;
+	public byte[] sigilloXades(byte[] bytesFileDaFirmare, FirmaXadesBean firmaXadesBean, HttpSession session) throws Exception {
+		
+		String providerSigillo = firmaXadesBean.getProvider();
+		
+		Hsm hsmClient = null;
+		if (StringUtils.isBlank(providerSigillo)) {
+			// Utilizzo il vecchio codice InfoCert per la retrocompatibilità con le vecchie configurazioni
+			HsmConfig hsmConfig = new HsmConfig();
+			hsmConfig.setHsmType(HsmType.INFOCERT);
+			
+			RestConfig restConfig = new RestConfig();
+			restConfig.setUrlEndpoint(firmaXadesBean.getEndpoint());
+			InfoCertConfig infoCertConfig = new InfoCertConfig();
+			infoCertConfig.setAuto(false);
+			infoCertConfig.setAlias(firmaXadesBean.getAlias());
+			infoCertConfig.setPin(firmaXadesBean.getPin());
+			infoCertConfig.setOtp(firmaXadesBean.getOtp());
+			infoCertConfig.setRestConfig(restConfig);
+			infoCertConfig.setRequireSignatureInSession(false);
 
+			hsmConfig.setClientConfig(infoCertConfig);
+			
+			hsmClient = HsmImpl.getNewInstance(hsmConfig);
+		} else {
+			String tipoHsm = getTipoHsm(providerSigillo, false, session);
+			String provider = firmaXadesBean.getProvider();
+			String userid = firmaXadesBean.getUserid();
+			String delegatedUserid = firmaXadesBean.getDelegatedUserid();
+			String password = firmaXadesBean.getPassword();					
+			String pin = firmaXadesBean.getPin();		
+			String key = firmaXadesBean.getKey();	
+			String secret = firmaXadesBean.getSecret();	
+			FirmaHsmBean lFirmaHsmBean = new FirmaHsmBean();					
+			// Setto firmatario ed eventuale delegante
+			if (StringUtils.isNotBlank(delegatedUserid)) {
+				lFirmaHsmBean.setUsername(delegatedUserid);
+				lFirmaHsmBean.setUsernameDelegante(userid);
+			} else {
+				lFirmaHsmBean.setUsername(userid);
+				lFirmaHsmBean.setUsernameDelegante("");
+			}
+			lFirmaHsmBean.setPassword(password);
+			lFirmaHsmBean.setAuthPIN(pin);
+			lFirmaHsmBean.setKey(key);
+			lFirmaHsmBean.setSecret(secret);
+			// Parametri per eventuale firma Medas
+			// lFirmaHsmBean.setCodiceOtp(codiceOtp);
+			// lFirmaHsmBean.setCertId(certId);
+			// lFirmaHsmBean.setPotereDiFirma(potereDiFirma);
+			// lFirmaHsmBean.setParametriHSMFromGui(parametriHSMFromGui);
+			lFirmaHsmBean.setProviderHsmFromPreference(provider);
+			lFirmaHsmBean.setHsmType(tipoHsm);
+			lFirmaHsmBean.setSkipControlloCoerenzaCertificatoFirma(true);									
+			lFirmaHsmBean.setParametriHSMFromGui(true);
+			hsmClient = HsmClientFactory.getHsmClient(session, lFirmaHsmBean);
+		}
+		
+		// Queste cambiano a seconda del provider?
 		SignOption signOption = new SignOption();
 		signOption.setSigillo(true);
 		signOption.setDetached(false);
 		signOption.setEnveloping(false);
-		HsmConfig hsmConfig = new HsmConfig();
-		hsmConfig.setHsmType(hsmType);
 
-		if (hsmType.equals(HsmType.INFOCERT)) {
-			
-			RestConfig restConfig = new RestConfig();
-			restConfig.setUrlEndpoint(FirmaXadesBean.getEndpoint());
-			InfoCertConfig infoCertConfig = new InfoCertConfig();
-			infoCertConfig.setAuto(false);
-			infoCertConfig.setAlias(FirmaXadesBean.getAlias());
-			infoCertConfig.setPin(FirmaXadesBean.getPin());
-			infoCertConfig.setOtp(FirmaXadesBean.getOtp());
-			infoCertConfig.setRestConfig(restConfig);
-
-			hsmConfig.setClientConfig(infoCertConfig);
-		}
-
-		Hsm hsm = HsmImpl.getNewInstance(hsmConfig);
 		byte[] fileFirmato = null;
 		if (bytesFileDaFirmare != null) {
 			try {
+				// Verifico se devo aprire una sessione di firma e in caso la apro (serve anche per creare e gestire eventuali token di autenticazione)
+				apriSessioneFirmaSeRichiesto(session, hsmClient);
 				List<byte[]> fileDaFirmare = new ArrayList<byte[]>();
 				fileDaFirmare.add(bytesFileDaFirmare);
-				SignResponseBean response = hsm.firmaXades(fileDaFirmare, signOption);
+				SignResponseBean response = hsmClient.firmaXades(fileDaFirmare, signOption);
 				MessageBean message = response.getMessage();
 				if ((message != null) && ((message.getStatus() != null) && (!message.getStatus().equals(ResponseStatus.OK)))) {
 					log.error("Errore: - " + message.getCode() + " " + message.getDescription());
@@ -67,6 +112,8 @@ public class HsmXadesUtility extends HsmBaseUtility {
 				if (listFileResponseBean != null && !listFileResponseBean.isEmpty()) {
 					fileFirmato = listFileResponseBean.get(0).getFileFirmato();
 				}
+				// Verifico se devo chiudere la sessione di firma eventualemte aperta (serve anche per revocare eventuali token di autenticazione)
+				chiudiSessioneFirmaSeRichiesto(session, hsmClient);
 
 			} catch (HsmClientConfigException e) {
 				log.error("Error: " + e.getLocalizedMessage(), e);

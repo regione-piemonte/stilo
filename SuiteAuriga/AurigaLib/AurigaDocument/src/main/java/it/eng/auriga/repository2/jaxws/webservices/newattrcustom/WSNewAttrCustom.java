@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.newattrcustom;
 
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsAddupdattrcustomBean;
 import it.eng.auriga.database.store.dmpk_ws.store.Addupdattrcustom;
@@ -7,6 +8,8 @@ import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.auriga.module.business.beans.SpecializzazioneBean;
 import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
+import it.eng.document.function.StoreException;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -17,6 +20,8 @@ import java.util.List;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import it.eng.auriga.repository2.jaxws.webservices.common.JAXWSAbstractAurigaService;
@@ -65,6 +70,7 @@ public class WSNewAttrCustom extends JAXWSAbstractAurigaService implements WSINe
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
 
 
@@ -73,7 +79,8 @@ public class WSNewAttrCustom extends JAXWSAbstractAurigaService implements WSINe
     String outWS = null;
     String errMsg = null;
     String xmlIn = null;
-
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
+    
     try {
     	 aLogger.info("Inizio WSNewAttrCustom");
     	
@@ -101,11 +108,15 @@ public class WSNewAttrCustom extends JAXWSAbstractAurigaService implements WSINe
          /*************************************************************
           * Chiamo il WS
           ************************************************************/ 
-         
          try {
         	 outWS =  callWS(loginBean,xml);
 	 		}
-	 		catch (Exception e){	 
+	 		catch (Exception e){	
+	 			if (e instanceof StoreException) {
+		    		if(((StoreException) e).getError()!=null){
+		    			errCode = ((StoreException) e).getError().getErrorCode();
+		    		}
+		    	}
 	 			if(e.getMessage()!=null)
 		 			 errMsg = "Errore = " + e.getMessage();
 		 		 else
@@ -154,7 +165,7 @@ public class WSNewAttrCustom extends JAXWSAbstractAurigaService implements WSINe
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 	 	}
 	 	else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	}
             	
 	     aLogger.info("Fine WSNewAttrCustom");
@@ -177,36 +188,33 @@ public class WSNewAttrCustom extends JAXWSAbstractAurigaService implements WSINe
 
         
     private String callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-    	    	
-    	aLogger.debug("Eseguo il WS DmpkWSNewAttrCustom.");
+    	aLogger.debug("Eseguo il WS DMPK_WS->Addupdattrcustom.");
     	
     	String result = null;    	
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsAddupdattrcustomBean input = new DmpkWsAddupdattrcustomBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		
-    		  // viene eseguita la DMPK_WS.AddUpdAttrCustom(ADD) per aggiungere  un nuovo attributo
-    		  input.setFlgoperazionein("ADD");
-    		      		  
-    		  // Eseguo il servizio
-    		  Addupdattrcustom service = new Addupdattrcustom();
-    		  StoreResultBean<DmpkWsAddupdattrcustomBean> output = service.execute(loginBean, input);
+    			
+    	// Inizializzo l'INPUT    		
+    	DmpkWsAddupdattrcustomBean input = new DmpkWsAddupdattrcustomBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+	
+    	// viene eseguita la DMPK_WS.AddUpdAttrCustom(ADD) per aggiungere  un nuovo attributo
+    	input.setFlgoperazionein("ADD");
+	      		  
+    	// Eseguo il servizio
+    	Addupdattrcustom service = new Addupdattrcustom();
+    	StoreResultBean<DmpkWsAddupdattrcustomBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
+    	if (output.isInError()){
+    		aLogger.debug(output.getDefaultMessage());
+    		aLogger.debug(output.getErrorContext());
+    		aLogger.debug(output.getErrorCode());
+    		throw new StoreException(output);
+    	}	
 
-    		  result = "OK";
-    			  
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+	  result = "OK";
+	  return result;
+ 		
     }
-    
     
 	/**
      * Genera il file XML contenente l'id del folder aggiunto
@@ -224,7 +232,7 @@ public class WSNewAttrCustom extends JAXWSAbstractAurigaService implements WSINe
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             aLogger.debug("generaXMLToken: token = " + xmlIn);
             aLogger.debug("generaXMLToken: tokenEsc = " + xmlInEsc);

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.archivio;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -40,8 +41,10 @@ import it.eng.auriga.ui.module.layout.client.gestioneProcedimenti.avvioProcedime
 import it.eng.auriga.ui.module.layout.client.i18n.I18NUtil;
 import it.eng.auriga.ui.module.layout.client.postaElettronica.DettaglioRegProtAssociatoWindow;
 import it.eng.auriga.ui.module.layout.client.protocollazione.AssegnazioneItem;
+import it.eng.auriga.ui.module.layout.client.protocollazione.ConcessioneItem;
 import it.eng.auriga.ui.module.layout.client.protocollazione.CondivisioneItem;
 import it.eng.auriga.ui.module.layout.client.protocollazione.OperazioniEffettuateWindow;
+import it.eng.auriga.ui.module.layout.client.protocollazione.PeriziaItem;
 import it.eng.auriga.ui.module.layout.client.protocollazione.PermessiItem;
 import it.eng.auriga.ui.module.layout.client.protocollazione.pgweb.AltreVieItem;
 import it.eng.utility.ui.module.core.client.callback.ServiceCallback;
@@ -88,6 +91,9 @@ public class FolderCustomDetail extends CustomDetail {
 	protected DynamicForm permessiForm;
 	protected DynamicForm collocazioneFisicaForm;
 	protected DynamicForm altriDatiForm;
+	protected DynamicForm periziaForm;
+	protected DynamicForm concessioneForm;
+	
 
 	// DetailSection
 	protected HeaderDetailSection estremiSection;
@@ -98,6 +104,8 @@ public class FolderCustomDetail extends CustomDetail {
 	protected HeaderDetailSection altrevieSection;		
 	// protected DetailSection responsabileSection;
 	protected DetailSection datiprincipaliSection;
+	protected DetailSection periziaSection;
+	protected DetailSection concessioneSection;	
 	protected DetailSection taskSection;
 	protected DetailSection assegnazioneSection;
 	protected DetailSection condivisioneSection;
@@ -170,6 +178,10 @@ public class FolderCustomDetail extends CustomDetail {
 	protected ImgButtonItem visualizzaAlberoIterButton;
 	protected ImgButtonItem apriDettaglioCapofilaButton;
 
+	// ReplicableItem
+	protected PeriziaItem periziaItem;
+	protected ConcessioneItem concessioneItem;
+	
 	protected String folderType;
 	protected String rowidFolder;
 	protected Boolean flgTipoFolderConVie;
@@ -699,6 +711,43 @@ public class FolderCustomDetail extends CustomDetail {
 		datiPrincipaliForm.setItems(descContenutiFascicoloItem, livelloRiservatezzaItem, dtTermineRiservatezzaItem, propagaRiservatezzaContenutiItem, spacer,
 				prioritaItem);
 
+		
+		// sezione PERIZIA
+		periziaForm = new DynamicForm();
+		periziaForm.setValuesManager(vm);
+		periziaForm.setWidth("*");
+		periziaForm.setHeight("5");
+		periziaForm.setPadding(5);
+		periziaForm.setWrapItemTitles(false);
+		periziaForm.setNumCols(10);
+		periziaForm.setColWidths(1,1,1,1,1,1,1,1,"*");
+		periziaForm.setTabSet(tabSet);
+		periziaForm.setTabID("HEADER");
+		
+		periziaItem = new PeriziaItem();
+		periziaItem.setName("listaPerizie");
+		periziaItem.setShowTitle(false);
+		periziaItem.setNotReplicable(false);			
+		periziaForm.setFields(periziaItem);
+		
+		// sezione CONCESSIONE
+		concessioneForm = new DynamicForm();
+		concessioneForm.setValuesManager(vm);
+		concessioneForm.setWidth("*");
+		concessioneForm.setHeight("5");
+		concessioneForm.setPadding(5);
+		concessioneForm.setWrapItemTitles(false);
+		concessioneForm.setNumCols(10);
+		concessioneForm.setColWidths(1,1,1,1,1,1,1,1,"*");
+		concessioneForm.setTabSet(tabSet);
+		concessioneForm.setTabID("HEADER");
+		
+		concessioneItem = new ConcessioneItem();
+		concessioneItem.setName("listaConcessioni");
+		concessioneItem.setShowTitle(false);
+		concessioneItem.setNotReplicable(false);	
+		concessioneForm.setFields(concessioneItem);
+		
 		// sezione TASK
 		taskForm = new DynamicForm();
 		taskForm.setValuesManager(vm);
@@ -1031,6 +1080,13 @@ public class FolderCustomDetail extends CustomDetail {
 		altrevieSection = new HeaderDetailSection("Indirizzo di riferimento", true, true, true, altreVieForm);				
 		// responsabileSection = new DetailSection(I18NUtil.getMessages().archivio_detail_responsabileSection_title(), true, true, false, responsabileForm);
 		datiprincipaliSection = new DetailSection(I18NUtil.getMessages().archivio_detail_datiprincipaliSection_title(), true, true, false, datiPrincipaliForm);
+		
+		// Sezione PERIZIA
+		periziaSection = new DetailSection(I18NUtil.getMessages().archivio_detail_periziaSection_title(), true, true, false, periziaForm);
+		
+		// Sezione CONCESSIONE
+		concessioneSection = new DetailSection(I18NUtil.getMessages().archivio_detail_concessioneSection_title(), true, true, false, concessioneForm);
+		
 		taskSection = new DetailSection("Lista task", true, true, false, taskForm, procFlowForm) {
 
 			@Override
@@ -1062,6 +1118,8 @@ public class FolderCustomDetail extends CustomDetail {
 		lVLayout.addMember(altrevieSection);				
 		// lVLayout.addMember(responsabileSection);
 		lVLayout.addMember(datiprincipaliSection);
+		lVLayout.addMember(periziaSection);
+		lVLayout.addMember(concessioneSection);
 		lVLayout.addMember(taskSection);
 		lVLayout.addMember(assegnazioneSection);
 		lVLayout.addMember(condivisioneSection);
@@ -1471,6 +1529,18 @@ public class FolderCustomDetail extends CustomDetail {
 				datiidentificativiSection.hide();
 			}
 		}
+		if (showDetailSectionPerizia()) {
+			periziaSection.show();
+		}
+		else{
+			periziaSection.hide();
+		}
+		if (showDetailSectionConcessione()) {
+			concessioneSection.show();
+		}
+		else{
+			concessioneSection.hide();
+		}	
 	}
 
 	public void loadCombo() {
@@ -1535,11 +1605,25 @@ public class FolderCustomDetail extends CustomDetail {
 				@Override
 				public void execute(Record object) {
 					final boolean isReload = (attributiAddFolderTabs != null && attributiAddFolderTabs.size() > 0);
+					if(attributiAddFolderLayouts != null) {
+						for (String key : attributiAddFolderLayouts.keySet()) {
+							// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+							if(key != null && !key.startsWith("HEADER_")) {
+								try { attributiAddFolderLayouts.get(key).destroy(); } catch(Exception e) {}
+							}
+						}
+					}
+					if(attributiAddFolderDetails != null) {
+						for (String key : attributiAddFolderDetails.keySet()) {
+							try { attributiAddFolderDetails.get(key).destroy(); } catch(Exception e) {}				
+						}
+					}
 					attributiAddFolderTabs = (LinkedHashMap<String, String>) object.getAttributeAsMap("gruppiAttributiCustomTipoFolder");
 					attributiAddFolderLayouts = new HashMap<String, VLayout>();
 					attributiAddFolderDetails = new HashMap<String, AttributiDinamiciDetail>();
 					if (attributiAddFolderTabs != null && attributiAddFolderTabs.size() > 0) {
 						GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");
+						lGwtRestService.addParam("flgSkipAttrSenzaCategoria", "true");
 						lGwtRestService.addParam("flgNomeAttrConSuff", "true");
 						Record lAttributiDinamiciRecord = new Record();
 						lAttributiDinamiciRecord.setAttribute("nomeTabella", "DMT_FOLDER");
@@ -1661,4 +1745,42 @@ public class FolderCustomDetail extends CustomDetail {
 		}
 		return tipiAttributiDinamiciFolder;
 	}
+	
+	/**
+	 * Metodo che indica se mostrare o meno la sezione "Perizia"
+	 * 
+	 */
+	public boolean showDetailSectionPerizia() {
+		return AurigaLayout.isAttivoClienteADSP();		
+	}
+	
+	/**
+	 * Metodo che indica se mostrare o meno la sezione "Concessione"
+	 * 
+	 */
+	public boolean showDetailSectionConcessione() {
+		return AurigaLayout.isAttivoClienteADSP();		
+	}
+	
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();		
+		if(attributiAddFolderLayouts != null) {
+			for (String key : attributiAddFolderLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddFolderLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddFolderDetails != null) {
+			for (String key : attributiAddFolderDetails.keySet()) {
+				try { attributiAddFolderDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
+		attributiAddFolderTabs = null;
+		attributiAddFolderLayouts = null;		
+		attributiAddFolderDetails = null;
+	}
+	
 }

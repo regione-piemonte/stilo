@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.checkout;
 
 import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreCheckoutdocBean;
 import it.eng.auriga.database.store.dmpk_core.store.Checkoutdoc;
@@ -22,6 +23,8 @@ import java.util.ArrayList;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -72,6 +75,7 @@ public class WSCheckOut extends JAXWSAbstractAurigaService implements WSICheckOu
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
 
 
@@ -81,6 +85,7 @@ public class WSCheckOut extends JAXWSAbstractAurigaService implements WSICheckOu
       
     String errMsg = null;
     String xmlIn = null;
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
     
     try {
     	 aLogger.info("Inizio WSCheckOut");
@@ -116,7 +121,12 @@ public class WSCheckOut extends JAXWSAbstractAurigaService implements WSICheckOu
  			 // Chiamo il servizio di AurigaDocument
  			 outServizio =  eseguiServizio(loginBean,outWS); 	 		
 	 		}
-	 	catch (Exception e){	 
+	 	catch (Exception e){	
+	 		if (e instanceof StoreException) {
+	    		if(((StoreException) e).getError()!=null){
+	    			errCode = ((StoreException) e).getError().getErrorCode();
+	    		}
+	    	}
 	 		if(e.getMessage()!=null)
 	 			 errMsg = "Errore = " + e.getMessage();
 	 		 else
@@ -171,7 +181,7 @@ public class WSCheckOut extends JAXWSAbstractAurigaService implements WSICheckOu
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 	 	 }
 	 	 else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	 }
 	 			        	
 	     aLogger.info("Fine WSCheckOut");
@@ -190,122 +200,108 @@ public class WSCheckOut extends JAXWSAbstractAurigaService implements WSICheckOu
 	    aLogger.info("Fine WSCheckOut serviceImplementation");
 	}
     }
-
     
     private WSCheckOutBean eseguiServizio(AurigaLoginBean loginBean, WSCheckOutBean bean) throws Exception {
-    	aLogger.debug("Eseguo il servizio di AurigaDocument.");
+    	aLogger.debug("Eseguo il DmpkCheckoutdoc");
     	
     	WSCheckOutBean ret = new WSCheckOutBean();
     	File fileOut = null;
     	
-		// creo l'input
-		BigDecimal idDocIn       = (bean.getIdDoc() != null) ? new BigDecimal(bean.getIdDoc()) : null;	    		
+    	// Inizializzo l'INPUT
+		BigDecimal idDocIn = (bean.getIdDoc() != null) ? new BigDecimal(bean.getIdDoc()) : null;	    		
 		BigDecimal nroProgrVerIn =  null;
+	    DmpkCoreCheckoutdocBean input = new DmpkCoreCheckoutdocBean();
+	    input.setCodidconnectiontokenin(loginBean.getToken());
+	    input.setIduserlavoroin(StringUtils.isNotBlank(loginBean.getIdUserLavoro()) ? new BigDecimal(loginBean.getIdUserLavoro()) : null);
+	    input.setIddocin(idDocIn);
+	    
+	    // Eseguo il servizio
+	    Checkoutdoc service = new Checkoutdoc();			
+		StoreResultBean<DmpkCoreCheckoutdocBean> output = service.execute(loginBean, input);
+		if (output.isInError()){
+			aLogger.debug(output.getDefaultMessage());
+			aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+			throw new StoreException(output);
+		}
+		
+		// Leggo il nr. progressivo ( NroProgrVerOut )
+		if(output.getResultBean().getNroprogrverout()!=null)
+			nroProgrVerIn = output.getResultBean().getNroprogrverout();
+		else
+			throw new Exception("La store procedure DmpkCheckoutdoc ha ritornato Nroprogrverout nullo");
+		
+		// **********************************************************
+	    // Estraggo il file elettronico 
+		// **********************************************************
+		RecuperoFile servizio = new RecuperoFile();
+		FileExtractedOut servizioOut = new FileExtractedOut();
+	    servizioOut = servizio.extractFileByIdDoc(loginBean, idDocIn, nroProgrVerIn);	    
+	    
+    	// Se il servizio e' andato in errore restituisco il messaggio di errore 	    	    
+	    if(StringUtils.isNotBlank(servizioOut.getErrorInExtract())) {
+	    	throw new Exception(servizioOut.getErrorInExtract());
+		}
+	    // Altrimenti restituisco il FILE
+	    fileOut =  servizioOut.getExtracted();
+	    
+	    ret.setIdDoc(bean.getIdDoc());
+	    
+	    if(nroProgrVerIn!=null)
+	    	ret.setNroProgrVer(nroProgrVerIn.toString());
+	    
+	    ret.setXml(bean.getXml());
+	    ret.setExtracted(fileOut);	
 
-	    try {	    	
-	    	    // **********************************************************
-	    	    // Eseguo il DMPK_CORE.CheckOutDoc
-	    	    // **********************************************************
-	    	    aLogger.debug("Eseguo il WS DmpkCheckoutdoc");
-	    	
-	    	    DmpkCoreCheckoutdocBean lCheckoutdocBean = new DmpkCoreCheckoutdocBean();
-	    	    lCheckoutdocBean.setCodidconnectiontokenin(loginBean.getToken());
-	    	    lCheckoutdocBean.setIduserlavoroin(StringUtils.isNotBlank(loginBean.getIdUserLavoro()) ? new BigDecimal(loginBean.getIdUserLavoro()) : null);
-	    	    lCheckoutdocBean.setIddocin(idDocIn);
-	    	    
-	    	    Checkoutdoc lCheckoutdoc = new Checkoutdoc();			
-				
-				StoreResultBean<DmpkCoreCheckoutdocBean> lStoreResultBean = lCheckoutdoc.execute(loginBean, lCheckoutdocBean);
-				if (lStoreResultBean.isInError()){
-					aLogger.debug(lStoreResultBean.getDefaultMessage());
-					aLogger.debug(lStoreResultBean.getErrorContext());
-					aLogger.debug(lStoreResultBean.getErrorCode());
-					throw new Exception(lStoreResultBean.getDefaultMessage());
-				}
-	    		
-				// Leggo il nr. progressivo ( NroProgrVerOut )
-				if(lStoreResultBean.getResultBean().getNroprogrverout()!=null)
-					nroProgrVerIn = lStoreResultBean.getResultBean().getNroprogrverout();
-				else
-					throw new Exception("La store procedure DmpkCheckoutdoc ha ritornato Nroprogrverout nullo");
-				
-				// **********************************************************
-	    	    // Estraggo il file elettronico 
-				// **********************************************************
-	    		RecuperoFile servizio = new RecuperoFile();
-	    		FileExtractedOut servizioOut = new FileExtractedOut();
-	    	    servizioOut = servizio.extractFileByIdDoc(loginBean, idDocIn, nroProgrVerIn);	    
-	    	    
-    	    	// Se il servizio e' andato in errore restituisco il messaggio di errore 	    	    
-	    	    if(StringUtils.isNotBlank(servizioOut.getErrorInExtract())) {
-	    	    	throw new Exception(servizioOut.getErrorInExtract());
-	    		}
-	    	    // Altrimenti restituisco il FILE
-	    	    fileOut =  servizioOut.getExtracted();
-	    	    
-	    	    ret.setIdDoc(bean.getIdDoc());
-	    	    
-	    	    if(nroProgrVerIn!=null)
-	    	    	ret.setNroProgrVer(nroProgrVerIn.toString());
-	    	    
-	    	    ret.setXml(bean.getXml());
-	    	    ret.setExtracted(fileOut);	
-	 		}
-	 	catch (Exception e){
-	 		throw new Exception(e.getMessage());	
-	 	}
 	 	return ret;    	
     }
     
     private WSCheckOutBean callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-    	    	
-    	aLogger.debug("Eseguo il WS DmpkWsLockCheckOut.");
+    	aLogger.debug("Eseguo il WS DMPK_WS->LockCheckOut.");
     	
     	String idDoc       = null;
-    	String xml         = null;    	
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsLockcheckoutBean input = new DmpkWsLockcheckoutBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		  input.setFlgtipowsin("C");       		// operazione di c.o. = "C"
-      		
-    		  // Eseguo il servizio
-    		  Lockcheckout service = new Lockcheckout();
-    		  StoreResultBean<DmpkWsLockcheckoutBean> output = service.execute(loginBean, input);
+    	String xml         = null;
+    	
+    	// Inizializzo l'INPUT    		
+    	DmpkWsLockcheckoutBean input = new DmpkWsLockcheckoutBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+    	input.setFlgtipowsin("C");       		// operazione di c.o. = "C"
+	
+    	// Eseguo il servizio
+    	Lockcheckout service = new Lockcheckout();
+    	StoreResultBean<DmpkWsLockcheckoutBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
+    	if (output.isInError()){
+		  aLogger.debug(output.getDefaultMessage());
+		  aLogger.debug(output.getErrorContext());
+		  aLogger.debug(output.getErrorCode());
+		  throw new StoreException(output);
+		}	
 
-    		  // restituisco l'XML
-    		  if(output.getResultBean().getXmlout()!=null){
-    			  xml = output.getResultBean().getXmlout();  
-    		  }
-    		  if (xml== null || xml.equalsIgnoreCase(""))
-    			  throw new Exception("La store procedure LockCheckout ha ritornato XmlOut nullo");
-    		  
-    		  // restituisco l'ID DOC
-    		  if (output.getResultBean().getIddocout() != null){
-    			  idDoc = output.getResultBean().getIddocout().toString();  
-    		  }
-    		  if (idDoc== null || idDoc.equalsIgnoreCase("")){
-    			  throw new Exception("La store procedure LockCheckout ha ritornato id doc nullo");
-    		  }
-    		      		      		       	      
-      	      // popolo il bean di out
-    		  WSCheckOutBean result = new WSCheckOutBean();
-    		  result.setXml(xml);
-    		  result.setIdDoc(idDoc);    		  
-    			  
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
-    }
-    
-    
+    	// restituisco l'XML
+    	if(output.getResultBean().getXmlout()!=null){
+		  xml = output.getResultBean().getXmlout();  
+    	}
+    	if (xml== null || xml.equalsIgnoreCase(""))
+		  throw new Exception("La store procedure LockCheckout ha ritornato XmlOut nullo");
+	  
+    	// restituisco l'ID DOC
+    	if (output.getResultBean().getIddocout() != null){
+		  idDoc = output.getResultBean().getIddocout().toString();  
+    	}
+    	if (idDoc== null || idDoc.equalsIgnoreCase("")){
+		  throw new Exception("La store procedure LockCheckout ha ritornato id doc nullo");
+    	}
+	      		      		       	      
+    	// popolo il bean di out
+    	WSCheckOutBean result = new WSCheckOutBean();
+    	result.setXml(xml);
+    	result.setIdDoc(idDoc);    		  
+		  
+    	return result;
+	}
+
 	/**
      * Genera il file XML contenente l'id del folder aggiunto
      * Questo file viene passato come allegato in caso di successo.
@@ -322,7 +318,7 @@ public class WSCheckOut extends JAXWSAbstractAurigaService implements WSICheckOu
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             aLogger.debug("generaXMLToken: token = " + xmlIn);
             aLogger.debug("generaXMLToken: tokenEsc = " + xmlInEsc);

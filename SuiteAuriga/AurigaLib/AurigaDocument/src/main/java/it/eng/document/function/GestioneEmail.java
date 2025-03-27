@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -347,7 +348,8 @@ public class GestioneEmail {
 		lRegistrazioneProtocollo.setIdProvReg(idUdResult + "");
 		DmpkUtilityGetestremiregnumud_jBean infoRegistrazione = recuperaEstremiInTransazione(pAurigaLoginBean, pMailDocumentoIn, session,
 				idUdResult);
-		lRegistrazioneProtocollo.setCategoriaReg("PG");
+		lRegistrazioneProtocollo.setCategoriaReg(infoRegistrazione.getCodcategoriaregio());
+		lRegistrazioneProtocollo.setSiglaRegistro(infoRegistrazione.getSiglaregio());
 		lRegistrazioneProtocollo.setAnnoReg(infoRegistrazione.getAnnoregout().shortValue());
 		lRegistrazioneProtocollo.setNumReg(infoRegistrazione.getNumregout());
 		Calendar lGregorianCalendar = GregorianCalendar.getInstance();

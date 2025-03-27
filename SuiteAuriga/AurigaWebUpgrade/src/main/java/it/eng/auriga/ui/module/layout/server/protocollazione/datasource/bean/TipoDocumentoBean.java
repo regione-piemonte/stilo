@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean;
 
 import java.util.LinkedHashMap;
 
@@ -34,7 +35,13 @@ public class TipoDocumentoBean {
 	private String flgTipoProtModulo;
 	
 	@NumeroColonna(numero = "14")
-	private String flgRichiestaFirmaDigitale;
+	private String flgRichiestoFile;
+	
+	@NumeroColonna(numero = "15")
+	private String flgRichiestoFileConFirma;
+	
+	@NumeroColonna(numero = "16")
+	private String flgRichiestoFileConFirmaValida;
 	
 	private LinkedHashMap<String, String> gruppiAttributiCustomTipoDoc;
 
@@ -110,12 +117,28 @@ public class TipoDocumentoBean {
 		this.flgTipoProtModulo = flgTipoProtModulo;
 	}
 
-	public String getFlgRichiestaFirmaDigitale() {
-		return flgRichiestaFirmaDigitale;
+	public String getFlgRichiestoFile() {
+		return flgRichiestoFile;
 	}
 
-	public void setFlgRichiestaFirmaDigitale(String flgRichiestaFirmaDigitale) {
-		this.flgRichiestaFirmaDigitale = flgRichiestaFirmaDigitale;
+	public void setFlgRichiestoFile(String flgRichiestoFile) {
+		this.flgRichiestoFile = flgRichiestoFile;
+	}
+
+	public String getFlgRichiestoFileConFirma() {
+		return flgRichiestoFileConFirma;
+	}
+
+	public void setFlgRichiestoFileConFirma(String flgRichiestoFileConFirma) {
+		this.flgRichiestoFileConFirma = flgRichiestoFileConFirma;
+	}
+
+	public String getFlgRichiestoFileConFirmaValida() {
+		return flgRichiestoFileConFirmaValida;
+	}
+
+	public void setFlgRichiestoFileConFirmaValida(String flgRichiestoFileConFirmaValida) {
+		this.flgRichiestoFileConFirmaValida = flgRichiestoFileConFirmaValida;
 	}
 
 	public LinkedHashMap<String, String> getGruppiAttributiCustomTipoDoc() {

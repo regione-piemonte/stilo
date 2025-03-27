@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -1328,7 +1329,7 @@ public class AllegatoCanvas extends ReplicableCanvas {
 		});
 
 		boolean flgParteDispositivoDefaultValue = false;
-		if(showFlgParteDispositivo() && !((AllegatiItem) getItem()).isDocumentiIstruttoria()) {
+		if(showFlgParteDispositivo() && !((AllegatiItem) getItem()).isDocumentiIstruttoria() && !((AllegatiItem) getItem()).isAllegatiProtocollazioneDetailBozze()) {
 			// Controllo se devo settare il valore di default di parte integrante a true
 			// Vale true se ((readOnly && abilitazione all'esclusione vale true) || (!readOnly && FLG_ALLEG_ATTO_PARTE_INT_DEFAULT vale true))
 			boolean flgAllegAttoParteIntDefault = ((AllegatiItem) getItem()).getFlgAllegAttoParteIntDefault();
@@ -1376,8 +1377,10 @@ public class AllegatoCanvas extends ReplicableCanvas {
 				boolean flgDatiSensibili = mDynamicForm.getValueAsString("flgDatiSensibili") != null && new Boolean(mDynamicForm.getValueAsString("flgDatiSensibili"));
 				boolean showFileOmissis = ((AllegatiItem) getItem()).getShowVersioneOmissis() && flgDatiSensibili;					
 				if (!flgParteDispositivo) {
-					flgNoPubblAllegato = true;
-					mDynamicForm.setValue("flgNoPubblAllegato", true);
+					if(showFlgNoPubblAllegato()) {
+						flgNoPubblAllegato = true;
+						mDynamicForm.setValue("flgNoPubblAllegato", true);
+					}
 					flgPubblicaSeparato = false;
 					mDynamicForm.clearValue("flgPubblicaSeparato");
 					if(showFileOmissis) {
@@ -1387,8 +1390,15 @@ public class AllegatoCanvas extends ReplicableCanvas {
 						manageOnChangedFlgDatiSensibili();
 					}
 				} else {
-					flgNoPubblAllegato = false;
-					mDynamicForm.clearValue("flgNoPubblAllegato");
+					if(showFlgNoPubblAllegato()) {
+						if (((AllegatiItem) getItem()).getFlgAllegAttoNoPubblDefault()) {
+							flgNoPubblAllegato = true;
+							mDynamicForm.setValue("flgNoPubblAllegato", true);
+						} else {
+							flgNoPubblAllegato = false;
+							mDynamicForm.clearValue("flgNoPubblAllegato");
+						}
+					}
 					if(flgParteDispositivo && showFlgPubblicaSeparato() && ((AllegatiItem) getItem()).getFlgAllegAttoPubblSepDefault()) {
 						flgPubblicaSeparato = true;
 						mDynamicForm.setValue("flgPubblicaSeparato", true);
@@ -1582,11 +1592,21 @@ public class AllegatoCanvas extends ReplicableCanvas {
 
 		flgParteDispositivoSalvatoItem = new HiddenItem("flgParteDispositivoSalvato");
 		flgParteDispositivoSalvatoItem.setValue(false);
+		
+		boolean flgNoPubblAllegatoDefaultValue = false;
+		if(showFlgNoPubblAllegato()) {
+			if (showFlgParteDispositivo() && !flgParteDispositivoDefaultValue) {
+				flgNoPubblAllegatoDefaultValue = true;
+			} else if(((AllegatiItem) getItem()).getFlgAllegAttoNoPubblDefault()) {
+				flgNoPubblAllegatoDefaultValue = true;
+			}
+		}
 
 		flgNoPubblAllegatoItem = new CheckboxItem("flgNoPubblAllegato", ((AllegatiItem) getItem()).getTitleFlgNoPubblAllegato() + "&nbsp;");
-		if (showFlgParteDispositivo() && !flgParteDispositivoDefaultValue) {
-			flgNoPubblAllegatoItem.setValue(true);
-		}
+		flgNoPubblAllegatoItem.setValue(flgNoPubblAllegatoDefaultValue);
+		//if (showFlgParteDispositivo() && !flgParteDispositivoDefaultValue) {
+		//	flgNoPubblAllegatoItem.setValue(true);
+		//}
 		flgNoPubblAllegatoItem.setColSpan(1);
 		flgNoPubblAllegatoItem.setWidth("*");
 		// flgNoPubblAllegatoItem.setLabelAsTitle(true);
@@ -2368,7 +2388,7 @@ public class AllegatoCanvas extends ReplicableCanvas {
 				@Override
 				public void onIconClick(IconClickEvent event) {
 					if(uriFileAllegatoItem.getValue() != null && !uriFileAllegatoItem.getValue().equals("")) {
-						Record record = new Record(mDynamicForm.getValues());
+						final Record record = new Record(mDynamicForm.getValues());
 						GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AurigaInvioUDMailDatasource");
 						if (isUdDocIstruttoriaCedAutotutela() || isUdDocPraticaVisura()) {
 							// Se non sono in ced autotutela o visure non passo per la store di preparazione mail
@@ -2381,7 +2401,7 @@ public class AllegatoCanvas extends ReplicableCanvas {
 							public void execute(DSResponse response, Object rawData, DSRequest request) {					
 								if (response.getStatus() == DSResponse.STATUS_SUCCESS){
 									Record object =  response.getData()[0];
-									InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", new DSCallback() {
+									InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", record.getAttributeAsString("idUdAppartenenza"), new DSCallback() {
 
 										@Override
 										public void execute(DSResponse response, Object rawData, DSRequest request) {
@@ -3405,13 +3425,15 @@ public class AllegatoCanvas extends ReplicableCanvas {
 		
 		if (!isHideTimbraInAltreOperazioniButton()) {
 
-			altreOpMenu.addItem(attestatoConformitaOriginaleMenuItem);
+			if(AurigaLayout.showAttestatoConformitaOriginale()) {	
+				altreOpMenu.addItem(attestatoConformitaOriginaleMenuItem);
+			}
 			
 			if(((AllegatiItem) getItem()).showOperazioniTimbraturaAllegato(new Record(mDynamicForm.getValues()))) {
 				buildMenuBarcodeEtichetta(altreOpMenu);
 			}
 			
-			if (lInfoFileRecord != null && Layout.isPrivilegioAttivo("SCC")) {
+			if (lInfoFileRecord != null && AurigaLayout.showCopiaConformeCustom()) {
 				String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 				MenuItem timbroConformitaCustomMenuItem = new MenuItem(labelConformitaCustom, "file/copiaConformeCustom.png");
 				timbroConformitaCustomMenuItem.setEnabled(lInfoFileRecord != null && lInfoFileRecord.isConvertibile());
@@ -3650,7 +3672,7 @@ public class AllegatoCanvas extends ReplicableCanvas {
 			InfoFileRecord infoFileAllegato = mDynamicForm.getValue("infoFile") != null ? new InfoFileRecord(mDynamicForm.getValue("infoFile")) : null;
 //			String mimetype = infoFileAllegato != null && infoFileAllegato.getMimetype() != null ? infoFileAllegato.getMimetype() : "";
 			// se sto facendo una nuova registrazione o una variazione di una già esistente, e se il file c'è e non è firmato digitalmente
-			if (flgTipoProv != null && !"".equals(flgTipoProv) && isEditing && 
+			if (/*flgTipoProv != null && !"".equals(flgTipoProv) && */isEditing && 
 				uriFileAllegato != null && !"".equals(uriFileAllegato) && infoFileAllegato != null && !infoFileAllegato.isFirmato() /*&& !mimetype.startsWith("image")*/) {
 				String idDocAllegato = mDynamicForm.getValueAsString("idDocAllegato");
 				boolean isChanged = mDynamicForm.getValue("isChanged") != null && (Boolean) mDynamicForm.getValue("isChanged");
@@ -3660,6 +3682,17 @@ public class AllegatoCanvas extends ReplicableCanvas {
 				if (isNewOrChanged || !flgTimbratoFilePostReg) {  
 					return true;
 				}				
+			}
+			if(((AllegatiItem) getItem()).isAllegatiProtocollazioneDetailBozze() && 
+					uriFileAllegato != null && !"".equals(uriFileAllegato) && infoFileAllegato != null && !infoFileAllegato.isFirmato() /*&& !mimetype.startsWith("image")*/) {
+				String idDocAllegato = mDynamicForm.getValueAsString("idDocAllegato");
+				boolean isChanged = mDynamicForm.getValue("isChanged") != null && (Boolean) mDynamicForm.getValue("isChanged");
+				boolean flgTimbratoFilePostReg = mDynamicForm.getValue("flgTimbratoFilePostReg") != null && (Boolean) mDynamicForm.getValue("flgTimbratoFilePostReg");
+				boolean isNewOrChanged = idDocAllegato == null || "".equals(idDocAllegato) || isChanged;			
+				if(!isNewOrChanged) {
+					mDynamicForm.setValue("flgTimbraFilePostReg", flgTimbratoFilePostReg);
+					return true;
+				}
 			}
 		}
 		// Nel caso in cui il check non è visibile il valore va settato sempre a false
@@ -3683,7 +3716,7 @@ public class AllegatoCanvas extends ReplicableCanvas {
 			InfoFileRecord infoFileOmissis = mDynamicFormOmissis.getValue("infoFileOmissis") != null ? new InfoFileRecord(mDynamicFormOmissis.getValue("infoFileOmissis")) : null;
 //			String mimetypeOmissis = infoFileOmissis != null && infoFileOmissis.getMimetype() != null ? infoFileOmissis.getMimetype() : "";
 			// se sto facendo una nuova registrazione o una variazione di una già esistente, e se il file c'è e non è firmato digitalmente
-			if (flgTipoProv != null && !"".equals(flgTipoProv) && isEditing && 
+			if (/*flgTipoProv != null && !"".equals(flgTipoProv) && */isEditing && 
 					uriFileOmissis != null && !"".equals(uriFileOmissis) && infoFileOmissis != null && !infoFileOmissis.isFirmato() /*&& !mimetypeOmissis.startsWith("image")*/) {
 				String idDocOmissis = mDynamicFormOmissis.getValueAsString("idDocOmissis");
 				boolean isChangedOmissis = mDynamicFormOmissis.getValue("isChangedOmissis") != null && (Boolean) mDynamicFormOmissis.getValue("isChangedOmissis");
@@ -6946,8 +6979,10 @@ public class AllegatoCanvas extends ReplicableCanvas {
 				if("solo_allegati_parte_integrante".equalsIgnoreCase(rifiutoAllegatiConFirmeNonValide) && flgParteDispositivo) {
 					flgParteDispositivo = false;
 					mDynamicForm.setValue("flgParteDispositivo", false);	
-					flgNoPubblAllegato = true;
-					mDynamicForm.setValue("flgNoPubblAllegato", true);
+					if(((AllegatiItem) getItem()).isShowFlgNoPubblAllegato()) {
+						flgNoPubblAllegato = true;
+						mDynamicForm.setValue("flgNoPubblAllegato", true);
+					}
 //					flgPubblicaSeparato = false;
 					mDynamicForm.setValue("flgPubblicaSeparato", false);
 					if(showFileOmissis) {
@@ -6996,6 +7031,7 @@ public class AllegatoCanvas extends ReplicableCanvas {
 		if(dimMaxAllegatoXPubblInMB > 0 && info != null && info.getBytes() > (dimMaxAllegatoXPubblInMB * MEGABYTE)) {						
 			if(flgParteDispositivo && !showFileOmissis) {
 				if(((AllegatiItem) getItem()).isShowFlgNoPubblAllegato()) {
+					flgNoPubblAllegato = true;
 					mDynamicForm.setValue("flgNoPubblAllegato", true);	
 				}
 				if(((AllegatiItem)getItem()).isFromAllegatoDetailInGridItem()) {

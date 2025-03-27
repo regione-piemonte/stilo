@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.exception;
 
 import it.eng.exception.manager.SessionCloseExceptionManager;
 import it.eng.utility.ui.module.core.shared.annotation.ManagedException;

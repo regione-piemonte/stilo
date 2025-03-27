@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.compiler;
 
 import java.io.File;
 import java.io.InputStream;
@@ -217,9 +218,8 @@ public class ModelliUtil {
 			if (filledTemplate != null) {
 				// salvo il file in storage
 				TemplateStorage templateStorage = TemplateStorageFactory.getTemplateStorageImpl(); 
-				String filledTemplateStorageUri = templateStorage.store(filledTemplate);
 				// converto il modello con i valori iniettati in pdf
-				filledTemplatePdf = convertToPdf(filledTemplateStorageUri, tipoModello);
+				filledTemplatePdf = convertToPdf(templateStorage.store(filledTemplate), tipoModello);
 			}
 		}
 		return filledTemplatePdf;

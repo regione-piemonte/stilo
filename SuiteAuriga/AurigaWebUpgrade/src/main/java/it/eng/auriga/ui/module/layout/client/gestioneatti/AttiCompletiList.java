@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.gestioneatti;
 
 import java.util.Map;
 
@@ -326,7 +327,7 @@ public class AttiCompletiList extends AttiList {
 							@Override
 							public void execute(Boolean value) {
 								if(value != null && value) {
-									InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", true, new DSCallback() {
+									InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", null, true, new DSCallback() {
 										
 										@Override
 										public void execute(DSResponse response, Object rawData, DSRequest request) {											
@@ -339,7 +340,7 @@ public class AttiCompletiList extends AttiList {
 									lInvioUdMailWindow.show();
 								} else {
 									object.setAttribute("attach", listaAttachWithoutAllegatiPISep);
-									InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", true, new DSCallback() {
+									InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", null, true, new DSCallback() {
 										
 										@Override
 										public void execute(DSResponse response, Object rawData, DSRequest request) {										
@@ -354,7 +355,7 @@ public class AttiCompletiList extends AttiList {
 							}
 						});				
 					} else {					
-						InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", true, new DSCallback() {
+						InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", null, true, new DSCallback() {
 							
 							@Override
 							public void execute(DSResponse response, Object rawData, DSRequest request) {								

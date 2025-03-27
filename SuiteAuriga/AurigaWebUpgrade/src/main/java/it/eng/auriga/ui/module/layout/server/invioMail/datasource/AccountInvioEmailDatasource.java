@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.invioMail.datasource;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -46,6 +47,8 @@ public class AccountInvioEmailDatasource extends AbstractFetchDataSource<SimpleK
 		String finalita = StringUtils.isNotBlank(getExtraparams().get("finalita")) ? getExtraparams().get("finalita") : "";
 		// PEC, PEO o indiffirete
 		String tipoMail = StringUtils.isNotBlank(getExtraparams().get("tipoMail")) ? getExtraparams().get("tipoMail") : "";
+		// ID_UD_TO_SEND
+		String idUdToSend = StringUtils.isNotBlank(getExtraparams().get("idUdToSend")) ? getExtraparams().get("idUdToSend") : "";
 
 		String tipoAccount = StringUtils.isNotBlank(getExtraparams().get("tipoAccount")) ? getExtraparams().get("tipoAccount") : "account";
 		
@@ -57,7 +60,13 @@ public class AccountInvioEmailDatasource extends AbstractFetchDataSource<SimpleK
 		// Inizializzo l'INPUT
 		DmpkLoadComboDmfn_load_combo lDmpkLoadComboDmfn_load_combo = new DmpkLoadComboDmfn_load_combo();
 		lDmpkLoadComboDmfn_load_comboBean.setTipocomboin("CASELLE_INV_RIC");
-		String altriParametri = "ID_USER_LAVORO|*|" + idUserLavoro + "|*|FINALITA|*|" + finalita + "|*|TIPO_CASELLA|*|" + tipoMail;
+		
+		String altriParametri = null;
+		if(idUdToSend != null && !"".equalsIgnoreCase(idUdToSend)) {
+			altriParametri = "ID_USER_LAVORO|*|" + idUserLavoro + "|*|FINALITA|*|" + finalita + "|*|TIPO_CASELLA|*|" + tipoMail + "|*|ID_UD_TO_SEND|*|" + idUdToSend;
+		} else {
+			altriParametri = "ID_USER_LAVORO|*|" + idUserLavoro + "|*|FINALITA|*|" + finalita + "|*|TIPO_CASELLA|*|" + tipoMail;
+		}
 
 		lDmpkLoadComboDmfn_load_comboBean.setAltriparametriin(altriParametri);
 		lDmpkLoadComboDmfn_load_comboBean.setFlgsolovldin(BigDecimal.ONE);
@@ -70,7 +79,7 @@ public class AccountInvioEmailDatasource extends AbstractFetchDataSource<SimpleK
 				for (InfoCasellaBean lInfoCasellaBean : XmlListaUtility.recuperaLista(xmlLista, InfoCasellaBean.class)) {
 					SimpleKeyValueBean lSimpleKeyValueBean = new SimpleKeyValueBean();
 
-					if(tipoAccount!=null && tipoAccount.equalsIgnoreCase("ID"))
+					if(tipoAccount != null && tipoAccount.equalsIgnoreCase("ID"))
 						lSimpleKeyValueBean.setKey(lInfoCasellaBean.getIdAccount());
 					else
 						lSimpleKeyValueBean.setKey(lInfoCasellaBean.getAccount());

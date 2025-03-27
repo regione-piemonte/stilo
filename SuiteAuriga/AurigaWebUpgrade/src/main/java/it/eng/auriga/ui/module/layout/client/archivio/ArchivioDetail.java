@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.archivio;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -15,7 +16,9 @@ import com.smartgwt.client.types.Alignment;
 import com.smartgwt.client.types.FieldType;
 import com.smartgwt.client.types.Side;
 import com.smartgwt.client.types.VerticalAlignment;
+import com.smartgwt.client.util.BooleanCallback;
 import com.smartgwt.client.util.JSON;
+import com.smartgwt.client.util.SC;
 import com.smartgwt.client.widgets.Canvas;
 import com.smartgwt.client.widgets.form.DynamicForm;
 import com.smartgwt.client.widgets.form.FormItemIfFunction;
@@ -47,9 +50,11 @@ import it.eng.auriga.ui.module.layout.client.i18n.I18NUtil;
 import it.eng.auriga.ui.module.layout.client.postaElettronica.DettaglioRegProtAssociatoWindow;
 import it.eng.auriga.ui.module.layout.client.print.PreviewControl;
 import it.eng.auriga.ui.module.layout.client.protocollazione.AssegnazioneItem;
+import it.eng.auriga.ui.module.layout.client.protocollazione.ConcessioneItem;
 import it.eng.auriga.ui.module.layout.client.protocollazione.CondivisioneItem;
 import it.eng.auriga.ui.module.layout.client.protocollazione.FascicoliCollegatiPopup;
 import it.eng.auriga.ui.module.layout.client.protocollazione.OperazioniEffettuateWindow;
+import it.eng.auriga.ui.module.layout.client.protocollazione.PeriziaItem;
 import it.eng.auriga.ui.module.layout.client.protocollazione.PermessiItem;
 import it.eng.auriga.ui.module.layout.client.protocollazione.StampaEtichettaPopup;
 import it.eng.auriga.ui.module.layout.client.scrivania.ScrivaniaLayout;
@@ -98,6 +103,9 @@ public class ArchivioDetail extends CustomDetail {
 	protected DynamicForm permessiForm;
 	protected DynamicForm collocazioneFisicaForm;
 	protected DynamicForm altriDatiForm;
+	protected DynamicForm periziaForm;
+	protected DynamicForm concessioneForm;
+	
 
 	// DetailSection
 	protected HeaderDetailSection estremiSection;
@@ -105,6 +113,8 @@ public class ArchivioDetail extends CustomDetail {
 	protected HeaderDetailSection datiidentificativiSection;
 	// protected DetailSection responsabileSection;
 	protected DetailSection datiprincipaliSection;
+	protected DetailSection periziaSection;
+	protected DetailSection concessioneSection;
 	protected DetailSection taskSection;
 	protected DetailSection assegnazioneSection;
 	protected DetailSection condivisioneSection;
@@ -197,7 +207,10 @@ public class ArchivioDetail extends CustomDetail {
 	protected ImgButtonItem fascicoliCollegatiButton;
 	protected ImgButtonItem collegaFascicoliButton;
 	
-
+    // ReplicableItem
+	protected PeriziaItem periziaItem;
+	protected ConcessioneItem concessioneItem;
+	
 	protected String folderType;
 	protected String rowidFolder;
 	protected LinkedHashMap<String, String> attributiAddFolderTabs;
@@ -829,6 +842,43 @@ public class ArchivioDetail extends CustomDetail {
 		datiPrincipaliForm.setItems(descContenutiFascicoloItem, livelloRiservatezzaItem, dtTermineRiservatezzaItem, propagaRiservatezzaContenutiItem, spacer,
 				prioritaItem);
 
+		// sezione PERIZIA
+		periziaForm = new DynamicForm();
+		periziaForm.setValuesManager(vm);
+		periziaForm.setWidth("*");
+		periziaForm.setHeight("5");
+		periziaForm.setPadding(5);
+		periziaForm.setWrapItemTitles(false);
+		periziaForm.setNumCols(10);
+		periziaForm.setColWidths(1,1,1,1,1,1,1,1,"*");
+		periziaForm.setTabSet(tabSet);
+		periziaForm.setTabID("HEADER");
+
+		periziaItem = new PeriziaItem();
+		periziaItem.setName("listaPerizie");
+		periziaItem.setShowTitle(false);
+		periziaItem.setNotReplicable(false);	
+		periziaForm.setFields(periziaItem);
+		
+		// sezione CONCESSIONE
+		concessioneForm = new DynamicForm();
+		concessioneForm.setValuesManager(vm);
+		concessioneForm.setWidth("*");
+		concessioneForm.setHeight("5");
+		concessioneForm.setPadding(5);
+		concessioneForm.setWrapItemTitles(false);
+		concessioneForm.setNumCols(10);
+		concessioneForm.setColWidths(1,1,1,1,1,1,1,1,"*");
+		concessioneForm.setTabSet(tabSet);
+		concessioneForm.setTabID("HEADER");
+		
+		concessioneItem = new ConcessioneItem();
+		concessioneItem.setName("listaConcessioni");
+		concessioneItem.setShowTitle(false);
+		concessioneItem.setNotReplicable(false);	
+		concessioneForm.setFields(concessioneItem);
+		
+		
 		// sezione TASK
 		taskForm = new DynamicForm();
 		taskForm.setValuesManager(vm);
@@ -1164,6 +1214,13 @@ public class ArchivioDetail extends CustomDetail {
 		datiidentificativiSection = new HeaderDetailSection("Dati identificativi", true, true, false, datiIdentificativiForm);
 		// responsabileSection = new DetailSection(I18NUtil.getMessages().archivio_detail_responsabileSection_title(), true, true, false, responsabileForm);
 		datiprincipaliSection = new DetailSection(I18NUtil.getMessages().archivio_detail_datiprincipaliSection_title(), true, true, false, datiPrincipaliForm);
+				
+		// Sezione PERIZIA
+		periziaSection = new DetailSection(I18NUtil.getMessages().archivio_detail_periziaSection_title(), true, true, false, periziaForm);
+		
+		// Sezione CONCESSIONE
+		concessioneSection = new DetailSection(I18NUtil.getMessages().archivio_detail_concessioneSection_title(), true, true, false, concessioneForm);
+		
 		taskSection = new DetailSection("Lista task", true, true, false, taskForm, procFlowForm) {
 
 			@Override
@@ -1195,6 +1252,8 @@ public class ArchivioDetail extends CustomDetail {
 		lVLayout.addMember(datiidentificativiSection);
 		// lVLayout.addMember(responsabileSection);
 		lVLayout.addMember(datiprincipaliSection);
+		lVLayout.addMember(periziaSection);
+		lVLayout.addMember(concessioneSection);
 		lVLayout.addMember(taskSection);
 		lVLayout.addMember(assegnazioneSection);
 		lVLayout.addMember(condivisioneSection);
@@ -1572,13 +1631,25 @@ public class ArchivioDetail extends CustomDetail {
 		showHideSections();
 	}
 	
-	public void showHideSections() {
+	public void showHideSections() {		
 		boolean hasTemplateNomeFolder = templateNomeFolderItem.getValue() != null && !"".equals(templateNomeFolderItem.getValue());
 		if ((mode != null && mode.equals("view")) || !hasTemplateNomeFolder) {
 			datiidentificativiSection.show();
 		} else {		
 			datiidentificativiSection.hide();
+		}		
+		if (showDetailSectionPerizia()) {
+			periziaSection.show();
 		}
+		else{
+			periziaSection.hide();
+		}			
+		if (showDetailSectionConcessione()) {
+			concessioneSection.show();
+		}
+		else{
+			concessioneSection.hide();
+		}		
 	}
 
 	public void loadCombo() {
@@ -1677,11 +1748,25 @@ public class ArchivioDetail extends CustomDetail {
 				@Override
 				public void execute(Record object) {
 					final boolean isReload = (attributiAddFolderTabs != null && attributiAddFolderTabs.size() > 0);
+					if(attributiAddFolderLayouts != null) {
+						for (String key : attributiAddFolderLayouts.keySet()) {
+							// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+							if(key != null && !key.startsWith("HEADER_")) {
+								try { attributiAddFolderLayouts.get(key).destroy(); } catch(Exception e) {}
+							}
+						}
+					}
+					if(attributiAddFolderDetails != null) {
+						for (String key : attributiAddFolderDetails.keySet()) {
+							try { attributiAddFolderDetails.get(key).destroy(); } catch(Exception e) {}				
+						}
+					}
 					attributiAddFolderTabs = (LinkedHashMap<String, String>) object.getAttributeAsMap("gruppiAttributiCustomTipoFolder");
 					attributiAddFolderLayouts = new HashMap<String, VLayout>();
 					attributiAddFolderDetails = new HashMap<String, AttributiDinamiciDetail>();
 					if (attributiAddFolderTabs != null && attributiAddFolderTabs.size() > 0) {
 						GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");
+						lGwtRestService.addParam("flgSkipAttrSenzaCategoria", "true");
 						lGwtRestService.addParam("flgNomeAttrConSuff", "true");
 						Record lAttributiDinamiciRecord = new Record();
 						lAttributiDinamiciRecord.setAttribute("nomeTabella", "DMT_FOLDER");
@@ -1856,70 +1941,20 @@ public class ArchivioDetail extends CustomDetail {
 							
 							@Override
 							public void execute(DSResponse response, Object rawData, DSRequest request) {														
-								
-								if (detailRecord.getAttribute("flgUdFolder") != null &&
-										"U".equalsIgnoreCase(detailRecord.getAttribute("flgUdFolder"))) {
-									Record lRecordToLoad = new Record();
-									lRecordToLoad.setAttribute("idUd", detailRecord.getAttribute("idUd"));
-									GWTRestDataSource lGwtRestDataSourceProtocollo = new GWTRestDataSource("ProtocolloDataSource", "idUd", FieldType.TEXT);
-									if(layout != null && layout instanceof ScrivaniaLayout) {
-										lGwtRestDataSourceProtocollo.addParam("idNode", ((ScrivaniaLayout)layout).getIdNode());
-									}
-									lGwtRestDataSourceProtocollo.getData(lRecordToLoad, new DSCallback() {
-
-										@Override
-										public void execute(DSResponse response, Object rawData, DSRequest request) {
-											if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
-												Record record = response.getData()[0];
-												editRecord(record);
-												setSaved(true);
-												if(layout != null) {
-													layout.viewMode();
-												} else {
-													viewMode();
-												}
-												manageStampaEtichettaPostAssegnazione(record);
-											}
-										}
-									});
-									
-//									reload(new DSCallback() {
-//										@Override
-//										public void execute(DSResponse response, Object rawData, DSRequest request) {
-//											setSaved(true);
-//											if (layout != null) {
-//												layout.viewMode();
-//											} else {
-//												viewMode();
-//											}
-//											manageStampaEtichettaPostAssegnazione(detailRecord);
-//										}
-//									});
-								} else if (detailRecord.getAttribute("flgUdFolder") != null &&
-										"F".equalsIgnoreCase(detailRecord.getAttribute("flgUdFolder"))) {
-									Record lRecordToLoad = new Record();
-									lRecordToLoad.setAttribute("idUdFolder", detailRecord.getAttribute("idUdFolder"));
-									GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("ArchivioDatasource");
-									if(layout != null && layout instanceof ScrivaniaLayout) {
-										lGwtRestDataSource.addParam("idNode", ((ScrivaniaLayout)layout).getIdNode());
-									}
-									lGwtRestDataSource.getData(lRecordToLoad, new DSCallback() {
-
-										@Override
-										public void execute(DSResponse response, Object rawData, DSRequest request) {
-											if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
-												Record record = response.getData()[0];
-												editRecord(record);
-												setSaved(true);
-												if(layout != null) {
-													layout.viewMode();
-												} else {
-													viewMode();
-												}
-											}
-										}
-									});
-								}
+								if (detailRecord.getAttribute("flgUdFolder") != null && "U".equalsIgnoreCase(detailRecord.getAttribute("flgUdFolder"))) {
+									String idUd = detailRecord != null && detailRecord.getAttribute("idUdFolder") != null ?  detailRecord.getAttribute("idUdFolder") : null;
+									String idDocPrimario = detailRecord != null && detailRecord.getAttribute("idDocPrimario") != null ?  detailRecord.getAttribute("idDocPrimario") : null;
+									String codSupportoOrig = detailRecord != null && detailRecord.getAttributeAsString("codSupportoOrig") != null ?  detailRecord.getAttributeAsString("codSupportoOrig") : null;
+									String segnaturaXOrd = detailRecord != null && detailRecord.getAttributeAsString("segnaturaXOrd") != null ?  detailRecord.getAttributeAsString("segnaturaXOrd") : null;
+									Record recordToPrint = new Record();
+									recordToPrint.setAttribute("idUd", idUd);
+									recordToPrint.setAttribute("idDocPrimario", idDocPrimario);
+									recordToPrint.setAttribute("flgUdFolder", "U");
+									recordToPrint.setAttribute("codSupportoOrig", codSupportoOrig);
+									recordToPrint.setAttribute("segnaturaXOrd", segnaturaXOrd);
+									recordToPrint.setAttribute("listaAllegati", detailRecord.getAttributeAsRecordList("listaAllegati"));																			
+									manageStampaEtichettaPostAssegnazione(recordToPrint);
+								} 
 							}
 						});
 					}
@@ -1929,6 +1964,97 @@ public class ArchivioDetail extends CustomDetail {
 		restituzionePopup.show();
 	}
 	
+	
+	/**
+	 * Metodo che implementa l'azione del bottone "Rilascia"
+	 */
+	public void clickRilascia() {
+		final Record detailRecord = new Record(vm.getValues());
+		
+		SC.ask("Sei sicuro di voler rilasciare il documento ?", new BooleanCallback() {
+			
+			@Override
+			public void execute(Boolean value) {
+				if (value) {
+					final RecordList listaUdFolder = new RecordList();
+					listaUdFolder.add(detailRecord);
+					final Record record = new Record();
+					record.setAttribute("listaRecord", listaUdFolder);
+					GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("RilasciaDataSource");
+					lGwtRestDataSource.addData(record, new DSCallback() {
+
+						@Override
+						public void execute(DSResponse response, Object rawData, DSRequest request) {
+						
+							operationCallbackRilascia(response, detailRecord, new DSCallback() {
+								
+								@Override
+								public void execute(DSResponse response, Object rawData, DSRequest request) {														
+									
+									if (detailRecord.getAttribute("flgUdFolder") != null && 
+											"U".equalsIgnoreCase(detailRecord.getAttribute("flgUdFolder"))) {
+										
+										Record lRecordToLoad = new Record();
+										lRecordToLoad.setAttribute("idUd", detailRecord.getAttribute("idUd"));
+										GWTRestDataSource lGwtRestDataSourceProtocollo = new GWTRestDataSource("ProtocolloDataSource", "idUd", FieldType.TEXT);
+										if(layout != null && layout instanceof ScrivaniaLayout) {
+											lGwtRestDataSourceProtocollo.addParam("idNode", ((ScrivaniaLayout)layout).getIdNode());
+										}
+										lGwtRestDataSourceProtocollo.getData(lRecordToLoad, new DSCallback() {
+
+											@Override
+											public void execute(DSResponse response, Object rawData, DSRequest request) {
+												if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
+													Record record = response.getData()[0];
+													editRecord(record);
+													setSaved(true);
+													if(layout != null) {
+														layout.viewMode();
+													} else {
+														viewMode();
+													}
+												}
+											}
+										});
+								    }
+									else if (detailRecord.getAttribute("flgUdFolder") != null &&
+											"F".equalsIgnoreCase(detailRecord.getAttribute("flgUdFolder"))) {
+										Record lRecordToLoad = new Record();
+										lRecordToLoad.setAttribute("idUdFolder", detailRecord.getAttribute("idUdFolder"));
+										GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("ArchivioDatasource");
+										if(layout != null && layout instanceof ScrivaniaLayout) {
+											lGwtRestDataSource.addParam("idNode", ((ScrivaniaLayout)layout).getIdNode());
+										}
+										lGwtRestDataSource.getData(lRecordToLoad, new DSCallback() {
+
+											@Override
+											public void execute(DSResponse response, Object rawData, DSRequest request) {
+												if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
+													Record record = response.getData()[0];
+													editRecord(record);
+													setSaved(true);
+													if(layout != null) {
+														layout.viewMode();
+													} else {
+														viewMode();
+													}
+												}
+											}
+										});
+									}		
+								}
+							});
+						}
+					});
+				}
+			}
+		});
+		
+
+	}
+	
+	
+		
 	/**
 	 * Metodo per la stampa delle etichette in fase di post-assegnazione UD
 	 */
@@ -2046,6 +2172,7 @@ public class ArchivioDetail extends CustomDetail {
 			} else if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
 				if (data.getAttributeAsInt("flgIgnoreWarning") != 1) {
 					Layout.addMessage(new MessageBean("Restituzione effettuata con successo", "", MessageType.INFO));
+					layout.hideDetailAfterSave();
 					layout.reloadListAndSetCurrentRecord(record);
 					if (callback != null) {
 						callback.execute(new DSResponse(), null, new DSRequest());
@@ -2053,6 +2180,31 @@ public class ArchivioDetail extends CustomDetail {
 				} else {
 					_form.setValue("flgIgnoreWarning", "1");
 				}
+			}
+		}
+	}
+	
+	
+	private void operationCallbackRilascia(DSResponse response, final Record record, final DSCallback callback) {
+		if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
+			Record data = response.getData()[0];
+			Map errorMessages = data.getAttributeAsMap("errorMessages");
+			String errorMsg = null;
+			if (errorMessages != null) {
+				if (errorMessages.get(record.getAttribute("idUd")) != null) {
+					errorMsg = (String) errorMessages.get(record.getAttribute("idUd"));
+				} else {
+					errorMsg = "Si è verificato un errore durante il rilascio!";
+				}
+			}
+			if (errorMsg != null) {
+				Layout.addMessage(new MessageBean(errorMsg, "", MessageType.ERROR));
+			} else if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
+					Layout.addMessage(new MessageBean("Rilascio effettuato con successo", "", MessageType.INFO));
+					layout.reloadListAndSetCurrentRecord(record);
+					if (callback != null) {
+						callback.execute(new DSResponse(), null, new DSRequest());
+					}
 			}
 		}
 	}
@@ -2338,5 +2490,43 @@ public class ArchivioDetail extends CustomDetail {
 	
 	public boolean showFascicoliCollegatiButton(Record record) {
 		return (record != null && (record.getAttributeAsBoolean("abilModificaDati") || record.getAttributeAsBoolean("abilGestioneCollegamentiFolder")));
-	}	
+	}
+	
+	/**
+	 * Metodo che indica se mostrare o meno la sezione "Perizia"
+	 * 
+	 */
+	public boolean showDetailSectionPerizia() {
+		return AurigaLayout.isAttivoClienteADSP();		
+	}
+	
+	/**
+	 * Metodo che indica se mostrare o meno la sezione "Concessione"
+	 * 
+	 */
+	public boolean showDetailSectionConcessione() {
+		return AurigaLayout.isAttivoClienteADSP();		
+	}
+	
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();		
+		if(attributiAddFolderLayouts != null) {
+			for (String key : attributiAddFolderLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddFolderLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddFolderDetails != null) {
+			for (String key : attributiAddFolderDetails.keySet()) {
+				try { attributiAddFolderDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
+		attributiAddFolderTabs = null;
+		attributiAddFolderLayouts = null;		
+		attributiAddFolderDetails = null;
+	}
+	
 }

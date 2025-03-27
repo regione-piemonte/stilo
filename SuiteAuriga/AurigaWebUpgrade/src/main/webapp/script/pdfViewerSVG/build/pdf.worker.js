@@ -1,3 +1,4 @@
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
 /* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
  * @licstart The following is the entire license notice for the
  * Javascript code in this page

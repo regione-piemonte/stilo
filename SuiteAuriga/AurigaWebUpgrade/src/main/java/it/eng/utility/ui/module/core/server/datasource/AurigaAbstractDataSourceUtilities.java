@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.core.server.datasource;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,19 +18,25 @@ import org.apache.log4j.Logger;
 import it.eng.auriga.database.store.dmpk_registrazionedoc.bean.DmpkRegistrazionedocGettimbrodigregBean;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
 import it.eng.auriga.exception.StoreException;
+import it.eng.auriga.ui.module.layout.server.archivio.datasource.bean.filePerBustaTimbro.InfoFilePerBustaTimbro;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.FileScaricoZipBean;
 import it.eng.auriga.ui.module.layout.server.timbra.OpzioniTimbroBean;
 import it.eng.auriga.ui.module.layout.server.timbra.TimbraResultBean;
 import it.eng.auriga.ui.module.layout.server.timbra.TimbraUtility;
 import it.eng.client.DmpkRegistrazionedocGettimbrodigreg;
+import it.eng.client.RecuperoFile;
 import it.eng.core.business.FileUtil;
+import it.eng.document.function.bean.FileExtractedIn;
+import it.eng.document.function.bean.FileExtractedOut;
 import it.eng.services.fileop.InfoFileUtility;
 import it.eng.spring.utility.SpringAppContext;
 import it.eng.utility.module.config.StorageImplementation;
 import it.eng.utility.storageutil.exception.StorageException;
 import it.eng.utility.storageutil.util.StorageUtil;
 import it.eng.utility.ui.module.layout.shared.bean.OpzioniTimbroAttachEmail;
+import it.eng.utility.ui.servlet.bean.MimeTypeFirmaBean;
 import it.eng.utility.ui.user.AurigaUserUtil;
+import it.eng.utility.ui.user.ParametriDBUtil;
 import it.eng.utility.ui.user.UserUtil;
 
 /*
@@ -83,7 +90,7 @@ public class AurigaAbstractDataSourceUtilities {
 			}
 
 			else if ("scaricaSbustati".equalsIgnoreCase(operazione)) {
-				File fileOriginale = File.createTempFile("temp", fileDaScaricare.getNomeFile());
+				File fileOriginale = File.createTempFile("temp", "");
 				FileUtil.writeStreamToFile(StorageImplementation.getStorage().extract(fileDaScaricare.getUriFile()),
 						fileOriginale);
 
@@ -107,7 +114,7 @@ public class AurigaAbstractDataSourceUtilities {
 					StorageUtil.addFileToZip(fileOriginale, fileDaScaricare.getNomeFile(), zipFile.getAbsolutePath());
 				}
 			} else {
-				File fileOriginale = File.createTempFile("temp", fileDaScaricare.getNomeFile());
+				File fileOriginale = File.createTempFile("temp", "");
 				FileUtil.writeStreamToFile(StorageImplementation.getStorage().extract(fileDaScaricare.getUriFile()),fileOriginale);
 
 				StorageUtil.addFileToZip(fileOriginale, fileDaScaricare.getNomeFile(), zipFile.getAbsolutePath());
@@ -144,7 +151,7 @@ public class AurigaAbstractDataSourceUtilities {
 		InfoFileUtility lInfoFileUtility = new InfoFileUtility();
 		InputStream sbustatoStream = lInfoFileUtility.sbusta(fileOriginale, nomeFile);
 		
-		File fileSbustato = File.createTempFile("temp", nomeFile);
+		File fileSbustato = File.createTempFile("temp", "");
 		
 		FileUtil.writeStreamToFile(sbustatoStream, fileSbustato);
 		
@@ -177,7 +184,7 @@ public class AurigaAbstractDataSourceUtilities {
 			
 		}catch(Exception e) {
 			logProtDS.error("Errore durante la timbratura del file " + fileDaScaricare.getNomeFile() + ": " + e.getMessage(), e);
-			File fileOriginale = File.createTempFile("temp", fileDaScaricare.getNomeFile());
+			File fileOriginale = File.createTempFile("temp", "");
 			
 			FileUtil.writeStreamToFile(StorageImplementation.getStorage().extract(fileDaScaricare.getUriFile()),fileOriginale);
 			
@@ -189,8 +196,15 @@ public class AurigaAbstractDataSourceUtilities {
 		return warning;
 	}
 	
-	private static File timbraFileDaScaricare(FileScaricoZipBean fileDaScaricare, String finalita, OpzioniTimbroBean opzioniTimbroScelteUtente, HttpSession session) throws Exception {
-		
+	@SuppressWarnings("static-access")
+	private static File timbraFileDaScaricare(FileScaricoZipBean fileDaScaricare, String finalita,
+			OpzioniTimbroBean opzioniTimbroScelteUtente, HttpSession session) throws Exception {
+
+		File lFileTimbrato = null;
+		TimbraUtility timbraUtility = new TimbraUtility();
+
+		boolean generaPdfA = ParametriDBUtil.getParametroDBAsBoolean(session, "TIMBRATURA_ABILITA_PDFA");
+
 		OpzioniTimbroBean lOpzioniTimbroBean = new OpzioniTimbroBean();
 		lOpzioniTimbroBean.setMimetype(fileDaScaricare.getMimeType());
 		lOpzioniTimbroBean.setUri(fileDaScaricare.getUriFile());
@@ -207,18 +221,69 @@ public class AurigaAbstractDataSourceUtilities {
 		lOpzioniTimbroBean.setPosizioneIntestazione(opzioniTimbroScelteUtente.getPosizioneIntestazione());
 		lOpzioniTimbroBean.setPosizioneTestoInChiaro(opzioniTimbroScelteUtente.getPosizioneTestoInChiaro());
 		lOpzioniTimbroBean.setTimbroSingolo(opzioniTimbroScelteUtente.isTimbroSingolo());
+
+		OpzioniTimbroAttachEmail lOpzioniTimbroAttachEmail = timbraUtility.populatePreference(lOpzioniTimbroBean);
+
+		RecuperoFile lRecuperoFile = new RecuperoFile();
+		FileExtractedIn lFileExtractedIn = new FileExtractedIn();
+		lFileExtractedIn.setUri(fileDaScaricare.getUriFile());
+		FileExtractedOut out = lRecuperoFile.extractfile(UserUtil.getLocale(session),
+				AurigaUserUtil.getLoginInfo(session), lFileExtractedIn);
+		File fileDaTimbrare = out.getExtracted();
+
+		/*
+		 * FUNZIONE PER TIMBRARE I FILE FIRMATI CREANDO UN PDF AVENTE I DATI DI
+		 * TIMBRATURA E IL FILE FIRMATO COME ALLEGATO
+		 */
+		if (StringUtils.isNotBlank(ParametriDBUtil.getParametroDB(session, "ATTIVA_BUSTA_PDF_FILE_FIRMATO"))
+				&& "true".equalsIgnoreCase(ParametriDBUtil.getParametroDB(session, "ATTIVA_BUSTA_PDF_FILE_FIRMATO")) &&
+				/*
+				 * Se il tipo di firma e conforme per stampa NON deve fare la busta ma deve
+				 * timbrare lo sbustato come prima
+				 */
+				(finalita == null || finalita != null && !finalita.equalsIgnoreCase("CONFORMITA_ORIG_DIGITALE_STAMPA"))) {
+
+			MimeTypeFirmaBean lMimeTypeFirmaBean = new InfoFileUtility()
+					.getInfoFromFile(fileDaTimbrare.toURI().toString(), lOpzioniTimbroBean.getNomeFile(), false, null);
+
+			if (lMimeTypeFirmaBean.isFirmato()) {
+
+				List<InfoFilePerBustaTimbro> listaFileDaAggiungereAllaBusta = timbraUtility.recuperaFilePerBustaTimbro(
+						lOpzioniTimbroBean, session, fileDaTimbrare, lOpzioniTimbroBean.getNomeFile());
+
+				TimbraResultBean timbraResultBean = timbraUtility.creaTimbraturaPerFileFirmato(session,
+						UserUtil.getLocale(session), generaPdfA, lOpzioniTimbroAttachEmail,
+						lOpzioniTimbroBean.getIdUd(), lOpzioniTimbroBean.getIdDoc(), lOpzioniTimbroBean.getFinalita(),
+						listaFileDaAggiungereAllaBusta);
+
+				if (timbraResultBean != null && timbraResultBean.isResult()) {
+					lFileTimbrato = StorageImplementation.getStorage().extractFile(timbraResultBean.getUri());
+
+					return lFileTimbrato;
+				} else {
+					String errorMessage = "Si è verificato un errore durante la timbratura del file";
+					if (StringUtils.isNotBlank(timbraResultBean.getError())) {
+						errorMessage += ": " + timbraResultBean.getError();
+					}
+					throw new Exception(errorMessage);
+				}
+			}
+		}
 		
-		TimbraUtility timbraUtility = new TimbraUtility();
 		lOpzioniTimbroBean = getProprietaTimbro(lOpzioniTimbroBean, session, UserUtil.getLocale(session));
 
 		String uriFileTimbrato;
-		
+
 		// Timbro il file
 		TimbraResultBean lTimbraResultBean = timbraUtility.timbra(lOpzioniTimbroBean, session);
 		// Verifico se la timbratura è andata a buon fine
 		if (lTimbraResultBean.isResult()) {
 			// Aggiungo il file timbrato nella lista dei file da pubblicare
 			uriFileTimbrato = lTimbraResultBean.getUri();
+
+			lFileTimbrato = StorageImplementation.getStorage().extractFile(uriFileTimbrato);
+
+			return lFileTimbrato;
 		} else {
 			// // La timbratura è fallita, pubblico il file sbustato
 			// files.add(StorageImplementation.getStorage().extractFile(uriFileSbustato));
@@ -227,12 +292,8 @@ public class AurigaAbstractDataSourceUtilities {
 				errorMessage += ": " + lTimbraResultBean.getError();
 			}
 			throw new Exception(errorMessage);
-		}	
-		
-		File lFileTimbrato = StorageImplementation.getStorage().extractFile(uriFileTimbrato);
-			
-		return lFileTimbrato;
-			
+		}
+
 	}
 
 	private static OpzioniTimbroBean getProprietaTimbro(OpzioniTimbroBean lOpzioniTimbroBean, HttpSession session,

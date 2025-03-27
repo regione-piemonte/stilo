@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.gestioneAtti;
 
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
@@ -413,7 +414,7 @@ public class AzioneSuListaDocAttiCompletiDataSource extends AbstractDataSource<A
 		} catch (Exception e) {
 			mLogger.error("Errore nella chiamata alla CallExecAtt per rilascio visto: " +  e.getMessage(), e);
 			attoBean.setEsitoNumerazioneOk(false);
-			errorMessages.put(attoBean.getUnitaDocumentariaId(), "Errore nell'avanzamento del flusso");
+			errorMessages.put(attoBean.getUnitaDocumentariaId(), "Errore nel recupero dei dati dell'atto");
 			return attoBean;
 		}
 		
@@ -548,12 +549,14 @@ public class AzioneSuListaDocAttiCompletiDataSource extends AbstractDataSource<A
 				lNuovaPropostaAtto2CompletaBean.setUriFilePrimario(lUnioneFileAttoBean.getUriVersIntegrale());
 				lNuovaPropostaAtto2CompletaBean.setNomeFilePrimario(lUnioneFileAttoBean.getNomeFileVersIntegrale());
 				lNuovaPropostaAtto2CompletaBean.setInfoFilePrimario(lUnioneFileAttoBean.getInfoFileVersIntegrale());
+				lNuovaPropostaAtto2CompletaBean.setRemoteUriFilePrimario(false);
 				lNuovaPropostaAtto2CompletaBean.setIsChangedFilePrimario(true);
 			}
 			if (StringUtils.isNotBlank(lUnioneFileAttoBean.getUri())) {
 				lNuovaPropostaAtto2CompletaBean.setUriFilePrimarioOmissis(lUnioneFileAttoBean.getUri());
 				lNuovaPropostaAtto2CompletaBean.setNomeFilePrimarioOmissis(lUnioneFileAttoBean.getNomeFile());
 				lNuovaPropostaAtto2CompletaBean.setInfoFilePrimarioOmissis(lUnioneFileAttoBean.getInfoFile());
+				lNuovaPropostaAtto2CompletaBean.setRemoteUriFilePrimarioOmissis(false);
 				lNuovaPropostaAtto2CompletaBean.setIsChangedFilePrimarioOmissis(true);
 			}
 		}

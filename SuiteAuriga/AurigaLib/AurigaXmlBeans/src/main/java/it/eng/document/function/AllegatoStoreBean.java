@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -67,6 +68,8 @@ public class AllegatoStoreBean {
 	private String flgCopiaSostitutiva;
 	@XmlVariabile(nome="FLG_GEN_AUTOMATICO_DA_MODELLO_Doc", tipo = TipoVariabile.SEMPLICE)
 	private String flgGenAutoDaModello;
+	@XmlVariabile(nome="FLG_TIMBRO_REG_Doc", tipo = TipoVariabile.SEMPLICE)
+	private String flgTimbraFilePostReg;
 	@XmlVariabile(nome = "#@FolderCustom", tipo = TipoVariabile.LISTA)
 	private List<FolderCustom> folderCustom;
 	@XmlVariabile(nome="#Append_#@FolderCustom", tipo = TipoVariabile.SEMPLICE)
@@ -243,6 +246,12 @@ public class AllegatoStoreBean {
 	}
 	public void setFlgGenAutoDaModello(String flgGenAutoDaModello) {
 		this.flgGenAutoDaModello = flgGenAutoDaModello;
+	}
+	public String getFlgTimbraFilePostReg() {
+		return flgTimbraFilePostReg;
+	}
+	public void setFlgTimbraFilePostReg(String flgTimbraFilePostReg) {
+		this.flgTimbraFilePostReg = flgTimbraFilePostReg;
 	}
 	public List<FolderCustom> getFolderCustom() {
 		return folderCustom;

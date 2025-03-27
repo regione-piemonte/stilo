@@ -1,10 +1,12 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.servlet.fileExtractor.impl;
 
 import it.eng.services.fileop.InfoFileUtility;
 import it.eng.utility.module.config.StorageImplementation;
 import it.eng.utility.ui.servlet.fileExtractor.FileExtractor;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 
 import javax.servlet.http.HttpServletRequest;
@@ -20,6 +22,7 @@ public class LocalFileExtractor implements FileExtractor {
 	private static final String SBUSTATO = "sbustato";
 	private static final String CORRECT_FILE_NAME = "correctFilename";
 	private static Logger mLogger = Logger.getLogger(LocalFileExtractor.class);
+	private long fileLength = 0;
 
 	private HttpServletRequest mHttpServletRequest;
 
@@ -57,6 +60,7 @@ public class LocalFileExtractor implements FileExtractor {
 				InputStream lInputStream = lInfoFileUtility.sbusta(lFile, getCorrectFileName());
 				String localUriExtracted = StorageImplementation.getStorage().storeStream(lInputStream);
 				File lFileExtracted = StorageImplementation.getStorage().extractFile(localUriExtracted);
+				fileLength = lFileExtracted.length();
 				return lFileExtracted;
 			} catch (Exception e) {
 				mLogger.error("Errore recupero file: " + e.getMessage(), e);
@@ -68,12 +72,21 @@ public class LocalFileExtractor implements FileExtractor {
 	public InputStream getStream() throws Exception {
 		String uri = mHttpServletRequest.getParameter(URL);
 		Boolean sbustato = StringUtils.isNotBlank(mHttpServletRequest.getParameter(SBUSTATO))?Boolean.valueOf(mHttpServletRequest.getParameter(SBUSTATO)) : false;
-		if (!sbustato)return StorageImplementation.getStorage().extract(uri);
+		File extractFile = StorageImplementation.getStorage().extractFile(uri);
+		fileLength = extractFile.length();
+		if (!sbustato) {
+			return new FileInputStream(extractFile);
+		}
 		else {
 			InfoFileUtility lInfoFileUtility = new InfoFileUtility();
-			InputStream lInputStream = lInfoFileUtility.sbusta(StorageImplementation.getStorage().extractFile(uri), getCorrectFileName());
+			InputStream lInputStream = lInfoFileUtility.sbusta(extractFile, getCorrectFileName());
 			return lInputStream;
 		}
+	}
+	
+	@Override
+	public long getFileLength() throws Exception {
+		return fileLength;
 	}
 
 }

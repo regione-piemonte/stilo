@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+
 package it.eng.services.fileop;
 
 import java.io.File;
@@ -11,6 +12,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.xml.datatype.DatatypeFactory;
 
@@ -794,6 +797,7 @@ public class InfoFileUtility extends FileOpUtility {
 	
 			// Dal firmatario tolgo il subject.getName() perchè contiene caratteri che creano troncamenti nel json
 			String firmatario = (subject.getC() == null ? "" : "C=" + subject.getC()) + (subject.getCn() == null ? "" : " CN=" + subject.getCn())
+					+ (subject.getCodiceFiscale() == null ? "" : " CF=" + subject.getCodiceFiscale())
 					/**+ (subject.getName() == null ? "" : " NAME=" + subject.getName())*/ + (subject.getO() == null ? "" : " O=" + subject.getO())
 					+ (subject.getOu() == null ? "" : " OU=" + subject.getOu());
 			DnType issuer = infoFirmatario.getCertificato().getIssuer();
@@ -804,6 +808,7 @@ public class InfoFileUtility extends FileOpUtility {
 			firmatarioExt.setDataEmissione(infoFirmatario.getCertificato().getDataDecorrenza().toGregorianCalendar().getTime());
 			firmatarioExt.setDataScadenza(infoFirmatario.getCertificato().getDataScadenza().toGregorianCalendar().getTime());
 			firmatarioExt.setSerialNumber(infoFirmatario.getCertificato().getSerialNumber());
+			firmatarioExt.setCfFirmatario(subject.getCodiceFiscale());
 			firmatarioExt.setKeyUsages(infoFirmatario.getCertificato().getKeyUsages().getKeyUsage().toArray(new String[infoFirmatario.getCertificato().getKeyUsages().getKeyUsage().size()]));
 		}
 		
@@ -873,6 +878,7 @@ public class InfoFileUtility extends FileOpUtility {
 			DnType subjectControFirma = infoFirmatarioControFirma.getCertificato().getSubject();
 			// Dal firmatario tolgo il subject.getName() perchè contiene caratteri che creano troncamenti nel json
 			String firmatarioControFirma = (subjectControFirma.getC() == null ? "" : "C=" + subjectControFirma.getC()) + (subjectControFirma.getCn() == null ? "" : " CN=" + subjectControFirma.getCn())
+					+ (subjectControFirma.getCodiceFiscale() == null ? "" : " CF=" + subjectControFirma.getCodiceFiscale())
 					/**+ (subject.getName() == null ? "" : " NAME=" + subject.getName())*/ + (subjectControFirma.getO() == null ? "" : " O=" + subjectControFirma.getO())
 					+ (subjectControFirma.getOu() == null ? "" : " OU=" + subjectControFirma.getOu());
 	
@@ -883,6 +889,7 @@ public class InfoFileUtility extends FileOpUtility {
 			firmatarioExtControFirma.setDataEmissione(infoFirmatarioControFirma.getCertificato().getDataDecorrenza() != null ? infoFirmatarioControFirma.getCertificato().getDataDecorrenza().toGregorianCalendar().getTime() : null);
 			firmatarioExtControFirma.setDataScadenza(infoFirmatarioControFirma.getCertificato().getDataScadenza() != null ? infoFirmatarioControFirma.getCertificato().getDataScadenza().toGregorianCalendar().getTime() : null);
 			firmatarioExtControFirma.setSerialNumber(infoFirmatarioControFirma.getCertificato().getSerialNumber());
+			firmatarioExtControFirma.setCfFirmatario(subjectControFirma.getCodiceFiscale());
 			if (infoFirmatarioControFirma.getCertificato().getKeyUsages() != null && infoFirmatarioControFirma.getCertificato().getKeyUsages().getKeyUsage() != null) {
 				firmatarioExtControFirma.setKeyUsages(infoFirmatarioControFirma.getCertificato().getKeyUsages().getKeyUsage().toArray(new String[infoFirmatarioControFirma.getCertificato().getKeyUsages().getKeyUsage().size()]));
 			}

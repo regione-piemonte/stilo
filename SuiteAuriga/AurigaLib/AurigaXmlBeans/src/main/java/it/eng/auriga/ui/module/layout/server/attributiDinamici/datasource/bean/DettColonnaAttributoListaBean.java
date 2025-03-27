@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.attributiDinamici.datasource.bean;
 
 import it.eng.document.NumeroColonna;
 
@@ -91,6 +92,13 @@ public class DettColonnaAttributoListaBean {
 	@NumeroColonna(numero = "26")
 	private String textCase;
 	
+	// 28: Sottotipo di attributo. 
+	// Valori per tipo CKEDITOR: RESTRICTED, STANDARD, EXTENDED
+	// Valori per tipo LISTA: GRID, SEZIONE_RIPETUTA
+	// Valori per tipo COMBO-BOX: CON_FILTRO_OPZ, CON_FILTRO_OBBL
+	@NumeroColonna(numero = "28")
+	private String sottotipo;
+	
 	// Se vale 1 la colonna viene nascosta solo sulla grid e non sul dettaglio
 	private String nascondiSoloSuGrid;
 	
@@ -168,9 +176,6 @@ public class DettColonnaAttributoListaBean {
 
 	// (valori 1/0) Se 1 nel DocumentList viene mostrato il tasto di sostituizione versione precedente nelle singole righe
 	public String showFlgSostituisciVerPrecItemInDocumentListItem;
-	
-	// Sotto tipo del campo CKEDITOR
-	public String sottotipo;
 	
 	// Valori ammessi
 	private String valoriAmmessi;
@@ -342,6 +347,14 @@ public class DettColonnaAttributoListaBean {
 
 	public void setTextCase(String textCase) {
 		this.textCase = textCase;
+	}
+	
+	public String getSottotipo() {
+		return sottotipo;
+	}
+
+	public void setSottotipo(String sottotipo) {
+		this.sottotipo = sottotipo;
 	}
 	
 	public String getNascondiSoloSuGrid() {
@@ -542,14 +555,6 @@ public class DettColonnaAttributoListaBean {
 
 	public void setShowFlgSostituisciVerPrecItemInDocumentListItem(String showFlgSostituisciVerPrecItemInDocumentListItem) {
 		this.showFlgSostituisciVerPrecItemInDocumentListItem = showFlgSostituisciVerPrecItemInDocumentListItem;
-	}
-
-	public String getSottotipo() {
-		return sottotipo;
-	}
-
-	public void setSottotipo(String sottotipo) {
-		this.sottotipo = sottotipo;
 	}
 
 	public String getShowUploadFileButtonInDocumentList() {

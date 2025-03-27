@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -258,11 +259,15 @@ public class AllegatiOutBean implements Serializable {
 	private Flag flgGenAutoDaModello;	
 	@NumeroColonna(numero = "121")
 	private String idUdAllegato;	
-	@NumeroColonna(numero = "122")
-	private String flgRichiestaFirmaDigitale;	
 	@NumeroColonna(numero = "123")
 	@TipoData(tipo=Tipo.DATA)
 	private Date tsInsLastVerFile;
+	@NumeroColonna(numero = "124")
+	private String flgRichiestoFile;	
+	@NumeroColonna(numero = "125")
+	private String flgRichiestoFileConFirma;	
+	@NumeroColonna(numero = "126")
+	private String flgRichiestoFileConFirmaValida;	
 	
 	public String getIdDoc() {
 		return idDoc;
@@ -979,17 +984,29 @@ public class AllegatiOutBean implements Serializable {
 	public void setIdUdAllegato(String idUdAllegato) {
 		this.idUdAllegato = idUdAllegato;
 	}
-	public String getFlgRichiestaFirmaDigitale() {
-		return flgRichiestaFirmaDigitale;
-	}
-	public void setFlgRichiestaFirmaDigitale(String flgRichiestaFirmaDigitale) {
-		this.flgRichiestaFirmaDigitale = flgRichiestaFirmaDigitale;
-	}
 	public Date getTsInsLastVerFile() {
 		return tsInsLastVerFile;
 	}
 	public void setTsInsLastVerFile(Date tsInsLastVerFile) {
 		this.tsInsLastVerFile = tsInsLastVerFile;
+	}
+	public String getFlgRichiestoFile() {
+		return flgRichiestoFile;
+	}
+	public void setFlgRichiestoFile(String flgRichiestoFile) {
+		this.flgRichiestoFile = flgRichiestoFile;
+	}
+	public String getFlgRichiestoFileConFirma() {
+		return flgRichiestoFileConFirma;
+	}
+	public void setFlgRichiestoFileConFirma(String flgRichiestoFileConFirma) {
+		this.flgRichiestoFileConFirma = flgRichiestoFileConFirma;
+	}
+	public String getFlgRichiestoFileConFirmaValida() {
+		return flgRichiestoFileConFirmaValida;
+	}
+	public void setFlgRichiestoFileConFirmaValida(String flgRichiestoFileConFirmaValida) {
+		this.flgRichiestoFileConFirmaValida = flgRichiestoFileConFirmaValida;
 	}
 	
 }

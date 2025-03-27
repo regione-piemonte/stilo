@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.stilo.logic.listener.queue;
 
 import it.eng.acta.ws.handler.queue.LogHandler;
 import it.eng.acta.ws.handler.queue.MessageBean;

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -871,6 +872,10 @@ public class GestioneDocumenti {
 							Boolean flgGenAutoDaModello = pAllegatiBean.getFlgGenAutoDaModello().get(i);
 							lAllegatoStoreBean.setFlgGenAutoDaModello(flgGenAutoDaModello != null && flgGenAutoDaModello ? "1" : null);
 						}
+						if (pAllegatiBean.getFlgTimbraFilePostReg() != null) {
+							Boolean flgTimbraFilePostReg = pAllegatiBean.getFlgTimbraFilePostReg().get(i);
+							lAllegatoStoreBean.setFlgTimbraFilePostReg(flgTimbraFilePostReg != null && flgTimbraFilePostReg ? "1" : null);
+						}
 						String attributi = lXmlUtilitySerializer.bindXml(lAllegatoStoreBean);
 						DmpkCoreAdddocBean lAdddocBeanAllegato = new DmpkCoreAdddocBean();
 						lAdddocBeanAllegato.setCodidconnectiontokenin(pAurigaLoginBean.getToken());
@@ -1201,6 +1206,10 @@ public class GestioneDocumenti {
 						if (pAllegatiBean.getFlgGenAutoDaModello() != null) {
 							Boolean flgGenAutoDaModello = pAllegatiBean.getFlgGenAutoDaModello().get(i);
 							lAllegatoStoreBean.setFlgGenAutoDaModello(flgGenAutoDaModello != null && flgGenAutoDaModello ? "1" : null);
+						}
+						if (pAllegatiBean.getFlgTimbraFilePostReg() != null) {
+							Boolean flgTimbraFilePostReg = pAllegatiBean.getFlgTimbraFilePostReg().get(i);
+							lAllegatoStoreBean.setFlgTimbraFilePostReg(flgTimbraFilePostReg != null && flgTimbraFilePostReg ? "1" : null);
 						}
 						if (SharePointUtil.isIntegratoConSharePoint(pAurigaLoginBean)) {
 							SharePointUtil shUtil = (SharePointUtil) SpringAppContext.getContext().getBean("sharePointUtil");
@@ -2081,7 +2090,7 @@ public class GestioneDocumenti {
 			String errorMessage = e.getMessage();
 			if (e instanceof StoreException) {
 				errorMessage = ((StoreException) e).getError() != null ? ((StoreException) e).getError().getDefaultMessage() : ((StoreException) e)
-						.getMessage();
+						.getMessage() + ", ErrorCode: " + ((StoreException) e).getError().getErrorCode();;
 			}
 			mLogger.error("Errore " + errorMessage, e);
 			throw new Exception(errorMessage);
@@ -2110,7 +2119,7 @@ public class GestioneDocumenti {
 			String errorMessage = e.getMessage();
 			if (e instanceof StoreException) {
 				errorMessage = ((StoreException) e).getError() != null ? ((StoreException) e).getError().getDefaultMessage() : ((StoreException) e)
-						.getMessage();
+						.getMessage() + ", ErrorCode: " + ((StoreException) e).getError().getErrorCode();
 			}
 			mLogger.error("Errore " + errorMessage, e);
 			throw new Exception(errorMessage);
@@ -2262,10 +2271,9 @@ public class GestioneDocumenti {
 			} 
 			lModificaDocumentoOutBean.setIdUd(idUd);
 
-			// Parte di versionamento
-			Map<String, String> fileErrors = new HashMap<String, String>();
-			fileErrors.putAll(aggiungiFilesWSInTransaction(pAurigaLoginBean, versioni, session));
-			lModificaDocumentoOutBean.setFileInErrors(fileErrors);
+			StoreResultBean storeResultBean = aggiungiFilesWSInTransaction(pAurigaLoginBean, versioni, session);			
+			lModificaDocumentoOutBean.setDefaultMessage(storeResultBean.getDefaultMessage());
+			lModificaDocumentoOutBean.setErrorCode(storeResultBean.getErrorCode());			
 
 		} catch (Exception e) {
 			if (e instanceof StoreException) {
@@ -2405,11 +2413,16 @@ public class GestioneDocumenti {
 			} 
 			lModificaDocumentoOutBean.setIdUd(idUd);
 
-			// Parte di versionamento
-			Map<String, String> fileErrors = new HashMap<String, String>();
-			fileErrors.putAll(aggiungiFilesWSInTransaction(pAurigaLoginBean, versioni, session));
-			fileErrors.putAll(rimuoviFilesWS(pAurigaLoginBean, versioniDaRimuovere, allegatiDaRimuovere));
-			lModificaDocumentoOutBean.setFileInErrors(fileErrors);
+			StoreResultBean storeResultBean = aggiungiFilesWSInTransaction(pAurigaLoginBean, versioni, session);			
+			if(StringUtils.isNotBlank(storeResultBean.getDefaultMessage())) {
+				lModificaDocumentoOutBean.setDefaultMessage(storeResultBean.getDefaultMessage());
+				lModificaDocumentoOutBean.setErrorCode(storeResultBean.getErrorCode());
+				
+				return lModificaDocumentoOutBean;
+			}
+			storeResultBean = rimuoviFilesWS(pAurigaLoginBean, versioniDaRimuovere, allegatiDaRimuovere);
+			lModificaDocumentoOutBean.setDefaultMessage(storeResultBean.getDefaultMessage());
+			lModificaDocumentoOutBean.setErrorCode(storeResultBean.getErrorCode());
 
 		} catch (Exception e) {
 			if (e instanceof StoreException) {
@@ -2608,64 +2621,63 @@ public class GestioneDocumenti {
 			} catch (Exception e) {
 				mLogger.error("Errore " + e.getMessage(), e);
 				if (lRebuildedFile.getInfo().getTipo() == TipoFile.PRIMARIO) {
-					fileErrors.put("0", "Il file primario " + lRebuildedFile.getInfo().getAllegatoRiferimento().getDisplayFilename()
-							+ " non è stato salvato correttamente." + (StringUtils.isNotBlank(e.getMessage()) ? " Motivo: " + e.getMessage() : ""));
+					fileErrors.put("0", "Errore in verifica file primario " + lRebuildedFile.getInfo().getAllegatoRiferimento().getDisplayFilename()
+							+ (StringUtils.isNotBlank(e.getMessage()) ? ": " + e.getMessage() : ""));
 				} else if (lRebuildedFile.getInfo().getTipo() == TipoFile.ALLEGATO) {
-					fileErrors.put("" + lRebuildedFile.getInfo().getPosizione(), "Il file allegato "
+					fileErrors.put("" + lRebuildedFile.getInfo().getPosizione(), "Errore in verifica file allegato "
 							+ lRebuildedFile.getInfo().getAllegatoRiferimento().getDisplayFilename() + " in posizione "
-							+ lRebuildedFile.getInfo().getPosizione() + " non è stato salvato correttamente."
-							+ (StringUtils.isNotBlank(e.getMessage()) ? " Motivo: " + e.getMessage() : ""));
+							+ lRebuildedFile.getInfo().getPosizione() 
+							+ (StringUtils.isNotBlank(e.getMessage()) ? " : " + e.getMessage() : ""));
 				}
 			}
 		}
 		return fileErrors;
 	}
 	
-	protected Map<String, String> aggiungiFilesWSInTransaction(AurigaLoginBean pAurigaLoginBean, List<RebuildedFile> versioni, Session session) {
-		Map<String, String> fileErrors = new HashMap<String, String>();
+	protected StoreResultBean aggiungiFilesWSInTransaction(AurigaLoginBean pAurigaLoginBean, List<RebuildedFile> versioni, Session session) {
+		StoreResultBean storeResultBean = new StoreResultBean();
 		for (RebuildedFile lRebuildedFile : versioni) {
 			try {
 				VersionaDocumentoInBean lVersionaDocumentoInBean = new VersionaDocumentoInBean();
 				BeanUtilsBean2.getInstance().getPropertyUtils().copyProperties(lVersionaDocumentoInBean, lRebuildedFile);
 				VersionaDocumentoOutBean lVersionaDocumentoOutBean = versionaDocumentoWSInTransaction(pAurigaLoginBean, lVersionaDocumentoInBean, session);
 				if (lVersionaDocumentoOutBean.getDefaultMessage() != null) {
-					throw new Exception(lVersionaDocumentoOutBean.getDefaultMessage());
+					storeResultBean.setDefaultMessage(lVersionaDocumentoOutBean.getDefaultMessage());
+					storeResultBean.setErrorCode(lVersionaDocumentoOutBean.getErrorCode());
+					
+					return storeResultBean;
 				}
 			} catch (Exception e) {
 				mLogger.error("Errore " + e.getMessage(), e);
-				if (lRebuildedFile.getInfo().getTipo() == TipoFile.PRIMARIO) {
-					fileErrors.put("0", "Il file primario " + lRebuildedFile.getInfo().getAllegatoRiferimento().getDisplayFilename()
-							+ " non è stato salvato correttamente." + (StringUtils.isNotBlank(e.getMessage()) ? " Motivo: " + e.getMessage() : ""));
-				} else if (lRebuildedFile.getInfo().getTipo() == TipoFile.ALLEGATO) {
-					fileErrors.put("" + lRebuildedFile.getInfo().getPosizione(), "Il file allegato "
-							+ lRebuildedFile.getInfo().getAllegatoRiferimento().getDisplayFilename() + " in posizione "
-							+ lRebuildedFile.getInfo().getPosizione() + " non è stato salvato correttamente."
-							+ (StringUtils.isNotBlank(e.getMessage()) ? " Motivo: " + e.getMessage() : ""));
-				}
+				storeResultBean.setDefaultMessage(e.getMessage());
 			}
 		}
-		return fileErrors;
+		return storeResultBean;
 	}
 
-	protected Map<String, String> rimuoviFilesWS(AurigaLoginBean pAurigaLoginBean, List<RebuildedFile> versioniDaRimuovere,
+	protected StoreResultBean rimuoviFilesWS(AurigaLoginBean pAurigaLoginBean, List<RebuildedFile> versioniDaRimuovere,
 			List<RebuildedFile> allegatiDaRimuovere) {
 
-		Map<String, String> fileErrors = new HashMap<String, String>();
+		StoreResultBean storeResultBean = new StoreResultBean();
 
 		for (RebuildedFile lRebuildedFile : versioniDaRimuovere) {
 			try {
 				rimuoviVersioneDocumento(lRebuildedFile, pAurigaLoginBean);
 			} catch (Exception e) {
 				mLogger.error("Errore " + e.getMessage(), e);
-				if (lRebuildedFile.getInfo().getTipo() == TipoFile.PRIMARIO) {
-					fileErrors.put("0", "Il file primario " + lRebuildedFile.getInfo().getAllegatoRiferimento().getDisplayFilename()
-							+ " non è stato eliminato." + (StringUtils.isNotBlank(e.getMessage()) ? " Motivo: " + e.getMessage() : ""));
-				} else if (lRebuildedFile.getInfo().getTipo() == TipoFile.ALLEGATO) {
-					fileErrors.put("" + lRebuildedFile.getInfo().getPosizione(),
-							"Il file allegato " + lRebuildedFile.getInfo().getAllegatoRiferimento().getDisplayFilename() + " in posizione "
-									+ lRebuildedFile.getInfo().getPosizione() + " non è stato eliminato."
-									+ (StringUtils.isNotBlank(e.getMessage()) ? " Motivo: " + e.getMessage() : ""));
-				}
+				
+				 // Suddividi la stringa in base a "ErrorCode:"
+		        String[] parts = e.getMessage().split("ErrorCode:");
+		        // Verifica se è stata trovata la sottostringa desiderata
+		        if (parts.length > 1) {
+		            String errorCodeValue = parts[1].trim();
+		            storeResultBean.setErrorCode(Integer.valueOf(errorCodeValue));
+		        }
+				
+		        storeResultBean.setDefaultMessage("Errore durante l'eliminazione del file: " + lRebuildedFile.getInfo().getAllegatoRiferimento().getDisplayFilename() 
+						+ ", " + parts[0]);
+		        
+		        return storeResultBean;
 
 			}
 		}
@@ -2675,12 +2687,23 @@ public class GestioneDocumenti {
 				rimuoviAllegato(lRebuildedFile, pAurigaLoginBean);
 			} catch (Exception e) {
 				mLogger.error("Errore " + e.getMessage(), e);
-				fileErrors.put("" + lRebuildedFile.getInfo().getPosizione(), "L'allegato con id. " + lRebuildedFile.getIdDocumento()
-						+ " non è stato eliminato." + (StringUtils.isNotBlank(e.getMessage()) ? " Motivo: " + e.getMessage() : ""));
+				
+				 // Suddividi la stringa in base a "ErrorCode:"
+		        String[] parts = e.getMessage().split("ErrorCode:");
+		        // Verifica se è stata trovata la sottostringa desiderata
+		        if (parts.length > 1) {
+		            String errorCodeValue = parts[1].trim();
+		            storeResultBean.setErrorCode(Integer.valueOf(errorCodeValue));
+		        }
+				
+		        storeResultBean.setDefaultMessage("Errore durante l'eliminazione del file: " + lRebuildedFile.getInfo().getAllegatoRiferimento().getDisplayFilename() 
+						+ ", " + parts[0]);
+		        
+		        return storeResultBean;
 			}
 		}
-
-		return fileErrors;
+		
+		 return storeResultBean;
 	}
 
 	@Operation(name = "versionaDocumentoWS")

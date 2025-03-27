@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovapropostaatto2;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -161,7 +162,6 @@ public class TaskNuovaPropostaAtto2CompletaDetail extends NuovaPropostaAtto2Comp
 	
 	protected DettaglioPraticaLayout dettaglioPraticaLayout;
 	
-	protected RecordList listaRecordModelli;
 	protected Record allegatoGeneratoDaModelloTask;
 	
 	protected Set<String> esitiTaskOk;	
@@ -277,8 +277,6 @@ public class TaskNuovaPropostaAtto2CompletaDetail extends NuovaPropostaAtto2Comp
 		
 		this.dettaglioPraticaLayout = dettaglioPraticaLayout;
 		
-		this.listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
-
 		RecordList listaEsitiTaskOk = lRecordEvento != null ? lRecordEvento.getAttributeAsRecordList("esitiTaskOk") : null;
 		if(listaEsitiTaskOk != null && listaEsitiTaskOk.getLength() > 0) {
 			esitiTaskOk = new HashSet<String>();
@@ -439,6 +437,7 @@ public class TaskNuovaPropostaAtto2CompletaDetail extends NuovaPropostaAtto2Comp
 			final TabSet tabSetDatiStorici = new TabSet();
 
 			GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");
+			lGwtRestService.addParam("flgSkipAttrSenzaCategoria", "true");
 			// lGwtRestService.addParam("suffisso", "_CMMI");
 			lGwtRestService.addParam("nomeFlussoWF", nomeFlussoWF);
 			lGwtRestService.addParam("processNameWF", processNameWF);
@@ -986,6 +985,8 @@ public class TaskNuovaPropostaAtto2CompletaDetail extends NuovaPropostaAtto2Comp
 					rowidDoc = lRecord.getAttribute("rowidDoc");
 					tipoDocumento = lRecord.getAttribute("tipoDocumento");
 					if (isEseguibile() && !isReadOnly()) {
+						// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+						RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 						if(listaRecordModelli != null && listaRecordModelli.getLength() > 0) {
 							RecordList listaAllegati = lRecord.getAttributeAsRecordList("listaAllegati");
 							for (int i = 0; i < listaRecordModelli.getLength(); i++) {
@@ -2196,6 +2197,8 @@ public class TaskNuovaPropostaAtto2CompletaDetail extends NuovaPropostaAtto2Comp
 	}
 	
 	public RecordList getListaRecordModelliXEsitoPreAvanzamentoFlusso(String esito) {
+		// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+		RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 		if (listaRecordModelli != null && listaRecordModelli.getLength() > 0) {	
 			RecordList listaRecordModelliConEsitoUguale = new RecordList();		
 			RecordList listaRecordModelliSenzaEsito = new RecordList();		
@@ -2223,6 +2226,8 @@ public class TaskNuovaPropostaAtto2CompletaDetail extends NuovaPropostaAtto2Comp
 	}
 	
 	public RecordList getListaRecordModelliXEsitoPostAvanzamentoFlusso(String esito) {
+		// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+		RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 		if (listaRecordModelli != null && listaRecordModelli.getLength() > 0) {	
 			RecordList listaRecordModelliConEsitoUguale = new RecordList();		
 			RecordList listaRecordModelliSenzaEsito = new RecordList();		
@@ -3009,6 +3014,7 @@ public class TaskNuovaPropostaAtto2CompletaDetail extends NuovaPropostaAtto2Comp
 			String userIdFirmatario = recordEvento != null ? recordEvento.getAttribute("docActionsFirmaAutomaticaUseridFirmatario") : null;
 			String firmaInDelega = recordEvento != null ? recordEvento.getAttribute("docActionsFirmaAutomaticaFirmaInDelega") : null;
 			String password = recordEvento != null ? recordEvento.getAttribute("docActionsFirmaAutomaticaPassword") : null;
+			String authPin = recordEvento != null ? recordEvento.getAttribute("docActionsFirmaAutomaticaAuthPIN") : null;
 			String providerFirma = recordEvento != null ? recordEvento.getAttribute("docActionsFirmaAutomaticaProvider") : null;
 			String hsmTipoFirmaAtti = AurigaLayout.getParametroDB("HSM_TIPO_FIRMA_ATTI");
 			String username;
@@ -3020,7 +3026,7 @@ public class TaskNuovaPropostaAtto2CompletaDetail extends NuovaPropostaAtto2Comp
 				username = userIdFirmatario;
 				usernameDelegante = "";
 			}
-			FirmaUtility.firmaMultiplaHsmAutomatica(true, recordList.toArray(), username, usernameDelegante, password, providerFirma, hsmTipoFirmaAtti, callbackFirmaEseguita, callbackFirmaNonEseguita);
+			FirmaUtility.firmaMultiplaHsmAutomatica(true, recordList.toArray(), username, usernameDelegante, password, authPin, providerFirma, hsmTipoFirmaAtti, callbackFirmaEseguita, callbackFirmaNonEseguita);
 		 } else {
 			 // Proseguo normalmente
 			 callbackFirmaEseguita.execute(signedFiles, filesAndUd);
@@ -4260,7 +4266,10 @@ public class TaskNuovaPropostaAtto2CompletaDetail extends NuovaPropostaAtto2Comp
 				}
 				
 				int posModello = -1;
-				if(listaRecordModelliGenerati.get(i).getAttributeAsBoolean("flgCreaNuovoDoc")) {
+				if (listaRecordModelliGenerati.get(i).getAttribute("idDocAllegatoDaFirmare") != null && !listaRecordModelliGenerati.get(i).getAttribute("idDocAllegatoDaFirmare").equalsIgnoreCase("")) {
+					// Sono sicuro di trovare una corrispondenza perchè l'ho già trovata in compilazioneAutomaticaListaModelliPdf di NuovaPropostaAtto2CompletaDataSource
+					posModello = getPosAllegatoFromIdDoc(listaRecordModelliGenerati.get(i).getAttribute("idDocAllegatoDaFirmare"), listaAllegati);
+				} else if(listaRecordModelliGenerati.get(i).getAttributeAsBoolean("flgCreaNuovoDoc")) {
 					posModello = getPosAllegatoFromTipoSenzaIdDocConFileGenDaModelloDaFirmareNonFirmato(idTipoModello, listaAllegati);
 				} else {
 					posModello = getPosAllegatoFromTipo(idTipoModello, listaAllegati);

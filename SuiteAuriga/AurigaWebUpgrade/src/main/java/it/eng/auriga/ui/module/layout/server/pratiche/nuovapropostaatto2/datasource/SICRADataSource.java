@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.pratiche.nuovapropostaatto2.datasource;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -13,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
@@ -128,6 +130,7 @@ public class SICRADataSource extends AbstractFetchDataSource<MovimentiContabiliS
 		ContabilitaSicraImpl lContabilitaSicraImpl = new ContabilitaSicraImpl(); 
 		SicraInputRicercaVociBilancio input = new SicraInputRicercaVociBilancio();
 		input.setParte(bean.getFlgEntrataUscita());
+//		input.setFlagRaggruppaCup(false); // se non passo nulla di default viene passato a 0 nel client
 		if(!isEscludiFiltroCdC) {
 			if(StringUtils.isNotBlank(getExtraparams().get("codCentroCosto"))) {
 				// devo passarlo in centroDiCosto, che corrisponde al tag codrespservcapitolo (settore) di SICRA, e NON in codCentroCosto!!!
@@ -283,6 +286,7 @@ public class SICRADataSource extends AbstractFetchDataSource<MovimentiContabiliS
 			// Testata
 			SicraTestataImpegno lSicraTestataImpegno = new SicraTestataImpegno();		
 			lSicraTestataImpegno.setAzione("0");			
+			lSicraTestataImpegno.setIdentificativoStilo(lMovimentiContabiliSICRABean.getRandomUUID());
 			lSicraTestataImpegno.setParte(lMovimentiContabiliSICRABean.getFlgEntrataUscita());		
 			lSicraTestataImpegno.setAnno(StringUtils.isNotBlank(lMovimentiContabiliSICRABean.getAnnoCompetenza()) ? new Integer(lMovimentiContabiliSICRABean.getAnnoCompetenza()) : null);
 			if(StringUtils.isNotBlank(lMovimentiContabiliSICRABean.getAnnoImpAcc()) && StringUtils.isNotBlank(lMovimentiContabiliSICRABean.getAnnoCompetenza()) && lMovimentiContabiliSICRABean.getAnnoImpAcc().equals(lMovimentiContabiliSICRABean.getAnnoCompetenza())) {
@@ -826,9 +830,17 @@ public class SICRADataSource extends AbstractFetchDataSource<MovimentiContabiliS
 					
 					SicraResidenza sicraResidenza = lSicraAnagrafica.getResidenza();
 					if(sicraResidenza!=null) {
-						String indirizzo = sicraResidenza.getSpecie() + " " + sicraResidenza.getArea() + " " + sicraResidenza.getCivico();
-						
-						bean.setIndirizzo(indirizzo);
+						String indirizzo = "";
+						if(StringUtils.isNotBlank(sicraResidenza.getSpecie())) {
+							indirizzo += sicraResidenza.getSpecie() + " ";
+						}
+						if(StringUtils.isNotBlank(sicraResidenza.getArea())) {
+							indirizzo += sicraResidenza.getArea() + " ";
+						}
+						if(StringUtils.isNotBlank(sicraResidenza.getCivico())) {
+							indirizzo += sicraResidenza.getCivico() + " ";
+						}
+						bean.setIndirizzo(indirizzo.trim());
 						bean.setLocalita(sicraResidenza.getComune());
 						bean.setCap(sicraResidenza.getCap());
 						bean.setProvincia(sicraResidenza.getSiglaProvincia());
@@ -1055,6 +1067,12 @@ public class SICRADataSource extends AbstractFetchDataSource<MovimentiContabiliS
 				}
 			}			
 		}
+		return bean;
+	}
+	
+	// Generate a random UUID: 128-bit long number in hex characters separated by "-" (for example : e58ed763-928c-4155-bee9-fdbaaadc15f3)
+	public MovimentiContabiliSICRABean generateRandomUUID(MovimentiContabiliSICRABean bean) throws Exception {
+		bean.setRandomUUID(UUID.randomUUID().toString()); 
 		return bean;
 	}
 	

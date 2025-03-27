@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -101,8 +102,10 @@ public class FirmaUtility {
 		firmaMultiplaCommonName(false, null, null, false, filesAndUdDaFirmare, callback);
 	}
 
-	public static void firmaMultiplaHsmAutomatica (final boolean firmaAvanzamentoIterAtti, final Record[] filesAndUdDaFirmare, String username, String usernameDelegante, String password, String providerFirmaForzato, String tipoFirmaHsm,  final FirmaMultiplaCallback callbackFirmaEseguita, final FirmaMultiplaNonEseguitaCallback callbackFirmaNonEseguita) {
-		firmaHsmMultipla(firmaAvanzamentoIterAtti, tipoFirmaHsm, false, filesAndUdDaFirmare, "", false, username, usernameDelegante, password, "", "", "", true, callbackFirmaEseguita, null, callbackFirmaNonEseguita, providerFirmaForzato, true);
+	public static void firmaMultiplaHsmAutomatica (final boolean firmaAvanzamentoIterAtti, final Record[] filesAndUdDaFirmare, String username, String usernameDelegante, String password, final String authPin, String providerFirmaForzato, String tipoFirmaHsm,  final FirmaMultiplaCallback callbackFirmaEseguita, final FirmaMultiplaNonEseguitaCallback callbackFirmaNonEseguita) {
+		final String authPinToPass = authPin != null ? authPin : "";
+		
+		firmaHsmMultipla(firmaAvanzamentoIterAtti, tipoFirmaHsm, false, filesAndUdDaFirmare, "", false, username, usernameDelegante, password,"", "", "", authPinToPass, true, callbackFirmaEseguita, null, callbackFirmaNonEseguita, providerFirmaForzato, true);
 	}
 
 	/**********************************************************************************************
@@ -310,7 +313,25 @@ public class FirmaUtility {
 		} else {
 			preimpostazioniHsmCredenzialiWindows.setAttribute("username", username);
 		}
-		
+		boolean authByPINPasswordAsSeparateFileds = FirmaUtility.getValoreVariabileHsmParamsAsBoolean("authByPINPasswordAsSeparateFileds", providerHsmFromPreference);
+		preimpostazioniHsmCredenzialiWindows.setAttribute("authByPINPasswordAsSeparateFileds", authByPINPasswordAsSeparateFileds);
+		// Se ho le abilitazioni precarico password ed eventuale pin
+		boolean canSavePasswordFirmaNonAutomatica = FirmaUtility.getValoreVariabileHsmParamsAsBoolean("canSavePasswordFirmaNonAutomatica", providerHsmFromPreference);
+		preimpostazioniHsmCredenzialiWindows.setAttribute("canSavePasswordFirmaNonAutomatica", canSavePasswordFirmaNonAutomatica);
+		boolean canSavePinFirmaNonAutomatica = FirmaUtility.getValoreVariabileHsmParamsAsBoolean("canSavePinFirmaNonAutomatica", providerHsmFromPreference);
+		preimpostazioniHsmCredenzialiWindows.setAttribute("canSavePinFirmaNonAutomatica", canSavePinFirmaNonAutomatica);
+		if (authByPINPasswordAsSeparateFileds) {
+			if (canSavePasswordFirmaNonAutomatica) {
+				preimpostazioniHsmCredenzialiWindows.setAttribute("password", AurigaLayout.getImpostazioneFirma("password"));
+			}
+			if (canSavePinFirmaNonAutomatica) {
+				preimpostazioniHsmCredenzialiWindows.setAttribute("authPIN", AurigaLayout.getImpostazioneFirma("authPIN"));
+			}
+		} else {
+			if (canSavePasswordFirmaNonAutomatica) {
+				preimpostazioniHsmCredenzialiWindows.setAttribute("password", AurigaLayout.getImpostazioneFirma("password"));
+			}
+		}
 		new HsmCredenzialiWindows(preimpostazioniHsmCredenzialiWindows, true) {
 
 			@Override
@@ -320,11 +341,12 @@ public class FirmaUtility {
 				String password = getPassword();
 				String codiceOtp = getCodiceOtp();
 				String certId = getCertId();
+				String authPIN = getPin();
 				String poterDiFirma = "";
 				if(!(tipoHsmFinal != null && tipoHsmFinal.equalsIgnoreCase( "ARUBA" ))){
 					poterDiFirma = getPotereDiFirma();
 				}
-				firmaHsmMultiplaWithExternalWS(firmaAvanzamentoIterAtti, hsmTipoFirmaForzato, abilGestFirmaAllegatiFirmatiPIAtto, filesAndUdDaFirmare, nomeFirmatario, skipCtrlBustaFirm, username, usernameDelegante, password, codiceOtp, certId, poterDiFirma, true, callbackFirma, this, callbackFirmaNonEseguita);
+				firmaHsmMultiplaWithExternalWS(firmaAvanzamentoIterAtti, hsmTipoFirmaForzato, abilGestFirmaAllegatiFirmatiPIAtto, filesAndUdDaFirmare, nomeFirmatario, skipCtrlBustaFirm, username, usernameDelegante, password, codiceOtp, certId, poterDiFirma, authPIN, true, callbackFirma, this, callbackFirmaNonEseguita);
 				markForDestroy();
 			}
 
@@ -345,7 +367,11 @@ public class FirmaUtility {
 				} else {
 					Record preimpostazioniHsmCredenzialiOTPWindows = new Record();
 					preimpostazioniHsmCredenzialiOTPWindows.setAttribute("otpUsername", AurigaLayout.getImpostazioneFirma("usernameRichOtp"));
-					// preimpostazioniHsmCredenzialiOTPWindows.setAttribute("usernameDelegante", AurigaLayout.getImpostazioneFirma(""));
+					boolean canSavePasswordRichOtp = FirmaUtility.getValoreVariabileHsmParamsAsBoolean("canSavePasswordRichOtp", providerHsmFromPreference);
+					preimpostazioniHsmCredenzialiOTPWindows.setAttribute("canSavePasswordRichOtp", canSavePasswordRichOtp);
+					if (canSavePasswordRichOtp) {
+						preimpostazioniHsmCredenzialiOTPWindows.setAttribute("otpPassword", AurigaLayout.getImpostazioneFirma("passwordRichOtp"));
+					}
 					new HsmCredenzialiOTPWindows(preimpostazioniHsmCredenzialiOTPWindows) {
 
 						@Override
@@ -438,7 +464,25 @@ public class FirmaUtility {
 				} else {
 					preimpostazioniHsmCredenzialiWindows.setAttribute("username", username);
 				}
-				
+				boolean authByPINPasswordAsSeparateFileds = FirmaUtility.getValoreVariabileHsmParamsAsBoolean("authByPINPasswordAsSeparateFileds", providerHsmFromPreference);
+				preimpostazioniHsmCredenzialiWindows.setAttribute("authByPINPasswordAsSeparateFileds", authByPINPasswordAsSeparateFileds);
+				// Se ho le abilitazioni precarico password ed eventuale pin
+				boolean canSavePasswordFirmaNonAutomatica = FirmaUtility.getValoreVariabileHsmParamsAsBoolean("canSavePasswordFirmaNonAutomatica", providerHsmFromPreference);
+				preimpostazioniHsmCredenzialiWindows.setAttribute("canSavePasswordFirmaNonAutomatica", canSavePasswordFirmaNonAutomatica);
+				boolean canSavePinFirmaNonAutomatica = FirmaUtility.getValoreVariabileHsmParamsAsBoolean("canSavePinFirmaNonAutomatica", providerHsmFromPreference);
+				preimpostazioniHsmCredenzialiWindows.setAttribute("canSavePinFirmaNonAutomatica", canSavePinFirmaNonAutomatica);
+				if (authByPINPasswordAsSeparateFileds) {
+					if (canSavePasswordFirmaNonAutomatica) {
+						preimpostazioniHsmCredenzialiWindows.setAttribute("password", AurigaLayout.getImpostazioneFirma("password"));
+					}
+					if (canSavePinFirmaNonAutomatica) {
+						preimpostazioniHsmCredenzialiWindows.setAttribute("authPIN", AurigaLayout.getImpostazioneFirma("authPIN"));
+					}
+				} else {
+					if (canSavePasswordFirmaNonAutomatica) {
+						preimpostazioniHsmCredenzialiWindows.setAttribute("password", AurigaLayout.getImpostazioneFirma("password"));
+					}
+				}
 				new HsmCredenzialiWindows(preimpostazioniHsmCredenzialiWindows, false) {
 					
 					@Override
@@ -448,11 +492,12 @@ public class FirmaUtility {
 						String password = getPassword();
 						String codiceOtp = getCodiceOtp();
 						String certId = getCertId();
+						String authPIN = getPin();
 						String poterDiFirma = null;
 						if(!(tipoHsmFinal != null && tipoHsmFinal.equalsIgnoreCase( "ARUBA" ))){
 							poterDiFirma = getPotereDiFirma();
 						}
-						firmaHsmMultipla(firmaAvanzamentoIterAtti, hsmTipoFirmaForzato, abilGestFirmaAllegatiFirmatiPIAtto, filesAndUdDaFirmare, nomeFirmatario, skipCtrlBustaFirm, username, usernameDelegante, password, codiceOtp, certId, poterDiFirma, true, callbackFirma, this, callbackFirmaNonEseguita, "", false);
+						firmaHsmMultipla(firmaAvanzamentoIterAtti, hsmTipoFirmaForzato, abilGestFirmaAllegatiFirmatiPIAtto, filesAndUdDaFirmare, nomeFirmatario, skipCtrlBustaFirm, username, usernameDelegante, password, codiceOtp, certId, poterDiFirma, authPIN, true, callbackFirma, this, callbackFirmaNonEseguita, "", false);
 						markForDestroy();
 					}
 
@@ -473,7 +518,11 @@ public class FirmaUtility {
 						} else {
 							Record preimpostazioniHsmCredenzialiOTPWindows = new Record();
 							preimpostazioniHsmCredenzialiOTPWindows.setAttribute("otpUsername", AurigaLayout.getImpostazioneFirma("usernameRichOtp"));
-							// preimpostazioniHsmCredenzialiOTPWindows.setAttribute("usernameDelegante", AurigaLayout.getImpostazioneFirma(""));
+							boolean canSavePasswordRichOtp = FirmaUtility.getValoreVariabileHsmParamsAsBoolean("canSavePasswordRichOtp", providerHsmFromPreference);
+							preimpostazioniHsmCredenzialiOTPWindows.setAttribute("canSavePasswordRichOtp", canSavePasswordRichOtp);
+							if (canSavePasswordRichOtp) {
+								preimpostazioniHsmCredenzialiOTPWindows.setAttribute("otpPassword", AurigaLayout.getImpostazioneFirma("passwordRichOtp"));
+							}
 							new HsmCredenzialiOTPWindows(preimpostazioniHsmCredenzialiOTPWindows) {
 
 								@Override
@@ -565,10 +614,11 @@ public class FirmaUtility {
 				}
 		
 				String password =  AurigaLayout.getImpostazioneFirmaAutomatica("password");
+				String authPIN =  AurigaLayout.getImpostazioneFirmaAutomatica("authPIN");
 				
 				// Verifico se ho delle impostazioni salvate lato gui
 				boolean parametriHSMFromGui = ((username != null && !"".equalsIgnoreCase(username)) || (usernameDelegante != null && !"".equalsIgnoreCase(usernameDelegante)) || (password != null && !"".equalsIgnoreCase(password)));
-				firmaHsmMultipla(firmaAvanzamentoIterAtti, hsmTipoFirmaForzato, abilGestFirmaAllegatiFirmatiPIAtto, filesAndUdDaFirmare, nomeFirmatario, skipCtrlBustaFirm, username, usernameDelegante, password, null, null, null, parametriHSMFromGui, callbackFirma, null, callbackFirmaNonEseguita, "", false);
+				firmaHsmMultipla(firmaAvanzamentoIterAtti, hsmTipoFirmaForzato, abilGestFirmaAllegatiFirmatiPIAtto, filesAndUdDaFirmare, nomeFirmatario, skipCtrlBustaFirm, username, usernameDelegante, password, null, null, null, authPIN, parametriHSMFromGui, callbackFirma, null, callbackFirmaNonEseguita, "", false);
 			}
 	}
 
@@ -1042,7 +1092,7 @@ public class FirmaUtility {
 		});
 	}
 	
-	private static void firmaHsmMultiplaWithExternalWS(final boolean firmaAvanzamentoIterAtti, String hsmTipoFirmaForzato, boolean abilGestFirmaAllegatiFirmatiPIAtto, final Record[] filesAndUdDaFirmare, final String nomeFirmatario, boolean skipControlloFirmaBusta, String username, String usernameDelegante, String password, String codiceOtp, String certId, String potereDiFirma, boolean parametriHSMFromGui, final Object callbackFirma, final Window finestraAutenticazione, final FirmaMultiplaNonEseguitaCallback callbackFirmaNonEseguita) {
+	private static void firmaHsmMultiplaWithExternalWS(final boolean firmaAvanzamentoIterAtti, String hsmTipoFirmaForzato, boolean abilGestFirmaAllegatiFirmatiPIAtto, final Record[] filesAndUdDaFirmare, final String nomeFirmatario, boolean skipControlloFirmaBusta, String username, String usernameDelegante, String password, String codiceOtp, String certId, String potereDiFirma, String authPIN, boolean parametriHSMFromGui, final Object callbackFirma, final Window finestraAutenticazione, final FirmaMultiplaNonEseguitaCallback callbackFirmaNonEseguita) {
 		
 		RecordList recordList = new RecordList();
 
@@ -1065,6 +1115,7 @@ public class FirmaUtility {
 		recordDaPassare.setAttribute("codiceOtp", codiceOtp);
 		recordDaPassare.setAttribute("certId", certId);
 		recordDaPassare.setAttribute("potereDiFirma", potereDiFirma);
+		recordDaPassare.setAttribute("authPIN", authPIN);
 		recordDaPassare.setAttribute("parametriHSMFromGui", parametriHSMFromGui);
 		
 		String preferenceTipoFirma = AurigaLayout.getImpostazioneFirma("tipoFirma");
@@ -1135,7 +1186,7 @@ public class FirmaUtility {
 		});
 	}
 
-	private static void firmaHsmMultipla(final boolean firmaAvanzamentoIterAtti, String hsmTipoFirmaForzato, boolean abilGestFirmaAllegatiFirmatiPIAtto, final Record[] filesAndUdDaFirmare, final String nomeFirmatario, boolean skipControlloFirmaBusta, String username, String usernameDelegante, String password, String codiceOtp, String certId, String potereDiFirma, boolean parametriHSMFromGui, final Object callbackFirma, final Window finestraAutenticazione, final FirmaMultiplaNonEseguitaCallback callbackFirmaNonEseguita, String providerFirmaHsmForzato, boolean skipControlloCoerenzaCertificatoFirma) {
+	private static void firmaHsmMultipla(final boolean firmaAvanzamentoIterAtti, String hsmTipoFirmaForzato, boolean abilGestFirmaAllegatiFirmatiPIAtto, final Record[] filesAndUdDaFirmare, final String nomeFirmatario, boolean skipControlloFirmaBusta, String username, String usernameDelegante, String password, String codiceOtp, String certId, String potereDiFirma, String authPIN, boolean parametriHSMFromGui, final Object callbackFirma, final Window finestraAutenticazione, final FirmaMultiplaNonEseguitaCallback callbackFirmaNonEseguita, String providerFirmaHsmForzato, boolean skipControlloCoerenzaCertificatoFirma) {
 		
 		RecordList recordList = new RecordList();
 
@@ -1158,6 +1209,7 @@ public class FirmaUtility {
 		recordDaPassare.setAttribute("codiceOtp", codiceOtp);
 		recordDaPassare.setAttribute("certId", certId);
 		recordDaPassare.setAttribute("potereDiFirma", potereDiFirma);
+		recordDaPassare.setAttribute("authPIN", authPIN);
 		recordDaPassare.setAttribute("parametriHSMFromGui", parametriHSMFromGui);
 		
 		if (providerFirmaHsmForzato != null && !"".equalsIgnoreCase(providerFirmaHsmForzato)) {

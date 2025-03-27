@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.database.store.dmpk_formati_el_ammessi.store;
 
 import it.eng.auriga.database.store.dmpk_formati_el_ammessi.bean.DmpkFormatiElAmmessiDformatoelBean;
 import it.eng.auriga.database.store.dmpk_formati_el_ammessi.store.impl.DformatoelImpl;

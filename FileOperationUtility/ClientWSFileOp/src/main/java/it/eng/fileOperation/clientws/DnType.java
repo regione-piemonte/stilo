@@ -1,4 +1,4 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
 package it.eng.fileOperation.clientws;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlType;
  *         &lt;element name="c" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt;
  *         &lt;element name="dn" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt;
  *         &lt;element name="serialNumber" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt;
+ *         &lt;element name="codiceFiscale" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt;
  *         &lt;element name="givenName" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt;
  *         &lt;element name="surname" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt;
  *       &lt;/sequence&gt;
@@ -42,6 +43,7 @@ import javax.xml.bind.annotation.XmlType;
     "c",
     "dn",
     "serialNumber",
+    "codiceFiscale",
     "givenName",
     "surname"
 })
@@ -54,11 +56,12 @@ public class DnType {
     protected String c;
     protected String dn;
     protected String serialNumber;
+    protected String codiceFiscale;
     protected String givenName;
     protected String surname;
 
     /**
-     * Recupera il valore della propriet‡ name.
+     * Recupera il valore della propriet√† name.
      * 
      * @return
      *     possible object is
@@ -70,7 +73,7 @@ public class DnType {
     }
 
     /**
-     * Imposta il valore della propriet‡ name.
+     * Imposta il valore della propriet√† name.
      * 
      * @param value
      *     allowed object is
@@ -82,7 +85,7 @@ public class DnType {
     }
 
     /**
-     * Recupera il valore della propriet‡ cn.
+     * Recupera il valore della propriet√† cn.
      * 
      * @return
      *     possible object is
@@ -94,7 +97,7 @@ public class DnType {
     }
 
     /**
-     * Imposta il valore della propriet‡ cn.
+     * Imposta il valore della propriet√† cn.
      * 
      * @param value
      *     allowed object is
@@ -106,7 +109,7 @@ public class DnType {
     }
 
     /**
-     * Recupera il valore della propriet‡ ou.
+     * Recupera il valore della propriet√† ou.
      * 
      * @return
      *     possible object is
@@ -118,7 +121,7 @@ public class DnType {
     }
 
     /**
-     * Imposta il valore della propriet‡ ou.
+     * Imposta il valore della propriet√† ou.
      * 
      * @param value
      *     allowed object is
@@ -130,7 +133,7 @@ public class DnType {
     }
 
     /**
-     * Recupera il valore della propriet‡ o.
+     * Recupera il valore della propriet√† o.
      * 
      * @return
      *     possible object is
@@ -142,7 +145,7 @@ public class DnType {
     }
 
     /**
-     * Imposta il valore della propriet‡ o.
+     * Imposta il valore della propriet√† o.
      * 
      * @param value
      *     allowed object is
@@ -154,7 +157,7 @@ public class DnType {
     }
 
     /**
-     * Recupera il valore della propriet‡ c.
+     * Recupera il valore della propriet√† c.
      * 
      * @return
      *     possible object is
@@ -166,7 +169,7 @@ public class DnType {
     }
 
     /**
-     * Imposta il valore della propriet‡ c.
+     * Imposta il valore della propriet√† c.
      * 
      * @param value
      *     allowed object is
@@ -178,7 +181,7 @@ public class DnType {
     }
 
     /**
-     * Recupera il valore della propriet‡ dn.
+     * Recupera il valore della propriet√† dn.
      * 
      * @return
      *     possible object is
@@ -190,7 +193,7 @@ public class DnType {
     }
 
     /**
-     * Imposta il valore della propriet‡ dn.
+     * Imposta il valore della propriet√† dn.
      * 
      * @param value
      *     allowed object is
@@ -202,7 +205,7 @@ public class DnType {
     }
 
     /**
-     * Recupera il valore della propriet‡ serialNumber.
+     * Recupera il valore della propriet√† serialNumber.
      * 
      * @return
      *     possible object is
@@ -214,7 +217,7 @@ public class DnType {
     }
 
     /**
-     * Imposta il valore della propriet‡ serialNumber.
+     * Imposta il valore della propriet√† serialNumber.
      * 
      * @param value
      *     allowed object is
@@ -224,9 +227,33 @@ public class DnType {
     public void setSerialNumber(String value) {
         this.serialNumber = value;
     }
+    
+    /**
+     * Recupera il valore della propriet√† codiceFiscale.
+     * 
+     * @return
+     *     possible object is
+     *     {@link String }
+     *     
+     */
+    public String getCodiceFiscale() {
+        return codiceFiscale;
+    }
 
     /**
-     * Recupera il valore della propriet‡ givenName.
+     * Imposta il valore della propriet√† codiceFiscale.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link String }
+     *     
+     */
+    public void setCodiceFiscale(String value) {
+        this.codiceFiscale = value;
+    }
+
+    /**
+     * Recupera il valore della propriet√† givenName.
      * 
      * @return
      *     possible object is
@@ -238,7 +265,7 @@ public class DnType {
     }
 
     /**
-     * Imposta il valore della propriet‡ givenName.
+     * Imposta il valore della propriet√† givenName.
      * 
      * @param value
      *     allowed object is
@@ -250,7 +277,7 @@ public class DnType {
     }
 
     /**
-     * Recupera il valore della propriet‡ surname.
+     * Recupera il valore della propriet√† surname.
      * 
      * @return
      *     possible object is
@@ -262,7 +289,7 @@ public class DnType {
     }
 
     /**
-     * Imposta il valore della propriet‡ surname.
+     * Imposta il valore della propriet√† surname.
      * 
      * @param value
      *     allowed object is

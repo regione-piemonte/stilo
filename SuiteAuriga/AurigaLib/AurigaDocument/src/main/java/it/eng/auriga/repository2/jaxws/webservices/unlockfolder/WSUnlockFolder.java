@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.unlockfolder;
 
 import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreUnlockfolderBean;
 import it.eng.auriga.database.store.dmpk_core.store.Unlockfolder;
@@ -9,6 +10,8 @@ import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.auriga.module.business.beans.SpecializzazioneBean;
 import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
+import it.eng.document.function.StoreException;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -17,6 +20,8 @@ import java.util.ArrayList;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -67,6 +72,7 @@ public class WSUnlockFolder extends JAXWSAbstractAurigaService implements WSIUnl
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
 
 
@@ -76,6 +82,7 @@ public class WSUnlockFolder extends JAXWSAbstractAurigaService implements WSIUnl
       
     String errMsg = null;
     String xmlIn = null;
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
     
     try {
     	 aLogger.info("Inizio WSUnlockFolder");
@@ -112,6 +119,11 @@ public class WSUnlockFolder extends JAXWSAbstractAurigaService implements WSIUnl
  			 outServizio =  eseguiServizio(loginBean,outWS); 	 		
 	 		}
 	 	catch (Exception e){	 
+	 		if (e instanceof StoreException) {
+	    		if(((StoreException) e).getError()!=null){
+	    			errCode = ((StoreException) e).getError().getErrorCode();
+	    		}
+	    	}
 	 		if(e.getMessage()!=null)
 	 			 errMsg = "Errore = " + e.getMessage();
 	 		 else
@@ -158,7 +170,7 @@ public class WSUnlockFolder extends JAXWSAbstractAurigaService implements WSIUnl
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 	 	 }
 	 	 else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	 }
 	 			        	
 	     aLogger.info("Fine WSUnlockFolder");
@@ -180,95 +192,78 @@ public class WSUnlockFolder extends JAXWSAbstractAurigaService implements WSIUnl
 
     
     private String eseguiServizio(AurigaLoginBean loginBean, WSUnlockFolderBean bean) throws Exception {
-    	aLogger.debug("Eseguo il servizio di AurigaDocument.");
+    	aLogger.debug("Eseguo il servizio  DMPK_CORE.UnlockFolder");
     	
     	String ret = null;
     	
-		// creo l'input
-		BigDecimal idFolderIn       = (bean.getIdFolder() != null) ? new BigDecimal(bean.getIdFolder()) : null;	    		
-
+    	// Inizializzo l'INPUT
+		BigDecimal idFolderIn  = (bean.getIdFolder() != null) ? new BigDecimal(bean.getIdFolder()) : null;
+		DmpkCoreUnlockfolderBean input = new DmpkCoreUnlockfolderBean();
+		input.setCodidconnectiontokenin(loginBean.getToken());
+		input.setIduserlavoroin(StringUtils.isNotBlank(loginBean.getIdUserLavoro()) ? new BigDecimal(loginBean.getIdUserLavoro()) : null);
+		input.setIdfolderin(idFolderIn);
+	    
+	    // Eseguo il servizio
+	    Unlockfolder lUnlockFolder = new Unlockfolder();			
+		StoreResultBean<DmpkCoreUnlockfolderBean> output = lUnlockFolder.execute(loginBean, input);
+		if (output.isInError()){
+			aLogger.debug(output.getDefaultMessage());
+			aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+			throw new StoreException(output);
+		}
 		
-	    try {	    	
-	    	    // **********************************************************
-	    	    // Eseguo il DMPK_CORE.UnlockFolder
-	    	    // **********************************************************
-	    	    aLogger.debug("Eseguo il servizio  DMPK_CORE.UnlockFolder");
-	    	
-	    	    DmpkCoreUnlockfolderBean lUnlockFolderBean = new DmpkCoreUnlockfolderBean();
-	    	    lUnlockFolderBean.setCodidconnectiontokenin(loginBean.getToken());
-	    	    lUnlockFolderBean.setIduserlavoroin(StringUtils.isNotBlank(loginBean.getIdUserLavoro()) ? new BigDecimal(loginBean.getIdUserLavoro()) : null);
-	    	    lUnlockFolderBean.setIdfolderin(idFolderIn);
+		// Leggo l'URI del folder
+		if(output.getResultBean().getUriout()!=null)
+			ret = output.getResultBean().getUriout();
+		else
+			ret = idFolderIn.toString();
 
-	    	    
-	    	    Unlockfolder lUnlockFolder = new Unlockfolder();			
-				
-				StoreResultBean<DmpkCoreUnlockfolderBean> lStoreResultBean = lUnlockFolder.execute(loginBean, lUnlockFolderBean);
-				if (lStoreResultBean.isInError()){
-					aLogger.debug(lStoreResultBean.getDefaultMessage());
-					aLogger.debug(lStoreResultBean.getErrorContext());
-					aLogger.debug(lStoreResultBean.getErrorCode());
-					throw new Exception(lStoreResultBean.getDefaultMessage());
-				}
-	    		
-				// Leggo l'URI del folder
-				if(lStoreResultBean.getResultBean().getUriout()!=null)
-					ret = lStoreResultBean.getResultBean().getUriout();
-				else
-					ret = idFolderIn.toString();
-	 		}
-	 	catch (Exception e){
-	 		throw new Exception(e.getMessage());	
-	 	}
 	 	return ret;    	
     }
     
     private WSUnlockFolderBean callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-    	    	
-    	aLogger.debug("Eseguo il WS DMPK_WS.LockGetDatiFolder");
+    	aLogger.debug("Eseguo il WS DMPK_WS->LockGetDatiFolder");
     	
     	String idFolder    = null;
     	String xml         = null;    	
     	
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsLockgetdatifolderBean input = new DmpkWsLockgetdatifolderBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		  input.setFlgtipowsin("U");       							// operazione di Lock = "U"
-    		      		
-      		
-    		  // Eseguo il servizio
-    		  Lockgetdatifolder  service = new Lockgetdatifolder();
-    		  StoreResultBean<DmpkWsLockgetdatifolderBean> output = service.execute(loginBean, input);
+    	// Inizializzo l'INPUT    		
+    	DmpkWsLockgetdatifolderBean input = new DmpkWsLockgetdatifolderBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+    	input.setFlgtipowsin("U");       							// operazione di Lock = "U"
+	
+    	// Eseguo il servizio
+    	Lockgetdatifolder  service = new Lockgetdatifolder();
+    	StoreResultBean<DmpkWsLockgetdatifolderBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
+    	if (output.isInError()){
+    		aLogger.debug(output.getDefaultMessage());
+		 	aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+			throw new StoreException(output);
+		}	
 
-    		  // restituisco l'ID FOLDER
-    		  if (output.getResultBean().getIdfolderout() != null){
-    			  idFolder = output.getResultBean().getIdfolderout().toString();  
-    		  }
-    		  if (idFolder== null || idFolder.equalsIgnoreCase("")){
-    			  throw new Exception("La store procedure Lockgetdatifolder ha ritornato id folder nullo");
-    		  }
-    		  
-    		  
-    		  // restituisco l'XML
-    		  if(output.getResultBean().getXmlout()!=null){
-    			  xml = output.getResultBean().getXmlout();  
-    		  }
-    		  
-      	      // popolo il bean di out
-    		  WSUnlockFolderBean result = new WSUnlockFolderBean();
-    		  result.setIdFolder(idFolder);
-    		  result.setXml(xml);
-    			  
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+	  	// restituisco l'ID FOLDER
+	  	if (output.getResultBean().getIdfolderout() != null){
+		  idFolder = output.getResultBean().getIdfolderout().toString();  
+	  	}
+	  	if (idFolder== null || idFolder.equalsIgnoreCase("")){
+		  throw new Exception("La store procedure Lockgetdatifolder ha ritornato id folder nullo");
+	  	}
+	  
+	  	// restituisco l'XML
+	  	if(output.getResultBean().getXmlout()!=null){
+		  xml = output.getResultBean().getXmlout();  
+	  	}
+	  
+	  	// popolo il bean di out
+	  	WSUnlockFolderBean result = new WSUnlockFolderBean();
+	  	result.setIdFolder(idFolder);
+	  	result.setXml(xml);
+		  
+	  return result;
     }
         
 	/**
@@ -287,7 +282,7 @@ public class WSUnlockFolder extends JAXWSAbstractAurigaService implements WSIUnl
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             aLogger.debug("generaXMLToken: token = " + xmlIn);
             aLogger.debug("generaXMLToken: tokenEsc = " + xmlInEsc);

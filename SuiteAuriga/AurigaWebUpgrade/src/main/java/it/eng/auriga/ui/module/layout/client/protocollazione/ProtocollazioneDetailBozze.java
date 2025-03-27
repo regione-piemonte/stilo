@@ -1,9 +1,11 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import com.smartgwt.client.data.Record;
 import com.smartgwt.client.widgets.form.fields.events.ChangeEvent;
 
 import it.eng.auriga.ui.module.layout.client.AurigaLayout;
+import it.eng.utility.ui.module.layout.client.Layout;
 
 /**
  * Maschera di una BOZZA
@@ -15,7 +17,7 @@ import it.eng.auriga.ui.module.layout.client.AurigaLayout;
 public abstract class ProtocollazioneDetailBozze extends ProtocollazioneDetailWizard {
 
 	protected ProtocollazioneDetailBozze instance;
-
+	
 	public ProtocollazioneDetailBozze(String nomeEntita) {
 		
 		super(nomeEntita);		
@@ -25,7 +27,7 @@ public abstract class ProtocollazioneDetailBozze extends ProtocollazioneDetailWi
 
 	@Override
 	public String getTitleUoProtocollanteSelectItem() {
-		return "<b>U.O. registrazione</b>";
+		return "<b>U.O. redattrice</b>";
 	}
 	
 	@Override
@@ -37,6 +39,11 @@ public abstract class ProtocollazioneDetailBozze extends ProtocollazioneDetailWi
 	protected void createMittentiItem() {
 
 		mittentiItem = new MittenteProtInternaItem() {
+			
+			@Override
+			public boolean isProtPregresso() {
+				return isPregresso();
+			}
 			
 			@Override
 			public boolean isProtInModalitaWizard() {
@@ -114,6 +121,9 @@ public abstract class ProtocollazioneDetailBozze extends ProtocollazioneDetailWi
 				if(getUoProtocollanteValueMap().size() == 1 && isRequiredDetailSectionMittenti()) {
 					return true;
 				}
+				if(AurigaLayout.getParametroDBAsBoolean("INIBITA_SEL_MITT_UO_PROT_USCITA") && !Layout.isPrivilegioAttivo("SMR") && getSelezioneUoProtocollanteValueMap().size() == 1) {
+					return true;
+				}
 				return AurigaLayout.getParametroDBAsBoolean("PREIMP_UO_COME_MITT_BOZZE") && (getSelezioneUoProtocollanteValueMap().size() == 1)
 						&& (AurigaLayout.getIdUOPuntoProtAttivato() == null || "".equals(AurigaLayout.getIdUOPuntoProtAttivato()));
 			}
@@ -177,8 +187,13 @@ public abstract class ProtocollazioneDetailBozze extends ProtocollazioneDetailWi
 	
 	@Override
 	protected void createDestinatariItem() {
-
+		
 		destinatariItem = new DestinatarioProtUscitaItem() {
+			
+			@Override
+			public boolean isProtPregresso() {
+				return isPregresso();
+			}
 			
 			@Override
 			public boolean isProtInModalitaWizard() {
@@ -384,11 +399,12 @@ public abstract class ProtocollazioneDetailBozze extends ProtocollazioneDetailWi
 	}	
 	
 	@Override
-	public void modificaDatiMode(Boolean abilAggiuntaFile) {
+	public void modificaDatiMode(String editMode, Boolean abilAggiuntaFile) {
 		
-		this.editMode = "modificaDati";		
+		this.editMode = editMode;		
 		setModificaDatiReg(false);
 		editMode();
+		/*
 		Record record = new Record(getValuesManager().getValues());
 		if (abilAggiuntaFile == null) {
 			abilAggiuntaFile = record.getAttributeAsBoolean("abilAggiuntaFile");
@@ -418,7 +434,7 @@ public abstract class ProtocollazioneDetailBozze extends ProtocollazioneDetailWi
 			}
 		} else {
 			fileAllegatiItem.setCanEdit(false);
-		}
+		*/			
 	}
 
 }

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.bean;
 
 import it.eng.fileOperation.clientws.SignerInformationType;
 import it.eng.fileOperation.clientws.SignerInformationType.Marca;
@@ -155,6 +156,7 @@ public class StampaCertificazioneBean {
 		private String statoCertificato;
 		private String numeroCertificato;
 		private String serialNumber;
+		private String codiceFiscale;
 		private String[] qcStatements;
 		private String[] keyUsages;
 		private String verificationStatus;
@@ -165,6 +167,7 @@ public class StampaCertificazioneBean {
 		private Marca marca;
 		private SignerInformationType controFirma;
 		private String tipoFirmaQA;
+		private String cfFirmatario;
 		
 		public String getSubject() {
 			return subject;
@@ -250,6 +253,12 @@ public class StampaCertificazioneBean {
 		public void setSerialNumber(String serialNumber) {
 			this.serialNumber = serialNumber;
 		}
+		public String getCodiceFiscale() {
+			return codiceFiscale;
+		}
+		public void setCodiceFiscale(String codiceFiscale) {
+			this.codiceFiscale = codiceFiscale;
+		}
 		public String[] getQcStatements() {
 			return qcStatements;
 		}
@@ -279,6 +288,12 @@ public class StampaCertificazioneBean {
 		}
 		public void setTipoFirmaQA(String tipoFirmaQA) {
 			this.tipoFirmaQA = tipoFirmaQA;
+		}
+		public String getCfFirmatario() {
+			return cfFirmatario;
+		}
+		public void setCfFirmatario(String cfFirmatario) {
+			this.cfFirmatario = cfFirmatario;
 		}
 	}
 

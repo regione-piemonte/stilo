@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.istanzeportaleriscossione.datasource.bean;
 
 import it.eng.document.NumeroColonna;
 
@@ -18,9 +19,6 @@ public class TipoFlussoIstanzaBean {
 
 	@NumeroColonna(numero = "5")
 	private String nomeDocTypeFinale;
-
-	@NumeroColonna(numero = "6")
-	private String flgRichiestaFirmaDigitale;
 	
 	public String getFlowTypeId() {
 		return flowTypeId;
@@ -60,14 +58,6 @@ public class TipoFlussoIstanzaBean {
 
 	public void setNomeDocTypeFinale(String nomeDocTypeFinale) {
 		this.nomeDocTypeFinale = nomeDocTypeFinale;
-	}
-
-	public String getFlgRichiestaFirmaDigitale() {
-		return flgRichiestaFirmaDigitale;
-	}
-
-	public void setFlgRichiestaFirmaDigitale(String flgRichiestaFirmaDigitale) {
-		this.flgRichiestaFirmaDigitale = flgRichiestaFirmaDigitale;
 	}
 
 }

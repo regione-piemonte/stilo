@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -82,6 +83,7 @@ import it.eng.utility.ui.module.layout.client.BaseWindow;
 import it.eng.utility.ui.module.layout.client.Layout;
 import it.eng.utility.ui.module.layout.client.common.CustomList.DettaglioWindow;
 import it.eng.utility.ui.module.layout.client.common.file.DownloadExportList;
+import it.eng.utility.ui.module.layout.client.common.items.CheckboxItem;
 import it.eng.utility.ui.module.layout.client.common.items.ExtendedNumericItem;
 import it.eng.utility.ui.module.layout.client.common.items.ImgButtonItem;
 import it.eng.utility.ui.module.layout.client.common.items.NumericItem;
@@ -117,6 +119,7 @@ public class CustomLayout extends VLayout {
 
 	protected ToolStrip filterToolStrip;
 	protected SelectItem ricercaPreferitaSelectItem;
+	protected CheckboxItem ricercaRicorsivaItem;
 	protected ListGrid ricercaPreferitaPickListProperties;
 	protected SavePreferenceWindow saveRicercaPreferitaWindow;
 	protected SelectItem layoutFiltroSelectItem;
@@ -675,6 +678,12 @@ public class CustomLayout extends VLayout {
 				markForRedraw();
 			}
 		});
+		
+		ricercaRicorsivaItem = new CheckboxItem("flgRicercaRicorsiva", "Ricerca ricorsiva");
+		ricercaRicorsivaItem.setShowTitle(true);
+		ricercaRicorsivaItem.setEndRow(false);		
+		ricercaRicorsivaItem.setColSpan(1);
+		ricercaRicorsivaItem.setVisible(false);
 
 		filterToolStrip = new ToolStrip();
 		if (UserInterfaceFactory.isAttivaAccessibilita()){
@@ -697,6 +706,7 @@ public class CustomLayout extends VLayout {
 		if(showFunzGestioneSubordinati()) {
 			filterToolStrip.addFormItem(funzGestioneSubordinatiButton);
 		}
+		filterToolStrip.addFormItem(ricercaRicorsivaItem);
 		filterToolStrip.addFill(); // push all buttons to the right
 		filterToolStrip.addFormItem(layoutFiltroSelectItem);
 		filterToolStrip.addButton(saveLayoutFiltroButton);
@@ -1504,7 +1514,7 @@ public class CustomLayout extends VLayout {
 			caricaPreference();
 			caricaPreferenceGestioneSubordinati();
 		}
-
+		setRicercaRicorsivaItemVisibility(false);
 	}
 	
 	public void buildListAndFilterPreferenceDataSources() {
@@ -1712,6 +1722,7 @@ public class CustomLayout extends VLayout {
 							//TODO mettere maxRecordVisualizzabili e nroRecordXPagina in layoutLista o preference a parte?									
 							setMaxRecordVisualizzabiliFromCriteria(criteria);	
 							setNroRecordXPaginaFromCriteria(criteria);	
+							setFlgRicercaRicorsivaFromCriteria(criteria);
 							filter.setCriteria(checkRetrocompatibilitaFiltri(criteria));
 							layoutFiltroSelectItem.setValue((String) null);
 							loadLayoutListaFromRicercaPreferita(record);
@@ -2190,7 +2201,8 @@ public class CustomLayout extends VLayout {
 						layoutFiltroSelectItem.setValue((String) null);
 						//TODO mettere maxRecordVisualizzabili e nroRecordXPagina in layoutLista o preference a parte?					
 						setMaxRecordVisualizzabiliFromCriteria(criteria);					
-						setNroRecordXPaginaFromCriteria(criteria);				
+						setNroRecordXPaginaFromCriteria(criteria);		
+						setFlgRicercaRicorsivaFromCriteria(criteria);
 						setCriteriaAndFirstSearch(checkRetrocompatibilitaFiltri(criteria), 
 								object.getAttributeAsBoolean("autosearch"));
 					} else if (object.getAttribute("layoutFiltro") != null) {
@@ -2207,7 +2219,8 @@ public class CustomLayout extends VLayout {
 						layoutFiltroSelectItem.setValue((String) null);
 						//TODO mettere maxRecordVisualizzabili e nroRecordXPagina in layoutLista o preference a parte?					
 						setMaxRecordVisualizzabiliFromCriteria(criteria);					
-						setNroRecordXPaginaFromCriteria(criteria);				
+						setNroRecordXPaginaFromCriteria(criteria);	
+						setFlgRicercaRicorsivaFromCriteria(criteria);
 						setCriteriaAndFirstSearch(checkRetrocompatibilitaFiltri(criteria),
 								object.getAttributeAsBoolean("autosearch"));
 					} else if (object.getAttribute("layoutFiltroDefault") != null) {
@@ -2365,7 +2378,8 @@ public class CustomLayout extends VLayout {
 					layoutFiltroSelectItem.setValue((String) null);		
 					//TODO mettere maxRecordVisualizzabili e nroRecordXPagina in layoutLista o preference a parte?					
 					setMaxRecordVisualizzabiliFromCriteria(criteria);					
-					setNroRecordXPaginaFromCriteria(criteria);				
+					setNroRecordXPaginaFromCriteria(criteria);		
+					setFlgRicercaRicorsivaFromCriteria(criteria);
 					setCriteriaAndFirstSearch(criteria, autoSearch);
 				} else {
 					AdvancedCriteria criteriaLayoutFiltro = new AdvancedCriteria();
@@ -2395,7 +2409,8 @@ public class CustomLayout extends VLayout {
 											layoutFiltroSelectItem.setValue((String) null);
 											//TODO mettere maxRecordVisualizzabili e nroRecordXPagina in layoutLista o preference a parte?					
 											setMaxRecordVisualizzabiliFromCriteria(criteria);					
-											setNroRecordXPaginaFromCriteria(criteria);				
+											setNroRecordXPaginaFromCriteria(criteria);		
+											setFlgRicercaRicorsivaFromCriteria(criteria);
 											setCriteriaAndFirstSearch(criteria, autoSearch);
 										} else {
 											layoutFiltroDefaultDS.fetchData(null, new DSCallback() {
@@ -2586,6 +2601,10 @@ public class CustomLayout extends VLayout {
 									if (nroRecordXPagina > 0){
 										newCriterionListFiltroGui.add(new Criterion("nroRecordXPagina", OperatorId.EQUALS, nroRecordXPaginaItem.getValueAsString()));	
 									}
+								}
+								if(showRicercaRicorsivaItem()){
+									boolean flgRicercaRicorsiva = getFlgRicercaRicorsiva();
+									newCriterionListFiltroGui.add(new Criterion("flgRicercaRicorsiva", OperatorId.EQUALS, flgRicercaRicorsiva));	
 								}
 								criteriaFiltroGui.setCriteria(newCriterionListFiltroGui.toArray(new Criterion[newCriterionListFiltroGui.size()]));
 							}
@@ -3004,6 +3023,7 @@ public class CustomLayout extends VLayout {
 			// prima di fare la ricerca verifico che non ci siano alert da dare sui filtri selezionati dall'utente: inizio da -1 così per il primo giro verifico
 			// che ci sia un filtro data
 			AdvancedCriteria lAdvancedCriteria = filter.isVisible() ? filter.getCriteria() : searchCriteria;
+			// Aggiungo il flag di ricerca
 			checkFilterAlertMessages(filter.getNomeEntita(), lAdvancedCriteria, new Integer(-1), alertMessagesRequested);
 		} else {
 			// qui ci passo solo quando faccio una nuova ricerca cliccando il bottone, perciò devo resettare il numero di pagina
@@ -3028,7 +3048,20 @@ public class CustomLayout extends VLayout {
 	};
 
 	public void doSearchAndSelectRecords(int[] recordsToSelect) {
-		list.setRecordsToSelect(recordsToSelect);
+		list.setPkRecordsToSelect(null);
+		list.setRecordsToSelect(null);
+		if(recordsToSelect != null) {
+			String pkFieldName = list.getDataSource().getPrimaryKeyFieldName();
+			if(pkFieldName != null) {
+				String[] pkRecordsToSelect = new String[recordsToSelect.length];
+				for(int i = 0; i < recordsToSelect.length; i++) {
+					pkRecordsToSelect[i] = list.getRecord(recordsToSelect[i]).getAttribute(pkFieldName);
+				}
+				list.setPkRecordsToSelect(pkRecordsToSelect);
+			} else {
+				list.setRecordsToSelect(recordsToSelect);
+			}
+		}
 		doSearch();
 	}
 
@@ -3103,6 +3136,10 @@ public class CustomLayout extends VLayout {
 			}
 		}
 		
+		if (showRicercaRicorsivaItem()) {
+			criterionList.add(new Criterion("flgRicercaRicorsiva", OperatorId.EQUALS, getFlgRicercaRicorsiva() + ""));
+		}
+		
 		Criterion[] criterias = new Criterion[criterionList.size()];
 		for (int i = 0; i < criterionList.size(); i++) {
 			criterias[i] = criterionList.get(i);
@@ -3111,7 +3148,7 @@ public class CustomLayout extends VLayout {
 	}
 
 	public void doSearch(AdvancedCriteria criteria) {
-		final AdvancedCriteria searchCriteria = buildSearchCriteria(criteria);
+		AdvancedCriteria searchCriteria = buildSearchCriteria(criteria);
 		HashSet<String> fieldNames = new HashSet<String>();
 		AdvancedCriteria criteriaIncludeEmptyValue = null;
 		criteriaIncludeEmptyValue = filter.getCriteria(true);
@@ -3142,18 +3179,16 @@ public class CustomLayout extends VLayout {
 	private void checkFilterAlertMessages(final String nomeEntita, final AdvancedCriteria lAdvancedCriteria, final int posCriteria, final Set<String> alertMessagesRequested) {
 		// Filtri selezionati dall'utente 
 		Criterion[] criterions = lAdvancedCriteria.getCriteria();
-
 		if (posCriteria < criterions.length) {
 			// non abbiamo ancora processato tutti i criteria.
-			
 			if (posCriteria == -1) {
 				// sono al primo giro, verifico che ci sia almeno un filtro data o equivalente
 				if (!hasDataFilter(criterions, nomeEntita) && !ignoreDateAlert(criterions, nomeEntita)) {
 					String messageForAsk = "";
 					if ("posta_elettronica".equals(nomeEntita)) {
-						messageForAsk = I18NUtil.getMessages().beforeSearch_postaElettronica_dataInvio_meseMax();
+						messageForAsk = I18NUtil.getMessages().beforeSearch_postaElettronica_dataInvio_mancante();
 					} else if ("archivio".equals(nomeEntita)) {
-						messageForAsk = I18NUtil.getMessages().beforeSearch_archivio_data_meseMax();
+						messageForAsk = I18NUtil.getMessages().beforeSearch_archivio_data_mancante();
 					}
 					addToRequestedMessagesAndAsk(nomeEntita, lAdvancedCriteria, posCriteria, alertMessagesRequested, messageForAsk);
 				} else {
@@ -3162,8 +3197,7 @@ public class CustomLayout extends VLayout {
 				}
 			} else { 
 				final Criterion currentCriterion = criterions[posCriteria];
-				String currentFieldName = currentCriterion.getFieldName();
-				
+				String currentFieldName = currentCriterion.getFieldName();				
 				if ("classifica".equals(currentFieldName) 
 						|| "maxRecordVisualizzabili".equals(currentFieldName) 
 						|| "nroRecordXPagina".equals(currentFieldName) 
@@ -3172,11 +3206,9 @@ public class CustomLayout extends VLayout {
 					// salto i filtri di default e passo al prossimo
 					int newIndex = posCriteria + 1;
 					checkFilterAlertMessages(nomeEntita, lAdvancedCriteria, newIndex, alertMessagesRequested);
-
 				} else if ("posta_elettronica".equals(nomeEntita)) {
 					// criteria relativi ai filtri della posta elettronica
-					if ("dataInvio".equals(currentFieldName)) {
-							
+					if (isPostaElettronicaDataFilter(currentFieldName)) {
 						// verifico se il filtro dataInvio specifica un range maggiore di un mese (30gg)
 						if (checkOverDateLimit(currentCriterion, 31) && !ignoreDateAlert(criterions, nomeEntita)) {
 							// il filtro supera il range di un mese
@@ -3193,10 +3225,8 @@ public class CustomLayout extends VLayout {
 							int newIndex = posCriteria + 1;
 							checkFilterAlertMessages(nomeEntita, lAdvancedCriteria, newIndex,alertMessagesRequested);
 						}
-
 					} else if ("ricercaMailArchiviate".equals(currentFieldName)) {
-						// Se ho il filtro "Ricerca sulle e-mail archiviate" do alert
-						
+						// Se ho il filtro "Ricerca sulle e-mail archiviate" do alert					
 						String messageForAsk = null;
 						String value = UserInterfaceFactory.getParametroDB("CLIENTE");
 						if(value != null && !"".equals(value) && "CMMI".equals(value)) {
@@ -3204,7 +3234,6 @@ public class CustomLayout extends VLayout {
 						} else {
 							messageForAsk = I18NUtil.getMessages().beforeSearch_postaElettronica_ricercaMailArchiviate("archivio");
 						}
-						 
 						if(alertMessagesRequested.contains(messageForAsk)) {
 							// il messaggio è già  stato richiesto all'utente. Si procede a processare il criteria successivo.
 							int newIndex = posCriteria + 1;
@@ -3223,9 +3252,7 @@ public class CustomLayout extends VLayout {
 					}
 				} else if ("archivio".equals(nomeEntita)) {
 					// criteria relativi ai filtri dell'archivio ricerca documenti e fascicoli
-					if ("altraNumerazioneData".equals(currentFieldName) || "tsRegistrazione".equals(currentFieldName) 
-							|| "tsBozza".equals(currentFieldName) || "tsAperturaFascicolo".equals(currentFieldName) ) {
-
+					if (isArchivioDataFilter(currentFieldName)) {
 						if (checkOverDateLimit(currentCriterion, 31) && !ignoreDateAlert(criterions, nomeEntita)) {
 							// il filtro supera il range di un mese
 							String messageForAsk = I18NUtil.getMessages().beforeSearch_archivio_data_meseMax();
@@ -3241,11 +3268,9 @@ public class CustomLayout extends VLayout {
 							int newIndex = posCriteria + 1;
 							checkFilterAlertMessages(nomeEntita, lAdvancedCriteria, newIndex,alertMessagesRequested);
 						}
-
 					} else if (isRicercaTestuale(currentCriterion)) {
 						// se sto facendo una ricerca testuale verifico che il testo della ricerca non sia inferiore ai 5 caratteri
 						checkRicercaTestuale(nomeEntita, lAdvancedCriteria, posCriteria, alertMessagesRequested, currentCriterion);
-
 					}  else {
 						// se non è nessuno di questi passo si procede a processare il criteria successivo.
 						int newIndex = posCriteria + 1;
@@ -3275,25 +3300,26 @@ public class CustomLayout extends VLayout {
 	 * metodo che indica la presenza di almeno un filtro data
 	 */
 	private boolean hasDataFilter(Criterion[] criterions, String nomeEntita) {
-		Map<String, OperatorId> fields =  new HashMap<>();
-
-		// riverso i nomi dei criteria in un set
 		for (Criterion criterion : criterions) {
-			fields.put(criterion.getFieldName(), criterion.getOperator());
+			if("posta_elettronica".equals(nomeEntita)) {
+				if(isPostaElettronicaDataFilter(criterion.getFieldName())) {
+					return true;
+				}
+			} else if ("archivio".equals(nomeEntita)) {
+				if(isArchivioDataFilter(criterion.getFieldName())) {
+					return true;
+				}
+			}
 		}
-
-		if("posta_elettronica".equals(nomeEntita)) {
-			if(fields.containsKey("dataInvio")) {
-				return true;
-			} 
-		} else if ("archivio".equals(nomeEntita)) {
-			if(fields.containsKey("tsRegistrazione") || fields.containsKey("tsBozza") 
-					|| fields.containsKey("altraNumerazioneData") || fields.containsKey("tsAperturaFascicolo")) {
-				return true;
-			} 
-		}
-		
 		return false;
+	}
+	
+	private boolean isPostaElettronicaDataFilter(String currentFieldName) {
+		return "dataInvio".equals(currentFieldName);
+	}
+	
+	private boolean isArchivioDataFilter(String currentFieldName) {
+		return "altraNumerazioneData".equals(currentFieldName) || "tsRegistrazione".equals(currentFieldName) || "tsBozza".equals(currentFieldName) || "tsAperturaFascicolo".equals(currentFieldName);
 	}
 
 	/**
@@ -4301,6 +4327,10 @@ public class CustomLayout extends VLayout {
 	public boolean showPaginazioneItems() {
 		return false;
 	}
+	
+	public boolean showRicercaRicorsivaItem() {
+		return (filter.getFilterConfigBean() != null && Boolean.valueOf(filter.getFilterConfigBean().getShowFlgRicorsiva()));
+	}
 
 	public void setMaxRecordVisualizzabili(String value) {
 		if (maxRecordVisualizzabiliItem != null){
@@ -4318,9 +4348,9 @@ public class CustomLayout extends VLayout {
 				String defaultRecPagAcc = UserInterfaceFactory.getParametroDB("DEFAULT_NRO_RECORD_PAGINAZIONE_ACCESSIBILITA");
 				nroRecordXPaginaItem.setValue(defaultRecPagAcc != null && !"".equals(defaultRecPagAcc) ? defaultRecPagAcc : "20");
 			} else {
-			nroRecordXPaginaItem.setValue(value);
+				nroRecordXPaginaItem.setValue(value);
+			}
 		}
-	}
 	}
 
 	public String getNroRecordXPagina() {
@@ -4337,6 +4367,38 @@ public class CustomLayout extends VLayout {
 		return nroPaginaItem != null ? nroPaginaItem.getValueAsString() : null;
 	}
 	
+	public CheckboxItem getRicercaRicorsivaItem() {
+		return ricercaRicorsivaItem;
+	}
+	
+	public void setFlgRicercaRicorsiva(boolean value) {
+		if(ricercaRicorsivaItem != null) {
+			ricercaRicorsivaItem.setValue(value);
+		}
+	}
+	
+	public boolean getFlgRicercaRicorsiva() {
+		return ricercaRicorsivaItem != null ? (ricercaRicorsivaItem.getValueAsBoolean() != null ? ricercaRicorsivaItem.getValueAsBoolean().booleanValue() : false) : false;
+	}
+	
+	public void setRicercaRicorsivaItemVisibility(boolean visible) {
+		if (getRicercaRicorsivaItem() != null) {
+			if (visible) {
+				getRicercaRicorsivaItem().show();
+			} else {
+				getRicercaRicorsivaItem().hide();
+			}
+		}
+	}
+	
+	public boolean getRicercaRicorsivaItemVisibility() {
+		if (getRicercaRicorsivaItem() != null) {
+			return getRicercaRicorsivaItem().isVisible() != null ?  getRicercaRicorsivaItem().isVisible().booleanValue() : false;
+		} else {
+			return false;
+		}
+	}
+		
 	public void manageAfterFilterChanged() {
 
 	}
@@ -4456,6 +4518,26 @@ public class CustomLayout extends VLayout {
 		}
 	}
 	
+	protected void setFlgRicercaRicorsivaFromCriteria(AdvancedCriteria criteria) {
+		if(showRicercaRicorsivaItem() && criteria != null) {
+			for (int pos = 0; pos < criteria.getCriteria().length; pos++) {
+				Criterion pCriterion = criteria.getCriteria()[pos];
+				if (pCriterion.getFieldName() != null && pCriterion.getFieldName().equals("flgRicercaRicorsiva")) {
+					setFlgRicercaRicorsiva(new Boolean(pCriterion.getValueAsString()));
+					return;	
+				} else if (pCriterion.getFieldName() != null && pCriterion.getFieldName().equals("searchFulltext")) { 
+					// Retrocompatibilità con le vecchie preferenze salvate in DB, dove il flag della ricerca ricorsiva era dentro searchFullText
+					Record value = pCriterion.getAttributeAsRecord("value");
+					if (value != null && value.getAttribute("flgRicorsiva") != null && "true".equalsIgnoreCase(value.getAttributeAsString("flgRicorsiva"))){ 
+						setFlgRicercaRicorsiva(new Boolean( value.getAttribute("flgRicorsiva")));
+						return;
+					}					
+				}
+			}
+		}
+		setFlgRicercaRicorsiva(false);
+	}
+	
 	protected AdvancedCriteria checkRetrocompatibilitaFiltri(AdvancedCriteria criteria) {
 		AdvancedCriteria checkedCriteria = new AdvancedCriteria();
 		for (int pos = 0; pos < criteria.getCriteria().length; pos++) {
@@ -4520,4 +4602,7 @@ public class CustomLayout extends VLayout {
 		return backToListButton;
 	}
 	
+	public void setRicercaRicorsivaItem(CheckboxItem ricercaRicorsivaItem) {
+		this.ricercaRicorsivaItem = ricercaRicorsivaItem;
+	}
 }

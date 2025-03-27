@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.tipologieDocumentali;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -16,7 +17,6 @@ import com.smartgwt.client.widgets.form.FormItemIfFunction;
 import com.smartgwt.client.widgets.form.fields.FormItem;
 import com.smartgwt.client.widgets.form.fields.HiddenItem;
 import com.smartgwt.client.widgets.form.fields.RadioGroupItem;
-import com.smartgwt.client.widgets.form.fields.SpacerItem;
 import com.smartgwt.client.widgets.form.fields.events.ChangedEvent;
 import com.smartgwt.client.widgets.form.fields.events.ChangedHandler;
 import com.smartgwt.client.widgets.grid.ListGridField;
@@ -58,7 +58,6 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 	protected LinkedHashMap<String, String> attributiAddTabs;
 	protected HashMap<String, VLayout> attributiAddLayouts;
 	protected HashMap<String, AttributiDinamiciDetail> attributiAddDetails;
-
 	
 	protected DynamicForm formTipologiaDocumentale;
 	private HiddenItem idTipoDocItem;
@@ -72,12 +71,15 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 	private CheckboxItem flgConservPermInItem;
 	private NumericItem periodoConservInItem;
 	protected DynamicForm formAbilitazioni;
+	protected DynamicForm formRichiestaFirma;
+	
 	private CheckboxItem flgRichAbilVisItem;
 	private CheckboxItem flgRichAbilXGestInItem;
 	private CheckboxItem flgRichAbilXAssegnInItem;
 	private CheckboxItem flgAbilFirmaItem;
 
 	protected DetailSection detailSectionTemplateTimbro;
+	
 	protected DynamicForm formTemplate;
 	private TextItem templateNomeUDItem;
 	private TextItem templateTimbroUDItem;
@@ -93,9 +95,13 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 	protected ListaUoGpPrivAbilitatiPubblicazioneItem listaUoGpPrivAbilitatiPubblicazioneItem;
 	
 	protected RadioGroupItem flgAllegatoItem;
-	protected RadioGroupItem flgRichiestaFirmaDigitaleItem;
+	
 	private HiddenItem flgIsAssociataIterWf;
 	
+	private CheckboxItem flgRichFileItem;
+	private CheckboxItem flgRichFirmaDigitaleItem;
+	private CheckboxItem flgRichFirmaValidaItem;
+
 	public TipologieDocumentaliDetail(String nomeEntita) {
 		
 		super(nomeEntita);
@@ -149,22 +155,6 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 		flgAllegatoItem.setDefaultValue("0");
 		flgAllegatoItem.setValueMap(flgAllegatoMap); 
 		
-		// flag richiesta firma digitale
-		LinkedHashMap<String, String> flgRichiestaFirmaDigitaleMap = new LinkedHashMap<String, String>();  
-		flgRichiestaFirmaDigitaleMap.put("0", "NO");
-		flgRichiestaFirmaDigitaleMap.put("V", "SI, valida alla data di registrazione a protocollo/repertorio");  
-		flgRichiestaFirmaDigitaleMap.put("P", "SI, anche se NON valida alla data di registrazione a protocollo/repertorio");
-		
-		flgRichiestaFirmaDigitaleItem = new RadioGroupItem("flgRichFirmaDigitale", I18NUtil.getMessages().tipologieDocumentali_detail_flgRichFirmaDigitale());
-		flgRichiestaFirmaDigitaleItem.setStartRow(true);
-		flgRichiestaFirmaDigitaleItem.setColSpan(14);
-		flgRichiestaFirmaDigitaleItem.setVertical(false);
-		flgRichiestaFirmaDigitaleItem.setWrap(false);
-		flgRichiestaFirmaDigitaleItem.setShowTitle(true);
-		flgRichiestaFirmaDigitaleItem.setTitleOrientation(TitleOrientation.LEFT);
-		flgRichiestaFirmaDigitaleItem.setDefaultValue("0");
-		flgRichiestaFirmaDigitaleItem.setValueMap(flgRichiestaFirmaDigitaleMap); 
-
 		nomeDocTypeGenItem = new HiddenItem("nomeDocTypeGen");
 
 		GWTRestDataSource docTypesGenDS = new GWTRestDataSource("LoadComboTipiDocDataSource", "idDocumentoTypePadre", FieldType.TEXT, true);
@@ -282,7 +272,7 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 			}
 		});
 		
-		formTipologiaDocumentale.setItems(idTipoDocItem, nomeItem, descrizioneItem, flgAllegatoItem, idDocTypeGenItem, nomeDocTypeGenItem, idProcessTypeItem, flgTipoProvItem, flgRichiestaFirmaDigitaleItem, nomeProcessTypeItem, flgIsAssociataIterWf);
+		formTipologiaDocumentale.setItems(idTipoDocItem, nomeItem, descrizioneItem, flgAllegatoItem, idDocTypeGenItem, nomeDocTypeGenItem, idProcessTypeItem, flgTipoProvItem, nomeProcessTypeItem, flgIsAssociataIterWf);
 	}
 	
 	private void setTemplateValues() {
@@ -311,6 +301,34 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 		detailSectionTemplateTimbro = new DetailSection(I18NUtil.getMessages().tipologieDocumentali_detail_section_template(), true, true, false, formTemplate);
 	}
 
+	private void setRichiestaFirma(){
+		
+		formRichiestaFirma = new DynamicForm();
+		formRichiestaFirma.setValuesManager(vm);
+		formRichiestaFirma.setHeight("5");
+		formRichiestaFirma.setPadding(5);
+		formRichiestaFirma.setWrapItemTitles(false);
+		formRichiestaFirma.setNumCols(15);
+		formRichiestaFirma.setColWidths("1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "*", "*");
+		
+		flgRichFileItem = new CheckboxItem("flgRichFile", I18NUtil.getMessages().tipologieDocumentali_detail_flgRichFileItem());
+		flgRichFileItem.setColSpan(1);
+		flgRichFileItem.setWidth("*");
+		flgRichFileItem.setStartRow(true);
+		
+		flgRichFirmaDigitaleItem = new CheckboxItem("flgRichFirmaDigitale", I18NUtil.getMessages().tipologieDocumentali_detail_flgRichFirmaDigitaleItem());
+		flgRichFirmaDigitaleItem.setColSpan(1);
+		flgRichFirmaDigitaleItem.setWidth("*");
+		flgRichFirmaDigitaleItem.setStartRow(true);
+
+		flgRichFirmaValidaItem = new CheckboxItem("flgRichFirmaValida", I18NUtil.getMessages().tipologieDocumentali_detail_flgRichFirmaValidaItem());
+		flgRichFirmaValidaItem.setColSpan(1);
+		flgRichFirmaValidaItem.setWidth("*");
+		flgRichFirmaValidaItem.setStartRow(true);
+
+		formRichiestaFirma.setItems(flgRichFileItem, flgRichFirmaDigitaleItem, flgRichFirmaValidaItem);		
+	}
+	
 	private void setAbilValues() {
 
 		formAbilitazioni = new DynamicForm();
@@ -320,10 +338,7 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 		formAbilitazioni.setWrapItemTitles(false);
 		formAbilitazioni.setNumCols(15);
 		formAbilitazioni.setColWidths("1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "*", "*");
-
-		SpacerItem spacer = new SpacerItem();
-		spacer.setColSpan(2);
-
+		
 		flgRichAbilVisItem = new CheckboxItem("flgRichAbilVis", I18NUtil.getMessages().tipologieDocumentali_detail_flgRichAbilVis());
 		flgRichAbilVisItem.setColSpan(1);
 		flgRichAbilVisItem.setWidth("*");
@@ -360,7 +375,7 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 			}
 		});
 		
-		formAbilitazioni.setItems(spacer, flgRichAbilVisItem, flgRichAbilXGestInItem, flgRichAbilXAssegnInItem, flgAbilFirmaItem, flgConservPermInItem, periodoConservInItem);
+		formAbilitazioni.setItems(flgRichAbilVisItem, flgRichAbilXGestInItem, flgRichAbilXAssegnInItem, flgAbilFirmaItem, flgConservPermInItem, periodoConservInItem);
 	}
 
 	private void setAttrCustValues() {
@@ -386,8 +401,7 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 
 		formMetadatiSpecifici.setFields(defAttivitaProcedimentiItem);
 		
-		detailSectionAttributiCustom = new DetailSection(I18NUtil.getMessages().tipologieDocumentali_detail_section_attr_custom(), true, true, false, formMetadatiSpecifici);
-		
+		detailSectionAttributiCustom = new DetailSection(I18NUtil.getMessages().tipologieDocumentali_detail_section_attr_custom(), true, true, false, formMetadatiSpecifici);		
 	}
 
 	private void reloadComboFromRecord(Record record) {
@@ -415,7 +429,6 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 		idProcessTypeItem.setOptionDataSource(processTypesDS);
 		idProcessTypeItem.fetchData();
 	}
-
 	
 	protected void createTabSet() {
 		
@@ -463,11 +476,9 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 		}
 	}
 	
-	
 	public String getTitleTabUoGpPrivAbilitatiPubblicazione() {
 		return "Abilitati alla pubblicazione";
 	}
-	
 	
 	public VLayout getLayoutTabUoGpPrivAbilitatiPubblicazione() {
 		
@@ -539,6 +550,8 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 		
 		setTemplateValues();
 
+		setRichiestaFirma();
+		
 		setAbilValues();
 		
 		setAttrCustValues();
@@ -554,6 +567,7 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 
 
 		lVLayout.addMember(formTipologiaDocumentale);
+		lVLayout.addMember(formRichiestaFirma);
 		lVLayout.addMember(formAbilitazioni);
 		lVLayout.addMember(detailSectionTemplateTimbro);
 		lVLayout.addMember(detailSectionAttributiCustom);
@@ -680,7 +694,6 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 	}
 	
     public void caricaAttributiDinamici(final String rowid) {
-		
 		Record lRecordLoad = new Record();
 		lRecordLoad.setAttribute("nomeTabella", "DMT_DOC_TYPES");
 		new GWTRestService<Record, Record>("LoadComboGruppiAttrCustomTabellaDataSource").call(lRecordLoad, new ServiceCallback<Record>() {
@@ -688,11 +701,25 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 			@Override
 			public void execute(Record object) {
 				final boolean isReload = (attributiAddTabs != null && attributiAddTabs.size() > 0);
+				if(attributiAddLayouts != null) {
+					for (String key : attributiAddLayouts.keySet()) {
+						// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+						if(key != null && !key.startsWith("HEADER_")) {
+							try { attributiAddLayouts.get(key).destroy(); } catch(Exception e) {}
+						}
+					}
+				}
+				if(attributiAddDetails != null) {
+					for (String key : attributiAddDetails.keySet()) {
+						try { attributiAddDetails.get(key).destroy(); } catch(Exception e) {}				
+					}
+				}
 				attributiAddTabs = (LinkedHashMap<String, String>) object.getAttributeAsMap("gruppiAttributiCustomTabella");
 				attributiAddLayouts = new HashMap<String, VLayout>();
 				attributiAddDetails = new HashMap<String, AttributiDinamiciDetail>();
 				if (attributiAddTabs != null && attributiAddTabs.size() > 0) {
-					GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");					
+					GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");
+					lGwtRestService.addParam("flgSkipAttrSenzaCategoria", "true");
 					Record lAttributiDinamiciRecord = new Record();
 					lAttributiDinamiciRecord.setAttribute("nomeTabella", "DMT_DOC_TYPES");
 					lAttributiDinamiciRecord.setAttribute("rowId", rowid);
@@ -864,4 +891,26 @@ public class TipologieDocumentaliDetail extends CustomDetail {
 		}
 		return tipiAttributiDinamici;
 	}
+	
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();		
+		if(attributiAddLayouts != null) {
+			for (String key : attributiAddLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddDetails != null) {
+			for (String key : attributiAddDetails.keySet()) {
+				try { attributiAddDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
+		attributiAddTabs = null;
+		attributiAddLayouts = null;		
+		attributiAddDetails = null;
+	}
+	
 }

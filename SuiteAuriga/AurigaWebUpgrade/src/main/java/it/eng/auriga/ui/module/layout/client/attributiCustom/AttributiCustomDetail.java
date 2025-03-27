@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.attributiCustom;
 
 import it.eng.auriga.ui.module.layout.client.editor.CKEditorItem;
 import it.eng.auriga.ui.module.layout.client.i18n.I18NUtil;
@@ -82,6 +83,7 @@ public class AttributiCustomDetail extends CustomDetail {
 	private OpzioniListaSceltaAttributiCustomItem lOpzioniListaSceltaAttributiCustomItem;
 	private RadioGroupItem radioGroupItem;
 	private RadioGroupItem tipoEditorHtmlRadioGroupItem;
+	private RadioGroupItem tipoFiltroComboBoxRadioGroupItem;
 	private CheckboxItem flgValoreObbligatorioItem;
 	
 	private SpacerItem spacer1Item;
@@ -161,6 +163,32 @@ public class AttributiCustomDetail extends CustomDetail {
 			}
 		});
 		tipoEditorHtmlRadioGroupItem.addChangedHandler(new ChangedHandler() {
+
+			@Override
+			public void onChanged(ChangedEvent event) {
+				markForRedraw();
+			}
+		});
+		
+		tipoFiltroComboBoxRadioGroupItem = new RadioGroupItem("tipoFiltroComboBox");
+		tipoFiltroComboBoxRadioGroupItem.setTitle(I18NUtil.getMessages().attributi_custom_scelta_tipo_filtro_comboBox());
+		tipoFiltroComboBoxRadioGroupItem.setVertical(false);
+		tipoFiltroComboBoxRadioGroupItem.setStartRow(true);
+		Map<String, String> tipoFiltroComboBoxRadioGroupValueMap = new LinkedHashMap<>();
+		tipoFiltroComboBoxRadioGroupValueMap.put("", "NO");
+		tipoFiltroComboBoxRadioGroupValueMap.put("CON_FILTRO_OPZ",  "SI, filtro opzionale");
+		tipoFiltroComboBoxRadioGroupValueMap.put("CON_FILTRO_OBBL", "SI, filtro obbligatorio");
+		tipoFiltroComboBoxRadioGroupItem.setValueMap(tipoFiltroComboBoxRadioGroupValueMap);
+		tipoFiltroComboBoxRadioGroupItem.setDefaultValue("");
+		tipoFiltroComboBoxRadioGroupItem.setWrap(false);
+		tipoFiltroComboBoxRadioGroupItem.setShowIfCondition(new FormItemIfFunction() {
+
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				return "COMBO-BOX".equals(tipoItem.getValueAsString());
+			}
+		});
+		tipoFiltroComboBoxRadioGroupItem.addChangedHandler(new ChangedHandler() {
 
 			@Override
 			public void onChanged(ChangedEvent event) {
@@ -726,6 +754,10 @@ public class AttributiCustomDetail extends CustomDetail {
 			}
 		});
 
+		
+
+		
+		
 		formDescrizioneAttributo.setItems(rowidItem, nomeItem, etichettaItem, descrizioneItem);
 
 		formTipoAttributo.setItems(tipoItem, flgProtectedInItem, flgValoriUnivociInItem, flgValoreObbligatorioItem);
@@ -736,7 +768,7 @@ public class AttributiCustomDetail extends CustomDetail {
 		
 		formDettaglioAttributo.setItems(nroOrdineItem, nroRigaInAttrAppInItem, maxNumeroCaratteriItem, larghezzaVideoCaratteriItem, formatNumberItem,
 				nrDecimaleItem, altezzaVideoCaratteriItem, numMinValue, maxNumeroCifreItem, defaultDateValue, minDateItem, maxDateItem,
-				defaultDateTimeItem, minDateTimeItem, maxDateTimeItem, caseItem, espressioneRegolareItem, tipoEditorHtmlRadioGroupItem, radioGroupItem, attrQueryXValues,
+				defaultDateTimeItem, minDateTimeItem, maxDateTimeItem, caseItem, espressioneRegolareItem, tipoEditorHtmlRadioGroupItem, tipoFiltroComboBoxRadioGroupItem,radioGroupItem, attrQueryXValues,
 				uRLWSValoriPossibiliInItem, xMLInWSValoriPossibiliInItem, lOpzioniListaSceltaAttributiCustomItem, defaultValueItem, defaultValueTextAreaItem);
 
 		// LAYOUT MAIN
@@ -800,19 +832,7 @@ public class AttributiCustomDetail extends CustomDetail {
 		formSottoAttributo.setNumCols(15);
 		formSottoAttributo.setColWidths("1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "*", "*");
 	}
-
-	@Override
-	public void editNewRecord(Map initialValues) {
-		super.editNewRecord(initialValues);
-		comboAppartenenzaEditNewRecord(initialValues);
-	}
-
-	@Override
-	public void editRecord(Record record) {
-		super.editRecord(record);
-		comboAppartenenzaEditRecord(record);
-	}
-
+	
 	private void comboAppartenenzaEditNewRecord(Map initialValues) {
 		GWTRestDataSource listaDataDS = (GWTRestDataSource) appartenenzaItem.getOptionDataSource();
 		if (initialValues.get("nome") != null && !"".equals(initialValues.get("nome"))) {
@@ -867,6 +887,44 @@ public class AttributiCustomDetail extends CustomDetail {
 			lRecord.setAttribute("defaultCKeditorValue", defaultCKeditorValue);
 		}
 		return lRecord;
+	}
+	
+	@Override
+	public void editNewRecord(Map initialValues) {
+		super.editNewRecord(initialValues);
+		if("CKEDITOR".equals(initialValues.get("tipo"))) {
+			buildDefaultValueCKEditorItem();
+			formDefaultValueCKEditor.setItems(spacer1Item, defaultValueCKEditorItem);
+			formDefaultValueCKEditor.show();
+		} else {
+			formDefaultValueCKEditor.setItems(new FormItem());
+			formDefaultValueCKEditor.hide();
+		}
+		defaultValueCKEditorItem.setValue(initialValues.get("defaultCKeditorValue"));
+		comboAppartenenzaEditNewRecord(initialValues);
+	}
+	
+	@Override
+	public void editNewRecord() {
+		super.editNewRecord();
+		formDefaultValueCKEditor.setItems(new FormItem());
+		formDefaultValueCKEditor.hide();
+		defaultValueCKEditorItem.setValue((String) null);
+	}
+
+	@Override
+	public void editRecord(Record record) {
+		super.editRecord(record);
+		if("CKEDITOR".equals(record.getAttribute("tipo"))) {
+			buildDefaultValueCKEditorItem();
+			formDefaultValueCKEditor.setItems(spacer1Item, defaultValueCKEditorItem);
+			formDefaultValueCKEditor.show();
+		} else {
+			formDefaultValueCKEditor.setItems(new FormItem());
+			formDefaultValueCKEditor.hide();
+		}
+		defaultValueCKEditorItem.setValue(record.getAttribute("defaultCKeditorValue"));
+		comboAppartenenzaEditRecord(record);
 	}
 	
 	public String getDefaultValueValidatorError() {

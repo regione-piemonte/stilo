@@ -10,13 +10,13 @@
 10        			IdJobIO				IN OUT	BMT_JOBS.ID_JOB%type,				-- 1° filtro di ricerca: id. univoco del job da ricercare
 11        			FlgSoloSottomessiUtenteLavIO	IN OUT	PLS_INTEGER,					-- 2° filtro di ricerca: (valori 1/0/NULL) Se 1 significa che si vogliono solo i batch sottomessi dall'utente di lavoro (ovvero quello connesso se non si lavora a nome di altri)
 12        			DesUtenteSottomissioneIO	IN OUT	VARCHAR2,						-- 3° filtro di ricerca: Nome dell'utente che ha sottomesso i batch da ricercare (ricerca case-insensitive in like)
-13        			IdUtenteSottomissioneIO		IN OUT	DMT_USERS.ID_USER%type,				-- 4° filtro di ricerca: (viene considerato solo se il filtro precedente è valorizzato) Id. dell'utente che ha sottomesso i batch da ricercare
+13        			IdUtenteSottomissioneIO		IN OUT	DMT_USERS.ID_USER%type,				-- 4° filtro di ricerca: (viene considerato solo se il filtro precedente è valorizzato) Id. dell'utente che ha sottomesso i batch da ricercare 
 14        			CodApplicazioneIO			IN OUT	VARCHAR2,						-- 5° filtro di ricerca: Codice dell'applicazione da cui sono stati sottomessi i job da ricercare. Se valorizzata pari a #BY_CONN_TKN e si è connessi da un'applicazione esterna si ricercano solo i job sottomessi da quell'applicazione
 15        			CodIstApplicazioneIO		IN OUT	VARCHAR2,						-- 6° filtro di ricerca: Codice dell'istanza di applicazione da cui sono state sottomessi i job da ricercare. Se valorizzata pari a #BY_CONN_TKN e si è connessi da un'applicazione esterna si ricercano solo i job sottomessi dall'istanza di applicazione esterna da cui si è connessi
 16        			TipoJobIO				IN OUT	VARCHAR2,						-- 7° filtro di ricerca: Tipo dei job da ricecare (ricerca esatta)
-17        			FlgStatiJobIO			IN OUT	VARCHAR2,						-- 8° filtro di ricerca: indica gli stati che devono avere i job da ricercare.
+17        			FlgStatiJobIO			IN OUT	VARCHAR2,						-- 8° filtro di ricerca: indica gli stati che devono avere i job da ricercare. 
 18        																		-- Può essere una concatenazione (con separatore ;) dei seguenti valori:
-19        																		-- R = Completato con successo
+19        																		-- R = Completato con successo 
 20        																		-- X = Andato in errore
 21        																		-- I = Da eseguire
 22        																		-- E = In corso
@@ -28,24 +28,24 @@
 28        			ScheduleTimeAIO			IN OUT	VARCHAR2,						-- 12° filtro di ricerca: data di fine dell'intervallo di ricerca sulla data di schedulazione dei job da ricercare (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
 29        			InCorsoDaIO				IN OUT	VARCHAR2,						-- 13° filtro di ricerca: data di inizio dell'intervallo di ricerca sul periodo in cui devono essere in esecuzione i job da ricercare (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
 30        			InCorsoAIO				IN OUT	VARCHAR2,						-- 14° filtro di ricerca: data di fine dell'intervallo di ricerca sul periodo in cui devono essere in esecuzione i job da ricercare (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
-31        			ExportFileNameIO			IN OUT	VARCHAR2,						-- 15° filtro di ricerca: stringa contenuta nel nome del file di export (per i job di DataExport) (ricerca case-insensitive in like)
+31        			ExportFileNameIO			IN OUT	VARCHAR2,						-- 15° filtro di ricerca: stringa contenuta nel nome del file di export (per i job di DataExport) (ricerca case-insensitive in like)		
 32        			------------- inizio argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
 33        			ColOrderByIO			IN OUT	VARCHAR2,						-- Indica il/i numeri della/e colonna dell'XML (CLOB ListaXMLOut) di output per cui ordinare i record nell'XML stesso (si può ordinare solo per le colonne da 1 a 11 e la 17). Se l'ordinamento è per più colonne queste vanno separate con "," (es: 2; 2,3)
 34        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
 35        																	-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
 36        			FlgDescOrderByIO  		IN OUT	VARCHAR2,						-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
-37        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+37        																	-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
 38        			FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
 39        			NroPaginaIO      			IN OUT	PLS_INTEGER,                  		-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
-40           			BachSizeIO				IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
-41        																	-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+40           			BachSizeIO				IN OUT	PLS_INTEGER,					-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+41        																	-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
 42        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,			-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
 43        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
 44        			NroTotRecOut			OUT		PLS_INTEGER,					-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
 45             			NroRecInPaginaOut 		OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
 46        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
 47        			ListaXMLOut				OUT		NOCOPY CLOB,					-- Lista dei job trovati (XML conforme a schema LISTA_STD.xsd)
-48        																	-- Ogni job è un tag Riga che può contenere le seguenti colonne:
+48        																	-- Ogni job è un tag Riga che può contenere le seguenti colonne: 
 49        																	-- 1:  Identificativo univoco del job
 50        																	-- 2:  Tipo di job (decodifica)
 51        																	-- 3:  Timestamp in cui è stata sottomesso il job se job su richiesta (nel formato dato dal parametro di config. FMT_STD_TIMESTAMP)
@@ -83,7 +83,7 @@
 83        			ScheduleTimeIn			IN		VARCHAR2 DEFAULT TO_CHAR(sysdate, 'DD/MM/RRRR HH24:MI:SS'),
 84        																				-- Data e ora a cui schedulare la partenza del job (nel formato DD/MM/RRRR HH24:MI:SS)
 85        																				-- Se non specificata si inetende pari a data e ora correnti
-86        			PrioritaIn				IN		PLS_INTEGER  DEFAULT NULL,			-- (opzionale) Priorità del job (valori da 0 a 3)
+86        			PrioritaIn				IN		PLS_INTEGER  DEFAULT NULL,			-- (opzionale) Priorità del job (valori da 0 a 3) 
 87        			FlgSoloXBassaOperIn		IN		PLS_INTEGER  DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 significa che il job può essere eseguito solo in momenti a basso carico di lavoro sul sistema
 88        			FormatoFileOutputIn		IN		VARCHAR2 DEFAULT NULL,				-- (opzionale) Indica - tramite l'estensione - il formato del file di output del job se previsto dal tipo di job (pdf, xls ecc)
 89        			NomeFileOutputIn		IN		VARCHAR2 DEFAULT NULL,				-- (opzionale) Indica il nome da dare al file di output del job se previsto dal tipo di job
@@ -120,7 +120,7 @@
 120        																	-- E = In esecuzione
 121        																	-- X = In errore
 122        			PrioritaIn				IN		PLS_INTEGER  DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
-123        																	-- Priorità del job (valori da 0 a 3)
+123        																	-- Priorità del job (valori da 0 a 3) 
 124        																	-- Può essere cambiata solo se job da eseguire o in wait
 125        			FlgSoloXBassaOperIn		IN		PLS_INTEGER  DEFAULT dmpk_utility.GetValConfigParamNumber(1, NULL, 'NUM_VAL_NO_UPD'),
 126        																	-- (valori 1/0/NULL) Se 1 significa che il job può essere eseguito solo in momenti a basso carico di lavoro sul sistema
@@ -135,7 +135,7 @@
 135        																				-- 1: Nome parametro (SUBTYPE)
 136        																				-- 2: Tipo parametro (TYPE)
 137        																				-- 3: Verso IN/OUT
-138        																				-- 4: Valore del parametro
+138        																				-- 4: Valore del parametro	
 139        																				-- Se esiste già un parametro con quel dato SUBTYPE (col 1) viene aggiornato, altrimenti viene aggiunto
 140        			) return PLS_INTEGER;												-- Vale 1 se tutto è andato a buon fine, altrimenti 0 (in caso di errore)
 141        
@@ -145,7 +145,7 @@
 145        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
 146        																	-- (obblig). Codice identificativo del token di connessione
 147        			IdUserLavoroIn			IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id. dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
-148        			ListaBatchXMLIn			IN		CLOB,							-- Lista con gli id. dei batch da eliminare (xml conforme a LISTA_STD.xsd)
+148        			ListaBatchXMLIn			IN		CLOB,							-- Lista con gli id. dei batch da eliminare (xml conforme a LISTA_STD.xsd)	
 149        																	-- Ogni tag "Riga" contiene una sola colonna con l'id. del batch da eliminare (ID_JOB)
 150        			FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,			-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
 151        																	-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
@@ -207,7 +207,7 @@
 207        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
 208        																	-- (obblig). Codice identificativo del token di connessione
 209        			IdJobIn						IN			INTEGER,		-- (obblig.) Identificativo del job di FSUPLOAD
-210        			XMLMetadatiSpecIn			IN			CLOB,			-- (obblig.) XML conforme a schema SezioneCache.xsd con i dati specifici del documento
+210        			XMLMetadatiSpecIn			IN			CLOB,			-- (obblig.) XML conforme a schema SezioneCache.xsd con i dati specifici del documento 
 211        			XMLAttrToSetOut				OUT			NOCOPY CLOB,	-- XML conforme a schema SezioneCache.xsd con gli attributi da settare sul documento
 212        			ErrContextOut				OUT			VARCHAR2,		-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
 213        			ErrCodeOut					OUT			PLS_INTEGER,	-- N.ro errore di uscita
@@ -220,7 +220,7 @@
 220        			CodIdConnectionTokenIn		IN	    	DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
 221        																	-- (obblig). Codice identificativo del token di connessione
 222        			IdJobIn						IN			INTEGER,		-- (obblig.) Identificativo del job di FSUPLOAD
-223        			XMLMetadatiSpecIn			IN			CLOB,			-- (obblig.) XML conforme a schema SezioneCache.xsd con i dati specifici del folder
+223        			XMLMetadatiSpecIn			IN			CLOB,			-- (obblig.) XML conforme a schema SezioneCache.xsd con i dati specifici del folder 
 224        			XMLAttrToSetOut				OUT			NOCOPY CLOB,	-- XML conforme a schema SezioneCache.xsd con gli attributi da settare sul folder
 225        			ErrContextOut				OUT			VARCHAR2,		-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
 226        			ErrCodeOut					OUT			PLS_INTEGER,	-- N.ro errore di uscita
@@ -232,7 +232,7 @@
 232        			CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
 233        																					-- (obblig). Codice identificativo del token di connessione
 234        			IdUserLavoroIn				IN		INTEGER DEFAULT NULL,				-- Id. dell'utente a nome di cui si sta lavorando (se si lavora in delega)
-235                    CodSocietaIn                IN      VARCHAR2,                           -- Se il caricamento è per una specifica società del dominio di lavoro (caso DiGiDoc) indica Codice Applicazione + "|*|" + codice istanza della società
+235                    CodSocietaIn                IN      VARCHAR2,                           -- Se il caricamento è per una specifica società del dominio di lavoro (caso DiGiDoc) indica Codice Applicazione + "|*|" + codice istanza della società          
 236        			IdFoglioIO					IN OUT	DMT_FOGLI_X_IMPORT.ID_FOGLIO%type,	-- In input è l'id. del foglio da aggiornare. Se null si intende che il foglio è da registrare ex-novo
 237        																					-- In output restituisce l'id. del foglio registrato
 238        			TipoContenutoIn				IN		DMT_FOGLI_X_IMPORT.TIPO_CONTENUTO%type DEFAULT dmpk_utility.GetValConfigParamText(1, NULL, 'STR_VAL_NO_UPD'),
@@ -297,7 +297,7 @@
 297        			TsFineElabOut				OUT		VARCHAR2,							-- Data e ora di fine elaborazione dei contenuti del foglio (nel formato standard dato dal parametro FMT_STD_TIMESTAMP)
 298        			NroRigheOut					OUT		INTEGER,							-- N.ro complessivo di righe di dati contenute nel foglio
 299        			NroRigheOKOut				OUT		INTEGER,							-- N.ro di righe del foglio elaborate con successo
-300        			NroRigheKOOut				OUT		INTEGER,							-- N.ro di righe del foglio la cui elaborazione ha dato luogo ad errore
+300        			NroRigheKOOut				OUT		INTEGER,							-- N.ro di righe del foglio la cui elaborazione ha dato luogo ad errore 
 301        			URIOut						OUT		DMT_FOGLI_X_IMPORT.URI%type,		-- (obblig.) URI a cui reperire il foglio archiviato
 302        			StatoOut					OUT		DMT_FOGLI_X_IMPORT.STATO%type,		-- Stato di elaborazione del foglio
 303        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
@@ -318,7 +318,7 @@
 318        																					--					Può essere una concatenazione di codici di più applicazioni/socieà separati da ; o ,
 319        																					-- Stati: stato/i dei fogli. Valori possibili: da elaborare, in elaborazione, elaborato senza errori, elaborato con errori
 320        																					--		  Può essere una concatenazione di stati separati da , o ;
-321        																					-- TipiContenuto: tipo/i contenuto dei fogli.
+321        																					-- TipiContenuto: tipo/i contenuto dei fogli. 
 322        																					--		  Può essere una concatenazione di tipi contenuto separati da , o ;
 323        																					-- TsUploadDa: estremo inferiore della data e ora di upload del foglio espresso nel formato dato dal parametro di config. FMT_STD_TIMESTAMP
 324        																					-- TsUploadA: estremo superiore della data e ora di upload del foglio espresso nel formato dato dal parametro di config. FMT_STD_TIMESTAMP
@@ -333,11 +333,11 @@
 333        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
 334        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
 335        			FlgDescOrderByIO  		IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
-336        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+336        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
 337        			FlgSenzaPaginazioneIn 	IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
 338        			NroPaginaIO      		IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
-339           			BachSizeIO				IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
-340        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+339           			BachSizeIO				IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+340        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
 341        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow o avvertimento
 342        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
 343        			NroTotRecOut			OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina), salvo che nel caso sia stato superato il limite di overflow (warning) e allora coincide con il n.ro di record estratti che sono pari al limite di overflow
@@ -346,7 +346,7 @@
 346        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione
 347        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
 348        			FogliXMLOut				OUT		NOCOPY CLOB,							-- Lista con i dati dei folgli trovati (XML conforme a schema LISTA_STD.xsd)
-349        																					-- Ogni foglio è un tag Riga che contiene le seguenti colonne:
+349        																					-- Ogni foglio è un tag Riga che contiene le seguenti colonne: 
 350        																					-- 1: Cod. applicazione dell'applicazione/società che ha caricato il foglio
 351        																					-- 2: Cod. istanza applicazione dell'applicazione/società che ha caricato il foglio
 352        																					-- 3: Denominazione dell'applicazione/società che ha caricato il foglio
@@ -359,12 +359,12 @@
 359        																					-- 10: Data e ora di inizio elaborazione del foglio (nel formato dato dal parametro FMT_STD_TIMESTAMP)
 360        																					-- 11: Data e ora di fine elaborazione del foglio (nel formato dato dal parametro FMT_STD_TIMESTAMP)
 361        																					-- 12: Nro complessivo di righe del foglio
-362        																					-- 13: Nro di righe del foglio elaborate con successo
-363        																					-- 14: Nro di righe del foglio in errore
+362        																					-- 13: Nro di righe del foglio elaborate con successo 
+363        																					-- 14: Nro di righe del foglio in errore 
 364        																					-- 15: Id. del foglio
 365        																					-- 16: Errore di elaborazione dell'intero foglio(se errore complessivo che impedice di elaborare tutte le righe)
 366        																					-- 17: URI foglio excel rielaborato
-367        																					-- 18: URI file prodotto come output dell'elaborazione dell'xls
+367        																					-- 18: URI file prodotto come output dell'elaborazione dell'xls		
 368        																					-- 19: Nome del file del foglio
 369        			ErrContextOut			OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
 370        			ErrCodeOut				OUT		PLS_INTEGER,							-- N.ro errore di uscita
@@ -384,7 +384,7 @@
 384        																					--					Può essere una concatenazione di codici di più applicazioni/socieà separati da ; o ,
 385        																					-- Stati: stato/i dei fogli. Valori possibili: da elaborare, in elaborazione, elaborato senza errori, elaborato con errori
 386        																					--		  Può essere una concatenazione di stati separati da , o ;
-387        																					-- TipiContenuto: tipo/i contenuto dei fogli.
+387        																					-- TipiContenuto: tipo/i contenuto dei fogli. 
 388        																					--		  Può essere una concatenazione di tipi contenuto separati da , o ;
 389        																					-- TsUploadDa: estremo inferiore della data e ora di upload del foglio espresso nel formato dato dal parametro di config. FMT_STD_TIMESTAMP
 390        																					-- TsUploadA: estremo superiore della data e ora di upload del foglio espresso nel formato dato dal parametro di config. FMT_STD_TIMESTAMP
@@ -405,11 +405,11 @@
 405        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
 406        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
 407        			FlgDescOrderByIO  		IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
-408        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+408        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
 409        			FlgSenzaPaginazioneIn 	IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
 410        			NroPaginaIO      		IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
-411           			BachSizeIO				IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
-412        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+411           			BachSizeIO				IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+412        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
 413        			OverFlowLimitIn			IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow o avvertimento
 414        			FlgSenzaTotIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
 415        			NroTotRecOut			OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina), salvo che nel caso sia stato superato il limite di overflow (warning) e allora coincide con il n.ro di record estratti che sono pari al limite di overflow
@@ -418,7 +418,7 @@
 418        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione
 419        			------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
 420        			RigheXMLOut				OUT		NOCOPY CLOB,							-- Lista con le righe del foglio (XML conforme a schema LISTA_STD.xsd)
-421        																					-- Ogni Riga del foglio/i è un tag Riga che contiene le seguenti colonne:
+421        																					-- Ogni Riga del foglio/i è un tag Riga che contiene le seguenti colonne: 
 422        																					-- 1: Cod. applicazione dell'applicazione/società che ha caricato il foglio
 423        																					-- 2: Cod. istanza applicazione dell'applicazione/società che ha caricato il foglio
 424        																					-- 3: Denominazione dell'applicazione/società che ha caricato il foglio
@@ -431,8 +431,8 @@
 431        																					-- 10: Data e ora di inizio elaborazione del foglio (nel formato dato dal parametro FMT_STD_TIMESTAMP)
 432        																					-- 11: Data e ora di fine elaborazione del foglio (nel formato dato dal parametro FMT_STD_TIMESTAMP)
 433        																					-- 12: Nro complessivo di righe del foglio
-434        																					-- 13: Nro di righe del foglio elaborate con successo
-435        																					-- 14: Nro di righe del foglio in errore
+434        																					-- 13: Nro di righe del foglio elaborate con successo 
+435        																					-- 14: Nro di righe del foglio in errore 
 436        																					-- 15: Id. del foglio
 437        																					-- 16: Nome del file del foglio
 438        																					-- 17: Errore di elaborazione dell'intero foglio(se errore complessivo che impedice di elaborare tutte le righe)
@@ -464,7 +464,7 @@
 464        																					-- 5: Spiegazione di come compilare la colonna
 465        																					-- 6: Tasti/azioni da far apparire accanto al campo. Valori possibili (separati da ; se più di uno):
 466        																					-- SHOW_FILE
-467        																					-- SHOW_DETT_UD
+467        																					-- SHOW_DETT_UD 
 468        																					-- SHOW_DETT_UD_CAPOFILA
 469        																					-- SHOW_DETT_FASC
 470        																					-- VAI_A_RIGA_CAPOFILA
@@ -473,7 +473,7 @@
 473        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
 474        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
 475        			ErrMsgOut					OUT 	VARCHAR2							-- Messaggio d'errore
-476        			)return PLS_INTEGER;													-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+476        			)return PLS_INTEGER;													-- Vale 1 se tutto è andato a buon fine, altrimenti 0																	
 477        
 478        
 479        	---- funzione per aggiornare i dati di una riga di un foglio
@@ -493,7 +493,7 @@
 493        			ErrContextOut				OUT		VARCHAR2,							-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
 494        			ErrCodeOut					OUT		PLS_INTEGER,						-- N.ro errore di uscita
 495        			ErrMsgOut					OUT 	VARCHAR2							-- Messaggio d'errore
-496        			)return PLS_INTEGER;													-- Vale 1 se tutto è andato a buon fine, altrimenti 0
+496        			)return PLS_INTEGER;													-- Vale 1 se tutto è andato a buon fine, altrimenti 0	
 497        
 498        	procedure ElaboraContFoglixImport;
 499        
@@ -502,7 +502,7 @@
 502        			UseridApplIn			IN		VARCHAR2,								-- (obblig.) Userid dell'applicazione chiamante
 503        			PasswordAppIn			IN		VARCHAR2,								-- (obblig.)Password dell'applicazione chiamante
 504        			TipoRichiestaIn			IN		VARCHAR2,								-- (obblig.) Tipo di richiesta: valori ammessi
-505        																					-- ESITO_LOTTO_DOC (tutto l'esito elaborazione di un singolo lotto);
+505        																					-- ESITO_LOTTO_DOC (tutto l'esito elaborazione di un singolo lotto); 
 506        																					-- AGG_STATI_NOTIFICA_LOTTI_DOC (aggiornamenti esiti elaborazione lotti da ultima richiesta di aggiornamento)
 507        			IdLottoIn				IN		VARCHAR2,								-- Id. del lotto di cui si chiede l'esito
 508        																					-- Obblig. in caso di TipoRichiestaIn =
@@ -521,7 +521,7 @@
 521        			IdDominioIn				IN		DMT_RICH_OPER_MASSIVE.ID_SP_AOO%type,		-- Id. del soggetto prod. / AOO di cui eseguire i job
 522        			TipoOperazioneIn		IN		DMT_RICH_OPER_MASSIVE.TIPO_RICHIESTA%type,	-- Tipo di operazione da eseguire
 523        			TipoObjOperOnIn			IN		DMT_RICH_OPER_MASSIVE.TIPO_OBJ_ON%type,		-- Indica il tipo di oggetti sui cui agisce l'operazione massiva: E = Email, D = Documenti, F = Foleder, DF = Documenti e Folder, P = Processi
-524        			FlgOpDaRiprocessareIn	IN		PLS_INTEGER DEFAULT NULL);					-- Se 1 considera solo le operazioni massive "da riprocessare", se 0 ignora le operazioni massive "da riprocessare",
+524        			FlgOpDaRiprocessareIn	IN		PLS_INTEGER DEFAULT NULL);					-- Se 1 considera solo le operazioni massive "da riprocessare", se 0 ignora le operazioni massive "da riprocessare", 
 525        																						-- se NULL considera sia le operazioni inserite che quelle da riprocessare
 526        
 527        	----- funzione per ricercare le richieste di operazioni batch massive contenute in tabella DMT_RICH_OPER_MASSIVE
@@ -529,7 +529,7 @@
 529        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
 530        																					-- (obblig). Codice identificativo del token di connessione
 531        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
-532        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd).
+532        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd). 
 533        																					-- Ogni filtro è un tag "Variabile" dell'XML
 534        																					-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
 535        																					-- I nomi dei filtri possibili sono:
@@ -557,20 +557,20 @@
 557        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
 558        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
 559        		FlgDescOrderByIO  			IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
-560        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+560        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
 561        		FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
 562        		NroPaginaIO      			IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
-563        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
-564        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+563        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+564        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
 565        		OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
 566        		FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
 567        		NroTotRecOut				OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
 568        		NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
 569        		FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
-570        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema.
+570        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema. 
 571        		------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
 572        		ResultOut					OUT		NOCOPY CLOB, 							-- Lista delle richieste di operazioni massive trovate (XML conforme a schema LISTA_STD.xsd)
-573        																					-- Ogni richiesta di operazione massiva trovata è un tag Riga che può contenere le seguenti colonne:
+573        																					-- Ogni richiesta di operazione massiva trovata è un tag Riga che può contenere le seguenti colonne: 
 574        																					-- 1: Id. richiesta (PK interna, UUID alfanumerico)
 575        																					-- 2: Tipo di operazione richiesta
 576        																					-- 3: Tipo di oggetti su cui è richiesta l'operazione
@@ -586,7 +586,7 @@
 586        																					-- 13: Data e ora di inizio ultima elaborazione (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
 587        																					-- 14: Data e ora di fine ultima elaborazione (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
 588        																					-- 15: Data e ora in cui la richiesta è stata evasa (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
-589        																					-- 16: N° di elaborazioni
+589        																					-- 16: N° di elaborazioni 
 590        																					-- 17: Note
 591        																					-- 18: Cod. del tipo di nuovo assegnatario in caso di operazione di spostamento/modifica permessi
 592        																					-- 19: Tipo di operazione da cui è derivata la richiesta (es. cessazione)
@@ -607,7 +607,7 @@
 607        																					-- (obblig). Codice identificativo del token di connessione
 608        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
 609        		IdRichiestaOpMassivaIn		IN		DMT_RICH_OPER_MASSIVE.ID_RICHIESTA%type, -- (obblig.) Id. dellla richiesta di operazione massiva per cui estrarre i contenuti elaborati
-610        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd).
+610        		FiltriIO					IN OUT	NOCOPY CLOB,							-- XML contenente nomi e valori dei filtri di ricerca(conforme allo schema SezioneCache.xsd). 
 611        																					-- Ogni filtro è un tag "Variabile" dell'XML
 612        																					-- I filtri che sono liste hanno nomi (tag Variabile/Nome) che iniziano con @.
 613        																					-- I nomi dei filtri possibili sono:
@@ -623,27 +623,27 @@
 623        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul tipo di ordinamento una qualche preimpostazione di sistema/utente ecc.
 624        																					-- se non valorizzato (neppure in output) la lista di record restituita non è ordinata
 625        		FlgDescOrderByIO  			IN OUT	VARCHAR2,								-- E' una stringa di 1 o 0/NULL, tanti quanti le colonne di ordinamento, separati da ",": 1 significa che l'ordinamento per la data colonna deve essere discendente anzichè ascendente (es: 1; 1,0; 1, )
-626        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.
+626        																					-- in output può essere diverso che in input solo se in input è NULL: in tal caso significa che esiste sul verso di ordinamento una qualche preimpostazione di sistema/utente ecc.			
 627        		FlgSenzaPaginazioneIn 		IN 		PLS_INTEGER DEFAULT NULL,            	-- (valori 1/0/NULL) Se 1 l'estrazione non è paginata, altrimenti sì
 628        		NroPaginaIO      			IN OUT	PLS_INTEGER,                  			-- E' il numero della pagina da estrarre; se NULL e l'estrazione è paginata viene estratta la prima pagina
-629        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)
-630        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro
+629        		BachSizeIO					IN OUT	PLS_INTEGER,							-- Indica il massimo n.ro di record da estrarre se l'estrazione non è paginata (FlgSenzaPaginazioneIn=1)  
+630        																					-- Indica la dimensione (n.ro di record) della pagina se l'estrazione è paginata (FlgSenzaPaginazioneIn 0 o NULL) e in tal caso se non è valorizzato la dimensione della pagina è quella settata per l'utente di lavoro o è pari al valore del parametro STD_PAGE_NUM_ROW del dominio di lavoro				
 631        		OverFlowLimitIn				IN		PLS_INTEGER DEFAULT NULL,				-- E' il n.ro di record soddisfacenti la ricerca superato il quale la funzione deve restituire errore di overflow
 632        		FlgSenzaTotIn				IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che non è richiesto come output il totale dei record soddisfacenti la ricerca (se la ricerca è paginata per la prima pagina il totale viene calcolato comunque, per le successive no)
 633        		NroTotRecOut				OUT		PLS_INTEGER,							-- E' il n.ro di record complessivi trovati (valorizzato solo se FlgSenzaTotIn è 0 o NULL o se si estrae la prima pagina)
 634        		NroRecInPaginaOut 			OUT   	PLS_INTEGER,                     		-- E' il numero di record nella pagina (valorizzato solo se l'estrazione è paginata, ovvero se FlgSenzaPaginazioneIn 0 o NULL)
 635        		FlgBatchSearchIn			IN		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 significa che la stored è utilizzata da un processo batch, altrimenti da un processo online.
-636        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema.
+636        																					-- Serve affinchè in caso l'input OverFlowLimitIn non sia valorizzato vengano applicati i limiti di overflow per processo batch o online che sono parametri di configurazione del sistema. 
 637        		------------- fine argomenti standard di tutte le funzioni di ricerca che devono restituire una lista --------------
 638        		ResultOut					OUT		NOCOPY CLOB, 							-- Lista delle richieste di operazioni massive trovate (XML conforme a schema LISTA_STD.xsd)
-639        																					-- Ogni richiesta di operazione massiva trovata è un tag Riga che può contenere le seguenti colonne:
+639        																					-- Ogni richiesta di operazione massiva trovata è un tag Riga che può contenere le seguenti colonne: 
 640        																					-- 1: Tipo di oggetto elaborato
 641        																					-- 2: ID dell'oggetto elaborato
 642        																					-- 3: Data e ora di ultima elaborazione (nel formato dato dal parametro di conf. FMT_STD_TIMESTAMP)
 643        																					-- 4: Esito dell'elaborazione: OK o KO
 644        																					-- 5: Codice di eventuale errore verificatosi nell'elaborazione
 645        																					-- 6: Contesto e messaggio di eventuale errore verificatosi nell'elaborazione
-646        																					-- 7: N° di elaborazioni
+646        																					-- 7: N° di elaborazioni 
 647        																					-- 8: Estremi dell'oggetto elaborato
 648        																					-- 9: Flag 1/0 : se 1 indica che c'è XML con dettagli sull'elaborazioni dell'oggetto
 649        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
@@ -669,7 +669,7 @@
 669        		XMLDatiDettRichiestaIn		IN		CLOB,									-- (obblig.) XML sezione cache con i dati specifici del tipo richiesta
 670        																					-- Variabili previste:
 671        																					-- @Caselle lista di 2 colonne: in colonna 1 id_casella, in colonna 2 indirizzo casella
-672        																					-- @UOSVAssegnatarie	lista di 3 colonne: 1) flag UO o SV (Scrivania); 2) id. delle UO o scrivania attuali assegnatarie; 3) flag 1/0 di incluse sotto-UO
+672        																					-- @UOSVAssegnatarie	lista di 3 colonne: 1) flag UO o SV (Scrivania); 2) id. delle UO o scrivania attuali assegnatarie; 3) flag 1/0 di incluse sotto-UO 
 673        																					-- UOSVTarget: indica la UO o scvivania a cui spostare; prefisso UO/SV (per indicare UO o scrivania) seguito da id. UO/scrivania (es: UO1229; SV619 )
 674        																					-- DataInvioDa estremo inferiore dell'intervallo di ricerca sulla data di invio delle mail (data senza ora nel formato FMT_STD_DATA)
 675        																					-- DataInvioA  estremo superiore dell'intervallo di ricerca sulla data di invio delle mail (data senza ora nel formato FMT_STD_DATA)
@@ -693,7 +693,7 @@
 693        		CodIdConnectionTokenIn		IN	    DMT_CONNECTION_TOKEN.CI_CONNECTION_TOKEN%TYPE,
 694        																					-- (obblig). Codice identificativo del token di connessione
 695        		IdUserLavoroIn				IN		DMT_USERS.ID_USER%type DEFAULT NULL,	-- Id.(ID_USER della DMT_USERS) dell'utente a nome di cui si lavora. Se non valorizzato è l'utente connesso
-696        		XMLRichOpMassiveIn			IN		CLOB,									-- (obblig.) XML con le richieste delle quali resettare lo stato (XML conforme a schema LISTA_STD.xsd)
+696        		XMLRichOpMassiveIn			IN		CLOB,									-- (obblig.) XML con le richieste delle quali resettare lo stato (XML conforme a schema LISTA_STD.xsd)																		
 697        																					-- Ogni tag Riga contiene una sola colonna con l'ID della richiesta
 698        		StatoIn						IN		VARCHAR2,								-- Stato da settare. Valori possibili:
 699        																					-- da_riprocessare, eliminata
@@ -713,7 +713,77 @@
 713        		) return PLS_INTEGER;														-- Vale 1 se non ci sono stati errori generali (vale a dire NON sulla singola richiesta di operazione massiva), altrimenti 0
 714        
 715        
-716        	--------- procedura richiamata da job schedulato che sposta in storico le mail chiuse
+716        	--------- procedura richiamata da job schedulato che sposta in storico le mail chiuse 
 717        	--------- che hanno data di invio < N° mesi dato dal parametro di configurazione NRO_MESI_DA_INVIO_MAIL_X_STORICIZZ
 718        	procedure SpostaMailInStorico (AnnoInvioIn IN INTEGER DEFAULT NULL);
-719        end DMPK_BMANAGER;
+719        
+720        	-------- procedura che genera il file unione EM di un atto del consiglio - unione emendamenti con relativi allegati e pareri - la cui ID_UD è passata in input
+721        	procedure GeneraFileUnioneAttoCons(IdUDIn IN DMT_UNITA_DOC.ID_UD%type);
+722        
+723        	-------- procedura che genera i file unione EM degli atti del conisglio che hanno subito modifiche/aggiunte sugli emandamenti dall'ultima volta che il file unione è stato generato
+724        	procedure GeneraFileUnioneAttiCons;
+725        
+726        	------------crea i clob per i csv da esportare verso DWH di A2A
+727        	------------sia in caso di successo che di errore crea un job nella BMT_JOBS
+728        	procedure A2A_ExportDWH(
+729        		TipoExportIn		IN	VARCHAR2,											-- (obblig.) Tipo di esportazione: MAILROOM o PROTOCOLLO
+730        		GiornoIn			IN	DATE DEFAULT TRUNC(sysdate));						-- (obblig.) Giorno di cui esportare i dati
+731        
+732        	------procedura utilizzata per generare i report xlsx schedulati
+733        	procedure GeneraExportXls (
+734        		TipoExportIn 	IN VARCHAR2,
+735        		FlgTpDominioIn	IN INTEGER,
+736        		IdDominioIn		IN INTEGER,
+737        		PeriodoDalIn	DATE DEFAULT NULL,
+738        		PeriodoAlIn		DATE DEFAULT NULL
+739        		);
+740        
+741        	--- serve schedulare esportazione dei file dei registri di protocollo generale su una cartella prefissata inserendoli nella coda T_CODA_COPY_FILE
+742        	procedure EsportaFileRegistriPG(
+743        		IdDominioIn		IN INTEGER,
+744        		PeriodoDalIn	DATE DEFAULT TRUNC(sysdate)-1,
+745        		PeriodoAlIn		DATE DEFAULT NULL
+746        		);
+747        
+748        	--- serve a schedulare esportazione del file indice con i metadati dei registri di protocollo generale
+749        	procedure EsportaIndiceRegistriPG(
+750        		IdDominioIn		IN INTEGER,
+751        		PeriodoDalIn	DATE DEFAULT TRUNC(sysdate)-1,
+752        		PeriodoAlIn		DATE DEFAULT NULL
+753        		);
+754        
+755        	--- funzione di ADSPMLO usata per sapere quanti atti - decreti e RDA - dell'anno precedente sono ancora in iter e da annullare
+756        	function CtrlAttiInIterAnnoPrecADSP(
+757        		NroDecretiOut				OUT		INTEGER,								-- Nro totale di proposte di decreti in iter dell'anno precedente
+758        		NroDecretiConDatiCWOLOut	OUT		INTEGER,								-- Nro di di proposte di decreti in iter dell'anno precedente che hanno dati contabili su CWOL
+759        		NroDecretiFaseIstrOut		OUT		INTEGER,								-- Nro di di proposte di decreti in iter dell'anno precedente che si trovano nella fase istruttoria
+760        		NroDecretiFaseBILOut		OUT		INTEGER,								-- Nro di di proposte di decreti in iter dell'anno precedente che si trovano nella fase di verifica del bilancio
+761        		NroDecretiFasePerfOut		OUT 	INTEGER,								-- Nro di di proposte di decreti in iter dell'anno precedente che si trovano nella fase di perfezionamento
+762        		NroRdAOut					OUT		INTEGER,								-- Nro totale di proposte di RdA in iter dell'anno precedente
+763        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+764        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+765        		ErrMsgOut					OUT 	VARCHAR2								-- Messaggio d'errore
+766        		) return PLS_INTEGER;														-- Vale 1 se non ci sono stati errori generali (vale a dire NON sulla singola richiesta di operazione massiva), altrimenti 0
+767        
+768        	--- funzione di ADSPMLO usata per annnulare atti - decreti e RDA - dell'anno precedente sono ancora in iter e da annullare
+769        	function AnnullaAttiInIterAnnoPrecADSP(
+770        		TipoAttoIn					IN 		VARCHAR2,								-- Tipo di atto: DCR = Decreto, RDA = Richiesta di approvvigionamento
+771        		FaseIn						IN		VARCHAR2 DEFAULT NULL,					-- Fase in cui devono trovarsi gli atti da annullare. Da valorizzare solo per i decreti
+772        																					-- FASE ISTRUTTORIA
+773        																					-- FASE PERFEZIONAMENTO
+774        		RilContabileIn				IN		VARCHAR2 DEFAULT NULL,					-- Indica la rilevanza contabile dei decreti da annullare. Da valorizzare solo per i decreti. Valori ammessi:
+775        																					-- NO
+776        																					-- SI
+777        																					-- SI, ma senza movimenti contabili
+778        		NroAttiAnnullatiOut			OUT		INTEGER,								-- Nro totale di proposte in iter dell'anno precedente che sono state annullate
+779        
+780        		FlgRollBckFullIn			IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se 1 in caso di errore viene fatta la rollback completa (non a savepoint), altrimenti la rollback delle sole modifiche effettuate nella stored
+781        																					-- ATTENZIONE: La rollback, di qualsiasi tipo, non riguarda la scrittura di eventuali log
+782        		FlgAutoCommitIn				IN 		PLS_INTEGER DEFAULT NULL,				-- (valori 1/0/NULL) Se vale 1, dopo la rollback e qualunque sia l'esito (positivo o meno), la funzione esegue una commit finale
+783        		ErrContextOut				OUT		VARCHAR2,								-- Contesto (ovvero package e/o funzione/procedura) in cui si è verificato l'errore
+784        		ErrCodeOut					OUT		PLS_INTEGER,							-- N.ro errore di uscita
+785        		ErrMsgOut					OUT 	VARCHAR2								-- Messaggio d'errore
+786        		) return PLS_INTEGER;														-- Vale 1 se non ci sono stati errori generali (vale a dire NON sulla singola richiesta di operazione massiva), altrimenti 0
+787        
+788        
+789        end DMPK_BMANAGER;

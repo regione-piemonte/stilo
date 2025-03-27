@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.common;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -6,6 +7,7 @@ import it.eng.auriga.database.store.bean.SchemaBean;
 import it.eng.auriga.database.store.dmpk_utility.bean.DmpkUtilityGetlistdefprefsBean;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
 import it.eng.auriga.exception.StoreException;
+import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.client.DmpkUtilityGetlistdefprefs;
 import it.eng.utility.ui.module.core.server.datasource.AbstractServiceDataSource;
 import it.eng.utility.ui.module.core.server.datasource.annotation.Datasource;
@@ -17,8 +19,11 @@ public class GetListaDefPrefsDataSource extends AbstractServiceDataSource<GetLis
 
 	@Override
 	public GetListaDefPrefsBean call(GetListaDefPrefsBean bean) throws Exception {
+		
+		AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo(getSession());
+		
 		SchemaBean schemaBean = new SchemaBean();
-		schemaBean.setSchema(AurigaUserUtil.getLoginInfo(getSession()).getSchema());
+		schemaBean.setSchema(loginBean.getSchema());
 
 		DmpkUtilityGetlistdefprefsBean input = new DmpkUtilityGetlistdefprefsBean();
 		if (bean.getPrefKeyPrefix() != null && bean.getPrefKeyPrefix().endsWith(".")) {
@@ -32,6 +37,7 @@ public class GetListaDefPrefsDataSource extends AbstractServiceDataSource<GetLis
 		if(StringUtils.isNotBlank(bean.getFinalita())) {
 			input.setFinalitain(bean.getFinalita());
 		}
+		input.setIddominioautin(loginBean.getSpecializzazioneBean().getIdDominio());
 		
 		DmpkUtilityGetlistdefprefs store = new DmpkUtilityGetlistdefprefs();
 		StoreResultBean<DmpkUtilityGetlistdefprefsBean> output = store.execute(getLocale(), schemaBean, input);

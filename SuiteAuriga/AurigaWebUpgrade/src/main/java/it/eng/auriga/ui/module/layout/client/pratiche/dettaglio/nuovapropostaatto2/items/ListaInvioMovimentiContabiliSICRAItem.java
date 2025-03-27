@@ -1,7 +1,7 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovapropostaatto2.items;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -13,7 +13,6 @@ import com.google.gwt.core.client.GWT;
 import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.core.client.Scheduler.ScheduledCommand;
 import com.google.gwt.http.client.URL;
-import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.i18n.client.NumberFormat;
 import com.google.gwt.user.client.Window;
 import com.smartgwt.client.data.DSCallback;
@@ -24,19 +23,16 @@ import com.smartgwt.client.data.RecordList;
 import com.smartgwt.client.data.SortSpecifier;
 import com.smartgwt.client.types.Alignment;
 import com.smartgwt.client.types.BackgroundRepeat;
-import com.smartgwt.client.types.DateDisplayFormat;
 import com.smartgwt.client.types.ListGridFieldType;
 import com.smartgwt.client.types.Overflow;
 import com.smartgwt.client.types.SortDirection;
 import com.smartgwt.client.types.VerticalAlignment;
-import com.smartgwt.client.util.DateUtil;
 import com.smartgwt.client.widgets.Canvas;
 import com.smartgwt.client.widgets.Label;
 import com.smartgwt.client.widgets.events.ClickEvent;
 import com.smartgwt.client.widgets.events.ClickHandler;
 import com.smartgwt.client.widgets.form.fields.FormItem;
 import com.smartgwt.client.widgets.grid.CellFormatter;
-import com.smartgwt.client.widgets.grid.GroupValueFunction;
 import com.smartgwt.client.widgets.grid.HoverCustomizer;
 import com.smartgwt.client.widgets.grid.ListGrid;
 import com.smartgwt.client.widgets.grid.ListGridField;
@@ -58,11 +54,11 @@ import it.eng.utility.ui.module.core.shared.message.MessageType;
 import it.eng.utility.ui.module.layout.client.Layout;
 import it.eng.utility.ui.module.layout.client.common.ControlListGridField;
 import it.eng.utility.ui.module.layout.client.common.GridItem;
-import it.eng.utility.ui.module.layout.shared.bean.ListaBean;
 
 public abstract class ListaInvioMovimentiContabiliSICRAItem extends GridItem {
 	
 	protected ListGridField id;
+	protected ListGridField randomUUID;
 	protected ListGridField flgEntrataUscita;
 	protected ListGridField flgAutoIncrementante;
 	protected ListGridField flgCopertoDaFPV;
@@ -131,7 +127,11 @@ public abstract class ListaInvioMovimentiContabiliSICRAItem extends GridItem {
 		id = new ListGridField("id");
 		id.setHidden(true);
 		id.setCanHide(false);
-		  
+		
+		randomUUID = new ListGridField("randomUUID");
+		randomUUID.setHidden(true);
+		randomUUID.setCanHide(false);
+		
 		flgEntrataUscita = new ListGridField("flgEntrataUscita", "Entrata/Uscita");
 		LinkedHashMap<String, String> flgEntrataUscitaValueMap = new LinkedHashMap<String, String>();
 		flgEntrataUscitaValueMap.put("E", I18NUtil.getMessages().nuovaPropostaAtto2_detail_listaDatiContabili_flgEntrataUscita_E_value());
@@ -727,10 +727,20 @@ public abstract class ListaInvioMovimentiContabiliSICRAItem extends GridItem {
 					}
 					
 					@Override
-					public void saveData(Record newRecord) {
-						// assegno un id temporaneo (con prefisso new_) a tutte le nuove righe create e non ancora salvate in DB						
-						newRecord.setAttribute("id", "NEW_" + count++);
-						addData(newRecord);				
+					public void saveData(final Record newRecord) {
+						new GWTRestDataSource("SICRADataSource").performCustomOperation("generateRandomUUID", newRecord, new DSCallback() {
+							@Override
+							public void execute(DSResponse response, Object rawData, DSRequest request) {
+								if(response.getStatus() == DSResponse.STATUS_SUCCESS) {
+									String randomUUID = response.getData()[0].getAttribute("randomUUID");
+									// assegno un id temporaneo (con prefisso new_) a tutte le nuove righe create e non ancora salvate in DB
+									newRecord.setAttribute("id", "NEW_" + count++);
+									// per ogni nuovo movimento inserito creo un UUID da inviare a Sicra per evitare il salvataggio di movimenti doppi
+									newRecord.setAttribute("randomUUID", randomUUID); 
+									addData(newRecord);
+								}
+							}
+						});
 					}
 				};
 				lInvioMovimentiContabiliSICRAWindow.show();
@@ -760,18 +770,28 @@ public abstract class ListaInvioMovimentiContabiliSICRAItem extends GridItem {
 					
 					@Override
 					public void saveData(final Record updatedRecord) {
-						if(record.getAttribute("idImpAcc") != null && !"".equals(record.getAttribute("idImpAcc"))) {
-							mappaMovimentiSicraToDelete.put(record.getAttribute("idImpAcc"), record);
-							mappaMovimentiSicraToInsert.put(updatedRecord.getAttribute("idImpAcc"), updatedRecord);							
-						}
-						updateData(updatedRecord, record);	
-						Scheduler.get().scheduleDeferred(new ScheduledCommand() {
-				    		
+						new GWTRestDataSource("SICRADataSource").performCustomOperation("generateRandomUUID", updatedRecord, new DSCallback() {
 							@Override
-							public void execute() {
-								grid.selectSingleRecord(updatedRecord);
+							public void execute(DSResponse response, Object rawData, DSRequest request) {
+								if(response.getStatus() == DSResponse.STATUS_SUCCESS) {
+									String randomUUID = response.getData()[0].getAttribute("randomUUID");
+									if(record.getAttribute("idImpAcc") != null && !"".equals(record.getAttribute("idImpAcc"))) {
+										mappaMovimentiSicraToDelete.put(record.getAttribute("idImpAcc"), record);
+										// per ogni movimento modificato creo un UUID da inviare a Sicra per evitare il salvataggio di movimenti doppi
+										updatedRecord.setAttribute("randomUUID", randomUUID);
+										mappaMovimentiSicraToInsert.put(updatedRecord.getAttribute("idImpAcc"), updatedRecord);
+									}
+									updateData(updatedRecord, record);	
+									Scheduler.get().scheduleDeferred(new ScheduledCommand() {
+							    		
+										@Override
+										public void execute() {
+											grid.selectSingleRecord(updatedRecord);
+										}
+							    	});
+								}
 							}
-				    	});		
+						});
 					}		
 				};
 				lInvioMovimentiContabiliSICRAWindow.settaDatiAnagraficiNonModificabili();

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -1036,10 +1037,18 @@ public class ConfigurableFilter extends FilterBuilder implements HasChangeValueM
 			if(getLayout() != null) {
 				// Azzero il numero massimo di record visualizzati
 				getLayout().setMaxRecordVisualizzabili("");
-				getLayout().manageAfterFilterChanged();			
+				getLayout().manageAfterFilterChanged();
+				
+				String showFlgRicorsiva = getExtraParam().get("showFlgRicorsiva");
+				if (showFlgRicorsiva == null && getFilterConfigBean() != null) {
+					showFlgRicorsiva = String.valueOf(getFilterConfigBean().getShowFlgRicorsiva());
+				}
+				getLayout().setRicercaRicorsivaItemVisibility(new Boolean(showFlgRicorsiva));
 			}
 			// Devo togliere gli eventuali filtri non presenti nel filter.xml (capita ad esempio se nelle preference ho salvato filtri non più presenti)
 			FilterBean lFilterBean = getFilterConfigBean();
+			// Valore di default della ricerca ricorsiva
+			boolean flgValueRicercaRicorsiva = true;
 			if (lFilterBean != null && lFilterBean.getFields() != null){
 				// Creo una mappa con tutti i filtri possibili
 				LinkedHashMap<String, String> mappaFiltri = new LinkedHashMap<String, String>();
@@ -1052,8 +1061,9 @@ public class ConfigurableFilter extends FilterBuilder implements HasChangeValueM
 				if ((criteria != null) && (criteria.getCriteria() != null) && (criteria.getCriteria().length > 0)){
 					// Creo una lista dei criteri presenti anche nella lista dei filtri
 					List<Criterion> criteriControllati  = new ArrayList<Criterion>();
+					// Il settaggio di flgValueRicercaRicorsiva tramite il filtro flgRicercaRicorsiva ha precedenza rispetto al settaggio tramite il firltro searchFullText
+					boolean flgValueRicercaRicorsivaSettatoDaFiltroDedicato = false;
 					for(Criterion criterionDaControllare : criteria.getCriteria()){
-						
 						if ("maxRecordVisualizzabili".equalsIgnoreCase(criterionDaControllare.getFieldName())){
 							// Il numero massimo di record da visualizzare va trattato a parte
 							if (getLayout() != null && getLayout().showMaxRecordVisualizzabiliItem()) {
@@ -1068,6 +1078,23 @@ public class ConfigurableFilter extends FilterBuilder implements HasChangeValueM
 							// La scelta pagina da visualizzare va trattato a parte
 							if (getLayout() != null && getLayout().showPaginazioneItems()) {
 								getLayout().setNroPagina(criterionDaControllare.getValueAsString());
+							}
+						} else if ("flgRicercaRicorsiva".equalsIgnoreCase(criterionDaControllare.getFieldName())){
+							if (getLayout() != null && getLayout().showRicercaRicorsivaItem()) {
+								flgValueRicercaRicorsiva = new Boolean(criterionDaControllare.getValueAsString());
+								flgValueRicercaRicorsivaSettatoDaFiltroDedicato = true;
+							}
+						} else if ("searchFulltext".equalsIgnoreCase(criterionDaControllare.getFieldName())){
+							// Retrocompatibilità con le vecchie preferenze salvate in DB, dove il flag della ricerca ricorsiva era dentro searchFullText
+							if (getLayout() != null && getLayout().showRicercaRicorsivaItem() && !flgValueRicercaRicorsivaSettatoDaFiltroDedicato) {
+								Record value = criterionDaControllare.getAttributeAsRecord("value");
+								if (value != null && value.getAttribute("flgRicorsiva") != null ) {
+									flgValueRicercaRicorsiva = new Boolean(value.getAttribute("flgRicorsiva"));
+								}
+							}
+							if (mappaFiltri.containsKey(criterionDaControllare.getFieldName())){
+								// Il criterio da controllare è presente nella mappa, lo aggiungo alla lista dei criteri controllati
+								criteriControllati.add(criterionDaControllare);
 							}
 						} else if (mappaFiltri.containsKey(criterionDaControllare.getFieldName())){
 							// Il criterio da controllare è presente nella mappa, lo aggiungo alla lista dei criteri controllati
@@ -1100,6 +1127,9 @@ public class ConfigurableFilter extends FilterBuilder implements HasChangeValueM
 					// Creo il nuovo criteria che contiene solo i criteri verificati
 					criteria = new AdvancedCriteria(criteria.getOperator() != null ? criteria.getOperator() : OperatorId.AND, criteriControllati.toArray(new Criterion[criteriControllati.size()]));
 				}
+			}
+			if (getLayout() != null) {
+				getLayout().setFlgRicercaRicorsiva(flgValueRicercaRicorsiva);
 			}
 			super.setCriteria(criteria);
 //			Criterion[] lCriterions = criteria != null ? criteria.getCriteria() : new Criterion[0];
@@ -1272,6 +1302,13 @@ public class ConfigurableFilter extends FilterBuilder implements HasChangeValueM
 				mappaDependsFrom.put(lFilterFieldBean.getName(), lFilterFieldBean.getDependsFrom());
 			}
 		}
+		String showFlgRicorsiva = getExtraParam().get("showFlgRicorsiva");
+		if (showFlgRicorsiva == null) {
+			showFlgRicorsiva = String.valueOf(filterBean.getShowFlgRicorsiva());
+		}
+		if (getLayout() != null) {
+			getLayout().setRicercaRicorsivaItemVisibility(Boolean.valueOf(showFlgRicorsiva));
+		}
 		for (FilterFieldBean lFilterFieldBean : filterBean.getFields()) {
 			mappaFields.put(lFilterFieldBean.getName(), lFilterFieldBean.getType());
 			DataSourceField lDataSourceTextField = buildField(lFilterFieldBean);
@@ -1351,11 +1388,6 @@ public class ConfigurableFilter extends FilterBuilder implements HasChangeValueM
 			lMapPropertyStringaFullText.put("categoria", lFilterFieldBean.getCategoria());
 			// lMapPropertyStringaFullText.put("attributiDataSource", Layout.getAttributiDataSource());
 			// lMapPropertyStringaFullText.put("categoria", lFilterFieldBean.getCategoria());
-			String showFlgRicorsivaStringaFullText = getExtraParam().get("showFlgRicorsiva");
-			if (showFlgRicorsivaStringaFullText == null) {
-				showFlgRicorsivaStringaFullText = String.valueOf(lFilterFieldBean.isShowFlgRicorsiva());
-			}
-			lMapPropertyStringaFullText.put("showFlgRicorsiva", showFlgRicorsivaStringaFullText);
 			String showSelectAttributiStringaFullText = getExtraParam().get("showSelectAttributi");
 			if (showSelectAttributiStringaFullText == null) {
 				showSelectAttributiStringaFullText = String.valueOf(lFilterFieldBean.isShowSelectAttributi());

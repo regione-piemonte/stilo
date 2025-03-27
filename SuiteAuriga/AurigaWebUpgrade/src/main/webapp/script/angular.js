@@ -1,3 +1,4 @@
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
 /* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
  * @license AngularJS v1.2.28
  * (c) 2010-2014 Google, Inc. http://angularjs.org

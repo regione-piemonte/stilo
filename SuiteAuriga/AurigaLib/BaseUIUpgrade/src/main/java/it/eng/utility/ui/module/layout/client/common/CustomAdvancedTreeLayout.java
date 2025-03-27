@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -212,11 +213,12 @@ public class CustomAdvancedTreeLayout extends CustomLayout implements TreeSectio
 			}
 		}
 
-		if (idRootNode != null && !"".equals(idRootNode)) {
-			caricaPreference(idRootNode);
-		} else {
-			caricaPreference();
-		}
+		// carico le preference dopo aver caricato l'albero e prima di settare il percorso iniziale, altrimenti poi mi sovrascrive i filtri di default
+//		if (idRootNode != null && !"".equals(idRootNode)) {
+//			caricaPreference(idRootNode);
+//		} else {
+//			caricaPreference();
+//		}
 		
 		caricaPreferenceTreeVisibility();
 	}
@@ -239,11 +241,15 @@ public class CustomAdvancedTreeLayout extends CustomLayout implements TreeSectio
 		}
 		return true;
 	}
-		
+	
 	@Override
 	protected void caricaPreference() {
+		caricaPreference(null);
+	}
+		
+	protected void caricaPreference(final ServiceCallback<Record> callback) {
 		if(!skipRicercaPreferitaIniziale()) {	
-			caricaPreference(null);
+			caricaPreference(null, callback);
 		} else {
 			if (UserInterfaceFactory.getListaDefPrefsService() != null) {
 				getListaDefPrefs(new ServiceCallback<Record>() {
@@ -281,6 +287,9 @@ public class CustomAdvancedTreeLayout extends CustomLayout implements TreeSectio
 							setNroRecordXPagina("");
 							setDefaultCriteriaAndFirstSearch(object.getAttributeAsBoolean("autosearch"));
 						}
+						if(callback != null) {
+							callback.execute(object);
+						}
 					}
 				});
 			} else {
@@ -310,7 +319,7 @@ public class CustomAdvancedTreeLayout extends CustomLayout implements TreeSectio
 		getListaDefPrefs(lRecord, callback);
 	}
 	
-	protected void caricaPreference(final String idNode) {
+	protected void caricaPreference(final String idNode, final ServiceCallback<Record> callback) {
 		if (UserInterfaceFactory.getListaDefPrefsService() != null) {
 			getListaDefPrefs(idNode, new ServiceCallback<Record>() {
 
@@ -365,6 +374,9 @@ public class CustomAdvancedTreeLayout extends CustomLayout implements TreeSectio
 						ricercaPreferitaSelectItem.setValue((String) null);
 						layoutFiltroSelectItem.setValue((String) null);
 						setDefaultCriteriaAndFirstSearch(object.getAttributeAsBoolean("autosearch"));
+					}
+					if(callback != null) {
+						callback.execute(object);
 					}
 				}
 			});
@@ -508,6 +520,20 @@ public class CustomAdvancedTreeLayout extends CustomLayout implements TreeSectio
 			}
 		});
 	}
+	
+	public void setPercorsoInizialeAfterCaricaPreference() {
+		ServiceCallback<Record> callback = new ServiceCallback<Record>() {
+			@Override
+			public void execute(Record object) {
+				setPercorsoIniziale();
+			}
+		};
+		if (idRootNode != null && !"".equals(idRootNode)) {
+			caricaPreference(idRootNode, callback);
+		} else {
+			caricaPreference(callback);
+		}	
+	}
 
 	public void setPercorsoIniziale() {
 		tree.getDataSource().performCustomOperation("getPercorsoIniziale", new Record(), new DSCallback() {
@@ -633,6 +659,14 @@ public class CustomAdvancedTreeLayout extends CustomLayout implements TreeSectio
 				criterionList.add(new Criterion("nroPagina", OperatorId.EQUALS, nroPaginaItem.getValueAsString()));	
 			} else {
 				nroPaginaItem.setValue("");
+			}
+		}
+		
+		if (filter.isVisible()) {
+			// Metto il flag di ricerca ricorsiva solo se il pannello filtro è visibile, e solo se l'opzione è visibile
+			// Se il pannello filtri non è visibile vuol dire che sto eplodendo un nodo, e la ricerca non deve essere ricorsiva
+			if (showRicercaRicorsivaItem()) {
+				criterionList.add(new Criterion("flgRicercaRicorsiva", OperatorId.EQUALS, getFlgRicercaRicorsiva() + ""));
 			}
 		}
 		

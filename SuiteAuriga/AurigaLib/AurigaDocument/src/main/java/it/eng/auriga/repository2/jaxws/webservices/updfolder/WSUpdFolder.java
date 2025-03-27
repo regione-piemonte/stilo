@@ -1,5 +1,7 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.updfolder;
 
+import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreUpdfolderBean;
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsUpdfolderBean;
 import it.eng.auriga.database.store.dmpk_ws.store.Updfolder;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
@@ -9,6 +11,7 @@ import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.jaxws.webservices.common.JAXWSAbstractAurigaService;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
 import it.eng.document.function.GestioneFascicoli;
+import it.eng.document.function.StoreException;
 import it.eng.document.function.bean.ModificaFascicoloOut;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -20,6 +23,8 @@ import java.util.List;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -69,6 +74,7 @@ public class WSUpdFolder extends JAXWSAbstractAurigaService implements WSIUpdFol
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
 
 
@@ -77,7 +83,8 @@ public class WSUpdFolder extends JAXWSAbstractAurigaService implements WSIUpdFol
     String outRispostaWS = null;
     String errMsg = null;
     String xmlIn = null;
-
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
+    
     try {
 
         aLogger.info("Inizio WSUpdFolder");
@@ -120,6 +127,11 @@ public class WSUpdFolder extends JAXWSAbstractAurigaService implements WSIUpdFol
    	         
 		}
 		catch (Exception e){
+			if (e instanceof StoreException) {
+	    		if(((StoreException) e).getError()!=null){
+	    			errCode = ((StoreException) e).getError().getErrorCode();
+	    		}
+	    	}
 			if(e.getMessage()!=null)
 	 			 errMsg = "Errore = " + e.getMessage();
 	 		 else
@@ -167,7 +179,7 @@ public class WSUpdFolder extends JAXWSAbstractAurigaService implements WSIUpdFol
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 	 	}
 	 	else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	}
 
         aLogger.info("Fine WSUpdFolder");
@@ -187,88 +199,81 @@ public class WSUpdFolder extends JAXWSAbstractAurigaService implements WSIUpdFol
     }
         
     private WSUpdFolderBean callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
+    	aLogger.debug("Eseguo il WS DMPK_WS->UpdFolder.");
     	
-    	String xml       = null;
-    	String idFolder       = null;
+    	String xml = null;
+    	String idFolder = null;
     	
-    	aLogger.debug("Eseguo il WS DmpkWSUpdFolder.");
-    	
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsUpdfolderBean input = new DmpkWsUpdfolderBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		  
-    		  // Eseguo il servizio
-    		  Updfolder service = new Updfolder();
-    		  StoreResultBean<DmpkWsUpdfolderBean> output = service.execute(loginBean, input);
+    	// Inizializzo l'INPUT    		
+    	DmpkWsUpdfolderBean input = new DmpkWsUpdfolderBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+	  
+    	// Eseguo il servizio
+    	Updfolder service = new Updfolder();
+    	StoreResultBean<DmpkWsUpdfolderBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
-    		      		  
-    		  // restituisco l'XML
-    		  if (output.getResultBean().getXmlout() != null){
-    			  xml = output.getResultBean().getXmlout().toString();  
-    		  }
-    		  
-    		  if (xml== null || xml.equalsIgnoreCase(""))
-    			  throw new Exception("La store procedure UpdFolder ha ritornato XmlOut nullo");
-    		      		  
-    		  // restituisco l'ID FOLDER
-    		  if (output.getResultBean().getIdfolderout() != null){
-    			  idFolder = output.getResultBean().getIdfolderout().toString();  
-    		  }
-    		  
-    		  if (idFolder== null || idFolder.equalsIgnoreCase(""))
-    			  throw new Exception("La store procedure UpdFolder ha ritornato id folder nullo");
-    			      		 
-    	      // popolo il bean di out
-    	      WSUpdFolderBean  result = new WSUpdFolderBean();
-    	        
-    	      result.setIdFolder(idFolder);
-    	      result.setXml(xml);
-    	      
-    	      
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+    	if (output.isInError()){
+	  		aLogger.debug(output.getDefaultMessage());
+		 	aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+			throw new StoreException(output);
+		}	
+	      		  
+	  	// restituisco l'XML
+	  	if (output.getResultBean().getXmlout() != null){
+		  xml = output.getResultBean().getXmlout().toString();  
+	  	}
+	  
+	  	if (xml== null || xml.equalsIgnoreCase(""))
+		  throw new Exception("La store procedure UpdFolder ha ritornato XmlOut nullo");
+	      		  
+	  	// restituisco l'ID FOLDER
+	  	if (output.getResultBean().getIdfolderout() != null){
+		  idFolder = output.getResultBean().getIdfolderout().toString();  
+	  	}
+	  
+	  	if (idFolder== null || idFolder.equalsIgnoreCase(""))
+		  throw new Exception("La store procedure UpdFolder ha ritornato id folder nullo");
+		      		 
+	  	// popolo il bean di out
+	  	WSUpdFolderBean  result = new WSUpdFolderBean();
+        
+	  	result.setIdFolder(idFolder);
+	  	result.setXml(xml);
+      
+	  return result;
     }
     
     private String eseguiServizio(AurigaLoginBean loginBean, WSUpdFolderBean bean) throws Exception {
-    	aLogger.debug("Eseguo il servizio di AurigaDocument.");
+    	aLogger.debug("Eseguo il servizio DmpkCoreUpdfolder.");
     	
     	String ret = null; 
     	
-    	// creo l'input
+    	// Inizializzo l'INPUT  
 		String idFolderIn = (bean.getIdFolder());
 		String xmlIn = bean.getXml();
     	
-    	// eseguo il servizio
-		try {
-	    	    GestioneFascicoli servizio = new GestioneFascicoli();
-	    	    ModificaFascicoloOut servizioOut = new ModificaFascicoloOut();
-	    	    servizioOut = servizio.modificaFascicoloWS(loginBean, idFolderIn, xmlIn);
-	    	    	    	    
-	    	    // Se il servizio e' andato in errore restituisco il messaggio di errore 	    	    
-	    	    if(StringUtils.isNotBlank(servizioOut.getDefaultMessage())) {
-	    	    	throw new Exception(servizioOut.getDefaultMessage());
-	    		}
-	    	    // Altrimenti restituisco l'ID FOLDER
-	    	    //ret = (servizioOut.getUriPerAggiornamentoContainer()!= null ? (StringUtils.isNotBlank(servizioOut.getUriPerAggiornamentoContainer()) ? servizioOut.getUriPerAggiornamentoContainer() : null) : null);
-	    	    
-	    	    ret = idFolderIn;
-	    	    
-	    	    
-	 		}
-	 	catch (Exception e){
-	 		throw new Exception(e.getMessage());	
-	 	}
+		// Eseguo il servizio
+	    GestioneFascicoli servizio = new GestioneFascicoli();
+	    ModificaFascicoloOut servizioOut = new ModificaFascicoloOut();
+	    servizioOut = servizio.modificaFascicoloWS(loginBean, idFolderIn, xmlIn);
+	    	    	    
+	    // Se il servizio e' andato in errore restituisco il messaggio di errore 	    	    
+	    if(StringUtils.isNotBlank(servizioOut.getDefaultMessage())) {
+	    	StoreResultBean<DmpkCoreUpdfolderBean> output = new StoreResultBean<DmpkCoreUpdfolderBean>();
+			output.setDefaultMessage(servizioOut.getDefaultMessage());
+			output.setErrorContext(servizioOut.getErrorContext());
+			output.setErrorCode(servizioOut.getErrorCode());
+			aLogger.debug(output.getDefaultMessage());
+			aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+    	    throw new StoreException(output);
+		}
+	    
+	    ret = idFolderIn;
     	return ret;
     }
-    
     
     /**
      * Genera il file XML contenente l'URI del folder camcellato
@@ -286,7 +291,7 @@ public class WSUpdFolder extends JAXWSAbstractAurigaService implements WSIUpdFol
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             aLogger.debug("generaXMLToken: token = " + xmlIn);
             aLogger.debug("generaXMLToken: tokenEsc = " + xmlInEsc);

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.removefolderfromfavourite;
 
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsAddremovefromfavouriteBean;
 import it.eng.auriga.database.store.dmpk_ws.store.Addremovefromfavourite;
@@ -7,6 +8,8 @@ import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.auriga.module.business.beans.SpecializzazioneBean;
 import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
+import it.eng.document.function.StoreException;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -16,6 +19,8 @@ import java.util.List;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import it.eng.auriga.repository2.jaxws.webservices.common.JAXWSAbstractAurigaService;
@@ -63,6 +68,7 @@ public class WSRemoveFolderFromFavourite extends JAXWSAbstractAurigaService impl
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
 
 
@@ -71,7 +77,8 @@ public class WSRemoveFolderFromFavourite extends JAXWSAbstractAurigaService impl
     String outWS = null;
     String errMsg = null;
     String xmlIn = null;
-
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
+    
     try {
     	 aLogger.info("Inizio WSRemoveFolderFromFavourite");
     	
@@ -101,7 +108,12 @@ public class WSRemoveFolderFromFavourite extends JAXWSAbstractAurigaService impl
          try {
         	 outWS =  callWS(loginBean,xml);
 	 		}
-	 		catch (Exception e){	 
+	 		catch (Exception e){
+	 			if (e instanceof StoreException) {
+		    		if(((StoreException) e).getError()!=null){
+		    			errCode = ((StoreException) e).getError().getErrorCode();
+		    		}
+		    	}
 	 			if(e.getMessage()!=null)
 		 			 errMsg = "Errore = " + e.getMessage();
 		 		 else
@@ -148,7 +160,7 @@ public class WSRemoveFolderFromFavourite extends JAXWSAbstractAurigaService impl
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 	 	}
 	 	else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	}            	
 	     aLogger.info("Fine WSRemoveFolderFromFavourite");
 	    
@@ -166,40 +178,33 @@ public class WSRemoveFolderFromFavourite extends JAXWSAbstractAurigaService impl
 	    aLogger.info("Fine WSRemoveFolderFromFavourite serviceImplementation");
 	}
     }
-
         
-    private String callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {    	    
-    	aLogger.debug("Eseguo il WS DMPK_WS->RemoveFolderFromFavourite.");    	
-    	String ret = null;    	
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsAddremovefromfavouriteBean  input = new DmpkWsAddremovefromfavouriteBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		  input.setOperationtypein("REMOVE");
-    		  input.setFlgtypeobjin("F");
-    		  
-    		  // Eseguo il servizio
-    		  Addremovefromfavourite service = new Addremovefromfavourite();
-    		  StoreResultBean<DmpkWsAddremovefromfavouriteBean> lStoreResultBean = service.execute(loginBean, input);
+    private String callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {   
+    	aLogger.debug("Eseguo il WS DMPK_WS->RemoveFolderFromFavourite.");
+    	
+    	String ret = null;
+    	
+    	// Inizializzo l'INPUT    		
+    	DmpkWsAddremovefromfavouriteBean  input = new DmpkWsAddremovefromfavouriteBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+    	input.setOperationtypein("REMOVE");
+    	input.setFlgtypeobjin("F");
+	  
+    	// Eseguo il servizio
+    	Addremovefromfavourite service = new Addremovefromfavourite();
+    	StoreResultBean<DmpkWsAddremovefromfavouriteBean> output = service.execute(loginBean, input);
 
-    		  if (lStoreResultBean.isInError()){
-					aLogger.debug(lStoreResultBean.getDefaultMessage());
-					aLogger.debug(lStoreResultBean.getErrorContext());
-					aLogger.debug(lStoreResultBean.getErrorCode());
-					throw new Exception(lStoreResultBean.getDefaultMessage());
-			  }
-    		  
-    		   
-    		  ret ="OK";
-    		  return ret;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+    	if (output.isInError()){
+    		aLogger.debug(output.getDefaultMessage());
+    		aLogger.debug(output.getErrorContext());
+    		aLogger.debug(output.getErrorCode());
+    		throw new StoreException(output);
+    	}
+	  
+    	ret ="OK";
+    	return ret;
     }
-    
-    
     
 	/**
      * Genera il file XML contenente l'id del tipo doc aggiunto
@@ -215,7 +220,7 @@ public class WSRemoveFolderFromFavourite extends JAXWSAbstractAurigaService impl
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             aLogger.debug("generaXMLToken: token = " + xmlIn);
             aLogger.debug("generaXMLToken: tokenEsc = " + xmlInEsc);

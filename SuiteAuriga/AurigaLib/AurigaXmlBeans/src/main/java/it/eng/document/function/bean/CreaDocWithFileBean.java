@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.io.Serializable;
 
@@ -14,6 +15,7 @@ public class CreaDocWithFileBean implements Serializable {
 	private AllegatiBean allegati;
 	private AttachAndPosizioneCollectionBean attachAndPosizioneCollection;
 	private CreaModDocumentoOutBean creaDocumentoOut;
+	private String numRigaInTabContFoglio;
 	
 	public CreaModDocumentoInBean getCreaDocumentoIn() {
 		return creaDocumentoIn;
@@ -44,6 +46,12 @@ public class CreaDocWithFileBean implements Serializable {
 	}
 	public void setCreaDocumentoOut(CreaModDocumentoOutBean creaDocumentoOut) {
 		this.creaDocumentoOut = creaDocumentoOut;
+	}
+	public String getNumRigaInTabContFoglio() {
+		return numRigaInTabContFoglio;
+	}
+	public void setNumRigaInTabContFoglio(String numRigaInTabContFoglio) {
+		this.numRigaInTabContFoglio = numRigaInTabContFoglio;
 	}
 	
 }

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.database.store.dmpk_ws.store.impl;
 
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsUpdudBean;
 import it.eng.storeutil.HibernateStoreUtil;
@@ -36,7 +37,7 @@ public class UpdudImpl  {
 	    CallableStatement call = null;			
 		try{
 			//Creo il Callbackstatement
-			call = connection.prepareCall("{? = call DMPK_WS.UPDUD(?,?,?,?,?,?,?,?,?,?,?)}");			
+			call = connection.prepareCall("{? = call DMPK_WS.UPDUD(?,?,?,?,?,?,?,?,?,?,?,?)}");			
 			SubjectBean subject =  SubjectUtil.subject.get();
 			if (StringUtils.isNotEmpty(subject.getUuidtransaction())){
 				HibernateUtil.addStatement(subject.getUuidtransaction(), call);
@@ -60,7 +61,8 @@ public class UpdudImpl  {
 			util.settingParameterOnStore(call,bean,wrapperBean,"xmlin",3,Types.CLOB,connection); 	
 			util.settingParameterOnStore(call,bean,wrapperBean,"flgrollbckfullin",7,Types.INTEGER,connection); 	
 			util.settingParameterOnStore(call,bean,wrapperBean,"flgautocommitin",8,Types.INTEGER,connection); 	
-			util.settingParameterOnStore(call,bean,wrapperBean,"listadocrectrlin",12,Types.CLOB,connection); 	
+			util.settingParameterOnStore(call,bean,wrapperBean,"attachmentfilexmin",12,Types.CLOB,connection); 	
+			util.settingParameterOnStore(call,bean,wrapperBean,"listadocrectrlin",13,Types.CLOB,connection); 	
 			
 			call.execute();
 			if (StringUtils.isNotEmpty(subject.getUuidtransaction())){

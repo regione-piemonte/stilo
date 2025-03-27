@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.sinadoc.database.store.dmpk_load_combo_sinapoli.store;
 
 import it.eng.sinadoc.database.store.dmpk_load_combo_sinapoli.bean.DmpkLoadComboSinapoliDmfn_load_combo_sinapoliBean;
 import it.eng.sinadoc.database.store.dmpk_load_combo_sinapoli.store.impl.Dmfn_load_combo_sinapoliImpl;
@@ -18,7 +19,6 @@ import it.eng.auriga.module.business.login.service.LoginService;
 
 import org.hibernate.Session;
 import org.hibernate.jdbc.Work;
-import org.apache.commons.beanutils.BeanUtilsBean2;
 
 import it.eng.auriga.database.store.dmpk_login.bean.DmpkLoginMarktokenusageBean;
 import it.eng.auriga.database.store.dmpk_login.store.Marktokenusage;

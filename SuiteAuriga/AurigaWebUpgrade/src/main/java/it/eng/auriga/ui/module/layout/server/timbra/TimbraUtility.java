@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.timbra;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -228,9 +229,11 @@ public class TimbraUtility {
 		}
 		
 		for(InfoFilePerBustaTimbro infoFileBustaTimbro : listaFileDaAggiungereAllaBusta) {
-			String uriFile = infoFileBustaTimbro.getUriFile();
-			File fileBustaTimbro = StorageImplementation.getStorage().extractFile(uriFile);
-			infoFileBustaTimbro.setFile(fileBustaTimbro);
+			if(StringUtils.isNotBlank(infoFileBustaTimbro.getUriFile())) {
+				String uriFile = infoFileBustaTimbro.getUriFile();
+				File fileBustaTimbro = StorageImplementation.getStorage().extractFile(uriFile);
+				infoFileBustaTimbro.setFile(fileBustaTimbro);	
+			}
 		}
 		
 		return listaFileDaAggiungereAllaBusta;

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovapropostaatto2.items;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -626,6 +627,7 @@ public class InvioMovimentiContabiliSICRADetail extends CustomDetail {
 		codiceCUPLengthValidator.setErrorMessage("Il codice CUP, se indicato, deve essere di 15 caratteri");
 		
 		codiceCUP = new TextItem("codiceCUP", "CUP");
+		codiceCUP.setKeyPressFilter("[0-9a-zA-Z]");
 		codiceCUP.setStartRow(true);
 		codiceCUP.setWidth(160);
 		codiceCUP.setColSpan(1);
@@ -1200,71 +1202,69 @@ public class InvioMovimentiContabiliSICRADetail extends CustomDetail {
 		/**
 		 * @param anagraficaTrovataSicraBean
 		 */
-		public void settaCampiConDatiSicra(Record anagraficaTrovataSicraBean) {
-			if(/*(tipoSoggetto.getValueAsString() != null && "giuridica".equalsIgnoreCase(tipoSoggetto.getValueAsString()))
-					|| */ (anagraficaTrovataSicraBean.getAttribute("codPIVASogg")!=null && !"".equalsIgnoreCase(anagraficaTrovataSicraBean.getAttribute("codPIVASogg").trim()))
-					|| (anagraficaTrovataSicraBean.getAttribute("denominazione")!=null && !"".equalsIgnoreCase(anagraficaTrovataSicraBean.getAttribute("denominazione").trim()) 
-					&& (anagraficaTrovataSicraBean.getAttribute("cognome")==null || "".equalsIgnoreCase(anagraficaTrovataSicraBean.getAttribute("cognome"))))) {
-				denominazioneSogg.setValue(anagraficaTrovataSicraBean.getAttribute("denominazione")!=null ? anagraficaTrovataSicraBean.getAttribute("denominazione"): "");
-				denominazioneSogg.setCanEdit(false);
-				denominazioneSogg.setVisible(true);
-				codFiscaleSoggPG.setValue(anagraficaTrovataSicraBean.getAttribute("codiceFiscale")!=null ? anagraficaTrovataSicraBean.getAttribute("codiceFiscale"): "");
-				codFiscaleSoggPG.setCanEdit(false);
-				codFiscaleSoggPG.setVisible(true);
-				tipoSoggetto.setValue("giuridica");
-				
-				codPIVASogg.setValue(anagraficaTrovataSicraBean.getAttribute("partitaIva")!=null ? anagraficaTrovataSicraBean.getAttribute("partitaIva"): "");
-				codPIVASogg.setCanEdit(false);
-			}else{
-				nomeSogg.setValue(anagraficaTrovataSicraBean.getAttribute("nome")!=null ? anagraficaTrovataSicraBean.getAttribute("nome"): "");
-				nomeSogg.setCanEdit(false);
-				nomeSogg.setVisible(true);
-				cognomeSogg.setValue(anagraficaTrovataSicraBean.getAttribute("cognome")!=null ? anagraficaTrovataSicraBean.getAttribute("cognome"): "");
-				cognomeSogg.setCanEdit(false);
-				cognomeSogg.setVisible(true);
-				codFiscaleSoggPF.setValue(anagraficaTrovataSicraBean.getAttribute("codiceFiscale")!=null ? anagraficaTrovataSicraBean.getAttribute("codiceFiscale"): "");
-				codFiscaleSoggPF.setCanEdit(false);
-				codFiscaleSoggPF.setVisible(true);
-				tipoSoggetto.setValue("fisica");
-			}
+	public void settaCampiConDatiSicra(Record anagraficaTrovataSicraBean) {
+		if(/*(tipoSoggetto.getValueAsString() != null && "giuridica".equalsIgnoreCase(tipoSoggetto.getValueAsString()))
+				|| */ (anagraficaTrovataSicraBean.getAttribute("codPIVASogg")!=null && !"".equalsIgnoreCase(anagraficaTrovataSicraBean.getAttribute("codPIVASogg").trim()))
+				|| (anagraficaTrovataSicraBean.getAttribute("denominazione")!=null && !"".equalsIgnoreCase(anagraficaTrovataSicraBean.getAttribute("denominazione").trim()) 
+				&& (anagraficaTrovataSicraBean.getAttribute("cognome")==null || "".equalsIgnoreCase(anagraficaTrovataSicraBean.getAttribute("cognome"))))) {
+			denominazioneSogg.setValue(anagraficaTrovataSicraBean.getAttribute("denominazione")!=null ? anagraficaTrovataSicraBean.getAttribute("denominazione"): "");
+			denominazioneSogg.setCanEdit(false);
+			denominazioneSogg.setVisible(true);
+			codFiscaleSoggPG.setValue(anagraficaTrovataSicraBean.getAttribute("codiceFiscale")!=null ? anagraficaTrovataSicraBean.getAttribute("codiceFiscale"): "");
+			codFiscaleSoggPG.setCanEdit(false);
+			codFiscaleSoggPG.setVisible(true);
+			tipoSoggetto.setValue("giuridica");
 			
-			codiceSoggetto.setValue(anagraficaTrovataSicraBean.getAttribute("codiceSoggetto")!=null ? anagraficaTrovataSicraBean.getAttribute("codiceSoggetto"): "");
-			codiceSoggetto.setCanEdit(false);
-			
-			indirizzoSogg.setValue(anagraficaTrovataSicraBean.getAttribute("indirizzo")!=null ? anagraficaTrovataSicraBean.getAttribute("indirizzo"): "");
-			indirizzoSogg.setCanEdit(false);
-			
-			cap.setValue(anagraficaTrovataSicraBean.getAttribute("cap")!=null ? anagraficaTrovataSicraBean.getAttribute("cap"): "");
-			cap.setCanEdit(false);
-			
-			provincia.setValue(anagraficaTrovataSicraBean.getAttribute("provincia")!=null ? anagraficaTrovataSicraBean.getAttribute("provincia"): "");
-			provincia.setCanEdit(false);
-			
-			localita.setValue(anagraficaTrovataSicraBean.getAttribute("localita")!=null ? anagraficaTrovataSicraBean.getAttribute("localita"): "");
-			localita.setCanEdit(false);
-			
-			tipoSoggetto.setCanEdit(false);
-//			isSoggEstero.setCanEdit(false);
-			
-			flgCampiSettatiDaSicra = true;
-			
+			codPIVASogg.setValue(anagraficaTrovataSicraBean.getAttribute("partitaIva")!=null ? anagraficaTrovataSicraBean.getAttribute("partitaIva"): "");
+			codPIVASogg.setCanEdit(false);
+		}else{
+			nomeSogg.setValue(anagraficaTrovataSicraBean.getAttribute("nome")!=null ? anagraficaTrovataSicraBean.getAttribute("nome"): "");
+			nomeSogg.setCanEdit(false);
+			nomeSogg.setVisible(true);
+			cognomeSogg.setValue(anagraficaTrovataSicraBean.getAttribute("cognome")!=null ? anagraficaTrovataSicraBean.getAttribute("cognome"): "");
+			cognomeSogg.setCanEdit(false);
+			cognomeSogg.setVisible(true);
+			codFiscaleSoggPF.setValue(anagraficaTrovataSicraBean.getAttribute("codiceFiscale")!=null ? anagraficaTrovataSicraBean.getAttribute("codiceFiscale"): "");
+			codFiscaleSoggPF.setCanEdit(false);
+			codFiscaleSoggPF.setVisible(true);
+			tipoSoggetto.setValue("fisica");
 		}
 		
+		codiceSoggetto.setValue(anagraficaTrovataSicraBean.getAttribute("codiceSoggetto")!=null ? anagraficaTrovataSicraBean.getAttribute("codiceSoggetto"): "");
+		codiceSoggetto.setCanEdit(false);
+		
+		indirizzoSogg.setValue(anagraficaTrovataSicraBean.getAttribute("indirizzo")!=null ? anagraficaTrovataSicraBean.getAttribute("indirizzo"): "");
+		indirizzoSogg.setCanEdit(false);
+		
+		cap.setValue(anagraficaTrovataSicraBean.getAttribute("cap")!=null ? anagraficaTrovataSicraBean.getAttribute("cap"): "");
+		cap.setCanEdit(false);
+		
+		provincia.setValue(anagraficaTrovataSicraBean.getAttribute("provincia")!=null ? anagraficaTrovataSicraBean.getAttribute("provincia"): "");
+		provincia.setCanEdit(false);
+		
+		localita.setValue(anagraficaTrovataSicraBean.getAttribute("localita")!=null ? anagraficaTrovataSicraBean.getAttribute("localita"): "");
+		localita.setCanEdit(false);
+		
+		tipoSoggetto.setCanEdit(false);
+//		isSoggEstero.setCanEdit(false);
+		
+		flgCampiSettatiDaSicra = true;		
+	}
+	
+	public boolean isImpegno() {
+		return flgEntrataUscita.getValueAsString() != null && "U".equals(flgEntrataUscita.getValueAsString());
+	}
+		
+	public boolean isAccertamento() {
+		return flgEntrataUscita.getValueAsString() != null && "E".equals(flgEntrataUscita.getValueAsString());
+	}
 		
 	public boolean isImpegnoPrenotazione() {
-		boolean isImpegnoPrenotazione = false;
-		if(flgEntrataUscita.getValueAsString() != null && "U".equals(flgEntrataUscita.getValueAsString())) {
-			isImpegnoPrenotazione = flgPrenotazione.getValueAsString() != null && "SI".equals(flgPrenotazione.getValueAsString());
-		}
-		return isImpegnoPrenotazione;
+		return isImpegno() && flgPrenotazione.getValueAsString() != null && "SI".equals(flgPrenotazione.getValueAsString());
 	}
 	
 	public boolean isAccertamentoAutoIncrementante() {
-		boolean isAccertamentoAutoIncrementante = false;
-		if(flgEntrataUscita.getValueAsString() != null && "E".equals(flgEntrataUscita.getValueAsString())) {
-			isAccertamentoAutoIncrementante = isAutoIncrementante.getValueAsBoolean() != null && isAutoIncrementante.getValueAsBoolean();
-		}
-		return isAccertamentoAutoIncrementante;
+		return isAccertamento() && isAutoIncrementante.getValueAsBoolean() != null && isAutoIncrementante.getValueAsBoolean();
 	}
 	
 	public boolean isSoggettoObbligatorio() {		
@@ -1304,6 +1304,40 @@ public class InvioMovimentiContabiliSICRADetail extends CustomDetail {
 			if(importo > disponibilita) {
 				AurigaLayout.showConfirmDialogWithWarning("Attenzione!", "L'importo inserito supera la disponibilità. Procedere comunque?", "Si", "No", new BooleanCallback() {
 
+					@Override
+					public void execute(Boolean value) {
+						if (callback != null) {
+							callback.execute(value);
+						}
+					}
+				});
+			} else {
+				if (callback != null) {
+					callback.execute(true);
+				}
+			}
+		} else {
+			if (callback != null) {
+				callback.execute(true);
+			}
+		}
+	}
+	
+	public void controlloWarningCUPNonValorizzatoSuImpegniConTitolo2Spesa(final BooleanCallback callback) {
+		if(isImpegno()) {
+			String titolo = "";
+			if(codiceCapitoloFilterXCap.getValueAsString() != null && !"".equals(codiceCapitoloFilterXCap.getValueAsString())) {
+				// prendo il blocco centrale tra il primo e l'ultimo punto ed elimino tutti gli 0 iniziali
+//				titolo = codiceCapitoloFilterXCap.getValueAsString().substring(codiceCapitoloFilterXCap.getValueAsString().indexOf(".") + 1, codiceCapitoloFilterXCap.getValueAsString().lastIndexOf("."));
+//				titolo = titolo.replaceAll("^0+", ""); // elimino tutti gli 0 iniziali
+				// prendo l'ultima cifra del primo blocco, prima del primo punto
+		        titolo = codiceCapitoloFilterXCap.getValueAsString().substring(0, codiceCapitoloFilterXCap.getValueAsString().indexOf("."));
+		        titolo = "" + titolo.charAt(titolo.length() - 1);
+			}
+			boolean isCUPValorizzato = codiceCUP.getValueAsString() != null && !"".equals(codiceCUP.getValueAsString());
+			if(titolo != null && "2".equals(titolo) && !isCUPValorizzato) {
+				AurigaLayout.showConfirmDialogWithWarning("Attenzione!", "Non hai valorizzato il CUP. Procedere comunque?", "Si", "No", new BooleanCallback() {
+	
 					@Override
 					public void execute(Boolean value) {
 						if (callback != null) {

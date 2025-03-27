@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.gestioneatti.delibere;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -924,7 +925,11 @@ public class ListaDatiDiscussioneSedutaItem extends GridItem {
 	
 	public void nuovoAttoArgomento() {
 		GWTRestDataSource lGWTRestDataSource = new GWTRestDataSource("LoadComboAttoConFlussoWFDataSource");
-		lGWTRestDataSource.addParam("organoCollegiale", organoCollegiale);
+		if(codCircoscrizione != null && !"".equalsIgnoreCase(codCircoscrizione)) {
+			lGWTRestDataSource.addParam("organoCollegiale", organoCollegiale + "_CIRC");
+		} else {
+			lGWTRestDataSource.addParam("organoCollegiale", organoCollegiale);
+		}
 		lGWTRestDataSource.fetchData(null, new DSCallback() {
 
 			@Override
@@ -933,7 +938,7 @@ public class ListaDatiDiscussioneSedutaItem extends GridItem {
 				Record[] data = response.getData();
 				if (data.length > 0) {
 					SelezionaTipoAttoWindow lSelezionaTipoAttoWindow = new SelezionaTipoAttoWindow(getIdSeduta(), organoCollegiale,
-						"DISCUSSIONE", new BooleanCallback() {
+							"DISCUSSIONE", codCircoscrizione,  new BooleanCallback() {
 
 							@Override
 							public void execute(Boolean value) {
@@ -1328,7 +1333,7 @@ public class ListaDatiDiscussioneSedutaItem extends GridItem {
 									detailRecord.setAttribute("nomeModAllegatiParteIntSeparatiXPubbl", lRecordEvento != null ? lRecordEvento.getAttribute("nomeModAllegatiParteIntSeparatiXPubbl") : "");
 									detailRecord.setAttribute("uriModAllegatiParteIntSeparatiXPubbl", lRecordEvento != null ? lRecordEvento.getAttribute("uriModAllegatiParteIntSeparatiXPubbl") : "");
 									detailRecord.setAttribute("tipoModAllegatiParteIntSeparatiXPubbl", lRecordEvento != null ? lRecordEvento.getAttribute("tipoModAllegatiParteIntSeparatiXPubbl") : "");
-									detailRecord.setAttribute("flgAppendiceDaUnire", lRecordEvento != null ? lRecordEvento.getAttributeAsBoolean("flgAppendiceDaUnire") : "");
+									detailRecord.setAttribute("flgAppendiceDaUnire", lRecordEvento != null ? lRecordEvento.getAttributeAsBoolean("flgAppendiceDaUnire") : null);
 									detailRecord.setAttribute("idModAppendice", lRecordEvento != null ? lRecordEvento.getAttribute("idModAppendice") : "");
 									detailRecord.setAttribute("nomeModAppendice", lRecordEvento != null ? lRecordEvento.getAttribute("nomeModAppendice") : "");
 									detailRecord.setAttribute("idModello", lRecordEvento != null ? lRecordEvento.getAttribute("idModAssDocTask") : "");
@@ -1337,6 +1342,7 @@ public class ListaDatiDiscussioneSedutaItem extends GridItem {
 									detailRecord.setAttribute("idUoDirAdottanteSIB", lRecordEvento != null ? lRecordEvento.getAttribute("idUoDirAdottanteSIB") : "");
 									detailRecord.setAttribute("codUoDirAdottanteSIB", lRecordEvento != null ? lRecordEvento.getAttribute("codUoDirAdottanteSIB") : "");
 									detailRecord.setAttribute("desUoDirAdottanteSIB", lRecordEvento != null ? lRecordEvento.getAttribute("desUoDirAdottanteSIB") : "");
+									detailRecord.setAttribute("flgPubblicazioneAllegatiUguale", lRecordEvento != null ? lRecordEvento.getAttributeAsBoolean("flgPubblicazioneAllegatiUguale") : null);
 									
 									final GWTRestDataSource lNuovaPropostaAtto2CompletaDataSource = new GWTRestDataSource("NuovaPropostaAtto2CompletaDataSource");				
 									lNuovaPropostaAtto2CompletaDataSource.addParam("flgPostDiscussione", "true");		
@@ -2506,7 +2512,7 @@ public class ListaDatiDiscussioneSedutaItem extends GridItem {
 									detailRecord.setAttribute("nomeModAllegatiParteIntSeparatiXPubbl", lRecordEvento != null ? lRecordEvento.getAttribute("nomeModAllegatiParteIntSeparatiXPubbl") : "");
 									detailRecord.setAttribute("uriModAllegatiParteIntSeparatiXPubbl", lRecordEvento != null ? lRecordEvento.getAttribute("uriModAllegatiParteIntSeparatiXPubbl") : "");
 									detailRecord.setAttribute("tipoModAllegatiParteIntSeparatiXPubbl", lRecordEvento != null ? lRecordEvento.getAttribute("tipoModAllegatiParteIntSeparatiXPubbl") : "");
-									detailRecord.setAttribute("flgAppendiceDaUnire", lRecordEvento != null ? lRecordEvento.getAttributeAsBoolean("flgAppendiceDaUnire") : "");
+									detailRecord.setAttribute("flgAppendiceDaUnire", lRecordEvento != null ? lRecordEvento.getAttributeAsBoolean("flgAppendiceDaUnire") : null);
 									detailRecord.setAttribute("idModAppendice", lRecordEvento != null ? lRecordEvento.getAttribute("idModAppendice") : "");
 									detailRecord.setAttribute("nomeModAppendice", lRecordEvento != null ? lRecordEvento.getAttribute("nomeModAppendice") : "");
 									detailRecord.setAttribute("idModello", lRecordEvento != null ? lRecordEvento.getAttribute("idModAssDocTask") : "");
@@ -2515,6 +2521,7 @@ public class ListaDatiDiscussioneSedutaItem extends GridItem {
 									detailRecord.setAttribute("idUoDirAdottanteSIB", lRecordEvento != null ? lRecordEvento.getAttribute("idUoDirAdottanteSIB") : "");
 									detailRecord.setAttribute("codUoDirAdottanteSIB", lRecordEvento != null ? lRecordEvento.getAttribute("codUoDirAdottanteSIB") : "");
 									detailRecord.setAttribute("desUoDirAdottanteSIB", lRecordEvento != null ? lRecordEvento.getAttribute("desUoDirAdottanteSIB") : "");
+									detailRecord.setAttribute("flgPubblicazioneAllegatiUguale", lRecordEvento != null ? lRecordEvento.getAttributeAsBoolean("flgPubblicazioneAllegatiUguale") : null);
 									
 									generaDispositivoDaModelloVersModificabile(detailRecord, new ServiceCallback<Record>() {
 										

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -67,6 +68,11 @@ public abstract class ProtocollazioneDetailInterna extends ProtocollazioneDetail
 		mittentiItem = new MittenteProtInternaItem() {
 			
 			@Override
+			public boolean isProtPregresso() {
+				return isPregresso();
+			}
+			
+			@Override
 			public boolean isProtInModalitaWizard() {
 				return isModalitaWizard();
 			}
@@ -132,12 +138,24 @@ public abstract class ProtocollazioneDetailInterna extends ProtocollazioneDetail
 
 			@Override
 			public boolean hasDefaultValue() {
-				// se ho una sola UO collegata e il mittente è obbligatorio la setto lo stesso, anche se non è attiva la preimpostazione del mittente
-				if(getUoProtocollanteValueMap().size() == 1 && isRequiredDetailSectionMittenti()) {
+				
+				if(AurigaLayout.getParametroDBAsBoolean("INIBITA_SEL_MITT_UO_PROT_USCITA") && !Layout.isPrivilegioAttivo("SMR") && getSelezioneUoProtocollanteValueMap().size() == 1) {
 					return true;
 				}
-				return AurigaLayout.getParametroDBAsBoolean("PREIMP_UO_COME_MITT_PROT_UI") && (getSelezioneUoProtocollanteValueMap().size() == 1)
-						&& (AurigaLayout.getIdUOPuntoProtAttivato() == null || "".equals(AurigaLayout.getIdUOPuntoProtAttivato()) );
+				/**
+				 * Nuova gestione tramite parametro DB PREIMP_UO_COME_MITT_PROT_UI, viene pre-impostato il mittente con valore di default se 
+				 * il parametro è true e se è presente una sola uo-protocollante al contrario dei controlli precedenti
+				 */
+				return AurigaLayout.getParametroDBAsBoolean("PREIMP_UO_COME_MITT_PROT_UI") && getUoProtocollanteValueMap().size() == 1;
+				
+				// se ho una sola UO collegata e il mittente è obbligatorio la setto lo stesso, anche se non è attiva la preimpostazione del mittente
+		
+//				if(getUoProtocollanteValueMap().size() == 1 && isRequiredDetailSectionMittenti()) {
+//					return true;
+//				}
+				
+//				return AurigaLayout.getParametroDBAsBoolean("PREIMP_UO_COME_MITT_PROT_UI") && (getSelezioneUoProtocollanteValueMap().size() == 1)
+//						&& (AurigaLayout.getIdUOPuntoProtAttivato() == null || "".equals(AurigaLayout.getIdUOPuntoProtAttivato()) );
 			}
 
 			@Override
@@ -217,6 +235,11 @@ public abstract class ProtocollazioneDetailInterna extends ProtocollazioneDetail
 	protected void createDestinatariItem() {
 		
 		destinatariItem = new DestinatarioProtInternaItem() {
+			
+			@Override
+			public boolean isProtPregresso() {
+				return isPregresso();
+			}
 			
 			@Override
 			public boolean isAbilitatiDestEsterniInRegInt() {

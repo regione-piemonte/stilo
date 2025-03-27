@@ -1,9 +1,11 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.servlet.fileExtractor.impl;
 
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.client.RecuperoFile;
 import it.eng.document.function.bean.FileExtractedIn;
 import it.eng.document.function.bean.FileExtractedOut;
+import it.eng.utility.ui.servlet.fileExtractor.FileToExtractBean;
 import it.eng.utility.ui.user.AurigaUserUtil;
 import it.eng.utility.ui.user.UserUtil;
 
@@ -15,6 +17,8 @@ import javax.servlet.http.HttpServletRequest;
 
 public class AurigaRemoteFileExtractor extends RecordExtractorUtil {
 
+	private long fileLength = 0;
+	
 	public AurigaRemoteFileExtractor(HttpServletRequest pHttpServletRequest) {
 		super(pHttpServletRequest);
 		// TODO Auto-generated constructor stub
@@ -29,6 +33,7 @@ public class AurigaRemoteFileExtractor extends RecordExtractorUtil {
 		FileExtractedIn lFileExtractedIn = new FileExtractedIn();
 		lFileExtractedIn.setUri(uri);
 		FileExtractedOut out = lRecuperoFile.extractfile(UserUtil.getLocale(mHttpServletRequest.getSession()), lAurigaLoginBean, lFileExtractedIn);
+		fileLength = out.getExtracted().length();
 		lInputStream = new FileInputStream(out.getExtracted());
 		return lInputStream;
 	}
@@ -53,6 +58,11 @@ public class AurigaRemoteFileExtractor extends RecordExtractorUtil {
 	@Override
 	public File getFile() throws Exception {
 		return null;
+	}
+
+	@Override
+	public long getFileLength() throws Exception {
+		return fileLength;
 	}
 
 }

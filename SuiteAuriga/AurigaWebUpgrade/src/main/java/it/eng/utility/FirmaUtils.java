@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -13,6 +14,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -44,6 +47,8 @@ import it.eng.utility.ui.servlet.bean.MimeTypeFirmaBean;
 public class FirmaUtils {
 	
 	private static final Logger log = Logger.getLogger(FirmaUtils.class);
+	
+	private static final String REGEX_CF = "[a-zA-Z]{6}\\d\\d[a-zA-Z]\\d\\d[a-zA-Z]\\d\\d\\d[a-zA-Z]";
 
 	public static MimeTypeFirmaBean aggiungiInfoFirmaInInfoFile(String uriFileFirmato, MimeTypeFirmaBean infoFileDaAggiornare, CertBean certificatoDiFirmaBean, String tipoFirma) throws StorageException, Exception {
 		X509Certificate certificatoDiFirma = (X509Certificate) CertificateFactory.getInstance("X509").generateCertificate(new ByteArrayInputStream(certificatoDiFirmaBean.getCertValue()));
@@ -86,17 +91,19 @@ public class FirmaUtils {
 				nuovoFirmatario.setTipoFirma("CAdES_BES");
 				tipoBustaCrittografica = "CAdES_BES";
 			} else {
-				// Se la firma è CAdES verirticale aggiungerò un nuovo livello di firma 1, e dovrò traslare quelli esistenti
+				// Se la firma è CAdES verirticale aggiungerò un nuovo livello di firma 1, e dovrò traslare quelli esistenti (se presenti)
 				nuovoFirmatario.setTipoFirma("CAdES_BES");
 				tipoBustaCrittografica = "CAdES_BES";
 				// Aggiungo un nuovo livello, quindi devo traslare tutte le firme esistenti
 				Firmatari[] firmatari = infoFileDaAggiornare.getBuste();
-				for (int i = 0; i < firmatari.length; i++) {
-					Firmatari firmatario = firmatari[i];
-					String livello = firmatario.getFiglioDi();
-					if (livello != null) {
-						int livelloInt = Integer.parseInt(livello);
-						firmatario.setFiglioDi((livelloInt + 1) + "");
+				if (firmatari != null && firmatari.length > 0) {
+					for (int i = 0; i < firmatari.length; i++) {
+						Firmatari firmatario = firmatari[i];
+						String livello = firmatario.getFiglioDi();
+						if (livello != null) {
+							int livelloInt = Integer.parseInt(livello);
+							firmatario.setFiglioDi((livelloInt + 1) + "");
+						}
 					}
 				}
 			}
@@ -104,6 +111,7 @@ public class FirmaUtils {
 		nuovoFirmatario.setSubject(strFirmatario);
 		nuovoFirmatario.setEnteCertificatore(issuerDn.getO());
 		nuovoFirmatario.setNomeFirmatario(subjectDn.getCn());
+		nuovoFirmatario.setCfFirmatario(getCodiceFiscaleFromSerialNumber(subjectDn.getSerialNumber()));
 		boolean certificatoScaduto = false;
 		Date dataFirma = new Date();
 		if (StringUtils.isNotBlank(mappaAttributiCertificato.get("notBefore"))) {
@@ -456,35 +464,6 @@ public class FirmaUtils {
 		return X500Name;
 	}
 	
-//	private static Map<String, String> getX509Name(X509Certificate certificato, String tipo) {
-//		Map<String, String> X500Name = new HashMap<String, String>();
-//		Certificate xc509;
-//		try {
-//			xc509 = getX509CertificateStructure(certificato);
-//			X500Name _aName = null;
-//			if (tipo != null && tipo.equalsIgnoreCase("Subject"))
-//				_aName = xc509.getSubject();
-//			if (tipo != null && tipo.equalsIgnoreCase("Issuer"))
-//				_aName = xc509.getIssuer();
-//			if (_aName != null) {
-//				ASN1ObjectIdentifier[] oidv = _aName.getAttributeTypes();
-//				RDN[] values = _aName.getRDNs();
-//				String sAname = "";
-//				for (int i = 0; i < oidv.length; i++) {
-//					if (i < values.length)
-//						sAname = values[i].toString();
-//					if (BCStyle.INSTANCE.oidToAttrNames(oidv[i]) != null)
-//						X500Name.put(BCStyle.INSTANCE.oidToAttrNames(oidv[i]).toString(), sAname);
-//				}
-//			}
-//		} catch (CertificateEncodingException e) {
-//			log.error("Eccezione getX509Name", e);
-//		} catch (IOException e) {
-//			log.error("Eccezione getX509Name", e);
-//		}
-//		return X500Name;
-//	}
-	
 	private static Certificate getX509CertificateStructure(X509Certificate certificato) throws CertificateEncodingException, IOException {
 		byte[] derdata = certificato.getEncoded();
 		ByteArrayInputStream as = new ByteArrayInputStream(derdata);
@@ -506,4 +485,17 @@ public class FirmaUtils {
 		}
 		return null;
 	}
+	
+	public static String getCodiceFiscaleFromSerialNumber(String serialNumber) {
+		if (StringUtils.isBlank(serialNumber)) {
+			return null;
+		}
+		Pattern p = Pattern.compile(REGEX_CF);
+		Matcher matcher = p.matcher(serialNumber);
+		if(matcher.find()) {
+			return matcher.group();
+		}
+		return null;
+	}
+	
 }

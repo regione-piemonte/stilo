@@ -1,5 +1,8 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.addfolder;
 
+import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreAddfolderBean;
+import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreDel_ud_doc_verBean;
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsAddfolderBean;
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsGetestremifolderBean;
 import it.eng.auriga.database.store.dmpk_ws.store.Addfolder;
@@ -10,6 +13,7 @@ import it.eng.auriga.module.business.beans.SpecializzazioneBean;
 import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
 import it.eng.document.function.GestioneFascicoli;
+import it.eng.document.function.StoreException;
 import it.eng.document.function.bean.SalvaFascicoloOut;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -20,6 +24,8 @@ import java.util.List;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -69,6 +75,7 @@ public class WSAddFolder extends JAXWSAbstractAurigaService implements WSIAddFol
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
 
 
@@ -78,6 +85,7 @@ public class WSAddFolder extends JAXWSAbstractAurigaService implements WSIAddFol
     String outWS = null;    
     String errMsg = null;
     String xmlIn = null;
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;	
     
     try {
     	 aLogger.info("Inizio WSAddFolder");
@@ -114,6 +122,11 @@ public class WSAddFolder extends JAXWSAbstractAurigaService implements WSIAddFol
  			 outServizio =  eseguiServizio(loginBean,outWS); 			
 	 		}
 	 	catch (Exception e){	 
+	 		if (e instanceof StoreException) {
+	    		if(((StoreException) e).getError()!=null){
+	    			errCode = ((StoreException) e).getError().getErrorCode();
+	    		}
+	    	}
 	 		if(e.getMessage()!=null)
 	 			 errMsg = "Errore = " + e.getMessage();
 	 		 else
@@ -161,7 +174,7 @@ public class WSAddFolder extends JAXWSAbstractAurigaService implements WSIAddFol
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 	 	 }
 	 	 else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	 }
 	 			        	
 	     aLogger.info("Fine WSAddFolder");
@@ -181,78 +194,72 @@ public class WSAddFolder extends JAXWSAbstractAurigaService implements WSIAddFol
 	}
 
     }
-
     
     private String eseguiServizio(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-    	aLogger.debug("Eseguo il servizio di AurigaDocument.");
+    	
+    	aLogger.debug("Eseguo il servizio di DmpkCoreAddfolder");
     	
     	String ret = null;
     			
-		// creo l'input
+    	// Inizializzo l'INPUT 
 		String input = xmlIn;
 
-		// eseguo il servizio
-	    try {
-	    	    GestioneFascicoli servizio = new GestioneFascicoli();
-	    	    SalvaFascicoloOut servizioOut = new SalvaFascicoloOut();
-	    	    servizioOut = servizio.salvaFascicoloWS(loginBean, input);
+		// Eseguo il servizio
+		GestioneFascicoli servizio = new GestioneFascicoli();
+	    SalvaFascicoloOut servizioOut = new SalvaFascicoloOut();
+	    servizioOut = servizio.salvaFascicoloWS(loginBean, input);
 	    	    
-    	    	// Se il servizio e' andato in errore restituisco il messaggio di errore 	    	    
-	    	    if(StringUtils.isNotBlank(servizioOut.getDefaultMessage())) {
-	    	    	throw new Exception(servizioOut.getDefaultMessage());
-	    		}
+    	// Se il servizio e' andato in errore restituisco il messaggio di errore 	    	    
+	    if(StringUtils.isNotBlank(servizioOut.getDefaultMessage())) {
+	    	StoreResultBean<DmpkCoreAddfolderBean> output = new StoreResultBean<DmpkCoreAddfolderBean>();
+	    	output.setDefaultMessage(servizioOut.getDefaultMessage());
+			output.setErrorContext(servizioOut.getErrorContext());
+			output.setErrorCode(servizioOut.getErrorCode());
+			aLogger.debug(output.getDefaultMessage());
+			aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+    	    throw new StoreException(output);	
+	    }
 	    	    
-	    	    // Se la store mi restituisce un id, leggo un'altra store che mi restituisce l'xml per la response 
-	    		if (servizioOut.getIdFolderOut()!= null){
-	    		   ret = getXmlOutResponse(loginBean,servizioOut.getIdFolderOut());
-	    		}
+	    // Se la store mi restituisce un id, leggo un'altra store che mi restituisce l'xml per la response 
+	    if (servizioOut.getIdFolderOut()!= null){
+	    	ret = getXmlOutResponse(loginBean,servizioOut.getIdFolderOut());
+	    }
 	    	    
-	    	    // Altrimenti restituisco l'ID FOLDER
-	    	    //ret = (servizioOut.getIdFolderOut()!= null ? (StringUtils.isNotBlank(servizioOut.getIdFolderOut().toString()) ? servizioOut.getIdFolderOut().toString() : "") : "");	
-	 		}
-	 	catch (Exception e){
-	 		throw new Exception(e.getMessage());	
-	 	}
-	 	
 	 	return ret;
-    	
     }
     
     private String callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-    	    	
-    	aLogger.debug("Eseguo il WS DmpkWsAddfolder.");
+    	aLogger.debug("Eseguo il WS DMPK_WS->Addfolder.");
     	
     	String result = null;    	
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsAddfolderBean input = new DmpkWsAddfolderBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		  
-    		  // Eseguo il servizio
-    		  Addfolder service = new Addfolder();
-    		  StoreResultBean<DmpkWsAddfolderBean> output = service.execute(loginBean, input);
+    		
+	    // Inizializzo l'INPUT    		
+    	DmpkWsAddfolderBean input = new DmpkWsAddfolderBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+	  
+    	// Eseguo il servizio
+    	Addfolder service = new Addfolder();
+    	StoreResultBean<DmpkWsAddfolderBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
+    	if (output.isInError()){
+    	   aLogger.debug(output.getDefaultMessage());
+		   aLogger.debug(output.getErrorContext());
+		   aLogger.debug(output.getErrorCode());
+		   throw new StoreException(output);	
+		}	
 
-    		  // restituisco l'XML
-    		  if(output.getResultBean().getXmlout()!=null){
-    			  result = output.getResultBean().getXmlout();  
-    		  }
-    		  
-    		  
-    		  if (result== null || result.equalsIgnoreCase(""))
-    			  throw new Exception("La store procedure ha ritornato XmlOut nullo");
-    			  
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+    	// restituisco l'XML
+    	if(output.getResultBean().getXmlout()!=null){
+		  result = output.getResultBean().getXmlout();  
+    	}
+	  
+    	if (result== null || result.equalsIgnoreCase(""))
+		  throw new Exception("La store procedure ha ritornato XmlOut nullo");
+		  
+    	return result;
     }
-
 
 	/**
      * Genera il file XML contenente l'id del folder aggiunto
@@ -270,7 +277,7 @@ public class WSAddFolder extends JAXWSAbstractAurigaService implements WSIAddFol
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             aLogger.debug("generaXMLToken: token = " + xmlIn);
             aLogger.debug("generaXMLToken: tokenEsc = " + xmlInEsc);

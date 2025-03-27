@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.richiestaAccessoAtti;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1155,12 +1156,12 @@ public class VisurePersonaliList extends CustomList {
 		}
 
 		operazioniFileAllegatoSubmenu.addItem(scaricaFileAllegatoMenuItem);
-
-//		if() {     TODO: timbro
+		
+		if(AurigaLayout.showOperazioniTimbratura()) {		
 			buildTimbraAllegato(listRecord, detailRecord, nroAllegato, operazioniFileAllegatoSubmenu, lInfoFileRecord, allegatoIntegrale);
-//		}
+		}
 			
-		if (lInfoFileRecord != null && Layout.isPrivilegioAttivo("SCC")) {
+		if (lInfoFileRecord != null && AurigaLayout.showCopiaConformeCustom()) {
 			String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 			MenuItem timbroConformitaCustomAllegatoMenuItem = new MenuItem(labelConformitaCustom, "file/copiaConformeCustom.png");
 			timbroConformitaCustomAllegatoMenuItem.setEnabled(lInfoFileRecord != null && lInfoFileRecord.isConvertibile());
@@ -1176,53 +1177,55 @@ public class VisurePersonaliList extends CustomList {
 			operazioniFileAllegatoSubmenu.addItem(timbroConformitaCustomAllegatoMenuItem);
 
 		}
-
-		// Attestato conformità all’originale
-		MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(
-				I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(),
-				"file/attestato.png");
-		attestatoConformitaOriginaleMenuItem
+		
+		if(AurigaLayout.showAttestatoConformitaOriginale()) {
+			// Attestato conformità all’originale
+			MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(
+					I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(),
+					"file/attestato.png");
+			attestatoConformitaOriginaleMenuItem
 				.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
-
-					@Override
-					public void onClick(MenuItemClickEvent event) {
-						final InfoFileRecord fileAllegato;
-						final String uri;
-						final String idUd = detailRecord.getAttributeAsString("idUd");
-						final Record allegatoRecord = detailRecord.getAttributeAsRecordList("listaAllegati").get(nroAllegato);
-						final String idDoc;
-						
-						//se è un allegato integrale
-						if(allegatoIntegrale) {
+					
+						@Override
+							public void onClick(MenuItemClickEvent event) {
+							final InfoFileRecord fileAllegato;
+							final String uri;
+							final String idUd = detailRecord.getAttributeAsString("idUd");
+							final Record allegatoRecord = detailRecord.getAttributeAsRecordList("listaAllegati").get(nroAllegato);
+							final String idDoc;
 							
-							fileAllegato = InfoFileRecord
-									.buildInfoFileRecord(allegatoRecord.getAttributeAsObject("infoFile"));
-							uri = allegatoRecord.getAttributeAsString("uriFileAllegato");
-							idDoc = allegatoRecord.getAttributeAsString("idDocAllegato");
-							
-						}
-						//versione con omissis
-						else {
-							fileAllegato = InfoFileRecord
-									.buildInfoFileRecord(allegatoRecord.getAttributeAsObject("infoFileOmissis"));
-							uri = allegatoRecord.getAttributeAsString("uriFileOmissis");
-							idDoc = allegatoRecord.getAttributeAsString("idDocOmissis");
-						}
-						SC.ask("Vuoi firmare digitalmente l'attestato?", new BooleanCallback() {
-
-							@Override
-							public void execute(Boolean value) {
-								if (value) {
-									creaAttestato(idUd, idDoc, listRecord, fileAllegato, uri, true);
-								} else {
-									creaAttestato(idUd, idDoc, listRecord, fileAllegato, uri, false);
-								}
+							//se è un allegato integrale
+							if(allegatoIntegrale) {
+								
+								fileAllegato = InfoFileRecord
+										.buildInfoFileRecord(allegatoRecord.getAttributeAsObject("infoFile"));
+								uri = allegatoRecord.getAttributeAsString("uriFileAllegato");
+								idDoc = allegatoRecord.getAttributeAsString("idDocAllegato");
+								
 							}
-						});
-					}
-				});
-		attestatoConformitaOriginaleMenuItem.setEnabled(lInfoFileRecord != null);
-		operazioniFileAllegatoSubmenu.addItem(attestatoConformitaOriginaleMenuItem);
+							//versione con omissis
+							else {
+								fileAllegato = InfoFileRecord
+										.buildInfoFileRecord(allegatoRecord.getAttributeAsObject("infoFileOmissis"));
+								uri = allegatoRecord.getAttributeAsString("uriFileOmissis");
+								idDoc = allegatoRecord.getAttributeAsString("idDocOmissis");
+							}
+							SC.ask("Vuoi firmare digitalmente l'attestato?", new BooleanCallback() {
+								
+								@Override
+								public void execute(Boolean value) {
+									if (value) {
+										creaAttestato(idUd, idDoc, listRecord, fileAllegato, uri, true);
+									} else {
+										creaAttestato(idUd, idDoc, listRecord, fileAllegato, uri, false);
+									}
+								}
+							});
+						}
+					});
+			attestatoConformitaOriginaleMenuItem.setEnabled(lInfoFileRecord != null);
+			operazioniFileAllegatoSubmenu.addItem(attestatoConformitaOriginaleMenuItem);
+		}
 		fileAllegatoMenuItem.setSubmenu(operazioniFileAllegatoSubmenu);
 	}
 	

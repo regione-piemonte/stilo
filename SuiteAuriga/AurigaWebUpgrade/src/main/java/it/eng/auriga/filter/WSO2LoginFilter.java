@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.filter;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -48,19 +49,19 @@ import it.eng.utility.ui.user.ParametriDBUtil;
 public class WSO2LoginFilter implements Filter {
 	
 	private LogLoginTryCallHelper logLoginTryHelperCall = new LogLoginTryCallHelper();
-	
-    private static Logger mLogger;
     public static final String FMT_STD_DATA = "dd/MM/yyyy";
+    
+    private static Logger mLogger = Logger.getLogger(WSO2LoginFilter.class);
     
     public void destroy() {
     }
     
     public void doFilter(final ServletRequest pServletRequest, final ServletResponse pServletResponse, final FilterChain pFilterChain) throws IOException, ServletException {
-        final HttpServletRequest req = (HttpServletRequest)pServletRequest;
-        final HttpServletResponse resp = (HttpServletResponse)pServletResponse;
+        final HttpServletRequest req = (HttpServletRequest) pServletRequest;
+        final HttpServletResponse resp = (HttpServletResponse) pServletResponse;
         final HttpSession session = req.getSession();
-        WSO2LoginFilter.mLogger.debug((Object)("path : " + req.getRequestURI()));
-        WSO2LoginFilter.mLogger.debug((Object)("Session id : " + session.getId()));
+        mLogger.debug("RequestURI : " + req.getRequestURI());
+        mLogger.debug("Session id : " + session.getId());
 //        if (req.getRequestURI().contains("acs.jsp")) {
 //            final Date lDate = (Date)session.getAttribute("cleaned");
 //            if (lDate != null && new Date().getTime() - lDate.getTime() < 10000L) {
@@ -84,6 +85,10 @@ public class WSO2LoginFilter implements Filter {
 //        }
         AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo(session);
         final String usernameSSO = getUsernameSSO(session);
+        
+        String dominioSelezionatoSSO = session.getAttribute("DOMINIO_SELEZIONATO_SSO") != null ? session.getAttribute("DOMINIO_SELEZIONATO_SSO").toString() : "";
+		mLogger.debug("Da sessione leggo DOMINIO_SELEZIONATO_SSO: " + dominioSelezionatoSSO);
+		
         if (req.getRequestURI().contains("applets") || req.getRequestURI().contains("download") || req.getRequestURI().contains("commons-logging.properties") || req.getRequestURI().contains("UploadMultiSignerApplet") || req.getRequestURI().contains("theme") || req.getRequestURI().contains("log4j.xml") || req.getRequestURI().contains("PatternLayoutBeanInfo") || req.getRequestURI().contains("LayoutBeanInfo") || req.getRequestURI().contains(".class") || req.getRequestURI().contains(".properties")) {
             final Map<String, String[]> lMap = (Map<String, String[]>)req.getParameterMap();
             boolean first = true;
@@ -100,50 +105,64 @@ public class WSO2LoginFilter implements Filter {
             req.getRequestDispatcher(req.getRequestURI().substring(req.getContextPath().length()) + "?" + forward).forward((ServletRequest)req, (ServletResponse)resp);
             return;
         }
-        WSO2LoginFilter.mLogger.debug((Object)"Applet ricado qui");
-//        if (req.getRequestURI().contains("rest") || (req.getRequestURI().contains("acs.jsp") && WSO2LoginFilter.class.getResourceAsStream("sessionExpired.jsp") != null)) {
-       	if (req.getRequestURI().contains("rest")) {
-            if (usernameSSO == null) {
-            	mLogger.error("usernameSSO è null. JSESSIONID vale " + (session != null ? session.getId() : "null (session null)"));
-                pServletResponse.setContentType("text/html");
-                final PrintWriter out = pServletResponse.getWriter();
-                out.print(IOUtils.toString(WSO2LoginFilter.class.getResourceAsStream("sessionExpired.jsp")));
-                return;
-            }
-            if ((usernameSSO != null && loginBean == null) || (usernameSSO != null && !this.utenteLoggedIsSame(usernameSSO, loginBean))) {
-                final SchemaSelector lSchemaSelector = (SchemaSelector)SpringAppContext.getContext().getBean("SchemaConfigurator");
+        
+        mLogger.debug("Verifico se la sessione attuale è scaduta");
+        if (req.getRequestURI().contains("rest") && usernameSSO == null) {
+        	mLogger.error("usernameSSO è null. JSESSIONID vale " + (session != null ? session.getId() : "null (session null)"));
+            pServletResponse.setContentType("text/html");
+            final PrintWriter out = pServletResponse.getWriter();
+            out.print(IOUtils.toString(WSO2LoginFilter.class.getResourceAsStream("sessionExpired.jsp")));
+            return;
+        }
+        
+        mLogger.debug("Verifico se si tratta di una chiamata rest e se ho un dominio in sessione");
+       	if (req.getRequestURI().contains("rest") && StringUtils.isNotBlank(dominioSelezionatoSSO)) {
+            mLogger.debug("Verifico se devo effettuare la login");
+            if ((usernameSSO != null && loginBean == null) || (usernameSSO != null && !utenteLoggedIsSame(usernameSSO, loginBean))) {
+            	mLogger.debug("Login da effettuare");
+                final SchemaSelector lSchemaSelector = (SchemaSelector) SpringAppContext.getContext().getBean("SchemaConfigurator");
                 final Locale locale = new Locale("it", "IT");
                 loginBean = new AurigaLoginBean();
                 loginBean.setLinguaApplicazione(SharedConstants.DEFAUL_LANGUAGE);
                 loginBean.setSchema(lSchemaSelector.getSchemi().get(0).getName());
                 
-                final ApplicationConfigBean applicationConfigBean = (ApplicationConfigBean)SpringAppContext.getContext().getBean("ApplicationConfigurator");
+                final ApplicationConfigBean applicationConfigBean = (ApplicationConfigBean) SpringAppContext.getContext().getBean("ApplicationConfigurator");
                 final String idApplicazione = applicationConfigBean.getIdApplicazione();
                 try {
                     final DmpkLoginLoginBean lLoginInput = new DmpkLoginLoginBean();
                     lLoginInput.setUsernamein(usernameSSO);
-                    lLoginInput.setFlgnoctrlpasswordin(Integer.valueOf(1));
-                    lLoginInput.setFlgautocommitin(Integer.valueOf(1));
-                    lLoginInput.setFlgrollbckfullin(Integer.valueOf(0));
+                    if (StringUtils.isNotBlank(dominioSelezionatoSSO)) {
+	                    Integer tipoDominio = Integer.valueOf(dominioSelezionatoSSO.split(":")[0]);
+	                    lLoginInput.setFlgtpdominioautio(tipoDominio);
+	                    BigDecimal idDominio = null;
+						if (dominioSelezionatoSSO.split(":").length == 2) {
+							idDominio = new BigDecimal(dominioSelezionatoSSO.split(":")[1]);
+							lLoginInput.setIddominioautio(idDominio);
+						}
+						mLogger.debug("Dai valori in sessione ho settato tipoDominio: " + tipoDominio + " idDominio: " + idDominio);
+                    }
+                    lLoginInput.setFlgnoctrlpasswordin(1);
+                    lLoginInput.setFlgautocommitin(1);
+                    lLoginInput.setFlgrollbckfullin(0);
                     
                     final DmpkLoginLogin lLogin = new DmpkLoginLogin();
-                    final StoreResultBean<DmpkLoginLoginBean> lLoginOutput = (StoreResultBean<DmpkLoginLoginBean>)lLogin.execute(locale, loginBean, lLoginInput);
+                    final StoreResultBean<DmpkLoginLoginBean> lLoginOutput = (StoreResultBean<DmpkLoginLoginBean>) lLogin.execute(locale, loginBean, lLoginInput);
                     if (lLoginOutput.isInError()) {
                         throw new Exception(lLoginOutput.getDefaultMessage());
                     }
                     
-                    final DmpkLoginLoginBean lLoginBean = (DmpkLoginLoginBean)lLoginOutput.getResultBean();
+                    final DmpkLoginLoginBean lLoginBean = lLoginOutput.getResultBean();
                     
                     try {
                     	logLoginTry(loginBean, null, usernameSSO, lLoginOutput.isInError(), lLoginBean.getFlgtpdominioautio(), lLoginBean.getIddominioautio(), lLoginBean.getCodidconnectiontokenout());
                     } catch (Exception e) {
-                    	WSO2LoginFilter.mLogger.debug("Errore in logLoginTry", e);
+                    	mLogger.debug("Errore in logLoginTry", e);
 					}
                     
                     loginBean.setIdApplicazione(idApplicazione);
                     loginBean.setUserid(usernameSSO);
-                    String denominazione = StringUtils.isNotBlank((CharSequence)lLoginBean.getDesuserout()) ? lLoginBean.getDesuserout() : usernameSSO;
-                    if (StringUtils.isNotBlank((CharSequence)lLoginBean.getDesdominioout())) {
+                    String denominazione = StringUtils.isNotBlank((CharSequence) lLoginBean.getDesuserout()) ? lLoginBean.getDesuserout() : usernameSSO;
+                    if (StringUtils.isNotBlank((CharSequence) lLoginBean.getDesdominioout())) {
                         denominazione = denominazione + "@" + lLoginBean.getDesdominioout();
                     }
                     loginBean.setDenominazione(denominazione);
@@ -165,20 +184,22 @@ public class WSO2LoginFilter implements Filter {
                         lDmpkIntMgoEmailGetidutentemgoemailBean.setIduserin(loginBean.getIdUser());
                         final it.eng.auriga.database.store.bean.SchemaBean lSchemaBean = new it.eng.auriga.database.store.bean.SchemaBean();
                         lSchemaBean.setSchema(loginBean.getSchema());
-                        lDmpkIntMgoEmailGetidutentemgoemailBean = (DmpkIntMgoEmailGetidutentemgoemailBean)lDmpkIntMgoEmailGetidutentemgoemail.execute(locale, lSchemaBean, lDmpkIntMgoEmailGetidutentemgoemailBean).getResultBean();
+                        lDmpkIntMgoEmailGetidutentemgoemailBean = (DmpkIntMgoEmailGetidutentemgoemailBean) lDmpkIntMgoEmailGetidutentemgoemail.execute(locale, lSchemaBean, lDmpkIntMgoEmailGetidutentemgoemailBean).getResultBean();
                         spec.setIdUtenteModPec(lDmpkIntMgoEmailGetidutentemgoemailBean.getIdutentepecout());
                     }
-                    catch (Exception ex) {}
+                    catch (Exception ex) {
+                    	mLogger.error(ex.getMessage(), ex);
+                    }
                     loginBean.setSpecializzazioneBean(spec);
                     loginBean.setUseridForPrefs(usernameSSO);
                     try {
                         final StringReader sr = new StringReader(loginBean.getSpecializzazioneBean().getParametriConfigOut());
-                        final Lista lista = (Lista)SingletonJAXBContext.getInstance().createUnmarshaller().unmarshal((Reader)sr);
+                        final Lista lista = (Lista) SingletonJAXBContext.getInstance().createUnmarshaller().unmarshal((Reader)sr);
                         final ParametriDBBean parametriDBBean = new ParametriDBBean();
                         final HashMap<String, String> parametriDB = new HashMap<String, String>();
                         if (lista != null) {
                             for (int i = 0; i < lista.getRiga().size(); ++i) {
-                                final Vector<String> v = (Vector<String>)new XmlUtility().getValoriRiga((Lista.Riga)lista.getRiga().get(i));
+                                final Vector<String> v = (Vector<String>) new XmlUtility().getValoriRiga((Lista.Riga)lista.getRiga().get(i));
                                 if (v.get(0).equalsIgnoreCase("CF_UTENTE_LOGIN")) {
                                     loginBean.setCodFiscale((String)v.get(1));
                                 }
@@ -187,11 +208,11 @@ public class WSO2LoginFilter implements Filter {
                                 }
                             }
                         }
-                        final Authentication auth = (Authentication)SpringAppContext.getContext().getBean("authentication");
+                        final Authentication auth = (Authentication) SpringAppContext.getContext().getBean("authentication");
                         if (auth != null && auth.getAuthType() != null) {
                             parametriDB.put("AUTHENTICATION_TYPE", auth.getAuthType().getValue());
                         }
-                        parametriDBBean.setParametriDB((Map)parametriDB);
+                        parametriDBBean.setParametriDB((Map) parametriDB);
                         ParametriDBUtil.setParametriDB(session, parametriDBBean);
                     }
                     catch (Exception ex2) {
@@ -203,11 +224,11 @@ public class WSO2LoginFilter implements Filter {
                         privilegi = ServiceRestUserUtil.getPrivilegi().getPrivilegi(session);
                     }
                     catch (Exception e) {
-                        WSO2LoginFilter.mLogger.error((Object)e.getMessage(), (Throwable)e);
+                        mLogger.error((Object)e.getMessage(), (Throwable)e);
                     }
                 }
                 catch (Exception e2) {
-                    WSO2LoginFilter.mLogger.error((Object)e2.getMessage(), (Throwable)e2);
+                    mLogger.error((Object)e2.getMessage(), (Throwable)e2);
                 }
             }
         }
@@ -225,12 +246,7 @@ public class WSO2LoginFilter implements Filter {
     public void init(final FilterConfig arg0) throws ServletException {
     }
     
-    static {
-        WSO2LoginFilter.mLogger = Logger.getLogger((Class)WSO2LoginFilter.class);
-    }
-    
-    private void logLoginTry(AurigaLoginBean bean, String codApplicazione, String userid, boolean flagKO, Integer tipoDominioAut, BigDecimal idDominioAut,
-			String codIdConnectionToken) {
+    private void logLoginTry(AurigaLoginBean bean, String codApplicazione, String userid, boolean flagKO, Integer tipoDominioAut, BigDecimal idDominioAut, String codIdConnectionToken) {
 		String parametriClient = "";
 		try {
 			logLoginTryHelperCall.call(bean, codApplicazione, userid, flagKO, tipoDominioAut, idDominioAut, codIdConnectionToken, parametriClient);

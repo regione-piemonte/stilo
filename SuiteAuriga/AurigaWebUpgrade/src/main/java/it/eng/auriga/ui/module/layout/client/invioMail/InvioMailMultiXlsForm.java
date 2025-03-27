@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.invioMail;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -65,10 +66,11 @@ public class InvioMailMultiXlsForm extends DynamicForm {
 	private HiddenItem uriXlsItem;
 	private HiddenItem infoFileXlsItem;
 
-	private StaticTextItem noteAvvertimentoItem;
+	private SelectItem uoLavoroSelectItem; 
 	private SelectItem lSelectItemMittente;
 	private ImgButtonItem salvaMittenteDefaultImgButton;
 	private ImgButtonItem editCorpoMailImgButton;
+	private StaticTextItem noteAvvertimentoItem;
 	private ImgButtonItem eliminaFileXlsButton;
 	private TextItem lTextItemOggetto;
 	private TextItem nomeFileXlsItem;
@@ -114,6 +116,9 @@ public class InvioMailMultiXlsForm extends DynamicForm {
 		lHiddenItemIdEmailUD = new HiddenItem("idEmailUD");
 		lHiddenItemIdUD = new HiddenItem("idUD");
 		casellaIsPecItem = new HiddenItem("casellaIsPec");
+		
+		// UO DI LAVORO
+		createUOLavoro();
 
 		// MITTENTE
 		createMittente(tipoRel);
@@ -175,21 +180,39 @@ public class InvioMailMultiXlsForm extends DynamicForm {
 		SpacerItem lSpacerItem = new SpacerItem();
 		lSpacerItem.setColSpan(1);
 		lSpacerItem.setStartRow(true);
+		
 
-		setFields( 
-			// Nascosti
-			lHiddenItemIdEmail, lHiddenItemIdEmailUD, lHiddenItemIdUD, uriXlsItem, infoFileXlsItem, casellaIsPecItem,
-			// visibili
-			lSelectItemMittente, salvaMittenteDefaultImgButton, nomeFileXlsItem, uploadFileXlsButton,eliminaFileXlsButton,
-			rigaXlsDaItem, rigaXlsAItem, 
-			dettagliXlsIndirizziEmailReplicableItem,
-			lTextItemOggetto, 
-			lAttachmentItem, spacerAttach, uploadButton, 
-			style, 
-			lSpacerItem, lRichTextItemBody, lTextAreaItemBody, editCorpoMailImgButton,
-			lSpacerItem, noteAvvertimentoItem
-		);
-
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_UO_INVIO_MAIL_DA_LISTA_XLS")) {
+			setFields( 
+				// Nascosti
+				lHiddenItemIdEmail, lHiddenItemIdEmailUD, lHiddenItemIdUD, uriXlsItem, infoFileXlsItem, casellaIsPecItem,
+				// visibili
+				uoLavoroSelectItem,
+				lSelectItemMittente, salvaMittenteDefaultImgButton, nomeFileXlsItem, uploadFileXlsButton,eliminaFileXlsButton,
+				rigaXlsDaItem, rigaXlsAItem, 
+				dettagliXlsIndirizziEmailReplicableItem,
+				lTextItemOggetto, 
+				lAttachmentItem, spacerAttach, uploadButton, 
+				style, 
+				lSpacerItem, lRichTextItemBody, lTextAreaItemBody, editCorpoMailImgButton,
+				lSpacerItem, noteAvvertimentoItem
+			);
+		} else {
+			setFields( 
+				// Nascosti
+				lHiddenItemIdEmail, lHiddenItemIdEmailUD, lHiddenItemIdUD, uriXlsItem, infoFileXlsItem, casellaIsPecItem,
+				// visibili
+				lSelectItemMittente, salvaMittenteDefaultImgButton, nomeFileXlsItem, uploadFileXlsButton,eliminaFileXlsButton,
+				rigaXlsDaItem, rigaXlsAItem, 
+				dettagliXlsIndirizziEmailReplicableItem,
+				lTextItemOggetto, 
+				lAttachmentItem, spacerAttach, uploadButton, 
+				style, 
+				lSpacerItem, lRichTextItemBody, lTextAreaItemBody, editCorpoMailImgButton,
+				lSpacerItem, noteAvvertimentoItem
+			);
+		}
+			
 		if (vm != null) {
 			setValuesManager(vm);
 		} else {
@@ -370,17 +393,6 @@ public class InvioMailMultiXlsForm extends DynamicForm {
 		dettagliXlsIndirizziEmailReplicableItem.setWidth(COMPONENT_WIDTH);
 		dettagliXlsIndirizziEmailReplicableItem.setColSpan(15);
 		dettagliXlsIndirizziEmailReplicableItem.setStartRow(true);
-//		dettagliXlsIndirizziEmailReplicableItem.setShowIfCondition(new FormItemIfFunction() {
-//
-//			@Override
-//			public boolean execute(FormItem arg0, Object arg1, DynamicForm arg2) {
-//				if (uriXlsItem.getValue() != null && !"".equals(uriXlsItem.getValue())) {
-//					return true;
-//				} else {
-//					return false;
-//				}
-//			}
-//		});
 	}
 
 	private void createOggetto() {
@@ -438,6 +450,28 @@ public class InvioMailMultiXlsForm extends DynamicForm {
 			}
 		});
 	}
+	
+	/**
+	 * Metodo per la creazione della UO di Lavoro
+	 */
+	private void createUOLavoro() {
+		
+		uoLavoroSelectItem = new SelectItem();
+		uoLavoroSelectItem.setName("uoLavoro");
+		uoLavoroSelectItem.setTitle("Invio per la U.O");
+		uoLavoroSelectItem.setColSpan(4);
+		uoLavoroSelectItem.setWidth(COMPONENT_WIDTH);
+		uoLavoroSelectItem.setDisplayField("descrizione");
+		uoLavoroSelectItem.setValueField("idUo");
+		LinkedHashMap<String, String> uoCollegateUtenteValueMap = AurigaLayout.getUoCollegateUtenteValueMap();
+		uoLavoroSelectItem.setValueMap(uoCollegateUtenteValueMap);
+		
+		if (AurigaLayout.getParametroDBAsBoolean("ATTIVA_UO_INVIO_MAIL_DA_LISTA_XLS")) {
+			uoLavoroSelectItem.setRequired(true);
+		} else {
+			uoLavoroSelectItem.setAllowEmptyValue(true);
+		}
+	}
 
 	/*
 	 * Metodo per la creazione del Mittente
@@ -448,12 +482,14 @@ public class InvioMailMultiXlsForm extends DynamicForm {
 		lSelectItemMittente.setDisplayField("value");
 		lSelectItemMittente.setValueField("key");
 		lSelectItemMittente.setRequired(true);
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_UO_INVIO_MAIL_DA_LISTA_XLS")) {	
+			lSelectItemMittente.setStartRow(true);
+		}
 		GWTRestDataSource accounts = new GWTRestDataSource("AccountInvioEmailDatasource");
 		
 		if (tipoRel !=null && tipoRel.equalsIgnoreCase("nuovo_messaggio_multi_destinatari_xls")){
 			accounts.addParam("finalita", "INVIO_NUOVO_MSG");
-		}
-		else{
+		} else{
 			accounts.addParam("finalita", "INVIO");	
 		}
 		
@@ -465,14 +501,13 @@ public class InvioMailMultiXlsForm extends DynamicForm {
 
 			@Override
 			public void onChanged(ChangedEvent event) {
-
 				if (isMittentePec()) {
 					casellaIsPecItem.setValue("true");
 				} else {
 					casellaIsPecItem.setValue("false");
 				}
-				popolaDettagliXls();
-				_this.markForRedraw(); // Ad ogni selezione di un nuovo mittente viene ricaricato il form della mail
+				mittenteOnChange();
+				markForRedraw();
 			}
 		});
 
@@ -604,9 +639,6 @@ public class InvioMailMultiXlsForm extends DynamicForm {
 				_this.setValue("nomeFileXls", displayFileName);
 				_this.setValue("uriXls", uri);
 				changedEventAfterUploadFileXls(displayFileName, uri, _this, nomeFileXlsItem, uriXlsItem);
-
-				popolaDettagliXls();
-
 				_this.markForRedraw();
 			}
 
@@ -1148,52 +1180,6 @@ public class InvioMailMultiXlsForm extends DynamicForm {
 		uploadFileItem.getCanvas().redraw();
 	}
 
-	protected void popolaDettagliXls() {
-
-		rigaXlsDaItem.setValue("1");
-		
-		dettagliXlsIndirizziEmailReplicableItem.drawAndSetValue(new RecordList());
-	
-		if (casellaIsPecItem != null && casellaIsPecItem.getValue() != null) {
-			if ("true".equals((String) casellaIsPecItem.getValue())) {
-
-				dettagliXlsIndirizziEmailReplicableCanvas = dettagliXlsIndirizziEmailReplicableItem.onClickNewButton();
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("campoXls", "IndirizziEmailTo");
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("colonnaXls", "");
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("tipoMittente","PEC");
-				
-				dettagliXlsIndirizziEmailReplicableCanvas = dettagliXlsIndirizziEmailReplicableItem.onClickNewButton();
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("campoXls", "IndirizziEmailCC");
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("colonnaXls", "");
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("tipoMittente","PEC");
-			} else {
-				dettagliXlsIndirizziEmailReplicableCanvas = dettagliXlsIndirizziEmailReplicableItem.onClickNewButton();
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("campoXls", "IndirizziEmailTo");
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("colonnaXls", "");
-				
-				dettagliXlsIndirizziEmailReplicableCanvas = dettagliXlsIndirizziEmailReplicableItem.onClickNewButton();
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("campoXls", "IndirizziEmailCC");
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("colonnaXls", "");
-				
-				dettagliXlsIndirizziEmailReplicableCanvas = dettagliXlsIndirizziEmailReplicableItem.onClickNewButton();
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("campoXls", "IndirizziEmailCCN");
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("colonnaXls", "");
-			}
-		} else {
-				dettagliXlsIndirizziEmailReplicableCanvas = dettagliXlsIndirizziEmailReplicableItem.onClickNewButton();
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("campoXls", "IndirizziEmailTo");
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("colonnaXls", "");
-				
-				dettagliXlsIndirizziEmailReplicableCanvas = dettagliXlsIndirizziEmailReplicableItem.onClickNewButton();
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("campoXls", "IndirizziEmailCC");
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("colonnaXls", "");
-				
-				dettagliXlsIndirizziEmailReplicableCanvas = dettagliXlsIndirizziEmailReplicableItem.onClickNewButton();
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("campoXls", "IndirizziEmailCCN");
-				dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("colonnaXls", "");
-		}
-	}
-
 	private RequiredIfValidator buildRigaXlsDaRequiredValidator() {
 
 		RequiredIfValidator requiredValidator = new RequiredIfValidator(new RequiredIfFunction() {
@@ -1237,5 +1223,108 @@ public class InvioMailMultiXlsForm extends DynamicForm {
 		requiredValidator.setErrorMessage(
 				I18NUtil.getMessages().invio_mail_form_multi_destinatari_xls_rigaXlsDaItem_nonValido_errorMessage());
 		return requiredValidator;
+	}
+	
+	@Override
+	public void editNewRecord() {		
+		super.editNewRecord();
+		if (AurigaLayout.getSelezioneUoCollegateUtenteValueMap().size() == 1) {
+			String key = AurigaLayout.getSelezioneUoCollegateUtenteValueMap().keySet().toArray(new String[1])[0];
+			uoLavoroSelectItem.setValue(key);
+		}
+		initDettagliXls();
+		this.markForRedraw();
+	}
+	
+	@Override
+	public void editNewRecord(Map initialValues) {
+		super.editNewRecord(initialValues);
+		if(uoLavoroSelectItem.getValue() == null || "".equals(uoLavoroSelectItem.getValue())) {
+			if (AurigaLayout.getSelezioneUoCollegateUtenteValueMap().size() == 1) {
+				String key = AurigaLayout.getSelezioneUoCollegateUtenteValueMap().keySet().toArray(new String[1])[0];
+				uoLavoroSelectItem.setValue(key);
+			}
+		}
+		initDettagliXls();
+		this.markForRedraw();
+	}
+	
+	private void aggiungiIndirizziEmailTo() {
+		dettagliXlsIndirizziEmailReplicableCanvas = dettagliXlsIndirizziEmailReplicableItem.onClickNewButton();
+		dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("campoXls", "IndirizziEmailTo");
+		dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("colonnaXls", "");
+	}
+	
+	private void aggiungiIndirizziEmailCC() {
+		dettagliXlsIndirizziEmailReplicableCanvas = dettagliXlsIndirizziEmailReplicableItem.onClickNewButton();
+		dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("campoXls", "IndirizziEmailCC");
+		dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("colonnaXls", "");
+	}
+	
+	private void aggiungiIndirizziEmailCCN() {
+		dettagliXlsIndirizziEmailReplicableCanvas = dettagliXlsIndirizziEmailReplicableItem.onClickNewButton();
+		dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("campoXls", "IndirizziEmailCCN");
+		dettagliXlsIndirizziEmailReplicableCanvas.getForm()[0].setValue("colonnaXls", "");
+	}
+	
+	public void initDettagliXls() {
+		rigaXlsDaItem.setValue("1");
+		dettagliXlsIndirizziEmailReplicableItem.drawAndSetValue(new RecordList());
+		aggiungiIndirizziEmailTo();
+		aggiungiIndirizziEmailCC();
+	}
+	
+	private void mittenteOnChange(){
+		
+		// Se il tipo di casella mittente è valorizzato
+		if (casellaIsPecItem != null && casellaIsPecItem.getValue() != null) {
+			// Verifico se la casella è PEC o PEO
+			// Se è PEC
+			if ("true".equals((String) casellaIsPecItem.getValue())) {
+				// Se la lista degli indirizzi è VUOTA  
+				if (dettagliXlsIndirizziEmailReplicableItem!=null && dettagliXlsIndirizziEmailReplicableItem.getTotalMembers() == 0){
+					// Inserisco solo "IndirizziEmailTo" e "IndirizziEmailCC" 	
+					dettagliXlsIndirizziEmailReplicableItem.drawAndSetValue(new RecordList());
+					aggiungiIndirizziEmailTo();
+					aggiungiIndirizziEmailCC();
+				}
+			}
+			// Se è PEO 
+			else{
+				// Se la lista degli indirizzi è VUOTA  
+				if (dettagliXlsIndirizziEmailReplicableItem!=null && dettagliXlsIndirizziEmailReplicableItem.getTotalMembers() == 0){
+					// Inserisco "IndirizziEmailTo", "IndirizziEmailCC", "IndirizziEmailCCN"
+					dettagliXlsIndirizziEmailReplicableItem.drawAndSetValue(new RecordList());
+					aggiungiIndirizziEmailTo();
+					aggiungiIndirizziEmailCC();
+					aggiungiIndirizziEmailCCN();
+				}
+			}
+		}
+		else{
+			// Se la lista degli indirizzi è VUOTA  
+			if (dettagliXlsIndirizziEmailReplicableItem!=null && dettagliXlsIndirizziEmailReplicableItem.getTotalMembers() == 0){
+				// Inserisco "IndirizziEmailTo", "IndirizziEmailCC"
+				dettagliXlsIndirizziEmailReplicableItem.drawAndSetValue(new RecordList());
+				aggiungiIndirizziEmailTo();
+				aggiungiIndirizziEmailCC();
+			}
+		}
+	}
+
+	private boolean isCampoXlsExist(String campoXlsIn) {
+
+		if (dettagliXlsIndirizziEmailReplicableItem != null && dettagliXlsIndirizziEmailReplicableItem.getTotalMembers() > 0) {
+			RecordList value = new RecordList();
+			value = dettagliXlsIndirizziEmailReplicableItem.getValueAsRecordList();
+			for (int i = 0; i < value.getLength(); i++) {
+				Record attr = value.get(i);
+				String campoXls = attr.getAttribute("campoXls"); 
+				if (campoXls != null && campoXls.equalsIgnoreCase(campoXlsIn)){
+					return true;			
+				}
+			}
+		}
+		return false;
 	}
 }

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.job;
 
 import java.io.File;
 import java.lang.invoke.MethodHandles;
@@ -15,6 +16,8 @@ public class SpringHelper {
 	final static Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
 	private static ApplicationContext mainContext = null;
+	
+	private static ApplicationContext luceneContext = null;
 
 	private static JobDebugConfig jobDebugConfig = null;
 
@@ -70,6 +73,24 @@ public class SpringHelper {
 			}
 		}
 		return jobDebugConfig;
+	}
+	
+	public static synchronized ApplicationContext getLuceneApplicationContext() {
+
+		if (luceneContext == null) {
+			try {
+				if( System.getProperty("aurigajob.conf")!= null ){
+					String file = System.getProperty("aurigajob.conf") + File.separator + "config-lucene.xml";
+					logger.debug("Recupero context da " + file);
+					luceneContext = new FileSystemXmlApplicationContext(file);
+				} else {
+					luceneContext = new ClassPathXmlApplicationContext("config-lucene.xml");
+				}
+			} catch (Exception e) {
+				luceneContext = new ClassPathXmlApplicationContext("config-lucene.xml");
+			}
+		}
+		return luceneContext;
 	}
 
 }

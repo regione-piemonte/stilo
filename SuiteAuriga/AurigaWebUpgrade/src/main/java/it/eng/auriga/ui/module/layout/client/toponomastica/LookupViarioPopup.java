@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.toponomastica;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -63,18 +64,16 @@ public abstract class LookupViarioPopup extends ModalWindow {
 						mapCriterion.put(criterion.getFieldName(), criterion);
 					}
 				}
-
+				boolean hasFilter = false;
 				if (indirizzoFilter != null && !"".equals(indirizzoFilter)) {
 					HashMap value = new HashMap();
 					value.put("parole", indirizzoFilter);
 					Criterion crit = new Criterion("descrNome", OperatorId.WORDS_START_WITH);
 					JSOHelper.setAttribute(crit.getJsObj(), "value", value);
 					mapCriterion.put("descrNome", crit);
+					hasFilter = true;
 				}
-
-				super.setCriteriaAndFirstSearch(new AdvancedCriteria(OperatorId.AND, mapCriterion.values().toArray(new Criterion[0])),
-						(indirizzoFilter != null || autoSearch));
-
+				super.setCriteriaAndFirstSearch(new AdvancedCriteria(OperatorId.AND, mapCriterion.values().toArray(new Criterion[0])), (hasFilter || autoSearch));
 			}
 
 			@Override

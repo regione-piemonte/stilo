@@ -1,10 +1,16 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.iterAtti.datasource;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
 
 import it.eng.auriga.database.store.dmpk_load_combo.bean.DmpkLoadComboDmfn_load_comboBean;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
-import java.util.ArrayList;
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
-import it.eng.auriga.ui.module.layout.server.anagrafiche.datasource.LoadComboPerizieDataSource;
 import it.eng.auriga.ui.module.layout.server.iterAtti.datasource.bean.AttoConFlussoWFXmlBean;
 import it.eng.client.DmpkLoadComboDmfn_load_combo;
 import it.eng.utility.ui.module.core.server.bean.AdvancedCriteria;
@@ -14,12 +20,6 @@ import it.eng.utility.ui.module.core.server.datasource.AbstractFetchDataSource;
 import it.eng.utility.ui.module.core.server.datasource.annotation.Datasource;
 import it.eng.utility.ui.user.AurigaUserUtil;
 import it.eng.xml.XmlListaUtility;
-
-import java.math.BigDecimal;
-import java.util.List;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
 
 @Datasource(id = "LoadComboAttoConFlussoWFDataSource")
 public class LoadComboAttoConFlussoWFDataSource extends AbstractFetchDataSource<AttoConFlussoWFXmlBean> {

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.common;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -24,6 +25,7 @@ import com.itextpdf.text.pdf.PdfDictionary;
 import com.itextpdf.text.pdf.PdfName;
 import com.itextpdf.text.pdf.PdfReader;
 
+import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.auriga.ui.module.layout.server.conversionePdf.datasource.bean.ConversionePdfBean;
 import it.eng.auriga.ui.module.layout.server.conversionePdf.datasource.bean.FileDaConvertireBean;
 import it.eng.auriga.ui.module.layout.server.task.bean.InfoFirmaGraficaBean;
@@ -31,14 +33,12 @@ import it.eng.auriga.util.PdfSignatureUtils;
 import it.eng.fileOperation.clientws.DigestAlgID;
 import it.eng.fileOperation.clientws.DigestEncID;
 import it.eng.hsm.pades.FirmaPadesApposizioneFileOpUtil;
-import it.eng.services.fileop.InfoFileUtility;
 import it.eng.spring.utility.SpringAppContext;
 import it.eng.utility.DocumentConfiguration;
 import it.eng.utility.module.config.StorageImplementation;
 import it.eng.utility.pdfUtility.PdfUtil;
 import it.eng.utility.ui.module.core.server.datasource.AbstractServiceDataSource;
 import it.eng.utility.ui.module.core.server.datasource.annotation.Datasource;
-import it.eng.utility.ui.servlet.bean.MimeTypeFirmaBean;
 import it.eng.utility.ui.sign.FileElaborate;
 import it.eng.utility.ui.sign.SignerHashUtil;
 import it.eng.utility.ui.user.AurigaUserUtil;
@@ -62,6 +62,11 @@ public class CalcolaImpronteService extends AbstractServiceDataSource<Conversion
 	public ConversionePdfBean aggiungiEventualeRettangoloFirmaECalcolaImpronta(ConversionePdfBean bean) throws Exception {
 		// Non ho l'informazione sul tipo di firma che verrà fatta, quindi calcolo sia l'impronta per la firma PAdES con eventuale rettagolo di firma sia quella per la firma CAdES congiunta 
 		DocumentConfiguration lDocumentConfiguration = (DocumentConfiguration) SpringAppContext.getContext().getBean("DocumentConfiguration");
+		String logAggiungiEventualeRettangoloFirmaECalcolaImpronta = "";
+		AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo(getSession());
+		if (loginBean != null) {
+			logAggiungiEventualeRettangoloFirmaECalcolaImpronta = "(UtenteLoggato: " + loginBean.getDenominazione() + ", UtenteDelega: " + loginBean.getDelegaDenominazione() + ") Chiamata a aggiungiEventualeRettangoloFirmaECalcolaImpronta per " + bean.getFiles().size() + " file ";
+		}
 		for (FileDaConvertireBean lFileBean : bean.getFiles()) {
 			if (lFileBean.getInfoFile() != null && lFileBean.getInfoFile().getMimetype() != null && lFileBean.getInfoFile().getMimetype().equals("application/pdf")) {
 				// Calcolo l'impronta pdf del file che mi serve nel caso di firma PAdES
@@ -153,7 +158,9 @@ public class CalcolaImpronteService extends AbstractServiceDataSource<Conversion
 					}
 				}
 			}
+			logAggiungiEventualeRettangoloFirmaECalcolaImpronta += "[" + lFileBean.getNomeFile() + " " + lFileBean.getUri() + "]";
 		}
+		mLogger.debug(logAggiungiEventualeRettangoloFirmaECalcolaImpronta);
 		if (getSession() != null && getSession().getId() != null && !"".equalsIgnoreCase(getSession().getId())) {
 			bean.setjSessionId(getSession().getId());
 		}

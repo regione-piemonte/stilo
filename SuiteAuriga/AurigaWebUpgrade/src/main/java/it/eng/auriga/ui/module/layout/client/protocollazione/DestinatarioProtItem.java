@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import com.smartgwt.client.data.Record;
 import com.smartgwt.client.widgets.form.fields.events.ChangeEvent;
@@ -99,6 +100,10 @@ public abstract class DestinatarioProtItem extends ReplicableItem {
 		return null;
 	}
 	
+	public boolean isProtPregresso() {
+		return false;
+	}
+	
 	public boolean isProtInModalitaWizard() {
 		return false;
 	}
@@ -131,6 +136,28 @@ public abstract class DestinatarioProtItem extends ReplicableItem {
 		return false;
 	}
 
+	public boolean isProtocollata() {
+		try {
+			Record lDetailRecord = new Record(getForm().getValuesManager().getValues());
+			String tipoProtocollo = lDetailRecord.getAttribute("tipoProtocollo");
+			return tipoProtocollo !=null && tipoProtocollo.equalsIgnoreCase("PG");			
+		} catch(Exception e) {}
+		return false;
+	}
+
+	
+	
+	public boolean isRepertoriata() {
+		try {
+			Record lDetailRecord = new Record(getForm().getValuesManager().getValues());
+			String codCategoriaProtocollo = lDetailRecord.getAttribute("codCategoriaProtocollo");
+			return codCategoriaProtocollo !=null && codCategoriaProtocollo.equalsIgnoreCase("R");		
+		} catch(Exception e) {}
+		return false;
+	}
+
+
+	
 	protected boolean isPersonaGiuridica(String tipoSoggetto) {
 		if (tipoSoggetto != null) {
 			if ("G".equals(tipoSoggetto) || "PA".equals(tipoSoggetto) || "PG".equals(tipoSoggetto) || "UOI".equals(tipoSoggetto) || "AOOI".equals(tipoSoggetto)

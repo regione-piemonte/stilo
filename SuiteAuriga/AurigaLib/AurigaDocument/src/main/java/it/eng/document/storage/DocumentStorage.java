@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.storage;
 
 import java.io.File;
 import java.io.InputStream;
@@ -59,6 +60,16 @@ public class DocumentStorage {
 		StorageService lService = getStorageDefault();
 		return lService.storeStream(lFile, params);
 	}
+	
+	public static String storeTemp(File lFile, String... params) throws StorageException {
+		StorageService lService = getTempStorage();
+		return lService.store(lFile, params);
+	}
+	
+	public static String storeInputTemp(InputStream lFile, String... params) throws StorageException {
+		StorageService lService = getTempStorage();
+		return lService.storeStream(lFile, params);
+	}
 
 	public static File extract(String uri, BigDecimal idDominio) throws StorageException {
 		StorageService lStorage = getStorage(idDominio != null ? idDominio.toString() : null);
@@ -111,6 +122,29 @@ public class DocumentStorage {
 		});
 		return storageService;
 	}
+	
+	private static StorageService getTempStorage() {
+		StorageService storageService = StorageServiceImpl.newInstance(new GenericStorageInfo() {
+			public String getUtilizzatoreStorageId() {
+				ModuleConfig mc = (ModuleConfig) SpringAppContext.getContext().getBean("moduleConfig");
+				logger.debug("Recuperato module config");
+				logger.debug("Nome utilizzatore TEMP");
+				if (mc != null && mc.getStorages().size() > 0) {
+					if (mc.getStorages().containsKey("TEMP")) {
+						logger.debug("Id Storage vale " + mc.getStorages().get("TEMP"));
+						return mc.getStorages().get("TEMP");
+					} else {
+						logger.error("L'identificativo del DB di storage dei temporanei non e' correttamente configurato, controllare il file di configurazione del modulo: definire storage con chiave TEMP");
+						return null;
+					}
+				} else {
+					logger.error("L'identificativo del DB di storage dei temporanei non e' correttamente configurato, controllare il file di configurazione del modulo: definire storage con chiave TEMP");
+					return null;
+				}
+			}
+		});
+		return storageService;
+	}
 
 	private static StorageService getStorageDefault() {
 		StorageService storageService = StorageServiceImpl.newInstance(new GenericStorageInfo() {
@@ -129,7 +163,5 @@ public class DocumentStorage {
 		});
 		return storageService;
 	}
-	
-	
 
 }

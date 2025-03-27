@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -50,7 +51,6 @@ import it.eng.postel.AddressTypologyType;
 import it.eng.postel.ContactType;
 import it.eng.postel.DocumentsType;
 import it.eng.postel.Parts;
-import it.eng.postel.PartsType;
 import it.eng.postel.ReceiverType;
 import it.eng.postel.ReceiversType;
 import it.eng.postel.SenderType;
@@ -104,16 +104,11 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 		DocumentsType lDocumentsType = new DocumentsType();
 		Parts lParts = new Parts();
 		
-		
 		InputStream postelProp = PostelDataSource.class.getClassLoader().getResourceAsStream("postel.properties");
 		Properties lProperties = new Properties();
-		
 		lProperties.load(postelProp);
-		
-
+	
 		try {
-
-
 			/****** DOCUMENTI ******/
 
 			ArrayList<File> fileAllegati = new ArrayList<>();
@@ -137,7 +132,7 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 						fileAllegati.add(fAl);
 						lDocumentsType.getDocument().add(allegato.getNomeFileAllegato());
 						nomiFileAllegati.add(allegato.getNomeFileAllegato());
-					}else {
+					} else {
 						if(allegato.getInfoFile().isConvertibile()) {
 							allegato.setNomeFileAllegato(pInBean.getIdUd().toString()+"_"+allegato.getNomeFileAllegato());
 							File fAl = null;
@@ -160,27 +155,26 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 									fileAllegati.add(fileConvertito);
 									lDocumentsType.getDocument().add(nomeFile);
 									nomiFileAllegati.add(nomeFile);
-								}catch (Exception e) {
+								} catch (Exception e) {
 									logPostelDS.error("Errore durante la conversione del file" + e.getMessage(), e);
 									throw new Exception("Errore durante la conversione del file");
 								}
-							}else {
+							} else {
 								logPostelDS.error("Errore durante la conversione del file: Il file è troppo grande per poter essere convertito");
 								throw new Exception("Errore durante la conversione del file: Il file è troppo grande per poter essere convertito");
 							}
-						}else {
+						} else {
 							logPostelDS.error("Errore durante la conversione del file: Il file non è convertibile");
 							throw new Exception("Errore durante la conversione del file: Il file non è convertibile");
 						}
 					}
-				}else {
+				} else {
 					logPostelDS.error("Errore durante il recupero del file");
 					throw new Exception("Errore durante il recupero del file");
 				}
 			}
 
 			lDocumentsType.setDocumentaryUnit(pInBean.getIdUd().intValue());
-
 
 			/****** MITTENTE ******/
 			
@@ -217,7 +211,6 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 
 			lSenderType.setContact(lContactTypeForSender);
 
-
 			/****** DESTINATARI ******/
 			
 			logPostelDS.debug("Creazione sezione Destinatari per xml Postel");
@@ -225,7 +218,6 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 			List<DestinatarioProtBean> listaDestinatari = pInBean.getListaDestinatari();
 
 			for(DestinatarioProtBean destinatario : listaDestinatari) {
-
 
 				String tipoDestinatario = destinatario.getTipoDestinatario();
 				boolean isDestinatarioInterno = tipoDestinatario != null && ("UP".equals(tipoDestinatario) || "UOI".equals(tipoDestinatario) || "LD".equals(tipoDestinatario) || "PREF".equals(tipoDestinatario));
@@ -239,7 +231,7 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 						identificativo = cognomeDestinatario+" "+nomeDestinatario; 
 						if (identificativo.length()>limIdentificativo)
 							identificativo = identificativo.substring(0, limIdentificativo);
-					}else { 
+					} else { 
 						denominazione = destinatario.getDenominazioneDestinatario().toUpperCase(getLocale()).trim();
 						identificativo = denominazione;
 						if (identificativo.length()>limIdentificativo)
@@ -251,7 +243,7 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 					
 					if (destinatario.getProvincia() != null && !"".equalsIgnoreCase(destinatario.getProvincia())) {
 						provincia = destinatario.getProvincia();
-					}else {
+					} else {
 						provincia = destinatario.getMezzoTrasmissioneDestinatario().getDescrizioneIndirizzo().substring(destinatario.getMezzoTrasmissioneDestinatario().getDescrizioneIndirizzo().lastIndexOf("(") + 1, destinatario.getMezzoTrasmissioneDestinatario().getDescrizioneIndirizzo().lastIndexOf(")")) .toUpperCase(getLocale());
 					}
 
@@ -268,7 +260,6 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 					//nomeStato
 					nomeStato = destinatario.getMezzoTrasmissioneDestinatario().getStato().toUpperCase(getLocale());
 
-
 					/** DESTINATARIO PER XML **/
 
 					ReceiverType lReceiverType = new ReceiverType();
@@ -280,7 +271,6 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 					lAddressTypeForReceiver.setDug(tipoToponimo);
 					lAddressTypeForReceiver.setToponym(toponimo);
 					lAddressTypeForReceiver.setCivicNumber(civico);
-
 
 					ContactType lContactTypeForReceiver = new ContactType();
 					lContactTypeForReceiver.setAddressTypology(AddressTypologyType.NORMALE);
@@ -294,20 +284,18 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 					if (destinatario.getTipoDestinatario().equalsIgnoreCase("PF")) {
 						lContactTypeForReceiver.setName(nomeDestinatario);
 						lContactTypeForReceiver.setSurname(cognomeDestinatario);
-					}else {
+					} else {
 						lContactTypeForReceiver.setBusinessName(identificativo);
 					}
 
 					lReceiverType.setContact(lContactTypeForReceiver);					
 					lReceiversType.getReceiver().add(lReceiverType);
 					
-					
-					idsDestinatariOk.add(destinatario.getIdSoggetto());
-
+					if(StringUtils.isNotBlank(destinatario.getIdSoggetto())) {
+						idsDestinatariOk.add(destinatario.getIdSoggetto());
+					}
 				}
 			}
-			
-			
 			
 			if(idsDestinatariOk == null || idsDestinatariOk.isEmpty() || idsDestinatariOk.size() < 1) {
 				throw new Exception("Assicurarsi che il destinatario sia stato memorizzato nella rubrica e che sia presente l'ID del destinatario");
@@ -323,10 +311,10 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 			if(pInBean.getModalitaInvio() != null && "raccomandata".equalsIgnoreCase(pInBean.getModalitaInvio())) {
 				logPostelDS.debug("Modalita' invio di tipo Raccomandata");
 				lParts.setTypology(TypologyType.ROL);
-			}else if(pInBean.getModalitaInvio() != null && "posta prioritaria".equalsIgnoreCase(pInBean.getModalitaInvio())) {
+			} else if(pInBean.getModalitaInvio() != null && "posta prioritaria".equalsIgnoreCase(pInBean.getModalitaInvio())) {
 				logPostelDS.debug("Modalita' invio di tipo Posta prioritaria");
 				lParts.setTypology(TypologyType.LOL);
-			}else {
+			} else {
 				throw new Exception("Non è stata specificata la modalita' di invio");
 			}
 			String tempDir=System.getProperty("java.io.tmpdir") + System.getProperty("file.separator");
@@ -421,7 +409,7 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 					fileAllegati.get(i).delete();
 				}
 
-			}catch (IOException ioe) {
+			} catch (IOException ioe) {
 				logPostelDS.error("Errore nella creazione del file Zip: " + ioe.getMessage());
 				throw new Exception("Errore nella creazione del file Zip: "+ ioe.getMessage());
 			}
@@ -465,7 +453,7 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 					if (lista != null && lista.getRiga().size() != 0) { 
 						isToInsert = false;
 					}
-				}else {
+				} else {
 					logPostelDS.error("Ricerca della raccomandata con id_ud ["+ Integer.toString(pInBean.getIdUd().intValue()) +"], errore nell'output, il resultBean o resultOut è null");
 					throw new StoreException(output.getDefaultMessage());
 				}
@@ -503,17 +491,24 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 
 					DmpkRaccomandateIns_raccomandate lDmpkRaccomandateInsRaccomandate = new DmpkRaccomandateIns_raccomandate();
 					StoreResultBean<DmpkRaccomandateIns_raccomandateBean> outputIns = lDmpkRaccomandateInsRaccomandate.execute(getLocale(), lSchemaBean, lInsRaccomandateObjectBean);
-
+					
+					if (StringUtils.isNotBlank(outputIns.getDefaultMessage())) {
+						if (outputIns.isInError()) {
+							logPostelDS.error("Errore nel recupero dell'output: " + outputIns.getDefaultMessage());
+							throw new StoreException(outputIns);
+						} else {
+							addMessage(outputIns.getDefaultMessage(), "", MessageType.WARNING);
+						}
+					}
 				}
-			}catch(Exception e){
+			} catch(Exception e){
 				logPostelDS.error("Errore nell'inserimento del record nel DB" + e);
 				throw new Exception("Errore durante l'inserimento del record nel database" + e);
 			}
 			
-			
 			return pInBean;
 
-		}catch(Exception e){
+		} catch(Exception e){
 			logPostelDS.error("Errore nella creazione del pacchetto: " + e);
 			throw new Exception("Errore nella creazione del pacchetto: " + e);
 		}
@@ -521,9 +516,7 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 
 
 	public ProtocollazioneBean generaTimbrati(ProtocollazioneBean pInBean) throws Exception{
-	
 
-		
 		logPostelDS.debug("genero i file timbrati");
 		
 		File fileDaTimbrare = null;
@@ -532,7 +525,6 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 		List<AllegatoProtocolloBean> allegatiDaTimbrare = new ArrayList<>();
 		List<AllegatoProtocolloBean> allegatiTimbrati = new ArrayList<>();
 	
-
 		if (pInBean.getListaAllegati()!=null) {
 			// Seleziono gli allegati da timbrare
 			for(AllegatoProtocolloBean allegato: pInBean.getListaAllegati()) {
@@ -744,7 +736,6 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 			}
 		}
 		
-		
 		// Aggiungo gli allegati timbrati alla lista di allegati del bean che ritorna al client
 		if(!allegatiTimbrati.isEmpty()) {
 			for (AllegatoProtocolloBean allegato : allegatiTimbrati) {
@@ -754,4 +745,3 @@ public class PostelDataSource extends AbstractServiceDataSource<ProtocollazioneB
 		return pInBean;
 	}
 }
-

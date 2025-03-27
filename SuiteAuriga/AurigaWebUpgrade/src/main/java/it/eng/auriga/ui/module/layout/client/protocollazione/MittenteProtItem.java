@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import com.smartgwt.client.data.Record;
 import com.smartgwt.client.widgets.form.fields.events.ChangeEvent;
@@ -89,6 +90,10 @@ public abstract class MittenteProtItem extends ReplicableItem {
 			return lDetailRecord.getAttribute("idUd");
 		} catch(Exception e) {}
 		return null;
+	}
+	
+	public boolean isProtPregresso() {
+		return false;
 	}
 	
 	public boolean isProtInModalitaWizard() {

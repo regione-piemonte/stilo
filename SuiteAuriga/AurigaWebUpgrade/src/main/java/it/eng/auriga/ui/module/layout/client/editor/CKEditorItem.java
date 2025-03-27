@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.editor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,8 @@ import com.smartgwt.client.widgets.layout.VLayout;
 
 import it.eng.auriga.ui.module.layout.client.attributiDinamici.DocumentItem;
 import it.eng.utility.Styles;
+import it.eng.utility.ui.module.core.client.RequestValidatorClient;
+import it.eng.utility.ui.module.core.client.UserInterfaceFactory;
 import it.eng.utility.ui.module.layout.client.Layout;
 import it.eng.utility.ui.module.layout.client.common.IDatiSensibiliItem;
 import it.eng.utility.ui.module.layout.client.common.IEditorItem;
@@ -473,6 +476,14 @@ public class CKEditorItem extends CanvasItem implements IEditorItem, IDatiSensib
 	@Override
 	public Boolean validate() {		
 		iniezioneFileForm.validate();
+		if (UserInterfaceFactory.getParametroDBAsBoolean("ATTIVA_SCRIPT_VALIDATOR_FOR_TEXT_INPUT")) {
+			// Controllo la presenza di script sul CKEditor
+			if (getValue() != null && !"".equals(getValue()) && RequestValidatorClient.containsScript(getValue())) {
+				// Ci sono degli script
+				getForm().setFieldErrors(getName(), "Valore non valido: non si possono inserire script");
+				return false;
+			}
+		}
 		boolean valid;
 		if (isAttivataIniezioneCkEditorDaFile()) {
 			if (isIniezioneFileSelezionata()) {

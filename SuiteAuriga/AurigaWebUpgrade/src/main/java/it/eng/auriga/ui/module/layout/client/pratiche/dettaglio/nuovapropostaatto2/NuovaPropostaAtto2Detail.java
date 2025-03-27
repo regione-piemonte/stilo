@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovapropostaatto2;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -4828,7 +4829,19 @@ public class NuovaPropostaAtto2Detail extends CustomDetail {
 	}
 	
 	public void caricaAttributiDinamiciDoc(String nomeFlussoWF, String processNameWF, String activityName, String idTipoDoc, String rowidDoc) {
-		
+		if(attributiAddDocLayouts != null) {
+			for (String key : attributiAddDocLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddDocLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddDocDetails != null) {
+			for (String key : attributiAddDocDetails.keySet()) {
+				try { attributiAddDocDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
 		attributiAddDocLayouts = new HashMap<String, VLayout>();
 		attributiAddDocDetails = new HashMap<String, AttributiDinamiciDetail>();
 		if (attributiAddDocTabs != null && attributiAddDocTabs.size() > 0) {
@@ -5541,17 +5554,6 @@ public class NuovaPropostaAtto2Detail extends CustomDetail {
 		
 	}
 	
-	@Override
-	protected void onDestroy() {
-		if(saveModelloWindow != null) {
-			saveModelloWindow.destroy();
-		}
-		if(modelliDS != null) {
-			modelliDS.destroy();
-		}
-		super.onDestroy();
-	}
-	
 	private void setFormValuesFromRecordArchivio(Record record) {
 		caratteristicheProvvedimentoForm1.clearErrors(true);
 		caratteristicheProvvedimentoForm1.setValue("idUdAttoDeterminaAContrarre", record.getAttribute("idUdFolder"));
@@ -5602,6 +5604,33 @@ public class NuovaPropostaAtto2Detail extends CustomDetail {
 		public void manageMultiLookupUndo(Record record) {
 
 		}
+	}
+	
+	@Override
+	protected void onDestroy() {
+		if(saveModelloWindow != null) {
+			saveModelloWindow.destroy();
+		}
+		if(modelliDS != null) {
+			modelliDS.destroy();
+		}
+		super.onDestroy();
+		if(attributiAddDocLayouts != null) {
+			for (String key : attributiAddDocLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddDocLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddDocDetails != null) {
+			for (String key : attributiAddDocDetails.keySet()) {
+				try { attributiAddDocDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
+		attributiAddDocTabs = null;
+		attributiAddDocLayouts = null;		
+		attributiAddDocDetails = null;
 	}
 	
 }

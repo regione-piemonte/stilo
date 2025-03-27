@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pubblicazioneAlbo;
 
 import java.util.HashMap;
 import java.util.List;
@@ -721,7 +722,21 @@ public class PubblicazioneAlboRicercaPubblicazioniList extends CustomList {
 				}
 			});
 			contextMenu.addItem(rettificaMenuItem);	
-		}		
+		}
+		
+		// Modifica
+		if(record != null && record.getAttributeAsBoolean("abilModifica") != null &&
+				record.getAttributeAsBoolean("abilModifica")) {
+			MenuItem modificaMenuItem = new MenuItem("Modifica", "buttons/modify.png");
+			modificaMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+				
+				public void onClick(MenuItemClickEvent event) {
+					modificaPubblicazione(record);
+				}
+			});
+			contextMenu.addItem(modificaMenuItem);	
+		}
+		
 		contextMenu.addSort(new SortSpecifier("title", SortDirection.ASCENDING));	
 		if(contextMenu.getItems().length > 0) {
 			contextMenu.showContextMenu();
@@ -803,7 +818,7 @@ public class PubblicazioneAlboRicercaPubblicazioniList extends CustomList {
 				if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
 					Record record = response.getData()[0];
 					record.setAttribute("isRettifica", true);					
-					NuovaRichiestaPubblicazioneWindow lNuovaRichiestaPubblicazioneWindow = new NuovaRichiestaPubblicazioneWindow(record.toMap(), layout) {
+					NuovaRichiestaPubblicazioneWindow lNuovaRichiestaPubblicazioneWindow = new NuovaRichiestaPubblicazioneWindow(record.toMap(), layout, null) {
 						
 						@Override
 						public void manageOnCloseClick() {
@@ -815,6 +830,39 @@ public class PubblicazioneAlboRicercaPubblicazioniList extends CustomList {
 				}
 			}
 		});
+	}
+	
+	public void modificaPubblicazione(final Record detailRecord) {
+
+		final GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("PubblicazioneAlboConsultazioneRichiesteDataSource");
+		Record lRecordToLoad = new Record();
+		lRecordToLoad.setAttribute("idUdFolder", detailRecord.getAttribute("idUdFolder"));
+		lRecordToLoad.setAttribute("idRichPubbl", detailRecord.getAttribute("idRichPubbl"));
+		lGwtRestDataSource.getData(lRecordToLoad, new DSCallback() {
+			
+			@Override
+			public void execute(DSResponse response, Object rawData, DSRequest request) {
+				if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
+					Record record = response.getData()[0];
+					record.setAttribute("isModificaPubblicazione", true);					
+					NuovaRichiestaPubblicazioneWindow lNuovaRichiestaPubblicazioneWindow = new NuovaRichiestaPubblicazioneWindow(record.toMap(), layout, null) {
+						
+						@Override
+						public void manageOnCloseClick() {
+							super.manageOnCloseClick();
+							layout.doSearch();
+						}
+						
+						@Override
+						public void afterLoadDetail() {
+							saveButton.setTitle("Salva");
+						};
+					};					
+					lNuovaRichiestaPubblicazioneWindow.show();
+				}
+			}
+		});
+	
 	}
 	
 	@Override

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.scrivania.datasource;
 
 import java.io.StringReader;
 import java.math.BigDecimal;
@@ -91,6 +92,7 @@ public class ScrivaniaTreeDatasource extends AbstractTreeDataSource<ScrivaniaTre
 			       		node.setAbilFolderizzazione(setAzioniMassive.contains("folderizzazione"));
 			       		node.setAbilAssegnazione(setAzioniMassive.contains("assegnazione"));
 			       		node.setAbilRestituzione(setAzioniMassive.contains("restituzione"));
+			       		node.setAbilRilascia(setAzioniMassive.contains("rilascia"));
 			       		node.setAbilSmistamento(setAzioniMassive.contains("smistamento"));
 			       		node.setAbilSmistamentoCC(setAzioniMassive.contains("smistamentoCC"));
 			       		node.setAbilInvioPerConoscenza(setAzioniMassive.contains("invioPerConoscenza"));
@@ -112,6 +114,8 @@ public class ScrivaniaTreeDatasource extends AbstractTreeDataSource<ScrivaniaTre
 			       		node.setAbilChiudiFascicoloMultiButton(setAzioniMassive.contains("chiusuraFascicolo"));
 			       		node.setAbilRiapriFascicoloMultiButton(setAzioniMassive.contains("riaperturaFascicolo"));
 			       		node.setAbilSegnaComeVisionatoMultiButton(setAzioniMassive.contains("impostazioneComeVisionato"));
+			       		node.setAbilSegnaInvioEmailExtraSistemaMultiButton(setAzioniMassive.contains("segnaInvioEmailExtraSistema"));
+			       		
 			       		// Azioni rich. accesso atti
 			       		node.setAbilRichiesteAccessoAttiInvioInApprovazione(setAzioniMassive.contains("richiesteAccessoAtti.invioInApprovazione"));
 			       		node.setAbilRichiesteAccessoAttiApprovazione(setAzioniMassive.contains("richiesteAccessoAtti.approvazione"));

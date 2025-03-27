@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean;
 
 
 public class DestinatarioProtBean extends IndirizzoSoggettoProtBean {
@@ -34,6 +35,7 @@ public class DestinatarioProtBean extends IndirizzoSoggettoProtBean {
     private String displayFileNameExcel;
     private String uriFileExcel;
     private String idFoglioExcelDestinatari;
+    private String indirizzoRubrica;
     
 	
     public Boolean getFromLoadDett() {
@@ -221,5 +223,11 @@ public class DestinatarioProtBean extends IndirizzoSoggettoProtBean {
 	}
 	public void setIdFoglioExcelDestinatari(String idFoglioExcelDestinatari) {
 		this.idFoglioExcelDestinatari = idFoglioExcelDestinatari;
+	}
+	public String getIndirizzoRubrica() {
+		return indirizzoRubrica;
+	}
+	public void setIndirizzoRubrica(String indirizzoRubrica) {
+		this.indirizzoRubrica = indirizzoRubrica;
 	}
 }

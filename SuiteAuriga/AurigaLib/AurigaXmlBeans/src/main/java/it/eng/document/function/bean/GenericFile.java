@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -49,6 +50,8 @@ public class GenericFile implements Serializable{
 	private String idUdScansioneProv;
 		
 	private Flag convertibile;
+	
+	private String improntaPreFirmaDaFileOp;
 	
 	public String getDisplayFilename() {
 		return displayFilename;
@@ -247,5 +250,11 @@ public class GenericFile implements Serializable{
 	}
 	public void setBytes(long bytes) {
 		this.bytes = bytes;
+	}
+	public String getImprontaPreFirmaDaFileOp() {
+		return improntaPreFirmaDaFileOp;
+	}
+	public void setImprontaPreFirmaDaFileOp(String improntaPreFirmaDaFileOp) {
+		this.improntaPreFirmaDaFileOp = improntaPreFirmaDaFileOp;
 	}
 }

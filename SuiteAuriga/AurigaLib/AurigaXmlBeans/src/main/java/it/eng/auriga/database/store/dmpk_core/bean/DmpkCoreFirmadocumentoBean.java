@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.database.store.dmpk_core.bean;
 
 import java.io.Serializable;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -26,8 +27,11 @@ public class DmpkCoreFirmadocumentoBean extends StoreBean implements Serializabl
 	private java.lang.Integer flgautocommitin;
 	private java.lang.String tipomittintudout;
 	private java.math.BigDecimal idmittudout;
+	private java.lang.String tiposoggoriginebozzaout;
+	private java.math.BigDecimal idsoggoriginebozzaout;
 	private java.lang.String tipomittultimoinvioudout;
 	private java.math.BigDecimal idmittultimoinvioudout;
+	private java.math.BigDecimal flgdestcontrasmmailout;
 	private java.lang.String errcontextout;
 	private java.lang.Integer errcodeout;
 	private java.lang.String errmsgout;
@@ -41,8 +45,11 @@ public class DmpkCoreFirmadocumentoBean extends StoreBean implements Serializabl
     public java.lang.Integer getFlgautocommitin(){return flgautocommitin;}
     public java.lang.String getTipomittintudout(){return tipomittintudout;}
     public java.math.BigDecimal getIdmittudout(){return idmittudout;}
+    public java.lang.String getTiposoggoriginebozzaout(){return tiposoggoriginebozzaout;}
+    public java.math.BigDecimal getIdsoggoriginebozzaout(){return idsoggoriginebozzaout;}
     public java.lang.String getTipomittultimoinvioudout(){return tipomittultimoinvioudout;}
     public java.math.BigDecimal getIdmittultimoinvioudout(){return idmittultimoinvioudout;}
+    public java.math.BigDecimal getFlgdestcontrasmmailout(){return flgdestcontrasmmailout;}
     public java.lang.String getErrcontextout(){return errcontextout;}
     public java.lang.Integer getErrcodeout(){return errcodeout;}
     public java.lang.String getErrmsgout(){return errmsgout;}
@@ -57,8 +64,11 @@ public class DmpkCoreFirmadocumentoBean extends StoreBean implements Serializabl
     public void setFlgautocommitin(java.lang.Integer value){this.flgautocommitin=value;}
     public void setTipomittintudout(java.lang.String value){this.tipomittintudout=value;}
     public void setIdmittudout(java.math.BigDecimal value){this.idmittudout=value;}
+    public void setTiposoggoriginebozzaout(java.lang.String value){this.tiposoggoriginebozzaout=value;}
+    public void setIdsoggoriginebozzaout(java.math.BigDecimal value){this.idsoggoriginebozzaout=value;}
     public void setTipomittultimoinvioudout(java.lang.String value){this.tipomittultimoinvioudout=value;}
     public void setIdmittultimoinvioudout(java.math.BigDecimal value){this.idmittultimoinvioudout=value;}
+    public void setFlgdestcontrasmmailout(java.math.BigDecimal value){this.flgdestcontrasmmailout=value;}
     public void setErrcontextout(java.lang.String value){this.errcontextout=value;}
     public void setErrcodeout(java.lang.Integer value){this.errcodeout=value;}
     public void setErrmsgout(java.lang.String value){this.errmsgout=value;}

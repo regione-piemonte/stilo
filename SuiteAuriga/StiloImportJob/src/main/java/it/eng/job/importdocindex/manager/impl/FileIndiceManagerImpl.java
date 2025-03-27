@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.job.importdocindex.manager.impl;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -6,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.invoke.MethodHandles;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -55,10 +57,13 @@ import it.eng.auriga.database.store.dmpk_bmanager.bean.DmpkBmanagerCaricacontfog
 import it.eng.auriga.database.store.dmpk_bmanager.bean.DmpkBmanagerIufoglioximportBean;
 import it.eng.auriga.database.store.dmpk_bmanager.store.impl.CaricacontfoglioximportImpl;
 import it.eng.auriga.database.store.dmpk_bmanager.store.impl.IufoglioximportImpl;
+import it.eng.auriga.database.store.dmpk_login.bean.DmpkLoginMarktokenusageBean;
+import it.eng.auriga.database.store.dmpk_login.store.Marktokenusage;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
-//import it.eng.client.DmpkBmanagerCaricacontfoglioximport;
-//import it.eng.client.DmpkBmanagerIufoglioximport;
+import it.eng.auriga.module.business.login.service.LoginService;
+import it.eng.client.DmpkBmanagerCaricacontfoglioximport;
+import it.eng.client.DmpkBmanagerIufoglioximport;
 import it.eng.core.business.subject.SubjectBean;
 import it.eng.core.business.subject.SubjectUtil;
 import it.eng.jaxb.variabili.Lista;
@@ -99,7 +104,7 @@ public class FileIndiceManagerImpl extends Manager implements FileIndiceManager,
 	private final File fileLavoro;
 
 	private final AurigaLoginBean loginBean;
-
+	
 	private final Locale locale;
 
 	private final Map<Path, StatoElaborazione> mappaFileReferenziati;
@@ -117,7 +122,6 @@ public class FileIndiceManagerImpl extends Manager implements FileIndiceManager,
 		this.loginBean = loginBean;
 		this.locale = locale;
 		this.mappaFileReferenziati = new HashMap<>();
-
 	}
 
 	private void configurazioneSubjectBean() {
@@ -371,7 +375,7 @@ public class FileIndiceManagerImpl extends Manager implements FileIndiceManager,
 	 * @return
 	 * @throws ImportDocIndexException
 	 */
-	private HandlerResultBean<Void> registraFileIndice(InfoArchiviazione infoArchiviazione) throws ImportDocIndexException {
+	private HandlerResultBean<Void> registraFileIndice(InfoArchiviazione infoArchiviazione) {
 
 		HandlerResultBean<Void> result = new HandlerResultBean<>();
 		result.setSuccessful(false);
@@ -385,7 +389,8 @@ public class FileIndiceManagerImpl extends Manager implements FileIndiceManager,
 
 		} catch (Exception e) {
 			logger.error(ErrorInfoEnum.ERRORE_ELABORAZIONE_FILE.getDescription(), e);
-			throw new ImportDocIndexException(e, ErrorInfoEnum.ERRORE_ELABORAZIONE_FILE);
+			//throw new ImportDocIndexException(e, ErrorInfoEnum.ERRORE_ELABORAZIONE_FILE);
+			logger.error(e.getMessage());
 		}
 
 		return result;
@@ -400,9 +405,62 @@ public class FileIndiceManagerImpl extends Manager implements FileIndiceManager,
 	 * @throws InterruptedException
 	 * @throws ImportDocIndexException
 	 */
-	private void servizioRegistrazioneIndice(HandlerResultBean<Void> result, DmpkBmanagerIufoglioximportBean iuFoglioXImportBean)
-			throws InterruptedException, ImportDocIndexException {
+	private void servizioRegistrazioneIndice(HandlerResultBean<Void> result, DmpkBmanagerIufoglioximportBean iuFoglioXImportBean) throws InterruptedException, ImportDocIndexException {
 		
+		//iuFoglioXImportBean.setFlgautocommitin(1);
+		//iuFoglioXImportBean.setCodidconnectiontokenin(loginBean.getToken());
+		
+		//if (StringUtils.isNotEmpty(loginBean.getIdUserLavoro())){
+			//BigDecimal lBigDecimal = new BigDecimal(loginBean.getIdUserLavoro());
+			//iuFoglioXImportBean.setIduserlavoroin(lBigDecimal);
+		//}
+		logger.info("Oggetto: login " + loginBean.getAccessToken() + " - " + loginBean.getDominio() + " - " + loginBean.getIdApplicazione());
+		
+		final IufoglioximportImpl lIufoglioximport = new IufoglioximportImpl();
+		lIufoglioximport.setBean(iuFoglioXImportBean);
+		
+		//logger.info(iuFoglioXImportBean.getStoreName());
+	    
+		//SubjectBean subject =  SubjectUtil.subject.get();
+		//subject.setIdDominio(loginBean.getSchema());
+		//subject.setUuidtransaction(loginBean.getUuid());
+		//SubjectUtil.subject.set(subject);
+		
+		Session session = null;
+			try {
+				LoginService lLoginService = new LoginService();
+				lLoginService.login(loginBean);
+				session = HibernateUtil.begin();
+				session.doWork(new Work() {
+					@Override
+					public void execute(Connection paramConnection) throws SQLException {
+						paramConnection.setAutoCommit(false);
+						lIufoglioximport.execute(paramConnection);
+					}
+				});
+				StoreResultBean<DmpkBmanagerIufoglioximportBean> resultStore = new StoreResultBean<DmpkBmanagerIufoglioximportBean>();
+				AnalyzeResult.analyze(iuFoglioXImportBean, resultStore);
+				resultStore.setResultBean(iuFoglioXImportBean);
+				Marktokenusage lMarktokenusage = new Marktokenusage();
+				DmpkLoginMarktokenusageBean lMarktokenusageBean = new DmpkLoginMarktokenusageBean();
+				if (loginBean.getToken()!=null)
+					lMarktokenusageBean.setCodidconnectiontokenin(loginBean.getToken());
+				lMarktokenusageBean.setFlgautocommitin(1);
+				lMarktokenusage.execute(loginBean, lMarktokenusageBean);
+				//return resultStore;
+			}catch(Exception e){
+				logger.error(e.getMessage());
+				//if (e.getCause() != null && e.getCause().getMessage() != null && e.getCause().getMessage().equals("Chiusura forzata")) throw new Exception("Chiusura forzata");
+				//else throw e;
+			}finally{
+				try {
+					HibernateUtil.release(session);
+				} catch (Exception e) {
+					logger.error(e.getMessage());
+				}
+			}
+		
+		/*
 		Session session = null;
 		
 		try {
@@ -447,6 +505,11 @@ public class FileIndiceManagerImpl extends Manager implements FileIndiceManager,
 				logger.error(e.getMessage());
 			}
 		}
+		*/
+		
+		//it.eng.core.business.subject.SubjectBean subject = new it.eng.core.business.subject.SubjectBean();
+		//subject.setIdDominio(dominio);
+		//it.eng.core.business.subject.SubjectUtil.subject.set(subject);
 		
 		/*
 		DmpkBmanagerIufoglioximport service = new DmpkBmanagerIufoglioximport();
@@ -479,6 +542,7 @@ public class FileIndiceManagerImpl extends Manager implements FileIndiceManager,
 			result.setSuccessful(false);
 		}
 		*/
+		
 	}
 
 	/**

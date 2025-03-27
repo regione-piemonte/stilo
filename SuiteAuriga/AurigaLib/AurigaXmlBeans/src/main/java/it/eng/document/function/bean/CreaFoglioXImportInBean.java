@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.io.Serializable;
 
@@ -12,13 +13,19 @@ public class CreaFoglioXImportInBean extends RebuildedFile implements Serializab
 	private static final long serialVersionUID = -7886575288881728315L;
 	
 	private String tipoContenuto;
-
+	private String uriFileExcel;
+	
 	public String getTipoContenuto() {
 		return tipoContenuto;
 	}
-
 	public void setTipoContenuto(String tipoContenuto) {
 		this.tipoContenuto = tipoContenuto;
+	}
+	public String getUriFileExcel() {
+		return uriFileExcel;
+	}
+	public void setUriFileExcel(String uriFileExcel) {
+		this.uriFileExcel = uriFileExcel;
 	}
 	
 }

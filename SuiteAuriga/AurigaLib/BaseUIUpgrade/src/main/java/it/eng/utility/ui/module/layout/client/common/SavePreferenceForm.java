@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common;
 
 import com.smartgwt.client.data.Criteria;
 import com.smartgwt.client.data.DSCallback;
@@ -114,14 +115,15 @@ public class SavePreferenceForm extends DynamicForm{
 	
 	public void setValue(String value) {
 		if(value != null && !"".equals(value)) {
-			if(value.startsWith("PUBLIC.")) {
-				if(value.contains("|*|")) {
-					value = value.substring(value.indexOf("|*|") + 3);
+			if(value.startsWith("PUBLIC") && value.contains("|*|")) {
+				String userid = value.substring(0, value.indexOf("|*|"));
+				if(userid.equals("PUBLIC") || userid.startsWith("PUBLIC.")) {
+					if(flgPubblicaItem != null) {
+						flgPubblicaItem.setValue(true);
+					}
 				}
-				if(flgPubblicaItem != null) {
-					flgPubblicaItem.setValue(true);
-				}
-			} 
+				value = value.substring(value.indexOf("|*|") + 3);
+			}
 		}	
 		final String prefName = value;
 		preferenceNameComboBoxItem.setValue(prefName);

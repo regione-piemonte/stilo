@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.filter;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -70,9 +71,9 @@ public class CASLoginFilterAVB implements Filter {
 		if (req.getRequestURI().contains("portlet.jsp")) {
 			Date lDate = (Date) session.getAttribute("cleaned");
 			if (lDate != null && (new Date().getTime() - lDate.getTime()) < 10000) {
-				mLogger.error("Sessione pulita da poco");
+				mLogger.debug("Sessione pulita da poco");
 			} else {
-				mLogger.error("Pulisco la session");
+				mLogger.debug("Pulisco la session");
 				try {
 					Enumeration<String> lEnumeration = session.getAttributeNames();
 					while (lEnumeration.hasMoreElements()) {
@@ -119,15 +120,15 @@ public class CASLoginFilterAVB implements Filter {
 				}
 				forward += lString + "=" + req.getParameter(lString);
 			}
-			mLogger.error("Chiamata a getRequestDispatcher");
+			mLogger.debug("Chiamata a getRequestDispatcher");
 			req.getRequestDispatcher(req.getRequestURI().substring(req.getContextPath().length()) + "?" + forward).forward(req, resp);
 			return;
 		}
 		
 		if (req.getRequestURI().contains("rest")) {
-			mLogger.error("Faccio la verifica della chiamata rest");
+			mLogger.debug("Faccio la verifica della chiamata rest");
 			if (usernameSSO == null) {
-				mLogger.error("usernameSSO è null");
+				mLogger.debug("usernameSSO è null");
 				pServletResponse.setContentType("text/html");
 				PrintWriter out = pServletResponse.getWriter();
 				out.print(IOUtils.toString(CASLoginFilterAVB.class.getResourceAsStream("sessionExpired.jsp")));
@@ -135,7 +136,7 @@ public class CASLoginFilterAVB implements Filter {
 			}
 
 			if ((usernameSSO != null && loginBean == null) || (usernameSSO != null && !utenteLoggedIsSame(usernameSSO, loginBean))) {
-				mLogger.error("Devo fare la login");
+				mLogger.debug("Devo fare la login");
 				SchemaSelector lSchemaSelector = (SchemaSelector) SpringAppContext.getContext().getBean("SchemaConfigurator");
 
 				Locale locale = new Locale("it", "IT");
@@ -148,7 +149,7 @@ public class CASLoginFilterAVB implements Filter {
 				String idApplicazione = applicationConfigBean.getIdApplicazione();
 
 				try {
-					mLogger.error("Chiamo la DmpkLoginLogin");
+					mLogger.debug("Chiamo la DmpkLoginLogin");
 					DmpkLoginLoginBean lLoginInput = new DmpkLoginLoginBean();
 					lLoginInput.setUsernamein(usernameSSO);
 					lLoginInput.setFlgnoctrlpasswordin(1);
@@ -193,7 +194,7 @@ public class CASLoginFilterAVB implements Filter {
 					spec.setParametriConfigOut(lLoginBean.getParametriconfigout());
 					spec.setTipoDominio(lLoginBean.getFlgtpdominioautio());
 					try {
-						mLogger.error("Chiamo la DmpkIntMgoEmailGetidutentemgoemail");
+						mLogger.debug("Chiamo la DmpkIntMgoEmailGetidutentemgoemail");
 						DmpkIntMgoEmailGetidutentemgoemail lDmpkIntMgoEmailGetidutentemgoemail = new DmpkIntMgoEmailGetidutentemgoemail();
 						DmpkIntMgoEmailGetidutentemgoemailBean lDmpkIntMgoEmailGetidutentemgoemailBean = new DmpkIntMgoEmailGetidutentemgoemailBean();
 						lDmpkIntMgoEmailGetidutentemgoemailBean.setIduserin(loginBean.getIdUser());
@@ -208,7 +209,7 @@ public class CASLoginFilterAVB implements Filter {
 					loginBean.setUseridForPrefs(usernameSSO);
 					
 					try {
-						mLogger.error("Setto parametri db");
+						mLogger.debug("Setto parametri db");
 						StringReader sr = new StringReader(loginBean.getSpecializzazioneBean().getParametriConfigOut());
 						Lista lista = (Lista) SingletonJAXBContext.getInstance().createUnmarshaller().unmarshal(sr);
 						ParametriDBBean parametriDBBean = new ParametriDBBean();
@@ -232,7 +233,7 @@ public class CASLoginFilterAVB implements Filter {
 					} catch (Exception e) {
 					}
 
-					mLogger.error("Setto loginBean");
+					mLogger.debug("Setto loginBean");
 					AurigaUserUtil.setLoginInfo(session, loginBean);
 
 					// salvo nella loginInfo in sessione i privilegi
@@ -248,7 +249,7 @@ public class CASLoginFilterAVB implements Filter {
 				}
 			}
 		}
-		mLogger.error("Termino il doFilter");
+		mLogger.debug("Termino il doFilter");
 		pFilterChain.doFilter(pServletRequest, pServletResponse);
 		return;
 

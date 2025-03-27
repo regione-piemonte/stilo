@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.module.business.dao;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,13 +73,11 @@ public class DaoTUserPreferences extends DaoGenericOperations<PreferenceBean>{
 //					   .add(Projections.property("idUo"), "idUo")
 //					   .add(Projections.property("flgVisibSottoUo"), "flgVisibSottoUo")
 //					   .add(Projections.property("flgGestSottoUo"), "flgGestSottoUo"))
-//					.setResultTransformer(Transformers.aliasToBean(TUserPreferences.class));
-			
+//					.setResultTransformer(Transformers.aliasToBean(TUserPreferences.class));			
 			for(Object obj : HibernateUtil.pagingByCriteria(criteria, filter.getStartRow(), filter.getEndRow())) {
 				PreferenceBean bean = (PreferenceBean) UtilPopulate.populate((TUserPreferences) obj, PreferenceBean.class, new TUserPreferencesToPreferenceBeanConverter());
 				paginglist.addData(bean);
-			}			
-				
+			}
 			return paginglist;
 		}catch(Exception e){
 			logger.error("Errore " + e.getMessage(), e);
@@ -106,12 +105,9 @@ public class DaoTUserPreferences extends DaoGenericOperations<PreferenceBean>{
 			ltransaction = session.beginTransaction();
 			if(bean != null) {					
 				TUserPreferencesId id = new TUserPreferencesId(bean.getUserid(), bean.getPrefKey(), bean.getPrefName());
-
 				if(session.get(TUserPreferences.class, id) != null) {
 					return bean;
 				}
-
-				//Creo la tupla di T_UTENTI
 				TUserPreferences preference = (TUserPreferences) UtilPopulate.populate(bean, TUserPreferences.class, new PreferenceBeanToTUserPreferencesConverter(session));			
 				session.save(preference);
 				bean = (PreferenceBean) UtilPopulate.populate(preference, PreferenceBean.class, new TUserPreferencesToPreferenceBeanConverter());
@@ -141,7 +137,11 @@ public class DaoTUserPreferences extends DaoGenericOperations<PreferenceBean>{
 		try {			
 			session = HibernateUtil.begin();
 			ltransaction = session.beginTransaction();
-			if(bean != null) {													
+			if(bean != null) {
+				TUserPreferencesId id = new TUserPreferencesId(bean.getUserid(), bean.getPrefKey(), bean.getPrefName());
+				if(session.get(TUserPreferences.class, id) == null) {
+					return save(bean);
+				}
 				TUserPreferences preference = (TUserPreferences) UtilPopulate.populateForUpdate(session, bean, TUserPreferences.class, new PreferenceBeanToTUserPreferencesConverter(session));
 				session.update(preference);	
 				bean = (PreferenceBean) UtilPopulate.populate(preference, PreferenceBean.class, new TUserPreferencesToPreferenceBeanConverter());
@@ -173,11 +173,9 @@ public class DaoTUserPreferences extends DaoGenericOperations<PreferenceBean>{
 			ltransaction = session.beginTransaction();
 			TUserPreferencesId id = new TUserPreferencesId(bean.getUserid(), bean.getPrefKey(), bean.getPrefName());
 			TUserPreferences preference = (TUserPreferences) session.get(TUserPreferences.class, id);
-
 			if(preference != null) {
 				session.delete(preference);
 			}
-
 			session.flush();
 			ltransaction.commit();
 		}catch(Exception e){
@@ -232,7 +230,6 @@ public class DaoTUserPreferences extends DaoGenericOperations<PreferenceBean>{
 				if(StringUtils.isNotBlank(bean.getPrefName())) {
 					criteria.add(Restrictions.eq("id.prefName", bean.getPrefName()));	
 				}
-
 				//TODO completare i filtri di ricerca, se necessario...
 			}
 			HibernateUtil.addOrderCriteria(criteria, filter.getOrders());			
@@ -244,15 +241,13 @@ public class DaoTUserPreferences extends DaoGenericOperations<PreferenceBean>{
 	throws Exception {
 		Session session = null;
 		try {
-			session = HibernateUtil.begin();			
-		
+			session = HibernateUtil.begin();					
 			TUserPreferencesId id = new TUserPreferencesId();
 			id.setPrefKey(bean.getPrefKey());
 			id.setPrefName(bean.getPrefName());
 			id.setUserid(bean.getUserid());
 			TUserPreferences preference = (TUserPreferences) session.get(TUserPreferences.class, id);
-			return (PreferenceBean) UtilPopulate.populate(preference, PreferenceBean.class, new TUserPreferencesToPreferenceBeanConverter());			
-				
+			return (PreferenceBean) UtilPopulate.populate(preference, PreferenceBean.class, new TUserPreferencesToPreferenceBeanConverter());							
 		}catch(Exception e){
 			logger.error("Errore " + e.getMessage(), e);
 			throw e;

@@ -1,8 +1,11 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.job.trasparenza.bean;
 
 public enum FruitoreEnum {
 	
-	ATTITRASP("ATTITRASP");
+	ATTITRASP("ATTITRASP"),
+	ASLVC_DD("ASLVC_DD"),
+	ASLVC_DG("ASLVC_DG");
 	
 	private final String description;
 	

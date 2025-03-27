@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.archivio;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +23,7 @@ import com.smartgwt.client.widgets.form.fields.SpacerItem;
 import com.smartgwt.client.widgets.layout.HStack;
 import com.smartgwt.client.widgets.layout.VLayout;
 
+import it.eng.auriga.ui.module.layout.client.AurigaLayout;
 import it.eng.auriga.ui.module.layout.client.ErroreMassivoPopup;
 import it.eng.auriga.ui.module.layout.client.FirmaUtility;
 import it.eng.auriga.ui.module.layout.client.FirmaUtility.FirmaMultiplaCallback;
@@ -64,7 +66,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 
 	private Record detailRecord;
 	private RecordList listaRecord;
-	private boolean apposizioneForzata;
+	private boolean flgApposizione;
 
 	/**
 	 * Questo costruttore viene chiamato nel momento in cui si cerca di eseguire
@@ -75,11 +77,8 @@ public class AzioneApposizionePopup extends ModalWindow {
 	 * @param record
 	 * @param finalCallback
 	 */
-	public AzioneApposizionePopup(Record record, Record detailRecord, TipologiaApposizione tipologiaApposizione,
-			boolean apposizioneForzata, String prefTipoFirma, ServiceCallback<Record> callbackParam) {
-
-		this(buildRecordListFromRecord(record), detailRecord, tipologiaApposizione, false, apposizioneForzata,
-				prefTipoFirma,callbackParam);
+	public AzioneApposizionePopup(Record record, Record detailRecord, TipologiaApposizione tipologiaApposizione, boolean flgApposizione, String prefTipoFirma, ServiceCallback<Record> callbackParam) {
+		this(buildRecordListFromRecord(record), detailRecord, tipologiaApposizione, false, flgApposizione, prefTipoFirma,callbackParam);
 	}
 
 	/**
@@ -92,9 +91,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 	 *            deve elaborare
 	 * @param finalCallback
 	 */
-	public AzioneApposizionePopup(final RecordList listaRecord, Record detailRecord,
-			TipologiaApposizione tipologiaApposizione, boolean daLista, boolean apposizioneForzata,
-			String prefTipoFirma, final ServiceCallback<Record> callbackParam) {
+	public AzioneApposizionePopup(final RecordList listaRecord, Record detailRecord, TipologiaApposizione tipologiaApposizione, boolean daLista, boolean flgApposizione, String prefTipoFirma, final ServiceCallback<Record> callbackParam) {
 
 		super("azioneApposizionePopup", true);
 
@@ -108,9 +105,9 @@ public class AzioneApposizionePopup extends ModalWindow {
 		// Necessario nel caso di firma di una singola ud da dettaglio
 		this.detailRecord = detailRecord;
 		this.listaRecord = listaRecord;
-		this.apposizioneForzata = apposizioneForzata;
+		this.flgApposizione = flgApposizione;
 
-		if (apposizioneForzata) {
+		if (flgApposizione) {
 			/*
 			 * Allora si è approvato e quindi si può procedere direttamente
 			 * senza richiedere la motivazione che non è obbligatoria
@@ -184,7 +181,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 	private void setFormConfig() {
 
 		if (tipologiaApposizione == TipologiaApposizione.VISTO) {
-			if (apposizioneForzata) {
+			if (flgApposizione) {
 				setTitle(I18NUtil.getMessages().apposizioneVisto_popup_title());
 				setIcon("ok.png");
 			} else {
@@ -192,7 +189,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 				setIcon("ko.png");
 			}
 		} else if (tipologiaApposizione == TipologiaApposizione.FIRMA) {
-			if (apposizioneForzata) {
+			if (flgApposizione) {
 				setTitle(I18NUtil.getMessages().apposizioneFirma_popup_title());
 				setIcon("file/mini_sign.png");
 			} else {
@@ -413,7 +410,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 					@Override
 					public void execute(Record response) {
 						if (response != null) {
-							openAzioneSuccessivaPopup(apposizioneForzata);
+							openAzioneSuccessivaPopup(flgApposizione);
 							// !appostoRifiutatoItem.getValueAsBoolean()
 						}
 					}
@@ -449,7 +446,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 		// }
 
 		// Controllo se si è selezionata l'apposizione o meno del visto/firma
-		if (!apposizioneForzata) {
+		if (!flgApposizione) {
 			/*
 			 * è stata selezionata la checkbox per rifiutare di apporre il visto
 			 * Inserisco nel record da mandare alla stored tale esito
@@ -469,7 +466,6 @@ public class AzioneApposizionePopup extends ModalWindow {
 			@Override
 			public void execute(DSResponse response, Object rawData, DSRequest request) {
 				if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
-
 					manageResponse(listaRecordUd, response);
 				}
 			}
@@ -513,7 +509,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 		// }
 
 		// Controllo se si è selezionata l'apposizione o meno del visto/firma
-		if (!apposizioneForzata) {
+		if (!flgApposizione) {
 			/*
 			 * è stata selezionata la checkbox per rifiutare di apporre il visto
 			 * Inserisco nel record da mandare alla stored tale esito
@@ -531,7 +527,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 		 * altrimenti si passa alla fase successiva
 		 */
 		// if(appostoAccettatoItem.getValueAsBoolean()){
-		if (apposizioneForzata) {
+		if (flgApposizione) {
 			/*
 			 * Se il parametro daLista vale true allora vuol dire che si è
 			 * arrivati a questo popup dalla lista (come azione massiva),
@@ -545,34 +541,23 @@ public class AzioneApposizionePopup extends ModalWindow {
 					@Override
 					public void execute(Record response) {
 
-						// Se ci sono elementi da considerare li seleziono per
-						// la successiva azione
+						// Se ci sono elementi da considerare li seleziono per la successiva azione
 						if (recordSelezionatiPerFirma != null && recordSelezionatiPerFirma.getLength() != 0) {
 
-							// La lista potrebbe essere stata aggiornata per via
-							// di eventuali errori, quindi la setto nuovamente
+							// La lista potrebbe essere stata aggiornata per via di eventuali errori, quindi la setto nuovamente
 							recordApposizioneDetails.setAttribute("listaRecord", recordSelezionatiPerFirma);
 
-							callFirmatoDocumento(recordApposizioneDetails, recordSelezionatiPerFirma,
-									new ServiceCallback<Record>() {
+							callFirmatoDocumento(recordApposizioneDetails, recordSelezionatiPerFirma, new ServiceCallback<Record>() {
 
-										@Override
-										public void execute(Record response) {
+								@Override
+								public void execute(Record response) {
 
-											// Se response è diverso da null
-											// vuol dire che qualcosa deve
-											// essere mandato alla scelta
-											// dell'azione successiva
-											if (response != null) {
-												openAzioneSuccessivaPopup(true); // true
-																					// perchè
-																					// si
-																					// è
-																					// eseguita
-																					// l'apposizione
-											}
-										}
-									});
+									// Se response è diverso da null vuol dire che qualcosa deve essere mandato alla scelta dell'azione successiva
+									if (response != null) {
+										openAzioneSuccessivaPopup(true); // true perchè si è eseguita l'apposizione
+									}
+								}
+							});
 						}
 					}
 				});
@@ -590,16 +575,9 @@ public class AzioneApposizionePopup extends ModalWindow {
 							public void execute(Record response) {
 
 								if (response != null) {
-									// Prelevo i record da mandare all'azione
-									// successiva
-									// RecordList
-									// recordToSendToAzioneSuccessivaPopup =
-									// response.getAttributeAsRecordList("listaRecordUd");
-									openAzioneSuccessivaPopup(true); // true
-																		// perchè
-																		// si è
-																		// eseguita
-																		// l'apposizione
+									// Prelevo i record da mandare all'azione successiva
+									// RecordList recordToSendToAzioneSuccessivaPopup = response.getAttributeAsRecordList("listaRecordUd");
+									openAzioneSuccessivaPopup(true); // true perchè si è eseguita l'apposizione
 								}
 							}
 						});
@@ -618,13 +596,9 @@ public class AzioneApposizionePopup extends ModalWindow {
 				public void execute(Record response) {
 
 					if (response != null) {
-
 						// Prelevo i record da mandare all'azione successiva
-						openAzioneSuccessivaPopup(false); // false perchè si è
-															// eseguito il
-															// rifiuto
+						openAzioneSuccessivaPopup(false); // false perchè si è eseguito il rifiuto
 					}
-
 				}
 			});
 		}
@@ -633,8 +607,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 
 	private void callFirmatoDocumento(Record record, final RecordList listaRecordUd,
 			final ServiceCallback<Record> callbackAfterFirmatoDocumento) {
-		final GWTRestDataSource lArchivioDatasource = new GWTRestDataSource("ArchivioDatasource", "idUdFolder",
-				FieldType.TEXT);
+		final GWTRestDataSource lArchivioDatasource = new GWTRestDataSource("ArchivioDatasource", "idUdFolder", FieldType.TEXT);
 		lArchivioDatasource.executecustom("firmatoDocumento", record, new DSCallback() {
 
 			@Override
@@ -665,22 +638,41 @@ public class AzioneApposizionePopup extends ModalWindow {
 		});
 	}
 
-	private void openAzioneSuccessivaPopup(boolean apposizioneStatus) {
-
+	private void openAzioneSuccessivaPopup(boolean flgApposizione) {
 		// Apro il popup che permette di scegliere l'azione successiva
-		AzioneSuccessivaPopup popup = new AzioneSuccessivaPopup(recordSelezionatiPerFirma, apposizioneStatus,
-				tipologiaApposizione, new ServiceCallback<Record>() {
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_ITER_FIRME_BOZZE")) {
+			// Se ATTIVA_ITER_FIRME_BOZZE devo mostrare le azioni successive solamente se sono in apposizione, in caso di rifiuto non mostro nulla ed eseguo la callback
+			if (flgApposizione) {
+				AzioneSuccessivaIterFirmaBozzePopup popup = new AzioneSuccessivaIterFirmaBozzePopup(recordSelezionatiPerFirma, flgApposizione, tipologiaApposizione, new ServiceCallback<Record>() {
+	
+							@Override
+							public void execute(Record object) {
+								// Torno al chiamante che aggiorna la lista
+								if (finalCallback != null) {
+									finalCallback.execute(new Record());
+								}
+							}
+						});
+				popup.show();
+			} else {
+				// Eseguo la callback
+				if (finalCallback != null) {
+					finalCallback.execute(new Record());
+				}
+			}
+		}else {
+			AzioneSuccessivaPopup popup = new AzioneSuccessivaPopup(recordSelezionatiPerFirma, flgApposizione, tipologiaApposizione, new ServiceCallback<Record>() {
 
-					@Override
-					public void execute(Record object) {
-
-						// Torno al chiamante che aggiorna la lista
-						if (finalCallback != null) {
-							finalCallback.execute(new Record());
+						@Override
+						public void execute(Record object) {
+							// Torno al chiamante che aggiorna la lista
+							if (finalCallback != null) {
+								finalCallback.execute(new Record());
+							}
 						}
-					}
-				});
-		popup.show();
+					});
+			popup.show();
+		}
 	}
 
 	/**
@@ -708,8 +700,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 	 * @return
 	 */
 	private String getMotivazioneText() {
-		if (motivazioneItem != null && motivazioneItem.getValueAsString() != null
-				&& !"".equals(motivazioneItem.getValueAsString())) {
+		if (motivazioneItem != null && motivazioneItem.getValueAsString() != null && !"".equals(motivazioneItem.getValueAsString())) {
 			return motivazioneItem.getValueAsString();
 		} else {
 			return "";
@@ -741,8 +732,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 		 * Eseguo la chiamata a questo datasource per ottenere la lista dei file
 		 * che devono essere firmati
 		 */
-		final GWTRestDataSource lArchivioDatasource = new GWTRestDataSource("ArchivioDatasource", "idUdFolder",
-				FieldType.TEXT);
+		final GWTRestDataSource lArchivioDatasource = new GWTRestDataSource("ArchivioDatasource", "idUdFolder", FieldType.TEXT);
 		lArchivioDatasource.addParam("prefTipoFirma", prefTipoFirma);
 		lArchivioDatasource.performCustomOperation("getListaPerFirmaMassivaConAllegati", lRecordSelezionati,
 				new DSCallback() {
@@ -751,8 +741,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 					public void execute(DSResponse response, Object rawData, DSRequest request) {
 						if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
 							// Sono stati ritornati i file che devono essere firmati
-							if(response.getData()[0].getAttributeAsRecordList("files") != null &&
-									!response.getData()[0].getAttributeAsRecordList("files").isEmpty()) {
+							if(response.getData()[0].getAttributeAsRecordList("files") != null && !response.getData()[0].getAttributeAsRecordList("files").isEmpty()) {
 								firmaFileMassiva(response.getData()[0], callbackManageFirma);
 							}
 						}
@@ -772,7 +761,6 @@ public class AzioneApposizionePopup extends ModalWindow {
 
 			@Override
 			public void execute(Map<String, Record> files, Record[] filesAndUd) {
-
 				manageFirmaMassivaCallBack(files, filesAndUd, callbackManageFirma);
 			}
 		});
@@ -945,15 +933,13 @@ public class AzioneApposizionePopup extends ModalWindow {
 
 		if (detailRecord != null) {
 
-			final GWTRestDataSource lArchivioDatasource = new GWTRestDataSource("ArchivioDatasource", "idUdFolder",
-					FieldType.TEXT);
+			final GWTRestDataSource lArchivioDatasource = new GWTRestDataSource("ArchivioDatasource", "idUdFolder", FieldType.TEXT);
 			lArchivioDatasource.performCustomOperation("getListaPerFirmaSingolaConAllegati", detailRecord,
 					new DSCallback() {
 
 						@Override
 						public void execute(DSResponse response, Object rawData, DSRequest request) {
 							if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
-
 								clickFirmaSingolaFile(response.getData()[0], callbackManageFirma);
 							}
 						}
@@ -970,7 +956,6 @@ public class AzioneApposizionePopup extends ModalWindow {
 
 				@Override
 				public void execute(Map<String, Record> files, Record[] filesAndUd) {
-
 					manageFirmaCallBack(files, filesAndUd, callbackManageFirma);
 				}
 			});
@@ -1018,8 +1003,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 						// Layout.addMessage(new MessageBean("Alcuni file del
 						// documento non sono stati firmati correttamente", "",
 						// MessageType.WARNING));
-						SC.ask("Alcuni file del documento non sono stati firmati correttamente. Continuare comunque con l'azione successiva?",
-								new BooleanCallback() {
+						SC.ask("Alcuni file del documento non sono stati firmati correttamente. Continuare comunque con l'azione successiva?", new BooleanCallback() {
 
 									@Override
 									public void execute(Boolean value) {
@@ -1038,21 +1022,6 @@ public class AzioneApposizionePopup extends ModalWindow {
 				}
 			}
 		}, new DSRequest());
-	}
-
-	public void manageAzioneSuccessivaFirmaSingola(final ServiceCallback<Record> callbackManageFirma) {
-		// AzioneSuccessivaPopup popup = new AzioneSuccessivaPopup(detailRecord,
-		// !appostoRifiutatoItem.getValueAsBoolean(), tipologiaApposizione, new
-		// ServiceCallback<Record>() {
-		AzioneSuccessivaPopup popup = new AzioneSuccessivaPopup(detailRecord, apposizioneForzata, tipologiaApposizione,
-				new ServiceCallback<Record>() {
-
-					@Override
-					public void execute(Record response) {
-						callbackManageFirma.execute(response);
-					}
-				});
-		popup.show();
 	}
 
 	private void manageClickOnConfirmButton() {
@@ -1107,8 +1076,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 			// Per ogni errore che è stato generato
 			for (Map.Entry<String, String> itemMessageError : mapErrorMessages.entrySet()) {
 
-				if (recordSelezionatiPerFirma.get(indexRecordList).getAttribute("idUdFolder")
-						.contains(itemMessageError.getKey())) {
+				if (recordSelezionatiPerFirma.get(indexRecordList).getAttribute("idUdFolder").contains(itemMessageError.getKey())) {
 					// Se il record selezionato è andato in errore
 					segnatura = recordSelezionatiPerFirma.get(indexRecordList).getAttribute("segnatura");
 					value = itemMessageError.getValue();
@@ -1153,8 +1121,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 	 * @param mapErrorMessages
 	 * @param listaErrori
 	 */
-	private void manageError(String nomeAzione, final ServiceCallback<Record> callbackAfterManageError, final RecordList listaRecordUd,
-			Map<String, String> mapErrorMessages) {
+	private void manageError(String nomeAzione, final ServiceCallback<Record> callbackAfterManageError, final RecordList listaRecordUd, Map<String, String> mapErrorMessages) {
 
 		// Controllo lo stato degli errori
 		final RecordList listaErrori = getListaErrori(mapErrorMessages);
@@ -1191,8 +1158,7 @@ public class AzioneApposizionePopup extends ModalWindow {
 			/*
 			 * Visualizzo la tabella contenente gli errori rilevati
 			 */
-			ErroreMassivoPopup erroreMassivo = new ErroreMassivoPopup(nomeAzione, "Estremi documento", listaErrori,
-					listaErrori.getLength(), 600, 300, new ServiceCallback<Record>() {
+			ErroreMassivoPopup erroreMassivo = new ErroreMassivoPopup(nomeAzione, "Estremi documento", listaErrori, listaErrori.getLength(), 600, 300, new ServiceCallback<Record>() {
 
 						@Override
 						public void execute(Record response) {

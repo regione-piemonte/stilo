@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.modelliDoc;
 
 import java.util.LinkedHashMap;
 
@@ -18,6 +19,8 @@ import com.smartgwt.client.widgets.form.fields.FormItem;
 import com.smartgwt.client.widgets.form.fields.HiddenItem;
 import com.smartgwt.client.widgets.form.fields.events.ChangedEvent;
 import com.smartgwt.client.widgets.form.fields.events.ChangedHandler;
+import com.smartgwt.client.widgets.form.validator.RequiredIfFunction;
+import com.smartgwt.client.widgets.form.validator.RequiredIfValidator;
 import com.smartgwt.client.widgets.layout.VLayout;
 
 import it.eng.auriga.ui.module.layout.client.protocollazione.AllegatiItem;
@@ -145,6 +148,9 @@ public class ModelliDocDetail extends CustomDetail {
 
 			@Override
 			public void onChanged(ChangedEvent event) {
+				vm.setValue("idEntitaAssociata", "");
+				vm.setValue("nomeEntitaAssociata", "");
+				tipoDocumentoItem.clearValue();
 				datiModelloForm.markForRedraw();
 			}
 		});
@@ -193,6 +199,7 @@ public class ModelliDocDetail extends CustomDetail {
 		tipoDocumentoItem.setDisplayField("descTipoDocumento");
 		tipoDocumentoItem.setOptionDataSource(tipoDocumentoDS);
 		tipoDocumentoItem.setClearable(true);
+		tipoDocumentoItem.setAttribute("obbligatorio", true);
 		tipoDocumentoItem.setShowIfCondition(new FormItemIfFunction() {
 
 			@Override
@@ -200,6 +207,15 @@ public class ModelliDocDetail extends CustomDetail {
 				return vm.getValueAsString("tipoEntitaAssociata") != null && "TD".equals(vm.getValueAsString("tipoEntitaAssociata"));
 			}
 		});
+		
+		tipoDocumentoItem.setValidators(new RequiredIfValidator(new RequiredIfFunction() {
+
+			@Override
+			public boolean execute(FormItem formItem, Object value) {
+				String tipoEntitaAssociata = vm.getValueAsString("tipoEntitaAssociata");
+				return (tipoEntitaAssociata != null) && "TD".equalsIgnoreCase(tipoEntitaAssociata);
+			}
+		}));
 		
 		GWTRestDataSource tipoFolderDS = new GWTRestDataSource("LoadComboTipoFolderDataSource", "idFolderType", FieldType.TEXT);
 		
@@ -242,6 +258,7 @@ public class ModelliDocDetail extends CustomDetail {
 		tipoFolderItem.setDisplayField("descFolderType");
 		tipoFolderItem.setOptionDataSource(tipoFolderDS);
 		tipoFolderItem.setClearable(true);
+		tipoFolderItem.setAttribute("obbligatorio", true);
 		tipoFolderItem.setShowIfCondition(new FormItemIfFunction() {
 
 			@Override
@@ -249,6 +266,15 @@ public class ModelliDocDetail extends CustomDetail {
 				return vm.getValueAsString("tipoEntitaAssociata") != null && "TF".equals(vm.getValueAsString("tipoEntitaAssociata"));
 			}
 		});
+		
+		tipoFolderItem.setValidators(new RequiredIfValidator(new RequiredIfFunction() {
+
+			@Override
+			public boolean execute(FormItem formItem, Object value) {
+				String tipoEntitaAssociata = vm.getValueAsString("tipoEntitaAssociata");
+				return (tipoEntitaAssociata != null) && "TF".equalsIgnoreCase(tipoEntitaAssociata);
+			}
+		}));
 		
 		GWTRestDataSource tipoProcedimentoDS = new GWTRestDataSource("LoadComboTipiProcDataSource", "key", FieldType.TEXT);
 		
@@ -510,7 +536,7 @@ public class ModelliDocDetail extends CustomDetail {
 					String tipoModello = lRecordToSave.getAttribute("tipoModello");
 					RecordList listaModelli = lRecordToSave.getAttributeAsRecordList("listaModelli");
 					Record recordFileModello = listaModelli != null && listaModelli.getLength() > 0 ? listaModelli.get(0) : null;
-					// Forzo isChanged a true per fare in moido che la profilatura venga ricalcolata ad ogni salvataggio
+					// Forzo isChanged a true per fare in modo che la profilatura venga ricalcolata ad ogni salvataggio
 					recordFileModello.setAttribute("isChanged", true);
 					boolean isChangedFileModello = recordFileModello != null && recordFileModello.getAttributeAsBoolean("isChanged") != null ? recordFileModello.getAttributeAsBoolean("isChanged") : false;
 					// Se sono in modifica di un odt_con_freemarkers e ho cambiato il file del modello mostro l'alert
@@ -573,6 +599,20 @@ public class ModelliDocDetail extends CustomDetail {
 		} catch (Exception e) {
 			Layout.hideWaitPopup();					
 		}
+	}
+	
+	@Override
+	public Record getRecordToSave() {
+		Record recordToSave = super.getRecordToSave();
+		// Setto l'attributo nomeTabella
+		if (recordToSave.getAttribute("tipoEntitaAssociata") != null && "TD".equalsIgnoreCase(recordToSave.getAttribute("tipoEntitaAssociata"))) {
+			recordToSave.setAttribute("nomeTabella", "DMT_DOCUMENTS");
+		} else if (recordToSave.getAttribute("tipoEntitaAssociata") != null && "TF".equalsIgnoreCase(recordToSave.getAttribute("tipoEntitaAssociata"))) {
+			recordToSave.setAttribute("nomeTabella", "DMT_FOLDER");
+		} else if (recordToSave.getAttribute("tipoEntitaAssociata") == null || "".equalsIgnoreCase(recordToSave.getAttribute("tipoEntitaAssociata"))) {
+			recordToSave.setAttribute("nomeTabella", "");
+		}
+		return recordToSave;
 	}
 
 }

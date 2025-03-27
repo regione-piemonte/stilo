@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.HashSet;
 
@@ -284,6 +285,16 @@ public class AllegatoDetail extends CustomDetail {
 			@Override
 			public String getTitleFlgParteDispositivo() {
 				return gridItem.getTitleFlgParteDispositivo().toLowerCase();
+			}
+			
+			@Override
+			public boolean isAllegatiProtocollazioneDetailBozze() {
+				return gridItem.isAllegatiProtocollazioneDetailBozze();
+			}
+			
+			@Override
+			public boolean getFlgAllegAttoNoPubblDefault() {
+				return gridItem.getFlgAllegAttoNoPubblDefault();
 			}
 			
 			@Override

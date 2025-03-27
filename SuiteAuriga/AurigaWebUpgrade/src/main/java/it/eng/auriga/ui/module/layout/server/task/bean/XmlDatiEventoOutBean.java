@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.task.bean;
 
 import java.util.Date;
 import java.util.List;
@@ -523,6 +524,8 @@ public class XmlDatiEventoOutBean {
 	private String docActionsFirmaAutomaticaFirmaInDelega;
 	@XmlVariabile(nome = "#DocActions.FirmaAutomatica.Password", tipo = TipoVariabile.SEMPLICE)
 	private String docActionsFirmaAutomaticaPassword;
+	@XmlVariabile(nome = "#DocActions.FirmaAutomatica.authPIN", tipo = TipoVariabile.SEMPLICE)
+	private String docActionsFirmaAutomaticaAuthPIN;
 	@XmlVariabile(nome = "@InfoFirmaGrafica", tipo = TipoVariabile.LISTA)
 	private List<InfoFirmaGraficaBean> infoFirmaGrafica;
 	@XmlVariabile(nome = "#IdModelloDocFirmeGrafiche", tipo = TipoVariabile.SEMPLICE)
@@ -2028,6 +2031,12 @@ public class XmlDatiEventoOutBean {
 	}
 	public void setDocActionsFirmaAutomaticaPassword(String docActionsFirmaAutomaticaPassword) {
 		this.docActionsFirmaAutomaticaPassword = docActionsFirmaAutomaticaPassword;
+	}
+	public String getDocActionsFirmaAutomaticaAuthPIN() {
+		return docActionsFirmaAutomaticaAuthPIN;
+	}
+	public void setDocActionsFirmaAutomaticaAuthPIN(String docActionsFirmaAutomaticaAuthPIN) {
+		this.docActionsFirmaAutomaticaAuthPIN = docActionsFirmaAutomaticaAuthPIN;
 	}
 	public List<InfoFirmaGraficaBean> getInfoFirmaGrafica() {
 		return infoFirmaGrafica;

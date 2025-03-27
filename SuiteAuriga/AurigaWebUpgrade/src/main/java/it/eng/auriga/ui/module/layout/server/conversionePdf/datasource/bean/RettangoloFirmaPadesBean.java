@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+/**
  * Bean che contiene tutti i dati necessari per poter creare correttamente una firma posizionata all'interno di un file PDF
  */
 package it.eng.auriga.ui.module.layout.server.conversionePdf.datasource.bean;

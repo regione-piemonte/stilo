@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.database.store.dmpk_core.store.impl;
 
 import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreFirmadocumentoBean;
 import it.eng.storeutil.HibernateStoreUtil;
@@ -15,8 +16,6 @@ import it.eng.core.business.subject.SubjectUtil;
 
 import org.springframework.beans.BeanWrapperImpl;
 import it.eng.utility.springBeanWrapper.BeanPropertyUtility;
-
-
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -38,7 +37,7 @@ public class FirmadocumentoImpl  {
 	    CallableStatement call = null;			
 		try{
 			//Creo il Callbackstatement
-			call = connection.prepareCall("{? = call DMPK_CORE.FIRMADOCUMENTO(?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");			
+			call = connection.prepareCall("{? = call DMPK_CORE.FIRMADOCUMENTO(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");			
 			SubjectBean subject =  SubjectUtil.subject.get();
 			if (StringUtils.isNotEmpty(subject.getUuidtransaction())){
 				HibernateUtil.addStatement(subject.getUuidtransaction(), call);
@@ -50,8 +49,11 @@ public class FirmadocumentoImpl  {
 			call.registerOutParameter(11, Types.VARCHAR);
 			call.registerOutParameter(12, Types.DECIMAL);
 			call.registerOutParameter(13, Types.VARCHAR);
-			call.registerOutParameter(14, Types.INTEGER);
-			call.registerOutParameter(15, Types.VARCHAR);
+			call.registerOutParameter(14, Types.DECIMAL);
+			call.registerOutParameter(15, Types.DECIMAL);
+			call.registerOutParameter(16, Types.VARCHAR);
+			call.registerOutParameter(17, Types.INTEGER);
+			call.registerOutParameter(18, Types.VARCHAR);
 			
 			HibernateStoreUtil util = new HibernateStoreUtil();
 			
@@ -75,11 +77,14 @@ public class FirmadocumentoImpl  {
 			util.settinParameterOnBean(call,bean,wrapperBean,"parametro_1",1,Types.INTEGER); 
 			util.settinParameterOnBean(call,bean,wrapperBean,"tipomittintudout",9,Types.VARCHAR); 
 			util.settinParameterOnBean(call,bean,wrapperBean,"idmittudout",10,Types.DECIMAL); 
-			util.settinParameterOnBean(call,bean,wrapperBean,"tipomittultimoinvioudout",11,Types.VARCHAR); 
-			util.settinParameterOnBean(call,bean,wrapperBean,"idmittultimoinvioudout",12,Types.DECIMAL); 
-			util.settinParameterOnBean(call,bean,wrapperBean,"errcontextout",13,Types.VARCHAR); 
-			util.settinParameterOnBean(call,bean,wrapperBean,"errcodeout",14,Types.INTEGER); 
-			util.settinParameterOnBean(call,bean,wrapperBean,"errmsgout",15,Types.VARCHAR); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"tiposoggoriginebozzaout",11,Types.VARCHAR); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"idsoggoriginebozzaout",12,Types.DECIMAL); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"tipomittultimoinvioudout",13,Types.VARCHAR); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"idmittultimoinvioudout",14,Types.DECIMAL); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"flgdestcontrasmmailout",15,Types.DECIMAL); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"errcontextout",16,Types.VARCHAR); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"errcodeout",17,Types.INTEGER); 
+			util.settinParameterOnBean(call,bean,wrapperBean,"errmsgout",18,Types.VARCHAR); 
 						
 		}catch(Exception e){
 			if (e instanceof SQLException){

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.getdatiinviimailud;
 
 
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsGetdatiinviimailudBean;
@@ -9,6 +10,7 @@ import it.eng.auriga.module.business.beans.SpecializzazioneBean;
 import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
 import it.eng.document.function.RecuperoFile;
+import it.eng.document.function.StoreException;
 import it.eng.document.function.bean.FileExtractedOut;
 import it.eng.jaxb.context.SingletonJAXBContext;
 import it.eng.jaxb.variabili.Lista;
@@ -25,6 +27,8 @@ import javax.jws.HandlerChain;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -74,6 +78,7 @@ public class WSGetDatiInviiMailUD extends JAXWSAbstractAurigaService implements 
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
     	
     String risposta = null;
@@ -81,6 +86,7 @@ public class WSGetDatiInviiMailUD extends JAXWSAbstractAurigaService implements 
     WSGetDatiInviiMailUDBean outServizio = new WSGetDatiInviiMailUDBean();
     String errMsg = null;
     String xmlIn = null;
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
     
     try {
     	
@@ -117,7 +123,12 @@ public class WSGetDatiInviiMailUD extends JAXWSAbstractAurigaService implements 
  			 // Chiamo il servizio di AurigaDocument
  			 outServizio =  eseguiServizio(loginBean,outWS); 	 		
 	 		}
-	 	catch (Exception e){	 
+	 	catch (Exception e){	
+	 		if (e instanceof StoreException) {
+	    		if(((StoreException) e).getError()!=null){
+	    			errCode = ((StoreException) e).getError().getErrorCode();
+	    		}
+	    	}
 	 		if(e.getMessage()!=null)
 	 			 errMsg = "Errore = " + e.getMessage();
 	 		 else
@@ -149,8 +160,8 @@ public class WSGetDatiInviiMailUD extends JAXWSAbstractAurigaService implements 
 	  		  
 	 		  // Aggiungo l'XML
 	  		  lListInputStreams.add(inputStreamXml);                                
-	  		  
-	  		  // Aggiungo i FILE ATTACH	  		  	
+
+	 		  // Aggiungo i FILE ATTACH	  		  	
 	 		  if(outServizio!=null && outServizio.getExtractedFileList() != null && outServizio.getExtractedFileList().size()> 0 ){	 			  
 	 			List<File> extractedFileList = new ArrayList<File>(); 	 	
 	 			extractedFileList = outServizio.getExtractedFileList();
@@ -162,9 +173,9 @@ public class WSGetDatiInviiMailUD extends JAXWSAbstractAurigaService implements 
 	 			     // Aggiungo il FILE
 			  		 lListInputStreams.add(inputStreamFile);
 	 			}	 	 			
-	 			// Salvo gli ATTACH alla response
-		  		attachListInputStream(lListInputStreams);	 			 	 			 	 			 										  		 
 	 		  }
+	 		  // Salvo la lista (XML+ATTACH) alla response
+		  	  attachListInputStream(lListInputStreams);
 	  	    }
 	 		catch (Exception e){
 	 			if(e.getMessage()!=null)
@@ -206,7 +217,7 @@ public class WSGetDatiInviiMailUD extends JAXWSAbstractAurigaService implements 
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 	 	 }
 	 	 else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	 }
 	 			        	
 	     aLogger.info("Fine WSGetDatiInviiMailUD");
@@ -228,7 +239,7 @@ public class WSGetDatiInviiMailUD extends JAXWSAbstractAurigaService implements 
     }
     
     private WSGetDatiInviiMailUDBean eseguiServizio(AurigaLoginBean loginBean, WSGetDatiInviiMailUDBean bean) throws Exception {
-    	aLogger.debug("Eseguo il servizio di AurigaDocument.");
+    	aLogger.debug("Eseguo il servizio RecuperoFile->extractFileByUri.");
     	
     	List<File> extractedFileList = new ArrayList<File>(); 
     	     	
@@ -273,50 +284,48 @@ public class WSGetDatiInviiMailUD extends JAXWSAbstractAurigaService implements 
     }
     
     private WSGetDatiInviiMailUDBean callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-    	    	
-    	aLogger.debug("Eseguo il WS DmpkWSGetDatiInviiMailUD.");
+    	aLogger.debug("Eseguo il WS DMPK_WS->GetDatiInviiMailUD.");
     	    	
     	String listaAttach = null;
     	String xml            = null;    	
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsGetdatiinviimailudBean input = new DmpkWsGetdatiinviimailudBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		  
-    		  // Eseguo il servizio
-    		  Getdatiinviimailud service = new Getdatiinviimailud();
-    		  StoreResultBean<DmpkWsGetdatiinviimailudBean> output = service.execute(loginBean, input);
+    	    		
+    	// Inizializzo l'INPUT    		
+    	DmpkWsGetdatiinviimailudBean input = new DmpkWsGetdatiinviimailudBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+	  
+    	// Eseguo il servizio
+    	Getdatiinviimailud service = new Getdatiinviimailud();
+    	StoreResultBean<DmpkWsGetdatiinviimailudBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
+    	if (output.isInError()){
+    		aLogger.debug(output.getDefaultMessage());
+    		aLogger.debug(output.getErrorContext());
+    		aLogger.debug(output.getErrorCode());
+    		throw new StoreException(output);
+    	}	
 
-    		  // restituisco l'XML
-    		  if(output.getResultBean().getXmlout()!=null){
-    			  xml = output.getResultBean().getXmlout();  
-    		  }
-    		
-    		  // restituisco la lista con i nro versioni
-    	      if (output.getResultBean().getListaattachout() != null){
-    	    	  listaAttach = output.getResultBean().getListaattachout().toString();
-    	      }
-      	      
-      	      // popolo il bean di out
-    		  WSGetDatiInviiMailUDBean result = new WSGetDatiInviiMailUDBean();
-    		  result.setXml(xml);
-    		  
-    		  // leggo la lista dei documenti 
-    		  List<DatiInviiMailUDBean> listDatiInviiMailUDBean = new ArrayList<DatiInviiMailUDBean>();    		  
-    		  listDatiInviiMailUDBean =  getListDoc(listaAttach);
-    		  
-    		  result.setDocumentlist(listDatiInviiMailUDBean);
-    			  
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+    	// restituisco l'XML
+    	if(output.getResultBean().getXmlout()!=null){
+		  xml = output.getResultBean().getXmlout();  
+    	}
+	
+    	// restituisco la lista con i nro versioni
+    	if (output.getResultBean().getListaattachout() != null){
+    	  listaAttach = output.getResultBean().getListaattachout().toString();
+    	}
+      
+    	// popolo il bean di out
+    	WSGetDatiInviiMailUDBean result = new WSGetDatiInviiMailUDBean();
+    	result.setXml(xml);
+	  
+    	// leggo la lista dei documenti 
+    	List<DatiInviiMailUDBean> listDatiInviiMailUDBean = new ArrayList<DatiInviiMailUDBean>();    		  
+    	listDatiInviiMailUDBean =  getListDoc(listaAttach);
+	  
+    	result.setDocumentlist(listDatiInviiMailUDBean);
+		  
+    	return result;
     }
     
     
@@ -336,7 +345,7 @@ public class WSGetDatiInviiMailUD extends JAXWSAbstractAurigaService implements 
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             xml.append(xmlInEsc);
             aLogger.debug(xml.toString());

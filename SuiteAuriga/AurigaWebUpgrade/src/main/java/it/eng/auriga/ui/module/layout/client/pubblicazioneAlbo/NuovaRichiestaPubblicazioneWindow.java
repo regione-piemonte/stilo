@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pubblicazioneAlbo;
 
 import java.util.Map;
 
@@ -28,7 +29,7 @@ public class NuovaRichiestaPubblicazioneWindow extends ModalWindow {
 
 	protected NuovaRichiestaPubblicazioneWindow _window;
 
-	private PubblicazioneAlboConsultazioneRichiesteDetail detail;
+	public PubblicazioneAlboConsultazioneRichiesteDetail detail;
 
 	protected ToolStrip detailToolStrip;
 	protected DetailToolStripButton editButton;
@@ -38,13 +39,18 @@ public class NuovaRichiestaPubblicazioneWindow extends ModalWindow {
 	protected DetailToolStripButton newButton;
 	protected String mode;
 	protected Boolean isRettifica;
+	protected Boolean isModificaPubblicazione;
 	protected PubblicazioneAlboRicercaPubblicazioniLayout lPubblicazioneAlboRicercaPubblicazioniLayout;
 
 	public NuovaRichiestaPubblicazioneWindow() {
-		this(null, null);
+		this(null, null, null);
 	}
 	
 	public NuovaRichiestaPubblicazioneWindow(Map initialValues, CustomLayout layout) {
+		this(initialValues, layout, null);
+	}
+	
+	public NuovaRichiestaPubblicazioneWindow(Map initialValues, CustomLayout layout, final ServiceCallback<Record> reloadCallback) {
 	
 		super("pubblicazione_albo_nuova_richiesta", true);
 
@@ -57,8 +63,13 @@ public class NuovaRichiestaPubblicazioneWindow extends ModalWindow {
 		isRettifica = initialValues != null && initialValues.get("isRettifica") != null && 
 				(Boolean) initialValues.get("isRettifica") ? true : false;
 		
+		isModificaPubblicazione = initialValues != null && initialValues.get("isModificaPubblicazione") != null && 
+				(Boolean) initialValues.get("isModificaPubblicazione") ? true : false;
+		
 		if(isRettifica) {
 			setTitle("Rettifica pubblicazione");
+		} else if (isModificaPubblicazione) {
+			setTitle("Modifica pubblicazione");
 		} else {
 			setTitle(I18NUtil.getMessages().pubblicazione_albo_consultazione_richieste_detail_new_title());
 		}
@@ -90,7 +101,7 @@ public class NuovaRichiestaPubblicazioneWindow extends ModalWindow {
 			
 			@Override
 			public void onClick(ClickEvent event) { 
-				onSaveButtonClick();				
+				onSaveButtonClick(reloadCallback);				
 			}   
 		}); 		
 
@@ -159,7 +170,10 @@ public class NuovaRichiestaPubblicazioneWindow extends ModalWindow {
 		setHeight(670);
 		setWidth(1060);
 		
-        setIcon("menu/pubblicazione_albo_nuova_richiesta.png");   
+        setIcon("menu/pubblicazione_albo_nuova_richiesta.png");  
+        
+        afterLoadDetail();
+        
         show();
 	}
 	
@@ -178,16 +192,16 @@ public class NuovaRichiestaPubblicazioneWindow extends ModalWindow {
 		editMode();		
 	}	
 	
-	public void onSaveButtonClick() {
+	public void onSaveButtonClick(final ServiceCallback<Record> reloadCallback) {
 		final Record record = detail.getRecordToSave();
 		if(detail.validate()) {
-			realSave(record);
+			realSave(record, reloadCallback);
 		} else {
 			Layout.addMessage(new MessageBean(I18NUtil.getMessages().validateError_message(), "", MessageType.ERROR));
 		}
 	}
 	
-	protected void realSave(final Record record) {
+	protected void realSave(final Record record, final ServiceCallback<Record> reloadCallback) {
 		Layout.showWaitPopup("Salvataggio in corso: potrebbe richiedere qualche secondo. Attendere...");
 		DSCallback callback = new DSCallback() {					
 			
@@ -216,10 +230,24 @@ public class NuovaRichiestaPubblicazioneWindow extends ModalWindow {
 									if(lPubblicazioneAlboRicercaPubblicazioniLayout != null) {
 										lPubblicazioneAlboRicercaPubblicazioniLayout.reloadList();
 									}
+								} else if (isModificaPubblicazione){
+									Layout.addMessage(new MessageBean("Modifica avvenuta con successo", "", MessageType.INFO));
+									if(getIsModal()) {
+										markForDestroy();
+									} else {
+										Layout.removePortlet(getNomeEntita());
+									}	
+									if(lPubblicazioneAlboRicercaPubblicazioniLayout != null) {
+										lPubblicazioneAlboRicercaPubblicazioniLayout.reloadList();
+									}
 								} else {
 									Layout.addMessage(new MessageBean(I18NUtil.getMessages().afterSave_message(getTipoEstremiRecord(object)), "", MessageType.INFO));	
 								}
-								
+								if(reloadCallback != null) {
+									reloadCallback.execute(object);
+									//Chiudo la finestra
+									_window.markForDestroy();
+								}
 							}
 						});
 											
@@ -283,10 +311,12 @@ public class NuovaRichiestaPubblicazioneWindow extends ModalWindow {
 	public void newMode() {
 		if(isRettifica) {
 			setTitle("Rettifica pubblicazione");
+		} else if (isModificaPubblicazione) {
+			setTitle(getTitlePubblToEdit());
 		} else {
 			setTitle(I18NUtil.getMessages().pubblicazione_albo_consultazione_richieste_detail_new_title());
 		}
-		setTitle(I18NUtil.getMessages().pubblicazione_albo_consultazione_richieste_detail_new_title());
+//		setTitle(I18NUtil.getMessages().pubblicazione_albo_consultazione_richieste_detail_new_title());
 		this.mode = "new";
 		detail.setCanEdit(true);		
 		detail.newMode();
@@ -307,7 +337,10 @@ public class NuovaRichiestaPubblicazioneWindow extends ModalWindow {
 		saveButton.hide();
 		reloadDetailButton.hide();
 		undoButton.hide();		
-		if(record.getAttributeAsBoolean("abilModificabile") && isAbilToMod()) {
+//		if(record.getAttributeAsBoolean("abilModificabile") && isAbilToMod()) {
+//			editButton.show();
+//		} else {
+		if(record.getAttributeAsBoolean("abilModifica") && isAbilToMod()) {
 			editButton.show();
 		} else {
 			editButton.hide();
@@ -337,5 +370,14 @@ public class NuovaRichiestaPubblicazioneWindow extends ModalWindow {
 		} else {
 			Layout.removePortlet(getNomeEntita());
 		}	
+	}
+	
+	public void afterLoadDetail() {
+		
+	}
+	
+	protected String getTitlePubblToEdit() {
+		Record record = new Record(detail.getValuesManager().getValues());
+		return I18NUtil.getMessages().pubblicazione_albo_ricerca_pubblicazioni_detail_edit_title(getTipoEstremiRecord(record), DateUtil.format(record.getAttributeAsDate("dataInizioPubblicazione")));
 	}
 }

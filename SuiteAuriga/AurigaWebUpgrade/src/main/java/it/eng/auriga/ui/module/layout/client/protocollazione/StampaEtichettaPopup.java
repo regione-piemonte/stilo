@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -158,7 +159,8 @@ public class StampaEtichettaPopup extends ModalWindow {
 			
 		} else {
 
-			if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO")) {
+			if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") &&
+			   (AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg") == null || "a".equalsIgnoreCase(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg")))) {
 				setTitle("Timbra" + " " + getEstremiRecord(detailRecord));
 			} else {		
 				setTitle(I18NUtil.getMessages().protocollazione_detail_stampaEtichettaButton_prompt() + " " + getEstremiRecord(detailRecord));

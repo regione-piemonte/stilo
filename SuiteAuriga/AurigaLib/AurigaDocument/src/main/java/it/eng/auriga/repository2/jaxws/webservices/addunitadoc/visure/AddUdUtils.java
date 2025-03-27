@@ -1,12 +1,12 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.addunitadoc.visure;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -16,17 +16,13 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
-import org.jsoup.Jsoup;
-import org.jsoup.parser.Parser;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -39,17 +35,17 @@ import it.eng.auriga.database.store.dmpk_login.bean.DmpkLoginLoginconcredenziali
 import it.eng.auriga.database.store.dmpk_login.store.Loginconcredenzialiesterne;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
-import it.eng.auriga.repository2.jaxws.webservices.addunitadoc.AttachWSBean;
 import it.eng.auriga.repository2.jaxws.webservices.util.XPathHelper;
 import it.eng.dm.engine.manage.EngineManager;
 import it.eng.dm.engine.manage.bean.ActivitiProcess;
+import it.eng.document.function.bean.AttachWSBean;
 import it.eng.document.storage.DocumentStorage;
 import it.eng.jaxb.context.SingletonJAXBContext;
 import it.eng.jaxb.variabili.Lista;
 import it.eng.jaxb.variabili.Lista.Riga;
 import it.eng.jaxb.variabili.Lista.Riga.Colonna;
 import it.eng.services.fileop.InfoFileUtility;
-import it.eng.utility.storageutil.exception.StorageException;
+import it.eng.utility.ui.servlet.bean.Firmatari;
 import it.eng.utility.ui.servlet.bean.MimeTypeFirmaBean;
 
 public class AddUdUtils {
@@ -325,6 +321,66 @@ public class AddUdUtils {
 		return xmlPulito;
 	}
 	
+	public static String getTagTipoProvenienza(String xml) throws Exception {
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder builder = factory.newDocumentBuilder();
+		InputSource is = new InputSource(new StringReader(xml));
+		Document document = builder.parse(is);
+		String valore = "I";
+
+		NodeList nodeList = document.getElementsByTagName("TipoProvenienza");
+		for (int i = 0; i < nodeList.getLength(); i++) {
+			// Get element
+			Element element = (Element) nodeList.item(i);
+			Node child = element.getFirstChild();
+			valore = child.getTextContent();
+		}
+		return valore;
+	}
+
+	public static String getTagTipoDocDecodificaNome(String xml) throws Exception {
+try {
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder builder = factory.newDocumentBuilder();
+		InputSource is = new InputSource(new StringReader(xml));
+		Document document = builder.parse(is);
+
+		NodeList nodeList = document.getElementsByTagName("TipoDoc");
+		// Get element
+		Element element = (Element) nodeList.item(0);
+		NodeList nodeListChildren = element.getChildNodes();
+		for (int i = 0; i < nodeListChildren.getLength(); i++) {
+			Node child = nodeListChildren.item(i);
+			if ("Decodifica_Nome".equals(child.getNodeName())) {
+				return child.getTextContent();
+			}
+		}
+}catch(Exception e) {}
+		return null;
+	}
+
+	// NewUD/TipoDoc/CodId NewUD/TipoDoc/Decodifica_Nome
+	public static String getTagTipoDocCodId(String xml) throws Exception {
+try {
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder builder = factory.newDocumentBuilder();
+		InputSource is = new InputSource(new StringReader(xml));
+		Document document = builder.parse(is);
+
+		NodeList nodeList = document.getElementsByTagName("TipoDoc");
+		// Get element
+		Element element = (Element) nodeList.item(0);
+		NodeList nodeListChildren = element.getChildNodes();
+		for (int i = 0; i < nodeListChildren.getLength(); i++) {
+			Node child = nodeListChildren.item(i);
+			if ("CodId".equals(child.getNodeName())) {
+				return child.getTextContent();
+			}
+		}
+	}catch(Exception e) {}
+		return null;
+	}
+
 	public static AttachWSBean buildAttachWSBean(File fileAttach, String xml, int indiceFile, boolean flgImpresaInUnGiorno, AurigaLoginBean pAurigaLoginBean)
 			throws Exception {
 		AttachWSBean attachWSBean = new AttachWSBean();
@@ -334,17 +390,19 @@ public class AddUdUtils {
 		try {
 			if(flgImpresaInUnGiorno) {
 				nomeFile = fileAttach.getName();
+				
+				//-- 3: Nro di attachment con cui il file appare nella request secondo schema NEWUD.xsd
 				attachWSBean.setNumeroAttach(String.valueOf(1));
 			}else {
 				nomeFile = getNomeFile(xml, indiceFile+1);
+				//-- 3: Nro di attachment con cui il file appare nella request secondo schema NEWUD.xsd
 				attachWSBean.setNumeroAttach(String.valueOf(indiceFile+1));
 			}
 			
-			String uriFile = DocumentStorage.storeInput(FileUtils.openInputStream(fileAttach), 
-					pAurigaLoginBean.getSpecializzazioneBean().getIdDominio(), null);
+			String uriFile = DocumentStorage.storeInput(FileUtils.openInputStream(fileAttach), pAurigaLoginBean.getSpecializzazioneBean().getIdDominio(), null);
 
 			InfoFileUtility lFileUtility = new InfoFileUtility();
-//			MimeTypeFirmaBean lMimeTypeFirmaBean = lFileUtility.getInfoFromFile(/*fileAttachTemp*/fileAttach.toURI().toString(), nomeFile, false, null);
+
 			MimeTypeFirmaBean lMimeTypeFirmaBean = lFileUtility.getInfoFromFileNoOut(/*fileAttachTemp*/fileAttach.toURI().toString(), nomeFile, false, null, false);
 			
 			if (lMimeTypeFirmaBean.getFirmatari() != null) {
@@ -352,30 +410,116 @@ public class AddUdUtils {
 				for (String firmatarioInstance : lMimeTypeFirmaBean.getFirmatari()) {
 					firmatari = firmatari + firmatarioInstance + ";";
 				}
+				
+				//-- 12: Firmatari
 				attachWSBean.setFirmatari(firmatari);
+				
+				//-- 10: Flg file firmato (valori 1/0)
 				attachWSBean.setFlgFirmato("1");
+				
 			} else {
+				
+				//-- 10: Flg file firmato (valori 1/0)
 				attachWSBean.setFlgFirmato("0");
 			}
+			
+			//-- 13: Indicazione del tipo di firma (CAdES o PAdES)
 			attachWSBean.setTipoFirma(lMimeTypeFirmaBean.getTipoFirma());
+			
+			//-- 14: Info di verifica della firma
 			attachWSBean.setInfoVerificaFirma(lMimeTypeFirmaBean.getInfoFirma());								
 			
 			if(lMimeTypeFirmaBean.getInfoFirmaMarca()!=null) {
+				//-- 17: Informazioni di verifica della marca temporale se presente
 				attachWSBean.setInfoVerificaMarca(lMimeTypeFirmaBean.getInfoFirmaMarca().getInfoMarcaTemporale());
+				
+				//-- 15: Data e ora delle marca se presente marca temporale valida (nel formato DD/MM/RRR HH24:MI:SS)
 				attachWSBean.setDataOraMarca(lMimeTypeFirmaBean.getInfoFirmaMarca().getDataOraMarcaTemporale());
+				
+				//-- 16: Tipo di marca temporale se presente
 				attachWSBean.setTipoMarca(lMimeTypeFirmaBean.getInfoFirmaMarca().getTipoMarcaTemporale());
 			}
 
-//			attachWSBean.setDisplayFilename(lMimeTypeFirmaBean.getCorrectFileName());
-			attachWSBean.setDimensione(new BigDecimal(fileAttach.length()));
+			
+			//-- 1: DisplayName del file 
 			attachWSBean.setDisplayFilename(nomeFile);
-			attachWSBean.setMimetype(lMimeTypeFirmaBean.getMimetype());
-			attachWSBean.setImpronta(lMimeTypeFirmaBean.getImpronta());
-			attachWSBean.setAlgoritmo(lMimeTypeFirmaBean.getAlgoritmo());
-			attachWSBean.setEncodingImpronta(lMimeTypeFirmaBean.getEncoding());
+			
+			//-- 2: URI del file salvato su archivio definitivo in notazione storageUtil		
 			attachWSBean.setUri(uriFile);					
 			
-			attachWSBean.setFile(/*fileAttachTemp*/fileAttach);
+			
+			//-- 6: dimensione
+			attachWSBean.setDimensione(new BigDecimal(fileAttach.length()));
+			
+			//-- 7: impronta
+			attachWSBean.setImpronta(lMimeTypeFirmaBean.getImpronta());
+			
+			//-- 8: algoritmo calcolo impronta
+			attachWSBean.setAlgoritmo(lMimeTypeFirmaBean.getAlgoritmo());
+			
+			//-- 9: encoding di calcolo impronta: colonna
+			attachWSBean.setEncodingImpronta(lMimeTypeFirmaBean.getEncoding());
+			
+			//-- 11: Mimetype
+			attachWSBean.setMimetype(lMimeTypeFirmaBean.getMimetype());
+			
+			// Puntamento al file
+			attachWSBean.setFile(fileAttach);
+			
+			
+			// Prendo i firmatari
+			String listDataOraEmissioneCertificatoFirma = "";
+			String listDataOraScadenzaCertificatoFirma = "";	
+			String listTipoFirmaQA = "";
+			String listCfFirmatario = "";
+			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+			if (lMimeTypeFirmaBean.getBuste() != null) { 
+				for (Firmatari bustaFileFirmato : lMimeTypeFirmaBean.getBuste()) {
+					
+					if (bustaFileFirmato!=null && bustaFileFirmato.getDataFirma() != null){
+						
+						// Leggo la data emissione certificato firmatario
+						if (bustaFileFirmato.getDataEmissione()!=null){
+							String dataEmissione = sdf.format(bustaFileFirmato.getDataEmissione());
+							listDataOraEmissioneCertificatoFirma = listDataOraEmissioneCertificatoFirma + dataEmissione + ";";
+						}
+						
+						// Leggo la data scadenza certificato firmatario
+						if (bustaFileFirmato.getDataScadenza()!=null){
+							String dataScadenza = sdf.format(bustaFileFirmato.getDataScadenza());
+							listDataOraScadenzaCertificatoFirma = listDataOraScadenzaCertificatoFirma + dataScadenza + ";";
+						}
+						
+						// Leggo il tipo di firma
+						if (bustaFileFirmato.getTipoFirmaQA()!=null){
+							String tipoFirmaQA = bustaFileFirmato.getTipoFirmaQA();
+							listTipoFirmaQA = listTipoFirmaQA + tipoFirmaQA + ";";
+						}
+						
+						// Leggo il cf del firmatario
+						if (bustaFileFirmato.getCfFirmatario()!=null){
+							String cfFirmatario = bustaFileFirmato.getCfFirmatario();
+							listCfFirmatario = listCfFirmatario + cfFirmatario + ";";
+						}
+					}
+				}
+			}
+			
+			//-- 25: Data emissione certificato firmatario (se piu' di uno separati da ";")
+			attachWSBean.setDataOraEmissioneCertificatoFirma(listDataOraEmissioneCertificatoFirma);
+			
+			//-- 26: Data scadenza certificato firmatario (se piu' di uno separati da ";")
+			attachWSBean.setDataOraScadenzaCertificatoFirma(listDataOraScadenzaCertificatoFirma);
+			
+			//-- 27: Indica se firma Qualifica (=Q) o Avanzata (=A) (se piu' di uno separati da ";")
+			attachWSBean.setTipoFirmaQA(listTipoFirmaQA);
+			
+			//-- 28: Cod. fiscali dei firmatari (se piu' di uno separati da ";")
+			attachWSBean.setCfFirmatario(listCfFirmatario);
+			
+			//-- 29: Impornta file pre firma
+			attachWSBean.setImprontaPreFirmaDaFileOp(lMimeTypeFirmaBean.getImprontaPreFirmaFileOp());
+			
 			
 			return attachWSBean;
 		} catch (Exception e) {
@@ -415,7 +559,7 @@ public class AddUdUtils {
 		if(attachWSBean!=null) {
 			boolean isInError = false;
 			
-			String errorMessage = "Per il file: " + nomeFile + " c'� stato un errore di calcolo o non sono"
+			String errorMessage = "Per il file: " + nomeFile + " c'è stato un errore di calcolo o non sono"
 					+ "presenti i seguenti attributi: ";
 			
 			if(StringUtils.isBlank(attachWSBean.getUri())) {
@@ -468,10 +612,6 @@ public class AddUdUtils {
 			}
 		}
 		
-		throw new Exception("Errore nel calcolo delle infomazioni per il file: " + fileAttach.getName());
-		
-	}
-
-	
-	
+		throw new Exception("Errore nel calcolo delle infomazioni per il file: " + fileAttach.getName());		
+	}	
 }

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -533,8 +534,10 @@ public class AllegatiItem extends ReplicableItem implements IDatiSensibiliItem {
 				if("solo_allegati_parte_integrante".equalsIgnoreCase(rifiutoAllegatiConFirmeNonValide) && flgParteDispositivo) {
 					flgParteDispositivo = false;
 					getFileForm(lAllegatoCanvas).setValue("flgParteDispositivo", false);		
-					flgNoPubblAllegato = true;
-					getFileForm(lAllegatoCanvas).setValue("flgNoPubblAllegato", true);
+					if(isShowFlgNoPubblAllegato()) {
+						flgNoPubblAllegato = true;
+						getFileForm(lAllegatoCanvas).setValue("flgNoPubblAllegato", true);
+					}
 //					flgPubblicaSeparato = false;
 					getFileForm(lAllegatoCanvas).setValue("flgPubblicaSeparato", false);
 					if(showFileOmissis) {
@@ -590,6 +593,7 @@ public class AllegatiItem extends ReplicableItem implements IDatiSensibiliItem {
 		if(dimMaxAllegatoXPubblInMB > 0 && info != null && info.getBytes() > (dimMaxAllegatoXPubblInMB * MEGABYTE)) {						
 			if(flgParteDispositivo) {
 				if(isShowFlgNoPubblAllegato()) {
+					flgNoPubblAllegato = true;
 					getFileForm(lAllegatoCanvas).setValue("flgNoPubblAllegato", true);		
 				}
 				if(isFromAllegatoDetailInGridItem()) {
@@ -1170,6 +1174,14 @@ public class AllegatiItem extends ReplicableItem implements IDatiSensibiliItem {
 		return I18NUtil.getMessages().protocollazione_flg_parte_dispositivo();
 	}
 	
+	public boolean isAllegatiProtocollazioneDetailBozze() {
+		return false;
+	}
+	
+	public boolean getFlgAllegAttoNoPubblDefault() {
+		return AurigaLayout.getParametroDBAsBoolean("FLG_ALLEG_ATTO_ESCLUDI_PUBBL_DEFAULT");
+	}
+	
 	public String getTitleFlgNoPubblAllegato() {
 		return I18NUtil.getMessages().protocollazione_flg_no_pubbl();
 	}
@@ -1451,9 +1463,11 @@ public class AllegatiItem extends ReplicableItem implements IDatiSensibiliItem {
 	}
 	
 	public boolean showOperazioniTimbraturaAllegato(Record allegatoRecord) {
-		Record detailRecord = getDetailRecord();
-		if(detailRecord != null && detailRecord.getAttribute("codCategoriaProtocollo")!= null && ("PP".equals(detailRecord.getAttribute("codCategoriaProtocollo")) || "PG".equals(detailRecord.getAttribute("codCategoriaProtocollo")) || "R".equals(detailRecord.getAttribute("codCategoriaProtocollo")))) {		
-			return true;
+		if(AurigaLayout.showOperazioniTimbratura()) {
+			Record detailRecord = getDetailRecord();
+			if(detailRecord != null && detailRecord.getAttribute("codCategoriaProtocollo")!= null && ("PP".equals(detailRecord.getAttribute("codCategoriaProtocollo")) || "PG".equals(detailRecord.getAttribute("codCategoriaProtocollo")) || "R".equals(detailRecord.getAttribute("codCategoriaProtocollo")))) {		
+				return true;
+			}
 		}
 		return false;
 	}

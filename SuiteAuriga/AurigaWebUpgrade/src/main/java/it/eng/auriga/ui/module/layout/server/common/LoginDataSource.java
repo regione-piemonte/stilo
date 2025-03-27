@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.common;
 
 import java.io.StringReader;
 import java.math.BigDecimal;
@@ -20,6 +21,7 @@ import it.eng.auriga.database.store.dmpk_int_mgo_email.bean.DmpkIntMgoEmailGetid
 import it.eng.auriga.database.store.dmpk_login.bean.DmpkLoginGetusernamemailBean;
 import it.eng.auriga.database.store.dmpk_login.bean.DmpkLoginLoginBean;
 import it.eng.auriga.database.store.dmpk_login.bean.DmpkLoginLoginapplicazioneBean;
+import it.eng.auriga.database.store.dmpk_login.bean.DmpkLoginLogindaportletBean;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
 import it.eng.auriga.exception.StoreException;
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
@@ -29,6 +31,7 @@ import it.eng.client.DmpkIntMgoEmailGetidutentemgoemail;
 import it.eng.client.DmpkLoginGetusernamemail;
 import it.eng.client.DmpkLoginLogin;
 import it.eng.client.DmpkLoginLoginapplicazione;
+import it.eng.client.DmpkLoginLogindaportlet;
 import it.eng.gdpr.ClientDataHttpSupport;
 import it.eng.gdpr.ParametriClientExtractor;
 import it.eng.jaxb.context.SingletonJAXBContext;
@@ -64,14 +67,95 @@ public class LoginDataSource extends AbstractServiceDataSource<AurigaLoginBean, 
 		loginInfo.setLinguaApplicazione(getLocale().getLanguage());
 		loginInfo.setSpecLabelGui("");
 
-		String userid = bean.getUserid() != null && !"".equals(bean.getUserid()) ? bean.getUserid() : getRequest().getRemoteUser();
-		userid = userid != null ? userid.toUpperCase().replaceAll(" ", "") : null;
+		String username = bean.getUserid() != null && !"".equals(bean.getUserid()) ? bean.getUserid() : getRequest().getRemoteUser();
+		username = username != null ? username.toUpperCase().replaceAll(" ", "") : null;
 
 		try {
-			// se arrivo da un applicazione esterna
-			boolean fromExtAppl = userid != null && userid.startsWith("USERID_APPL#");
-			if (fromExtAppl) {
-				String useridappl = userid.substring(12);
+			
+			// se arrivo da una applicazione esterna tramite portlet
+			
+			if (username != null && username.contains("#COD_APPL#") && username.contains("#COD_APPL_IST#")) {
+				
+				String userid = username.substring(0, username.indexOf("#COD_APPL#"));
+				String codApplicazione = username.substring(username.indexOf("#COD_APPL#") + 10, username.indexOf("#COD_APPL_IST#"));
+				String codIstanzaAppl = username.substring(username.indexOf("#COD_APPL_IST#") + 14);
+				
+				DmpkLoginLogindaportletBean input = new DmpkLoginLogindaportletBean();
+				input.setCodapplicazionein(codApplicazione);
+				input.setCodistanzaapplin(codIstanzaAppl);
+				input.setUseridin(userid);
+				input.setFlgnoctrlpasswordin(1);
+
+				DmpkLoginLogindaportlet loginDaPortlet = new DmpkLoginLogindaportlet();
+				StoreResultBean<DmpkLoginLogindaportletBean> output = loginDaPortlet.execute(getLocale(), bean, input);
+
+				DmpkLoginLogindaportletBean lLoginBean = output.getResultBean();
+				if (islogLoginTryEnabled()) {
+					logLoginTry(bean, "PORTLET_AURIGAWEB", userid, output.isInError(), lLoginBean.getFlgtpdominioout(), lLoginBean.getIddominioout(),
+							lLoginBean.getCodidconnectiontokenout());
+				}
+
+				if (output.isInError()) {
+					AurigaLoginBean lAurigaLoginBean = new AurigaLoginBean();
+					// Inserisco la lingua di default
+					// lAurigaLoginBean.setLinguaApplicazione(SharedConstants.DEFAUL_LANGUAGE);
+					lAurigaLoginBean.setLinguaApplicazione(getLocale().getLanguage());
+					lAurigaLoginBean.setLoginReject(output.getDefaultMessage());
+					// addMessage(output.getDefaultMessage(), output.getDefaultMessage(), MessageType.ERROR);
+					return lAurigaLoginBean;
+				}
+				
+				ApplicationConfigBean applicationConfigBean = (ApplicationConfigBean) SpringAppContext.getContext().getBean("ApplicationConfigurator");
+				String idApplicazione = applicationConfigBean.getIdApplicazione();
+				loginInfo.setIdApplicazione(idApplicazione); // qui andrebbe messo l'id corrispondente all'applicazione esterna
+				loginInfo.setPassword(null);
+				loginInfo.setUserid(lLoginBean.getUsernameout());
+				String desUser = lLoginBean.getDesuserout();
+				String codFisUser = null;
+				if(StringUtils.isNotBlank(desUser) && desUser.contains(";CF:")) {
+					int pos = desUser.indexOf(";CF:");					
+					codFisUser = desUser.substring(pos + 4);		
+					desUser = desUser.substring(0, pos);
+				}
+				String denominazione = StringUtils.isNotBlank(desUser) ? desUser : userid;
+				if (StringUtils.isNotBlank(lLoginBean.getDesdominioout())) {
+					denominazione += "@" + lLoginBean.getDesdominioout();
+				}
+				loginInfo.setDenominazione(denominazione);
+				loginInfo.setToken(lLoginBean.getCodidconnectiontokenout());
+				loginInfo.setIdUserLavoro(null);
+				loginInfo.setSchema(bean.getSchema());
+				String dominio = (lLoginBean.getFlgtpdominioout() != null) ? "" + lLoginBean.getFlgtpdominioout() : "";
+				if (lLoginBean.getIddominioout() != null) {
+					dominio += ":" + lLoginBean.getIddominioout();
+				}
+				loginInfo.setDominio(dominio);
+				loginInfo.setIdUser(lLoginBean.getIduserout());
+				SpecializzazioneBean spec = new SpecializzazioneBean();
+				spec.setCodIdConnectionToken(lLoginBean.getCodidconnectiontokenout());
+				spec.setDesDominioOut(lLoginBean.getDesdominioout());
+				spec.setDesUserOut(desUser);
+				spec.setCodFiscaleUserOut(codFisUser);
+				spec.setIdDominio(lLoginBean.getIddominioout());
+				spec.setParametriConfigOut(lLoginBean.getParametriconfigout());
+				spec.setTipoDominio(lLoginBean.getFlgtpdominioout());
+				try {
+					DmpkIntMgoEmailGetidutentemgoemail lDmpkIntMgoEmailGetidutentemgoemail = new DmpkIntMgoEmailGetidutentemgoemail();
+					DmpkIntMgoEmailGetidutentemgoemailBean lDmpkIntMgoEmailGetidutentemgoemailBean = new DmpkIntMgoEmailGetidutentemgoemailBean();
+					lDmpkIntMgoEmailGetidutentemgoemailBean.setIduserin(loginInfo.getIdUser());
+					SchemaBean lSchemaBean = new SchemaBean();
+					lSchemaBean.setSchema(loginInfo.getSchema());
+					lDmpkIntMgoEmailGetidutentemgoemailBean = lDmpkIntMgoEmailGetidutentemgoemail
+							.execute(getLocale(), lSchemaBean, lDmpkIntMgoEmailGetidutentemgoemailBean).getResultBean();
+					spec.setIdUtenteModPec(lDmpkIntMgoEmailGetidutentemgoemailBean.getIdutentepecout());
+				} catch (Exception e) {
+				}
+				loginInfo.setSpecializzazioneBean(spec);
+				loginInfo.setUseridForPrefs(lLoginBean.getUsernameout());
+				
+			} else if (username != null && username.startsWith("USERID_APPL#")) {
+				
+				String useridappl = username.substring(12);
 
 				DmpkLoginLoginapplicazioneBean input = new DmpkLoginLoginapplicazioneBean();
 				input.setUseridapplicazionein(useridappl);
@@ -108,7 +192,7 @@ public class LoginDataSource extends AbstractServiceDataSource<AurigaLoginBean, 
 					codFisUser = desUser.substring(pos + 4);		
 					desUser = desUser.substring(0, pos);
 				}
-				String denominazione = StringUtils.isNotBlank(desUser) ? desUser : userid;
+				String denominazione = StringUtils.isNotBlank(desUser) ? desUser : username;
 				if (StringUtils.isNotBlank(lLoginBean.getDesdominioout())) {
 					denominazione += "@" + lLoginBean.getDesdominioout();
 				}
@@ -142,14 +226,14 @@ public class LoginDataSource extends AbstractServiceDataSource<AurigaLoginBean, 
 				} catch (Exception e) {
 				}
 				loginInfo.setSpecializzazioneBean(spec);
-				loginInfo.setUseridForPrefs(userid);
+				loginInfo.setUseridForPrefs(username);
 
 			} else {
 
 				ApplicationConfigBean applicationConfigBean = (ApplicationConfigBean) SpringAppContext.getContext().getBean("ApplicationConfigurator");
 				String idApplicazione = applicationConfigBean.getIdApplicazione();
 				DmpkLoginLoginBean input = new DmpkLoginLoginBean();
-				input.setUsernamein(userid);
+				input.setUsernamein(username);
 				if(StringUtils.isNotBlank(applicationConfigBean.getCodApplicazioneInLoginDB())) {
 					// per il contesto delle ordinanze di Milano in CodApplicazioneEstIn devo passare #ORDINANZE per fare in modo che mi torni il parametro DB GESTIONE_ATTI_COMPLETA forzato a true
 					input.setCodapplicazioneestin(applicationConfigBean.getCodApplicazioneInLoginDB());
@@ -169,7 +253,7 @@ public class LoginDataSource extends AbstractServiceDataSource<AurigaLoginBean, 
 
 				DmpkLoginLoginBean lLoginBean = output.getResultBean();
 				if (islogLoginTryEnabled()) {
-					logLoginTry(bean, null, userid, output.isInError(), lLoginBean.getFlgtpdominioautio(), lLoginBean.getIddominioautio(),
+					logLoginTry(bean, null, username, output.isInError(), lLoginBean.getFlgtpdominioautio(), lLoginBean.getIddominioautio(),
 							lLoginBean.getCodidconnectiontokenout());
 				}
 
@@ -188,7 +272,7 @@ public class LoginDataSource extends AbstractServiceDataSource<AurigaLoginBean, 
 
 				loginInfo.setIdApplicazione(idApplicazione);
 				loginInfo.setPassword(bean.getPassword());
-				loginInfo.setUserid(userid);
+				loginInfo.setUserid(username);
 				String desUser = lLoginBean.getDesuserout();
 				String codFisUser = null;
 				if(StringUtils.isNotBlank(desUser) && desUser.contains(";CF:")) {
@@ -196,7 +280,7 @@ public class LoginDataSource extends AbstractServiceDataSource<AurigaLoginBean, 
 					codFisUser = desUser.substring(pos + 4);		
 					desUser = desUser.substring(0, pos);
 				}						
-				String denominazione = StringUtils.isNotBlank(desUser) ? desUser : userid;
+				String denominazione = StringUtils.isNotBlank(desUser) ? desUser : username;
 				if (StringUtils.isNotBlank(lLoginBean.getDesdominioout())) {
 					denominazione += "@" + lLoginBean.getDesdominioout();
 				}
@@ -227,25 +311,29 @@ public class LoginDataSource extends AbstractServiceDataSource<AurigaLoginBean, 
 				} catch (Exception e) {
 				}
 				loginInfo.setSpecializzazioneBean(spec);
-				loginInfo.setUseridForPrefs(userid);
+				loginInfo.setUseridForPrefs(username);
 				// loginInfo.setLinguaApplicazione("en");
 
 			}
 
-			StringReader sr = new StringReader(loginInfo.getSpecializzazioneBean().getParametriConfigOut());
-			Lista lista = (Lista) SingletonJAXBContext.getInstance().createUnmarshaller().unmarshal(sr);
 			ParametriDBBean result = new ParametriDBBean();
 			HashMap<String, String> parametriDB = new HashMap<String, String>();
-			if (lista != null) {
-				for (int i = 0; i < lista.getRiga().size(); i++) {
-					Vector<String> v = new XmlUtility().getValoriRiga(lista.getRiga().get(i));
-					if (v.get(0).equalsIgnoreCase("CF_UTENTE_LOGIN")) {
-						loginInfo.setCodFiscale(v.get(1));
-					} else {
-						parametriDB.put(v.get(0), v.get(1));
+			
+			if(loginInfo.getSpecializzazioneBean() != null && loginInfo.getSpecializzazioneBean().getParametriConfigOut() != null) {
+				StringReader sr = new StringReader(loginInfo.getSpecializzazioneBean().getParametriConfigOut());
+				Lista lista = (Lista) SingletonJAXBContext.getInstance().createUnmarshaller().unmarshal(sr);
+				if (lista != null) {
+					for (int i = 0; i < lista.getRiga().size(); i++) {
+						Vector<String> v = new XmlUtility().getValoriRiga(lista.getRiga().get(i));
+						if (v.get(0).equalsIgnoreCase("CF_UTENTE_LOGIN")) {
+							loginInfo.setCodFiscale(v.get(1));
+						} else {
+							parametriDB.put(v.get(0), v.get(1));
+						}
 					}
 				}
 			}
+			
 			Authentication auth = (Authentication) SpringAppContext.getContext().getBean("authentication");
 			if (auth != null && auth.getAuthType() != null) {
 				parametriDB.put("AUTHENTICATION_TYPE", auth.getAuthType().getValue());

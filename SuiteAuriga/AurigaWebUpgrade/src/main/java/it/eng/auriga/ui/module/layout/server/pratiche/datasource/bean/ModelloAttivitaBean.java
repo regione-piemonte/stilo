@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.pratiche.datasource.bean;
 
 import it.eng.document.NumeroColonna;
 
@@ -70,6 +71,10 @@ public class ModelloAttivitaBean {
 	private String nroColonnaFirmaGrafica; 
 	@NumeroColonna(numero = "33") // Testo da mettere nella firma grafica. Da gestire i placeholder $intestatarioCertificato$ e $dataCorrente$
 	private String testoFirmaGrafica;
+	@NumeroColonna(numero = "34")
+	private String pinFirmaAuto;
+	@NumeroColonna(numero = "35")
+	private String idDocAllegatoDaFirmare;  // idDoc del documento che deve essere firmato e versionato SENZA rigenerare da modello
 	
 	public String getActivityName() {
 		return activityName;
@@ -268,6 +273,32 @@ public class ModelloAttivitaBean {
 	}
 	public void setTestoFirmaGrafica(String testoFirmaGrafica) {
 		this.testoFirmaGrafica = testoFirmaGrafica;
+	}
+	public String getPinFirmaAuto() {
+		return pinFirmaAuto;
+	}
+	public void setPinFirmaAuto(String pinFirmaAuto) {
+		this.pinFirmaAuto = pinFirmaAuto;
+	}	
+	public String getIdDocAllegatoDaFirmare() {
+		return idDocAllegatoDaFirmare;
+	}
+	public void setIdDocAllegatoDaFirmare(String idDocAllegatoDaFirmare) {
+		this.idDocAllegatoDaFirmare = idDocAllegatoDaFirmare;
+	}
+	@Override
+	public String toString() {
+		return "ModelloAttivitaBean [activityName=" + activityName + ", esitiXGenModello=" + esitiXGenModello + ", idTipoDoc=" + idTipoDoc + ", nomeTipoDoc="
+				+ nomeTipoDoc + ", descrizione=" + descrizione + ", nomeFile=" + nomeFile + ", formato=" + formato + ", flgDaFirmare=" + flgDaFirmare
+				+ ", flgLocked=" + flgLocked + ", uri=" + uri + ", tipoModello=" + tipoModello + ", flgParteDispositivo=" + flgParteDispositivo + ", idModello="
+				+ idModello + ", nomeModello=" + nomeModello + ", flgSkipAnteprima=" + flgSkipAnteprima + ", flgParere=" + flgParere + ", flgNoPubbl="
+				+ flgNoPubbl + ", flgPubblicaSeparato=" + flgPubblicaSeparato + ", flgFirmaAuto=" + flgFirmaAuto + ", userIdFirmaAuto=" + userIdFirmaAuto
+				+ ", passwordFirmaAuto=" + passwordFirmaAuto + ", flgDelegaFirmaAuto=" + flgDelegaFirmaAuto + ", firmaInDelegaFirmaAuto="
+				+ firmaInDelegaFirmaAuto + ", providerFirmaAuto=" + providerFirmaAuto + ", flgPostAvanzamentoFlusso=" + flgPostAvanzamentoFlusso
+				+ ", categoriaNumDaDare=" + categoriaNumDaDare + ", siglaNumDaDare=" + siglaNumDaDare + ", flgCreaNuovoDoc=" + flgCreaNuovoDoc
+				+ ", flgFirmaGrafica=" + flgFirmaGrafica + ", nroPaginaFirmaGrafica=" + nroPaginaFirmaGrafica + ", nroRigaFirmaGrafica=" + nroRigaFirmaGrafica
+				+ ", nroColonnaFirmaGrafica=" + nroColonnaFirmaGrafica + ", testoFirmaGrafica=" + testoFirmaGrafica + ", pinFirmaAuto=" + pinFirmaAuto
+				+ ", idDocAllegatoDaFirmare=" + idDocAllegatoDaFirmare + "]";
 	}
 
 }

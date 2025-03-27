@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.determina;
 
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsGetdeterminaBean;
 import it.eng.auriga.database.store.dmpk_ws.store.Getdetermina;
@@ -8,6 +9,7 @@ import it.eng.auriga.module.business.beans.SpecializzazioneBean;
 import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
 import it.eng.document.function.RecuperoFile;
+import it.eng.document.function.StoreException;
 import it.eng.document.function.bean.FileExtractedIn;
 import it.eng.document.function.bean.FileExtractedOut;
 import it.eng.jaxb.context.SingletonJAXBContext;
@@ -25,6 +27,8 @@ import javax.jws.HandlerChain;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -74,6 +78,7 @@ public class WSGetDetermina extends JAXWSAbstractAurigaService implements WSIGet
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
     	
     String risposta = null;
@@ -81,6 +86,7 @@ public class WSGetDetermina extends JAXWSAbstractAurigaService implements WSIGet
     WSGetDeterminaOutBean outServizio = new WSGetDeterminaOutBean();
     String errMsg = null;
     String xmlIn = null;
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
     
     try {
     	
@@ -117,7 +123,12 @@ public class WSGetDetermina extends JAXWSAbstractAurigaService implements WSIGet
  			 // Chiamo il servizio di AurigaDocument
  			 outServizio =  eseguiServizio(loginBean,outWS); 	 		
 	 		}
-	 	catch (Exception e){	 
+	 	catch (Exception e){	
+	 		if (e instanceof StoreException) {
+	    		if(((StoreException) e).getError()!=null){
+	    			errCode = ((StoreException) e).getError().getErrorCode();
+	    		}
+	    	}
 	 		if(e.getMessage()!=null)
 	 			 errMsg = "Errore = " + e.getMessage();
 	 		 else
@@ -176,7 +187,7 @@ public class WSGetDetermina extends JAXWSAbstractAurigaService implements WSIGet
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 	 	 }
 	 	 else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	 }
 	 			        	
 	     aLogger.info("Fine WSGetDetermina");
@@ -198,7 +209,7 @@ public class WSGetDetermina extends JAXWSAbstractAurigaService implements WSIGet
     }
     
     private WSGetDeterminaOutBean eseguiServizio(AurigaLoginBean loginBean, WSGetDeterminaOutBean bean) throws Exception {
-    	aLogger.debug("Eseguo il servizio di AurigaDocument.");
+    	aLogger.debug("Eseguo il servizio RecuperoFile->extractFile.");
     	
     	List<File> listaFileExtracted = new ArrayList<File>(); 
     	     	
@@ -243,55 +254,52 @@ public class WSGetDetermina extends JAXWSAbstractAurigaService implements WSIGet
     }
     
     private WSGetDeterminaOutBean callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-    	    	
-    	aLogger.debug("Eseguo il WS DmpkWsGetDetermina.");
+    	aLogger.debug("Eseguo il WS DMPK_WS->GetDetermina.");
     	    	    	  	
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsGetdeterminaBean input = new DmpkWsGetdeterminaBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlrequestin(xmlIn);
-    		  
-    		  // Eseguo il servizio
-    		  Getdetermina service = new Getdetermina();
-    		  StoreResultBean<DmpkWsGetdeterminaBean> output = service.execute(loginBean, input);
+    	// Inizializzo l'INPUT    		
+    	DmpkWsGetdeterminaBean input = new DmpkWsGetdeterminaBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlrequestin(xmlIn);
+	  
+    	// Eseguo il servizio
+    	Getdetermina service = new Getdetermina();
+    	StoreResultBean<DmpkWsGetdeterminaBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
+    	if (output.isInError()){
+			aLogger.debug(output.getDefaultMessage());
+			aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+			throw new StoreException(output);
+    	}
 
-    		  // restituisco l'XML
-    		  String xmlResponseOut = null;  
-    		  if(output.getResultBean().getXmlresponseout()!=null){
-    			  xmlResponseOut = output.getResultBean().getXmlresponseout();  
-    		  }
-    		  if (xmlResponseOut== null || xmlResponseOut.equalsIgnoreCase(""))
-    			  throw new Exception("La store procedure ha ritornato XmlOut nullo");
-    		      		    		      		  
-    		  // restituisco la lista con gli uri dei file 
-    		  String xmlListaFileOut = null;
-    	      if (output.getResultBean().getListafileout() != null){
-    	    	  xmlListaFileOut = output.getResultBean().getListafileout().toString();
-    	      }
-      	      if (xmlListaFileOut == null) {
-      	    	    throw new Exception("La store procedure Getdetermina ha ritornato una lista di file nulla");
-      	      }
-      	      
-      	      // popolo il bean di out
-    		  WSGetDeterminaOutBean result = new WSGetDeterminaOutBean();
-    		  result.setXml(xmlResponseOut);
-    		  
-    		  // leggo la lista dei documenti 
-    		  List<FileBean> listFileBean = new ArrayList<FileBean>();    		  
-    		  listFileBean =  getListaUriFile(xmlListaFileOut);
-    		  
-    		  result.setListaFile(listFileBean);
-    			  
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+    	// restituisco l'XML
+    	String xmlResponseOut = null;  
+    	if(output.getResultBean().getXmlresponseout()!=null){
+		  xmlResponseOut = output.getResultBean().getXmlresponseout();  
+    	}
+    	if (xmlResponseOut== null || xmlResponseOut.equalsIgnoreCase(""))
+		  throw new Exception("La store procedure ha ritornato XmlOut nullo");
+	      		    		      		  
+    	// restituisco la lista con gli uri dei file 
+    	String xmlListaFileOut = null;
+    	if (output.getResultBean().getListafileout() != null){
+    	  xmlListaFileOut = output.getResultBean().getListafileout().toString();
+    	}
+    	if (xmlListaFileOut == null) {
+    	    throw new Exception("La store procedure Getdetermina ha ritornato una lista di file nulla");
+    	}
+      
+    	// popolo il bean di out
+    	WSGetDeterminaOutBean result = new WSGetDeterminaOutBean();
+    	result.setXml(xmlResponseOut);
+	  
+    	// leggo la lista dei documenti 
+    	List<FileBean> listFileBean = new ArrayList<FileBean>();    		  
+    	listFileBean =  getListaUriFile(xmlListaFileOut);
+	  
+    	result.setListaFile(listFileBean);
+		  
+    	return result;
     }
     
     
@@ -311,7 +319,7 @@ public class WSGetDetermina extends JAXWSAbstractAurigaService implements WSIGet
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             
             //xmlInEsc = xmlIn;

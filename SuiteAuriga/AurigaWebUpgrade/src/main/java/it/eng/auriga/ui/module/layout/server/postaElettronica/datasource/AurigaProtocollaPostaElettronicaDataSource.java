@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.postaElettronica.datasource;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -69,6 +70,7 @@ import it.eng.utility.storageutil.exception.StorageException;
 import it.eng.utility.ui.module.core.server.datasource.AbstractServiceDataSource;
 import it.eng.utility.ui.module.core.server.datasource.annotation.Datasource;
 import it.eng.utility.ui.module.core.shared.message.MessageType;
+import it.eng.utility.ui.module.layout.server.StringSplitterServer;
 import it.eng.utility.ui.servlet.bean.MimeTypeFirmaBean;
 import it.eng.utility.ui.user.AurigaUserUtil;
 import it.eng.utility.ui.user.ParametriDBUtil;
@@ -119,18 +121,50 @@ public class AurigaProtocollaPostaElettronicaDataSource extends AbstractServiceD
 		// Tipo di conversione da applicare al corpo della mail
 		String tipoConversione = ParametriDBUtil.getParametroDB(getSession(), "FMT_CONVERSIONE_TESTO_EMAIL");
 		
+		// AGGIUNGERE CONTROLLO CON PRESENZA ID MAIL CON BODY DA NON CONVERTIRE
+		String listaIdEmailDaNonConvertire = ParametriDBUtil.getParametroDB(getSession(), "LISTA_ID_EMAIL_ESCL_CONV_BODY");
+		if (StringUtils.isNotBlank(listaIdEmailDaNonConvertire)) {
+			listaIdEmailDaNonConvertire = listaIdEmailDaNonConvertire.trim();
+			if (listaIdEmailDaNonConvertire.contains(";")) {
+				StringSplitterServer st = new StringSplitterServer(listaIdEmailDaNonConvertire, ";");
+				while(st.hasMoreTokens()) {
+					String idEmailEsclConvBody = st.nextToken().trim();
+					if (idEmailEsclConvBody.equals(lTEmailMgoBean.getIdEmail())) {
+						tipoConversione = "#NESSUNA_CONVERSIONE";
+						break;
+					}
+				}
+			} else {
+				tipoConversione = lTEmailMgoBean.getIdEmail().equals(listaIdEmailDaNonConvertire) ? "#NESSUNA_CONVERSIONE" : tipoConversione;
+			}
+		}
+		
 		// Se la classifica è interoparabile e trattabile
 		String lFileSegnaturaXml = null;
 		Map<String, Object> lFiles = null;
 		Map<String, Object> lrecuperaFilesMap = null;
 		
-		// Recupero i files
-		if(!isProtocollaInteraEmail) {
+		/*
+		 *  Recupero i files da allegare alla mail, nel caso di opzione Protocollazione intera mail procedo a recuperare solo
+		 *  un eventuale segnatura.xml da passare alla store DmpkIntMgoEmailPrepararegemailricevuta 
+		 *  senza convertire l'oggetto e recuperare eventuali allegati della mail e senza allegare la segnatura.xml stessa
+		 */
+		if(isProtocollaInteraEmail) {
+			lrecuperaFilesMap = recuperaFilesInteraEmail(lTEmailMgoBean, tipoConversione);
+
+			lFiles = (Map<String, Object>) lrecuperaFilesMap.get("file");	
 			
+			// if (classifica.startsWith("standard.arrivo.interoperabili") && !classifica.equals("standard.arrivo.interoperabili.non_conformi.non_trattabili")){
+			if (lTEmailMgoBean.getCategoria() != null && lTEmailMgoBean.getCategoria().equals("INTEROP_SEGN")) {
+				lFileSegnaturaXml = recuperaSegnatura(lFiles);
+				if (lFileSegnaturaXml == null)
+					throw new StoreException("Fallito recupero dell'allegato \"segnatura.xml\"");
+			}
+		} else {
 			lrecuperaFilesMap = recuperaFiles(lTEmailMgoBean, tipoConversione);
 
-			lFiles = (Map<String, Object>) lrecuperaFilesMap.get("file");
-
+			lFiles = (Map<String, Object>) lrecuperaFilesMap.get("file");	
+			
 			// if (classifica.startsWith("standard.arrivo.interoperabili") && !classifica.equals("standard.arrivo.interoperabili.non_conformi.non_trattabili")){
 			if (lTEmailMgoBean.getCategoria() != null && lTEmailMgoBean.getCategoria().equals("INTEROP_SEGN")) {
 				lFileSegnaturaXml = recuperaSegnatura(lFiles);
@@ -138,9 +172,12 @@ public class AurigaProtocollaPostaElettronicaDataSource extends AbstractServiceD
 					throw new StoreException("Fallito recupero dell'allegato \"segnatura.xml\"");
 			}
 		}
-
+		
 		// Se tutto è andato correttamente
 		DocumentoXmlOutBean lDocumentoXmlOutBean = preparaRegistrazione(bean, lFileSegnaturaXml, lFiles, isProtocollaInteraEmail);
+		if(isProtocollaInteraEmail) {
+			lFiles = null;
+		}
 
 		String idTipoDoc = getExtraparams().get("idTipoDoc") != null ? getExtraparams().get("idTipoDoc") : null;
 		String nomeTipoDoc = getExtraparams().get("nomeTipoDoc") != null ? getExtraparams().get("nomeTipoDoc") : null;
@@ -210,7 +247,7 @@ public class AurigaProtocollaPostaElettronicaDataSource extends AbstractServiceD
 				lMimeTypeFirmaBean.setImpronta(calcolaImpronta(corpoMail.toURI().toString(), correctFileName));
 				lMimeTypeFirmaBean.setCorrectFileName(correctFileName);
 				lMimeTypeFirmaBean.setFirmato(false);
-				lMimeTypeFirmaBean.setConvertibile(true);
+				lMimeTypeFirmaBean.setConvertibile(!tipoConversione.equals("#NESSUNA_CONVERSIONE"));
 				lMimeTypeFirmaBean.setDaScansione(false);
 				lMimeTypeFirmaBean.setMimetype(mimeType);
 				lMimeTypeFirmaBean.setBytes(corpoMail.length());
@@ -381,6 +418,48 @@ public class AurigaProtocollaPostaElettronicaDataSource extends AbstractServiceD
 			}
 		}
 	}
+	
+	private Map<String, Object> recuperaFilesInteraEmail(TEmailMgoBean mail, String tipoConversione) throws Exception {
+
+		Map<String, Object> lFiles = new HashMap<String, Object>();
+		Map<String, Object> recuperaFilesMap = new HashMap<>();
+
+		EmailAttachsBean lEmailAttachsBean = new MailProcessorService().getattachmentsbyidemail(getLocale(), mail.getIdEmail());
+		if (lEmailAttachsBean.getMailAttachments() == null) {
+			recuperaFilesMap.put("file", lFiles);
+			recuperaFilesMap.put("isConvSucces", false);
+
+			return recuperaFilesMap;
+		}
+		int count = 0;
+		if (lEmailAttachsBean.getFiles() != null && !lEmailAttachsBean.getFiles().isEmpty()) {
+			String valuesMap = null;
+			for (File lFile : lEmailAttachsBean.getFiles()) {
+				String filename = Normalizer.normalize(lEmailAttachsBean.getMailAttachments().get(count).getFilename(), Normalizer.Form.NFC);
+				if (filename.toLowerCase().startsWith("segnatura.xml")) {
+					long start = new Date().getTime();
+					mLogger.info("Tempo impiegato attach mail " + (new Date().getTime() - start));
+					String uriAllegato = StorageImplementation.getStorage().store(lFile);
+					
+					String size = lEmailAttachsBean.getMailAttachments().get(count).getSize().toString();
+
+					if (lFiles.size() > 0) {
+						valuesMap = filename.concat(";").concat(size);
+						lFiles.put(valuesMap, uriAllegato);
+					} else {
+						valuesMap = filename.concat(";").concat(size);
+						lFiles.put(valuesMap, uriAllegato);
+					}
+				}
+				count++;
+			}
+		}
+
+		recuperaFilesMap.put("file", lFiles);
+		recuperaFilesMap.put("isConvSucces", false);
+
+		return recuperaFilesMap;
+	}
 
 	private Map<String, Object> recuperaFiles(TEmailMgoBean mail, String tipoConversione) throws Exception {
 
@@ -396,13 +475,13 @@ public class AurigaProtocollaPostaElettronicaDataSource extends AbstractServiceD
 		Pattern htmlPattern = Pattern.compile(".*\\<[^>]+>.*", Pattern.DOTALL);
 
 		String uriFile = null; // uri del file convertito
-
+		
 		if (htmlBody != null && htmlPattern.matcher(htmlBody).matches()) {
 			// Caso in cui il corpo mail è in HTML
-			uriFile = createFileFromHtml(htmlBody, tipoConversione);
+			uriFile = createFileFromHtml(htmlBody, tipoConversione, mail.getIdEmail());
 		} else {
 			// Caso in cui il corpo mail non è HTML
-			uriFile = createFileFromTxt(mail.getCorpo(), tipoConversione);
+			uriFile = createFileFromTxt(mail.getCorpo(), tipoConversione, mail.getIdEmail());
 		}
 
 		if (uriFile != null && !"".equalsIgnoreCase(uriFile)) {
@@ -462,7 +541,7 @@ public class AurigaProtocollaPostaElettronicaDataSource extends AbstractServiceD
 	 *            tipo di conversione da applicare. Può essere pdf o pdf/A
 	 * @return l'uri del file convertito, altrimenti se non c'è stata una conversione (per errori o perchè non bisognava convertire) torna null.
 	 */
-	private String createFileFromTxt(String corpoMail, String tipoConversione) {
+	private String createFileFromTxt(String corpoMail, String tipoConversione, String idEmail) {
 		if ("pdf".equalsIgnoreCase(tipoConversione) || "pdf/A".equalsIgnoreCase(tipoConversione)) {
 			// il corpo mail è un testo txt semplice ma deve essere comunque convertito in pdf o pdf/A.
 			FileWriter fw = null;
@@ -489,7 +568,7 @@ public class AurigaProtocollaPostaElettronicaDataSource extends AbstractServiceD
 				FileUtils.copyInputStreamToFile(bodyConvertStream, fileConvert);
 				return StorageImplementation.getStorage().store(fileConvert);
 			} catch (Exception e) {
-				mLogger.error(e.getMessage(), e);
+				mLogger.error("ERRORE CONVERSIONE FROM TXT PER LA MAIL CON ID: " + idEmail + " "+ e.getMessage(), e);
 				return null;
 			} finally {
 				if (fw != null) {
@@ -527,7 +606,7 @@ public class AurigaProtocollaPostaElettronicaDataSource extends AbstractServiceD
 	 *            tipo di conversione da utilizzare (supportato pdf, pdf/A)
 	 * @return uri di StorageUtil del file, null in caso di errore
 	 */
-	private String createFileFromHtml(String html, String tipoConversione) {
+	private String createFileFromHtml(String html, String tipoConversione, String idEmail) {
 
 		if (html.contains("&nbsp;")) {
 			html = html.replace("&nbsp;", " ");
@@ -558,6 +637,15 @@ public class AurigaProtocollaPostaElettronicaDataSource extends AbstractServiceD
 		// Fine controllo
 		
 		String htmlValido = emailBody.outerHtml();
+		
+		// strips off all non-ASCII characters
+//		htmlValido = htmlValido.replaceAll("[^\\x00-\\x7F]", "");
+		 
+		// erases all the ASCII control characters
+//		htmlValido = htmlValido.replaceAll("[\\p{Cntrl}&&[^\r\n\t]]", "");
+		   
+		// removes non-printable characters from Unicode
+//		htmlValido = htmlValido.replaceAll("\\p{C}", "");
 
 		BufferedWriter fileWriter = null; // utilizzato per scrivere il body in un file html
 		OutputStream fileOut = null; // utilizzato per generare lo stream di uscita in un file html
@@ -597,7 +685,7 @@ public class AurigaProtocollaPostaElettronicaDataSource extends AbstractServiceD
 					getPdfConverter().generatePdf(htmlValido, fileConvertPdf, url, false);
 					fileConvert = fileConvertPdf;
 				} catch (Exception e) {
-					mLogger.error("CONVERSIONE PRIORITARIA IN PDF NON AVVENUTA!", e);
+					mLogger.error("CONVERSIONE PRIORITARIA IN PDF NON AVVENUTA! PER LA MAIL CON ID: " + idEmail + " ", e);
 				}
 				if (fileConvert != fileConvertPdf) {
 					filePdfIn = lFileUtility.converti(fileConvert.toURI().toString(), fileConvert.getName());
@@ -620,7 +708,7 @@ public class AurigaProtocollaPostaElettronicaDataSource extends AbstractServiceD
 			return StorageImplementation.getStorage().store(fileConvert);
 
 		} catch (Exception e) {
-			mLogger.error(e.getMessage(), e);
+			mLogger.error("ERRORE CONVERSIONE FROM HTML PER LA MAIL CON ID: " + idEmail + " " + e.getMessage(), e);
 			return null;
 		} finally {
 			if (fileOut != null) {
@@ -714,16 +802,16 @@ public class AurigaProtocollaPostaElettronicaDataSource extends AbstractServiceD
 		bean.setCodidconnectiontokenin(token);
 		bean.setIduserlavoroin(StringUtils.isNotBlank(idUserLavoro) ? new BigDecimal(idUserLavoro) : null);
 		bean.setIdemailin(pInBean.getIdEmail());
-		if (lFileSegnaturaXml != null) {
-			bean.setXmlsegnaturain(IOUtils.toString(new FileInputStream(StorageImplementation.getStorage().extractFile(lFileSegnaturaXml))));
+		if(isProtocollaInteraEmail) {
+			bean.setFinalitain("INTERA_EMAIL");
 		}
-
-		/**
-		 * Viene verificato nel campo avvertimenti della tabella t_email_mgo la presenza della stringa 'DTD non valido' Se è presente viene eliminata la
-		 * segnatura.dtd dalla validazione dei file da protocollare
-		 */
-		if (pInBean.getAvvertimenti() != null && pInBean.getAvvertimenti().contains("DTD non valido")) {
-			bean.setXmlsegnaturain("");
+		if (lFileSegnaturaXml != null) {
+			/**
+			 * RIMOZIONE CARATTERI DI CONTROLLO E Replacement Character
+			 */
+			String ioUtils = IOUtils.toString(new FileInputStream(StorageImplementation.getStorage().extractFile(lFileSegnaturaXml)));
+			String segnatauraXmlIn = ioUtils.replaceAll("\\p{C}", "").replaceAll((char)0xfffd+"", "");
+			bean.setXmlsegnaturain(segnatauraXmlIn);
 		}
 		
 		if (isRichiestaAccessoAtti()) {
@@ -802,6 +890,7 @@ public class AurigaProtocollaPostaElettronicaDataSource extends AbstractServiceD
 			lFilePrimarioOutBean.setAlgoritmoImpronta(lDocumentConfiguration.getAlgoritmo().value());
 			lFilePrimarioOutBean.setDimensione(new BigDecimal(fileTemp.length()));
 			lFilePrimarioOutBean.setDisplayFilename("E-mailRicevuta.eml");
+			lFilePrimarioOutBean.setNomeOriginale("E-mailRicevuta.eml");
 			lFilePrimarioOutBean.setEncodingImpronta(lDocumentConfiguration.getEncoding().value());
 			lFilePrimarioOutBean.setImpronta((new CalcolaImpronteService()).calcolaImprontaWithoutFileOp(fileTemp, lDocumentConfiguration.getAlgoritmo().value(),
 					lDocumentConfiguration.getEncoding().value()));

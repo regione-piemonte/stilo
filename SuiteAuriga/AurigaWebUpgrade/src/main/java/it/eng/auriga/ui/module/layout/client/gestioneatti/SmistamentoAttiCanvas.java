@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.gestioneatti;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -100,9 +101,10 @@ public class SmistamentoAttiCanvas extends ReplicableCanvas {
 								boolean trovato = false;
 								if (data.getLength() > 0) {
 									for (int i = 0; i < data.getLength(); i++) {
+										String typeNodo = data.get(i).getAttribute("typeNodo");
 										String codice = data.get(i).getAttribute("codice");
 										String flgSelXFinalita = data.get(i).getAttribute("flgSelXFinalita");
-										if (value.equals(codice) && (flgSelXFinalita == null || "1".equals(flgSelXFinalita))) {
+										if ("UO".equals(typeNodo) && value.equals(codice) && (flgSelXFinalita == null || "1".equals(flgSelXFinalita))) {
 											mDynamicForm.setValue("descrizione", data.get(i).getAttribute("descrizioneOrig"));
 											mDynamicForm.setValue("organigramma", data.get(i).getAttribute("id"));
 											mDynamicForm.setValue("idUo", data.get(i).getAttribute("idUo"));
@@ -138,9 +140,10 @@ public class SmistamentoAttiCanvas extends ReplicableCanvas {
 								boolean trovato = false;
 								if (data.getLength() > 0) {
 									for (int i = 0; i < data.getLength(); i++) {
+										String typeNodo = data.get(i).getAttribute("typeNodo");
 										String codice = data.get(i).getAttribute("codice");
 										String flgSelXFinalita = data.get(i).getAttribute("flgSelXFinalita");
-										if (value.equals(codice) && (flgSelXFinalita == null || "1".equals(flgSelXFinalita))) {
+										if ("UO".equals(typeNodo) && value.equals(codice) && (flgSelXFinalita == null || "1".equals(flgSelXFinalita))) {
 											mDynamicForm.setValue("descrizione", data.get(i).getAttribute("descrizione"));
 											mDynamicForm.setValue("organigramma", data.get(i).getAttribute("id"));
 											mDynamicForm.setValue("idUo", data.get(i).getAttribute("idUo"));

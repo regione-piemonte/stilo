@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.archivio;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,14 +62,12 @@ public class AzioneSuccessivaPopup extends Window {
 
 	private RecordList listaRecord;
 
-	public AzioneSuccessivaPopup(Record record, boolean apposizioneStatus, TipologiaApposizione tipologiaApposizione,
-			ServiceCallback<Record> callback) {
+	public AzioneSuccessivaPopup(Record record, boolean apposizioneStatus, TipologiaApposizione tipologiaApposizione, ServiceCallback<Record> callback) {
 
 		this(buildRecordListFromRecord(record), apposizioneStatus, tipologiaApposizione, callback);
 	}
 
-	public AzioneSuccessivaPopup(final RecordList listaRecord, boolean apposizioneStatus,
-			TipologiaApposizione tipologiaApposizione, final ServiceCallback<Record> callback) {
+	public AzioneSuccessivaPopup(final RecordList listaRecord, boolean apposizioneStatus, TipologiaApposizione tipologiaApposizione, final ServiceCallback<Record> callback) {
 
 		window = this;
 		this.callback = callback;
@@ -647,7 +646,9 @@ public class AzioneSuccessivaPopup extends Window {
 		
 						@Override
 						public void execute(Record object) {
-							callback.execute(object);
+							if (callback != null) {
+								callback.execute(object);
+							}
 							window.destroy();
 						}
 					};
@@ -715,7 +716,9 @@ public class AzioneSuccessivaPopup extends Window {
 							// recordData.setAttribute("idUdFolder",
 							// currentRecord.getAttribute("idUd"));
 							// recordToSend.setAttribute("listaRecordUd", recordData);
+							// if(callback != null) {
 							// callback.execute(recordToSend);
+							// }
 							// }
 							// window.destroy();
 							// }

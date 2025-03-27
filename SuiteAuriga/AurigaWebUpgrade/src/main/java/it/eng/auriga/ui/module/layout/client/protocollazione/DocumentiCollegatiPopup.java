@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.Date;
 
@@ -279,6 +280,7 @@ public class DocumentiCollegatiPopup extends ModalWindow {
 			editButton.hide();
 		}
 		saveButton.hide();
+		annullaButton.hide();
 	}
 
 	
@@ -286,6 +288,11 @@ public class DocumentiCollegatiPopup extends ModalWindow {
 		setCanEdit(true);
 		editButton.hide();
 		saveButton.show();
+		if(showIstanzeInElencoPopup()) {
+			annullaButton.show();
+		} else {
+			annullaButton.hide();
+		}
 	}
 	
 	public void setCanEdit(boolean canEdit) {

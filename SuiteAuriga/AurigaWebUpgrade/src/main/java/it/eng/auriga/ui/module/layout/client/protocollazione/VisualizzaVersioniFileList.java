@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.Date;
 import java.util.List;
@@ -26,6 +27,7 @@ import com.smartgwt.client.widgets.menu.Menu;
 import com.smartgwt.client.widgets.menu.MenuItem;
 import com.smartgwt.client.widgets.menu.events.MenuItemClickEvent;
 
+import it.eng.auriga.ui.module.layout.client.AurigaLayout;
 import it.eng.auriga.ui.module.layout.client.FirmaUtility;
 import it.eng.auriga.ui.module.layout.client.FirmaUtility.FirmaCallback;
 import it.eng.auriga.ui.module.layout.client.i18n.I18NUtil;
@@ -262,9 +264,10 @@ public class VisualizzaVersioniFileList extends CustomList {
 		buttonsFields.add(0, viewVersionButtonField);
 		buttonsFields.add(1, downloadVersionButtonField);
 		
-		if (isAbilAttestatoConformitaButton())
+		if(AurigaLayout.showAttestatoConformitaOriginale() && isAbilAttestatoConformitaButton()) {
 			buttonsFields.add(2, attestatoConformitaOriginaleButtonField);
-		
+		}
+			
 		return buttonsFields;
 	}
 

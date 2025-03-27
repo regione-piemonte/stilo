@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.jobscheduler.acta.document;
 
 import it.eng.stilo.logic.exception.DatabaseException;
 import it.eng.stilo.logic.service.QueueDocumentsEJB;
@@ -61,7 +62,11 @@ public class ActaDocumentItemReader extends ActaItemReader {
 						queueDocumentsEJB.load(DocumentType.class, "DCRSO"),
 						
 						//Registri 
-						queueDocumentsEJB.load(DocumentType.class, "REG"),
+						//queueDocumentsEJB.load(DocumentType.class, "REG"),
+						queueDocumentsEJB.load(DocumentType.class, "REGDD"),
+						queueDocumentsEJB.load(DocumentType.class, "REGDGR"),
+						queueDocumentsEJB.load(DocumentType.class, "REGDPGR"),
+						queueDocumentsEJB.load(DocumentType.class, "REGORD"),
     					queueDocumentsEJB.load(DocumentType.class, "RPUBBL")
     			);
     	//        Arrays.asList(queueDocumentsEJB.load(DocumentType.class,EIntegrationResource.DETERMINA.getCode()), 

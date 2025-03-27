@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -332,6 +333,13 @@ public class XmlFascicoloOut implements Serializable {
 	// *********** Controllo per evitare salvataggi con dati/file non aggiornati ****************************//
 	@XmlVariabile(nome = "#TimestampGetData", tipo = TipoVariabile.SEMPLICE)
 	private String timestampGetData;
+	
+	@XmlVariabile(nome = "PERIZIA_ADSP", tipo = TipoVariabile.LISTA)
+	private List<PeriziaXmlBean> listaPerizie;
+	
+	@XmlVariabile(nome = "CONCESSIONE", tipo = TipoVariabile.LISTA)
+	private List<ConcessioneXmlOutBean> listaConcessioni;
+
 	
 	public Date getDataPresentazioneIstanza() {
 		return dataPresentazioneIstanza;
@@ -1173,6 +1181,22 @@ public class XmlFascicoloOut implements Serializable {
 
 	public void setTimestampGetData(String timestampGetData) {
 		this.timestampGetData = timestampGetData;
+	}
+
+	public List<PeriziaXmlBean> getListaPerizie() {
+		return listaPerizie;
+	}
+
+	public void setListaPerizie(List<PeriziaXmlBean> listaPerizie) {
+		this.listaPerizie = listaPerizie;
+	}
+
+	public List<ConcessioneXmlOutBean> getListaConcessioni() {
+		return listaConcessioni;
+	}
+
+	public void setListaConcessioni(List<ConcessioneXmlOutBean> listaConcessioni) {
+		this.listaConcessioni = listaConcessioni;
 	}
 	
 }

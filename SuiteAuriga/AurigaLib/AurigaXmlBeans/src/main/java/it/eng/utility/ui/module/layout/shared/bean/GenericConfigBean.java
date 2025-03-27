@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.shared.bean;
 
 import java.util.List;
 
@@ -93,10 +94,22 @@ public class GenericConfigBean {
 	// Se e' valorizzato setta l'altezza del logo menuImg
 	private int menuImgHeight;
 	
+	// ------ INIZIO PARAMETRI GESTIONE SICUREZZA ------ //
+	// Cifra i json scambiati tra client e server
 	private String flagCifratura = "false";
+	
+	// Attiva validazione lato server (DataSourceService all) e lato client (GWTRestDataSource transformRequest) verificando che non siano presenti script tramite le grammatiche presenti nel parametro DB SCRIPT_CLEANER_PATTERNS 
+	// Se è il parametro DB ATTIVA_SCRIPT_VALIDATOR_FOR_TEXT_INPUT è true con le stesse grammatiche vengono anche validati tutti gli input testuali 
 	private String flagAttivaRequestValidator = "false";
+	
+	// Attiva rimozione script lato client (GWTRestDataSource transformRequest) tramite le grammatiche presenti nel parametro DB SCRIPT_CLEANER_PATTERNS
+	// Se flagAttivaRequestValidator si viene bloccati prima di eseguire questa la pulizia
 	private String flagRimuoviScript = "false";
-	private String flagEscapeHtml = "false"; // IN CONFIG.XML VA OMESSA O TENUTA A FALSE POICHE' CAUSA PROBLEMI NEI JSON
+	
+	// Viene fatto l'escape di tutto l'html presente nei json che trasitano tra lato client e server
+	// IN CONFIG.XML VA OMESSA O TENUTA A FALSE POICHE' CAUSA PROBLEMI NEI JSON
+	private String flagEscapeHtml = "false";
+	// ------ FINE PARAMETRI GESTIONE SICUREZZA ------ //
 	
 	private int maxRangeSearcByNumNoAlert;
 		

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.checkin;
 
 import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreLockdocBean;
 import it.eng.auriga.database.store.dmpk_core.store.Lockdoc;
@@ -14,6 +15,7 @@ import it.eng.auriga.repository2.jaxws.webservices.util.castor.outputud.Output_U
 import it.eng.auriga.repository2.jaxws.webservices.util.castor.outputud.VersioneElettronicaNonCaricata;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
 import it.eng.document.function.GestioneDocumenti;
+import it.eng.document.function.StoreException;
 import it.eng.document.function.bean.AllegatiBean;
 import it.eng.document.function.bean.CreaModDocumentoOutBean;
 import it.eng.document.function.bean.RebuildedFile;
@@ -35,6 +37,7 @@ import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
 
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.exolab.castor.xml.Unmarshaller;
@@ -82,6 +85,7 @@ public class WSCheckIn extends JAXWSAbstractAurigaService implements WSICheckIn 
 	public final String serviceImplementation(final String user, final String token, final String codiceApplicazione, final String istanzaAppl,
 			final Connection conn, final Document xmlDomDoc, final String xml, final String schemaDb, final String idDominio, final String desDominio,
 			final String tipoDominio,
+			final String parametriconfigout,
 		      final WSTrace wsTraceBean) throws Exception {
 
 		String risposta = null;
@@ -89,7 +93,8 @@ public class WSCheckIn extends JAXWSAbstractAurigaService implements WSICheckIn 
 
 		String errMsg = null;
 		String xmlIn = null;
-
+		Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
+		
 		try {
 
 			aLogger.info("Inizio WSCheckIn");
@@ -148,6 +153,11 @@ public class WSCheckIn extends JAXWSAbstractAurigaService implements WSICheckIn 
 				// Chiamo il servizio di AurigaDocument
 				outServizio = eseguiServizio(loginBean, conn, outWS, wsAttach);
 			} catch (Exception e) {
+				if (e instanceof StoreException) {
+		    		if(((StoreException) e).getError()!=null){
+		    			errCode = ((StoreException) e).getError().getErrorCode();
+		    		}
+		    	}
 				if(e.getMessage()!=null)
 		 			 errMsg = "Errore = " + e.getMessage();
 		 		 else
@@ -191,7 +201,7 @@ public class WSCheckIn extends JAXWSAbstractAurigaService implements WSICheckIn 
 			if (errMsg == null) {
 				risposta = generaXMLRisposta(JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 			} else {
-				risposta = generaXMLRisposta(JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO, errMsg, "", "");
+				risposta = generaXMLRisposta(JAXWSAbstractAurigaService.FALLIMENTO, errCode, errMsg, "", "");
 			}
 
 			aLogger.info("Fine WSCheckIn");
@@ -291,8 +301,7 @@ public class WSCheckIn extends JAXWSAbstractAurigaService implements WSICheckIn 
 	}
 
 	private WSCheckInBean callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-
-		aLogger.debug("Eseguo il WS DmpkWSCheckIn.");
+		aLogger.debug("Eseguo il WS DMPK_WS->SCheckIn.");
 
 		String idDoc = null;
 		String idUd = null;
@@ -300,45 +309,47 @@ public class WSCheckIn extends JAXWSAbstractAurigaService implements WSICheckIn 
 		String attributiVerXML = null;
 		String flgVerificaFirmaFile = null;
 
+		// Inizializzo l'INPUT
+		DmpkWsCheckinBean input = new DmpkWsCheckinBean();
+		input.setCodidconnectiontokenin(loginBean.getToken());
+		input.setXmlin(xmlIn);
+
+		// Eseguo il servizio
+		Checkin service = new Checkin();
+		StoreResultBean<DmpkWsCheckinBean> output = service.execute(loginBean, input);
+
+		if (output.isInError()) {
+			aLogger.debug(output.getDefaultMessage());
+			aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+			throw new StoreException(output);
+		}
+
+		// restituisco l'ID DOC
+		if (output.getResultBean().getIddocout() != null) {
+			idDoc = output.getResultBean().getIddocout().toString();
+		}
+		if (idDoc == null || idDoc.equalsIgnoreCase("")) {
+			throw new Exception("La store procedure CheckIn ha ritornato id doc nullo");
+		}
+
+		// restituisco l'XML ATTRIBUTI
+		if (output.getResultBean().getAttributiverxmlout() != null) {
+			attributiVerXML = output.getResultBean().getAttributiverxmlout();
+		}
+
+		// restituisco il NRO VERSIONE
+		if (output.getResultBean().getNroversioneestrattaout() != null) {
+			nroVersioneEstratta = output.getResultBean().getNroversioneestrattaout().toString();
+		}
+
+		// restituisco il FLG VERIFICA FIRM FILE
+		if (output.getResultBean().getFlgverificafirmafileout() != null) {
+			flgVerificaFirmaFile = output.getResultBean().getNroversioneestrattaout().toString();
+		}
+
+		// Ricavo IDUD legato all'IDDOC
 		try {
-			// Inizializzo l'INPUT
-			DmpkWsCheckinBean input = new DmpkWsCheckinBean();
-			input.setCodidconnectiontokenin(loginBean.getToken());
-			input.setXmlin(xmlIn);
-
-			// Eseguo il servizio
-			Checkin service = new Checkin();
-			StoreResultBean<DmpkWsCheckinBean> output = service.execute(loginBean, input);
-
-			if (output.isInError()) {
-				throw new Exception(output.getDefaultMessage());
-			}
-
-			// restituisco l'ID DOC
-			if (output.getResultBean().getIddocout() != null) {
-				idDoc = output.getResultBean().getIddocout().toString();
-			}
-			if (idDoc == null || idDoc.equalsIgnoreCase("")) {
-				throw new Exception("La store procedure CheckIn ha ritornato id doc nullo");
-			}
-
-			// restituisco l'XML ATTRIBUTI
-			if (output.getResultBean().getAttributiverxmlout() != null) {
-				attributiVerXML = output.getResultBean().getAttributiverxmlout();
-			}
-
-			// restituisco il NRO VERSIONE
-			if (output.getResultBean().getNroversioneestrattaout() != null) {
-				nroVersioneEstratta = output.getResultBean().getNroversioneestrattaout().toString();
-			}
-
-			// restituisco il FLG VERIFICA FIRM FILE
-			if (output.getResultBean().getFlgverificafirmafileout() != null) {
-				flgVerificaFirmaFile = output.getResultBean().getNroversioneestrattaout().toString();
-			}
-
-			// Ricavo IDUD legato all'IDDOC
-			try {
 				GestioneDocumenti servizio = new GestioneDocumenti();
 				BigDecimal idUdDecimal = servizio.leggiIdUDOfDocWS(loginBean, idDoc);
 				if (idUdDecimal != null)
@@ -349,18 +360,15 @@ public class WSCheckIn extends JAXWSAbstractAurigaService implements WSICheckIn 
 				throw new Exception(mess);
 			}
 
-			// popolo il bean di out
-			WSCheckInBean result = new WSCheckInBean();
-			result.setAttributiVerXML(attributiVerXML);
-			result.setIdDoc(idDoc);
-			result.setNroVersioneEstratta(nroVersioneEstratta);
-			result.setFlgVerificaFirmaFile(flgVerificaFirmaFile);
-			result.setIdUd(idUd);
+		// popolo il bean di out
+		WSCheckInBean result = new WSCheckInBean();
+		result.setAttributiVerXML(attributiVerXML);
+		result.setIdDoc(idDoc);
+		result.setNroVersioneEstratta(nroVersioneEstratta);
+		result.setFlgVerificaFirmaFile(flgVerificaFirmaFile);
+		result.setIdUd(idUd);
 
-			return result;
-		} catch (Exception e) {
-			throw new Exception(e.getMessage());
-		}
+		return result;
 	}
 
 	/**
@@ -379,7 +387,7 @@ public class WSCheckIn extends JAXWSAbstractAurigaService implements WSICheckIn 
 			// ...se il token non e' null
 			if (xmlIn != null) {
 				// effettuo l'escape di tutti i caratteri
-				xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+				xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
 			}
 			aLogger.debug("generaXMLToken: token = " + xmlIn);
 			aLogger.debug("generaXMLToken: tokenEsc = " + xmlInEsc);

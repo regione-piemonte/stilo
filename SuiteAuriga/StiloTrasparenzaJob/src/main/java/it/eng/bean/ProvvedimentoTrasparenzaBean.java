@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.bean;
 
 import java.io.Serializable;
 
@@ -7,6 +8,7 @@ public class ProvvedimentoTrasparenzaBean implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	private String anno;
+	private String mese;
 	private String semestre;
 	private String numProv;
 	private String urlProvvedimento;
@@ -18,6 +20,8 @@ public class ProvvedimentoTrasparenzaBean implements Serializable {
 	private String tipoProvvedimento;
 	private String urlIndiceFascicolo;
 	private String aliasIndiceFascicolo;
+	private String dataPubblicazioneDal;
+	private String dataPubblicazioneAl;
 	private String esitoAddRecordTrasparenza;
 	private String errorMsgAddRecordTrasparenza;
 
@@ -29,6 +33,14 @@ public class ProvvedimentoTrasparenzaBean implements Serializable {
 		this.anno = anno;
 	}
 	
+	public String getMese() {
+		return mese;
+	}
+
+	public void setMese(String mese) {
+		this.mese = mese;
+	}
+
 	public String getSemestre() {
 		return semestre;
 	}
@@ -117,6 +129,22 @@ public class ProvvedimentoTrasparenzaBean implements Serializable {
 		this.aliasIndiceFascicolo = aliasIndiceFascicolo;
 	}
 	
+	public String getDataPubblicazioneDal() {
+		return dataPubblicazioneDal;
+	}
+
+	public void setDataPubblicazioneDal(String dataPubblicazioneDal) {
+		this.dataPubblicazioneDal = dataPubblicazioneDal;
+	}
+
+	public String getDataPubblicazioneAl() {
+		return dataPubblicazioneAl;
+	}
+
+	public void setDataPubblicazioneAl(String dataPubblicazioneAl) {
+		this.dataPubblicazioneAl = dataPubblicazioneAl;
+	}
+
 	public String getEsitoAddRecordTrasparenza() {
 		return esitoAddRecordTrasparenza;
 	}
@@ -135,11 +163,12 @@ public class ProvvedimentoTrasparenzaBean implements Serializable {
 
 	@Override
 	public String toString() {
-		return "ProvvedimentoTrasparenzaBean [anno=" + anno + ", semestre=" + semestre + ", numProv=" + numProv
-				+ ", urlProvvedimento=" + urlProvvedimento + ", aliasProvvedimento=" + aliasProvvedimento
+		return "ProvvedimentoTrasparenzaBean [anno=" + anno + ", mese=" + mese + ", semestre=" + semestre + ", numProv="
+				+ numProv + ", urlProvvedimento=" + urlProvvedimento + ", aliasProvvedimento=" + aliasProvvedimento
 				+ ", dataProv=" + dataProv + ", flagConcessione=" + flagConcessione + ", oggetto=" + oggetto
 				+ ", spesa=" + spesa + ", tipoProvvedimento=" + tipoProvvedimento + ", urlIndiceFascicolo="
-				+ urlIndiceFascicolo + ", aliasIndiceFascicolo=" + aliasIndiceFascicolo + ", esitoAddRecordTrasparenza="
+				+ urlIndiceFascicolo + ", aliasIndiceFascicolo=" + aliasIndiceFascicolo + ", dataPubblicazioneDal="
+				+ dataPubblicazioneDal + ", dataPubblicazioneAl=" + dataPubblicazioneAl + ", esitoAddRecordTrasparenza="
 				+ esitoAddRecordTrasparenza + ", errorMsgAddRecordTrasparenza=" + errorMsgAddRecordTrasparenza + "]";
 	}
 	

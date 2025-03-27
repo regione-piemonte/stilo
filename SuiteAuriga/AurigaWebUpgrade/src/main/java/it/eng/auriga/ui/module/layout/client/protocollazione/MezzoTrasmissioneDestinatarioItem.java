@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -40,6 +41,7 @@ import it.eng.utility.ui.module.layout.client.common.items.DateItem;
 import it.eng.utility.ui.module.layout.client.common.items.SelectItem;
 import it.eng.utility.ui.module.layout.client.common.items.SelectItemWithDisplay;
 import it.eng.utility.ui.module.layout.client.common.items.TextItem;
+import it.eng.utility.ui.module.layout.shared.util.FrontendUtil;
 
 public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 
@@ -65,6 +67,7 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 	private HiddenItem indirizzoItem;
 
 	private HiddenItem descrizioneMezzoTrasmissioneDestinatarioItem;
+	private HiddenItem flgObbligDettagliMezzoTrasmissioneDestinatarioItem;
 
 	private SelectItem mezzoTrasmissioneDestinatarioItem;
 	private TextItem indirizzoPECDestinatarioItem;
@@ -96,6 +99,15 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 	
 	public boolean isRequiredMezzoTrasmissioneItem() {
 		return false;
+	}
+	
+	public String getDefaultValueMezzoTrasmissioneItem() {
+		return null;
+	}
+	
+	public boolean isObbligDettagliMezzoTrasmissione() {
+		final String flgObbligDettagli = flgObbligDettagliMezzoTrasmissioneDestinatarioItem.getValue() != null ? String.valueOf(flgObbligDettagliMezzoTrasmissioneDestinatarioItem.getValue()) : null;
+		return flgObbligDettagli != null && "1".equals(flgObbligDettagli);
 	}
 	
 	public boolean isDestinatarioGruppo() {
@@ -151,6 +163,14 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 			}
 		});
 	}
+	
+	public String getTitleIndirizzoFisico() {
+		return I18NUtil.getMessages().protocollazione_detail_indirizzoDestinatarioItem_title();
+	}
+	
+	public String getTitleIndirizzoMail() {
+		return "E-mail";
+	}
 
 	protected void disegna(Record lRecord) {
 
@@ -182,6 +202,7 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 		appendiciItem = new HiddenItem("appendici");
 
 		descrizioneMezzoTrasmissioneDestinatarioItem = new HiddenItem("descrizioneMezzoTrasmissioneDestinatario");
+		flgObbligDettagliMezzoTrasmissioneDestinatarioItem = new HiddenItem("flgObbligDettagliMezzoTrasmissioneDestinatario");
 
 		// Mezzi di trasmissione
 		GWTRestDataSource mezziTrasmissioneDS = new GWTRestDataSource("LoadComboMezziTrasmissioneDataSource", "key", FieldType.TEXT);
@@ -192,6 +213,7 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 			public void onOptionClick(Record record) {
 				super.onOptionClick(record);
 				descrizioneMezzoTrasmissioneDestinatarioItem.setValue(record.getAttribute("value"));
+				flgObbligDettagliMezzoTrasmissioneDestinatarioItem.setValue(record.getAttribute("flgObbligDettagli"));
 			}
 
 			@Override
@@ -199,6 +221,7 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 				super.setValue(value);
 				if (value == null || "".equals(value)) {
 					descrizioneMezzoTrasmissioneDestinatarioItem.setValue("");
+					flgObbligDettagliMezzoTrasmissioneDestinatarioItem.setValue("");
 				}
 			}
 
@@ -206,6 +229,7 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 			protected void clearSelect() {
 				super.clearSelect();
 				descrizioneMezzoTrasmissioneDestinatarioItem.setValue("");
+				flgObbligDettagliMezzoTrasmissioneDestinatarioItem.setValue("");
 			}
 			
 			@Override
@@ -222,10 +246,12 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 			mezzoTrasmissioneDestinatarioValueMap.put("PEC", "PEC (Posta Elettronica Certificata)");
 			mezzoTrasmissioneDestinatarioItem.setValueMap(mezzoTrasmissioneDestinatarioValueMap);
 			mezzoTrasmissioneDestinatarioItem.setDefaultValue("PEC");
+		} else {
+			mezzoTrasmissioneDestinatarioItem.setDefaultValue(getDefaultValueMezzoTrasmissioneItem());
 		}
 		mezzoTrasmissioneDestinatarioItem.setOptionDataSource(mezziTrasmissioneDS);
 		mezzoTrasmissioneDestinatarioItem.setAutoFetchData(false);
-		mezzoTrasmissioneDestinatarioItem.setFetchMissingValues(false);
+		mezzoTrasmissioneDestinatarioItem.setFetchMissingValues(true);
 		mezzoTrasmissioneDestinatarioItem.setDisplayField("value");
 		mezzoTrasmissioneDestinatarioItem.setValueField("key");
 		mezzoTrasmissioneDestinatarioItem.setWrapTitle(false);
@@ -271,7 +297,7 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 
 			@Override
 			public boolean execute(FormItem item, Object value, DynamicForm form) {
-				return isRaccomandata() && showMezzoTrasmissioneItem();
+				return isRaccomandata() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo();
 			}
 		});
 
@@ -285,7 +311,7 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 
 			@Override
 			public boolean execute(FormItem item, Object value, DynamicForm form) {
-				return isRaccomandata() && showMezzoTrasmissioneItem();
+				return isRaccomandata() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo();
 			}
 		});
 
@@ -298,7 +324,7 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 
 			@Override
 			public boolean execute(FormItem item, Object value, DynamicForm form) {
-				return isNotifica() && showMezzoTrasmissioneItem();
+				return isNotifica() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo();
 			}
 		});
 
@@ -312,20 +338,19 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 
 			@Override
 			public boolean execute(FormItem item, Object value, DynamicForm form) {
-				return isNotifica() && showMezzoTrasmissioneItem();
+				return isNotifica() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo();
 			}
 		});
 		
-		indirizzoPECDestinatarioItem = new TextItem("indirizzoPECDestinatario", "E-mail");
+		indirizzoPECDestinatarioItem = new TextItem("indirizzoPECDestinatario", getTitleIndirizzoMail());
 		indirizzoPECDestinatarioItem.setWrapTitle(false);
 		indirizzoPECDestinatarioItem.setWidth(240);
 		indirizzoPECDestinatarioItem.setColSpan(1);
-		indirizzoPECDestinatarioItem.setAttribute("obbligatorio", isRequiredMezzoTrasmissioneItem());
 		indirizzoPECDestinatarioItem.setValidators(new RequiredIfValidator(new RequiredIfFunction() {
 
 			@Override
 			public boolean execute(FormItem formItem, Object value) {
-				return isPEC() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo() && isRequiredMezzoTrasmissioneItem();
+				return isPEC() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo() && isObbligDettagliMezzoTrasmissione();
 			}
 		}), new CustomValidator() {
 
@@ -343,21 +368,27 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 		indirizzoPECDestinatarioItem.setShowIfCondition(new FormItemIfFunction() {
 
 			@Override
-			public boolean execute(FormItem item, Object value, DynamicForm form) {				
+			public boolean execute(FormItem item, Object value, DynamicForm form) {		
+				if(isObbligDettagliMezzoTrasmissione()) {
+					indirizzoPECDestinatarioItem.setAttribute("obbligatorio", true);
+					indirizzoPECDestinatarioItem.setTitle(FrontendUtil.getRequiredFormItemTitle(getTitleIndirizzoMail()));
+				} else {
+					indirizzoPECDestinatarioItem.setAttribute("obbligatorio", false);
+					indirizzoPECDestinatarioItem.setTitle(getTitleIndirizzoMail());
+				}
 				return isPEC() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo();
 			}
 		});
 		
-		indirizzoPEODestinatarioItem = new TextItem("indirizzoPEODestinatario", "E-mail");
+		indirizzoPEODestinatarioItem = new TextItem("indirizzoPEODestinatario", getTitleIndirizzoMail());
 		indirizzoPEODestinatarioItem.setWrapTitle(false);
 		indirizzoPEODestinatarioItem.setWidth(240);
 		indirizzoPEODestinatarioItem.setColSpan(1);
-		indirizzoPEODestinatarioItem.setAttribute("obbligatorio", isRequiredMezzoTrasmissioneItem());
 		indirizzoPEODestinatarioItem.setValidators(new RequiredIfValidator(new RequiredIfFunction() {
 
 			@Override
 			public boolean execute(FormItem formItem, Object value) {
-				return isPEO() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo() && isRequiredMezzoTrasmissioneItem();
+				return isPEO() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo() && isObbligDettagliMezzoTrasmissione();
 			}
 		}), new CustomValidator() {
 
@@ -375,21 +406,27 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 		indirizzoPEODestinatarioItem.setShowIfCondition(new FormItemIfFunction() {
 
 			@Override
-			public boolean execute(FormItem item, Object value, DynamicForm form) {				
+			public boolean execute(FormItem item, Object value, DynamicForm form) {			
+				if(isObbligDettagliMezzoTrasmissione()) {
+					indirizzoPEODestinatarioItem.setAttribute("obbligatorio", true);
+					indirizzoPEODestinatarioItem.setTitle(FrontendUtil.getRequiredFormItemTitle(getTitleIndirizzoMail()));
+				} else {
+					indirizzoPEODestinatarioItem.setAttribute("obbligatorio", false);
+					indirizzoPEODestinatarioItem.setTitle(getTitleIndirizzoMail());
+				}
 				return isPEO() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo();
 			}
 		});
 		
-		indirizzoMailDestinatarioItem = new TextItem("indirizzoMailDestinatario", "E-mail");
+		indirizzoMailDestinatarioItem = new TextItem("indirizzoMailDestinatario", getTitleIndirizzoMail());
 		indirizzoMailDestinatarioItem.setWrapTitle(false);
 		indirizzoMailDestinatarioItem.setWidth(240);
 		indirizzoMailDestinatarioItem.setColSpan(1);
-		indirizzoMailDestinatarioItem.setAttribute("obbligatorio", isRequiredMezzoTrasmissioneItem());
 		indirizzoMailDestinatarioItem.setValidators(new RequiredIfValidator(new RequiredIfFunction() {
 
 			@Override
 			public boolean execute(FormItem formItem, Object value) {
-				return isEmail() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo() && isRequiredMezzoTrasmissioneItem();
+				return isEmail() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo() && isObbligDettagliMezzoTrasmissione();
 			}
 		}), new CustomValidator() {
 
@@ -407,7 +444,14 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 		indirizzoMailDestinatarioItem.setShowIfCondition(new FormItemIfFunction() {
 
 			@Override
-			public boolean execute(FormItem item, Object value, DynamicForm form) {				
+			public boolean execute(FormItem item, Object value, DynamicForm form) {		
+				if(isObbligDettagliMezzoTrasmissione()) {
+					indirizzoMailDestinatarioItem.setAttribute("obbligatorio", true);
+					indirizzoMailDestinatarioItem.setTitle(FrontendUtil.getRequiredFormItemTitle(getTitleIndirizzoMail()));
+				} else {
+					indirizzoMailDestinatarioItem.setAttribute("obbligatorio", false);
+					indirizzoMailDestinatarioItem.setTitle(getTitleIndirizzoMail());
+				}
 				return isEmail() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo();
 			}
 		});
@@ -416,7 +460,7 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 		
 		// Indirizzo
 		SelectGWTRestDataSource lGwtRestDataSource = new SelectGWTRestDataSource("LoadComboIndirizziDataSource", "idIndirizzo", FieldType.TEXT, new String[] { "indirizzoDisplay" }, true);
-		indirizzoDestinatarioItem = new SelectItemWithDisplay("indirizzoDestinatario", I18NUtil.getMessages().protocollazione_detail_indirizzoDestinatarioItem_title(), lGwtRestDataSource) {
+		indirizzoDestinatarioItem = new SelectItemWithDisplay("indirizzoDestinatario", getTitleIndirizzoFisico(), lGwtRestDataSource) {
 
 			@Override
 			public void onOptionClick(Record record) {
@@ -479,18 +523,24 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 		indirizzoDestinatarioItem.setColSpan(7);
 		indirizzoDestinatarioItem.setName("indirizzoDestinatario");
 		indirizzoDestinatarioItem.setAutoFetchData(false);
-		indirizzoDestinatarioItem.setAttribute("obbligatorio", isRequiredMezzoTrasmissioneItem());
 		indirizzoDestinatarioItem.setValidators(new RequiredIfValidator(new RequiredIfFunction() {
 
 			@Override
 			public boolean execute(FormItem formItem, Object value) {
-				return showSelectIndirizzoItem() && isMezzoTrasmissioneValorizzato() && !isEmailPECPEO() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo() && isRequiredMezzoTrasmissioneItem();
+				return showSelectIndirizzoItem() && isMezzoTrasmissioneValorizzato() && !isEmailPECPEO() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo() && isObbligDettagliMezzoTrasmissione();
 			}
 		}));
 		indirizzoDestinatarioItem.setShowIfCondition(new FormItemIfFunction() {
 
 			@Override
-			public boolean execute(FormItem item, Object value, DynamicForm form) {				
+			public boolean execute(FormItem item, Object value, DynamicForm form) {		
+				if(isObbligDettagliMezzoTrasmissione()) {
+					indirizzoDestinatarioItem.setAttribute("obbligatorio", true);
+					indirizzoDestinatarioItem.setTitle(FrontendUtil.getRequiredFormItemTitle(getTitleIndirizzoFisico()));
+				} else {
+					indirizzoDestinatarioItem.setAttribute("obbligatorio", false);
+					indirizzoDestinatarioItem.setTitle(getTitleIndirizzoFisico());
+				}
 				return showSelectIndirizzoItem() && isMezzoTrasmissioneValorizzato() && !isEmailPECPEO() && showMezzoTrasmissioneItem() && !isDestinatarioGruppo();				
 			}
 		});		
@@ -516,7 +566,7 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 				// Hidden
 				idIndirizzoItem, civicoItem, internoItem, scalaItem, pianoItem, capItem, frazioneItem, codIstatComuneItem, comuneItem, codIstatStatoItem,
 				statoItem, provinciaItem, zonaItem, complementoIndirizzoItem, tipoToponimoItem, ciToponimoItem, appendiciItem, indirizzoItem,
-				descrizioneMezzoTrasmissioneDestinatarioItem, descrizioneIndirizzoItem);
+				descrizioneMezzoTrasmissioneDestinatarioItem, flgObbligDettagliMezzoTrasmissioneDestinatarioItem, descrizioneIndirizzoItem);
 
 		setCanvas(lDynamicForm);
 		setValue(lRecord);
@@ -602,11 +652,22 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 	public String getSingleValidIndirizzoMail(String email) {
 		if(email != null && !"".equals((String) email)) {
 			RegExp regExp = RegExp.compile(RegExpUtility.indirizzoEmailRegExp());
-			return regExp.test(email) ? email : null;
+			String[] split = email.split(",");
+			if (split != null) {
+				for (int i = 0; i < split.length; i++) {
+					String value = split[i];
+					value = value.trim();
+					if (!regExp.test(value)) {
+						return null;
+					}
+				} 
+				return email;
+			} else {
+				return null;
+			}
 		}
 		return null;
 	}
-	
 	/**
 	 * Serve per istanziare la classe tramite GWT
 	 * 
@@ -798,8 +859,8 @@ public abstract class MezzoTrasmissioneDestinatarioItem extends CanvasItem {
 			mezzoTrasmissioneDestinatarioItem.setCanEdit(false);
 		} else {
 			mezzoTrasmissioneDestinatarioItem.setValueMap();
-			mezzoTrasmissioneDestinatarioItem.setDefaultValue((String) null);
-			lDynamicForm.setValue("mezzoTrasmissioneDestinatario", (String) null);
+			mezzoTrasmissioneDestinatarioItem.setDefaultValue(getDefaultValueMezzoTrasmissioneItem());
+			lDynamicForm.setValue("mezzoTrasmissioneDestinatario", getDefaultValueMezzoTrasmissioneItem());
 			mezzoTrasmissioneDestinatarioItem.setCanEdit(editing);
 		}		
 	}

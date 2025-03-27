@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean.sicra;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -51,6 +52,7 @@ public class SicraBudget implements Serializable {
 	private BigDecimal prenotatoDisponibile;
 	private BigInteger copFPV;
 	private String descrizioneBudget;
+	private String cup;
 
 	public String getParte() {
 		return parte;
@@ -371,5 +373,14 @@ public class SicraBudget implements Serializable {
 	public void setDescrizioneBudget(String descrizioneBudget) {
 		this.descrizioneBudget = descrizioneBudget;
 	}
+
+	public String getCup() {
+		return cup;
+	}
+
+	public void setCup(String cup) {
+		this.cup = cup;
+	}
+	
 
 }

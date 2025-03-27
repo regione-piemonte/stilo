@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.attributiDinamici.datasource.bean;
 
 import it.eng.document.NumeroColonna;
 
@@ -110,8 +111,13 @@ public class AttributoBean {
 	// 28: Sottotipo di attributo. 
 	// Valori per tipo CKEDITOR: RESTRICTED, STANDARD, EXTENDED
 	// Valori per tipo LISTA: GRID, SEZIONE_RIPETUTA
+	// Valori per tipo COMBO-BOX: CON_FILTRO_OPZ, CON_FILTRO_OBBL
 	@NumeroColonna(numero = "28")
 	private String sottotipo;
+	
+	// 29: (valori 1/0) 1 indica che l'attributo complesso padre è obbligatorio, 0 che è facoltativo
+	@NumeroColonna(numero = "29")
+	private String obbligatorioComplesso;
 	
 	public String getNumero() {
 		return numero;
@@ -319,6 +325,14 @@ public class AttributoBean {
 
 	public void setSottotipo(String sottotipo) {
 		this.sottotipo = sottotipo;
+	}
+
+	public String getObbligatorioComplesso() {
+		return obbligatorioComplesso;
+	}
+
+	public void setObbligatorioComplesso(String obbligatorioComplesso) {
+		this.obbligatorioComplesso = obbligatorioComplesso;
 	}
 
 }

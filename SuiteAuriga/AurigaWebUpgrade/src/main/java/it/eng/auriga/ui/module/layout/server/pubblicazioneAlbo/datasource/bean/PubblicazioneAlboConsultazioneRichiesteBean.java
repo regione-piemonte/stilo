@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.pubblicazioneAlbo.datasource.bean;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -80,6 +81,7 @@ public class PubblicazioneAlboConsultazioneRichiesteBean {
 	private Boolean abilProrogaPubblicazione;
 	private Boolean abilAnnullamentoPubblicazione;
 	private Boolean abilRettificaPubblicazione;
+	private Boolean abilModifica;
 	
 	private String statoAtto;
 	
@@ -436,6 +438,12 @@ public class PubblicazioneAlboConsultazioneRichiesteBean {
 	}
 	public void setAbilRettificaPubblicazione(Boolean abilRettificaPubblicazione) {
 		this.abilRettificaPubblicazione = abilRettificaPubblicazione;
+	}
+	public Boolean getAbilModifica() {
+		return abilModifica;
+	}
+	public void setAbilModifica(Boolean abilModifica) {
+		this.abilModifica = abilModifica;
 	}
 	public String getStatoAtto() {
 		return statoAtto;

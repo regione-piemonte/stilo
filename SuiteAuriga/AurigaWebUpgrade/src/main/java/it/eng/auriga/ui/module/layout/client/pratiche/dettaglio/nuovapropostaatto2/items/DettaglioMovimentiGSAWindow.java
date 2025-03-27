@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovapropostaatto2.items;
 
 import com.smartgwt.client.data.Record;
 import com.smartgwt.client.types.Overflow;
@@ -35,8 +36,8 @@ public class DettaglioMovimentiGSAWindow extends ModalWindow {
 		settingsMenu.removeItem(separatorMenuItem);
 		settingsMenu.removeItem(autoSearchMenuItem);
 		
-		setHeight(600);
-		setWidth(1400);
+		setHeight(500);
+		setWidth(1600);
 		setOverflow(Overflow.AUTO);    			
 		
 		detail = new DettaglioMovimentiGSADetail(nomeEntita, gridItem);		

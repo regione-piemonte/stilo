@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.database.store.dmpk_utility.bean;
 
 import java.io.Serializable;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -31,6 +32,7 @@ public class DmpkUtilityGetlistdefprefsBean extends StoreBean implements Seriali
 	private java.lang.String errmsgout;
 	private java.lang.String idtreenodein;
 	private java.lang.String finalitain;
+	private java.math.BigDecimal iddominioautin;
 	public java.lang.Integer getParametro_1(){return parametro_1;}
     public java.lang.String getUsernamein(){return usernamein;}
     public java.lang.String getListidin(){return listidin;}
@@ -46,6 +48,7 @@ public class DmpkUtilityGetlistdefprefsBean extends StoreBean implements Seriali
     public java.lang.String getErrmsgout(){return errmsgout;}
     public java.lang.String getIdtreenodein(){return idtreenodein;}
     public java.lang.String getFinalitain(){return finalitain;}
+    public java.math.BigDecimal getIddominioautin(){return iddominioautin;}
     
 	public void setParametro_1(java.lang.Integer value){this.parametro_1=value;}
     public void setUsernamein(java.lang.String value){this.usernamein=value;}
@@ -62,6 +65,7 @@ public class DmpkUtilityGetlistdefprefsBean extends StoreBean implements Seriali
     public void setErrmsgout(java.lang.String value){this.errmsgout=value;}
     public void setIdtreenodein(java.lang.String value){this.idtreenodein=value;}
     public void setFinalitain(java.lang.String value){this.finalitain=value;}
+    public void setIddominioautin(java.math.BigDecimal value){this.iddominioautin=value;}
     
     public String getStoreName(){
     	return storeName;

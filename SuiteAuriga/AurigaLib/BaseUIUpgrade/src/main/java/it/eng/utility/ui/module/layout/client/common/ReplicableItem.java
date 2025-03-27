@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -423,6 +424,10 @@ public abstract class ReplicableItem extends CanvasItem implements HasChangeCanE
 		}
 		return addButtonsLayout;
 	}
+	
+	public HLayout createOtherItemsLayout() {
+		return null;
+	}
 
 	protected VLayout getVLayout() {
 		return (VLayout) getCanvas();
@@ -494,7 +499,7 @@ public abstract class ReplicableItem extends CanvasItem implements HasChangeCanE
 		}
 		return null;
 	}
-
+	
 	public void hideShowNewButton() {
 		VLayout lVLayout = getVLayout();
 		if (!showNewButton)
@@ -1317,23 +1322,35 @@ public abstract class ReplicableItem extends CanvasItem implements HasChangeCanE
 		}
 	}
 
+	public void setShowHideAddButtonsLayout(HLayout addButtonsLayout, boolean isToShow) {
+		if(isToShow) {
+			addButtonsLayout.show();
+		} else {
+			addButtonsLayout.hide();
+		}
+	}
+	
 	public void redraw() {
 		HLayout addButtonsLayout = getAddButtonsLayout();
 		if (addButtonsLayout != null) {
 			if (maxLength != null && maxLength.intValue() > 0 && getTotalMembers() >= maxLength.intValue()) {
-				addButtonsLayout.hide();
+//				addButtonsLayout.hide();
+				setShowHideAddButtonsLayout(addButtonsLayout, false);
 			} else {
 				if (editing) {
 					if(addButtonsLayout.getParentElement() != null) {
-						addButtonsLayout.show();
+//						addButtonsLayout.show();
+						setShowHideAddButtonsLayout(addButtonsLayout, true);
 						if (UserInterfaceFactory.isAttivaAccessibilita()){
 							changeAriaHidden();
 						}
 					} else {
-						addButtonsLayout.hide();
+//						addButtonsLayout.hide();
+						setShowHideAddButtonsLayout(addButtonsLayout, false);
 					}
 				} else {
-					addButtonsLayout.hide();
+//					addButtonsLayout.hide();
+					setShowHideAddButtonsLayout(addButtonsLayout, false);
 				}
 			}
 		}
@@ -1424,6 +1441,9 @@ public abstract class ReplicableItem extends CanvasItem implements HasChangeCanE
 	public void setNotReplicable(Boolean notReplicable) {
 		this.notReplicable = notReplicable;
 		this.showNewButton = !notReplicable;
+		if(notReplicable) {
+			this.showDuplicaRigaButton = false;
+		}
 	}
 
 	public Boolean getShowNewButton() {
@@ -1473,7 +1493,7 @@ public abstract class ReplicableItem extends CanvasItem implements HasChangeCanE
 	public void setShowDuplicaRigaButton(Boolean showDuplicaRigaButton) {
 		this.showDuplicaRigaButton = showDuplicaRigaButton;
 	}
-	
+
 	public void removeVLayoutMemberAtIndex(VLayout lVLayout, int index) {
 		HLayout lHLayout = (HLayout) lVLayout.getMember(index);
 		lVLayout.removeMember(lHLayout);
@@ -1508,16 +1528,20 @@ public abstract class ReplicableItem extends CanvasItem implements HasChangeCanE
 			HLayout addButtonsLayout = getAddButtonsLayout();
 			if (addButtonsLayout != null) {
 				if (maxLength != null && maxLength.intValue() > 0 && getTotalMembers() >= maxLength.intValue()) {
-					addButtonsLayout.hide();
+//					addButtonsLayout.hide();
+					setShowHideAddButtonsLayout(addButtonsLayout, false);
 				} else {
 					if (editing) {
 						if(addButtonsLayout.getParentElement() != null) {
-							addButtonsLayout.show();
+//							addButtonsLayout.show();
+							setShowHideAddButtonsLayout(addButtonsLayout, true);
 						} else {
-							addButtonsLayout.hide();
+//							addButtonsLayout.hide();
+							setShowHideAddButtonsLayout(addButtonsLayout, false);
 						}
 					} else {
-						addButtonsLayout.hide();
+//						addButtonsLayout.hide();
+						setShowHideAddButtonsLayout(addButtonsLayout, false);
 					}
 				}
 			}

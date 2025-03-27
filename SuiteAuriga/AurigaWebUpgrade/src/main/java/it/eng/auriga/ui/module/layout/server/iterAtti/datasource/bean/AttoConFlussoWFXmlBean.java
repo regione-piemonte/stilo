@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.iterAtti.datasource.bean;
 
 import it.eng.document.NumeroColonna;
 
@@ -25,9 +26,7 @@ public class AttoConFlussoWFXmlBean {
 	@NumeroColonna(numero = "10")
 	private String showConsiglieri;	
 	@NumeroColonna(numero = "11")
-	private String categoriaProposta;	
-	@NumeroColonna(numero = "12")
-	private String flgRichiestaFirmaDigitale;
+	private String categoriaProposta;
 		
 	public String getIdTipoProc() {
 		return idTipoProc;
@@ -94,12 +93,6 @@ public class AttoConFlussoWFXmlBean {
 	}
 	public void setCategoriaProposta(String categoriaProposta) {
 		this.categoriaProposta = categoriaProposta;
-	}
-	public String getFlgRichiestaFirmaDigitale() {
-		return flgRichiestaFirmaDigitale;
-	}
-	public void setFlgRichiestaFirmaDigitale(String flgRichiestaFirmaDigitale) {
-		this.flgRichiestaFirmaDigitale = flgRichiestaFirmaDigitale;
 	}
 	
 }

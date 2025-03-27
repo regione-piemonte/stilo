@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -94,8 +95,6 @@ public class TaskDettFascicoloGenCompletoDetail extends CustomDetail implements 
 	protected String msgTaskDaPreimpostare;
 	
 	protected DettaglioPraticaLayout dettaglioPraticaLayout;
-
-	protected RecordList listaRecordModelli;
 	
 	protected Set<String> esitiTaskOk;
 	protected HashMap<String, Record> controlliXEsitiTaskDoc;
@@ -174,8 +173,6 @@ public class TaskDettFascicoloGenCompletoDetail extends CustomDetail implements 
 		this.hasProcCollegati = false;
 
 		this.dettaglioPraticaLayout = dettaglioPraticaLayout;
-		
-		this.listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 
 		RecordList listaEsitiTaskOk = lRecordEvento != null ? lRecordEvento.getAttributeAsRecordList("esitiTaskOk") : null;
 		if (listaEsitiTaskOk != null && listaEsitiTaskOk.getLength() > 0) {
@@ -607,9 +604,11 @@ public class TaskDettFascicoloGenCompletoDetail extends CustomDetail implements 
 	
 			@Override
 			public boolean showOperazioniTimbraturaAllegato(Record allegatoRecord) {
-				String estremiProtUd = allegatoRecord.getAttribute("estremiProtUd") != null ? allegatoRecord.getAttribute("estremiProtUd") : "";
-				if(estremiProtUd != null && !"".equals(estremiProtUd)) {		
-					return true;
+				if(AurigaLayout.showOperazioniTimbratura()) {
+					String estremiProtUd = allegatoRecord.getAttribute("estremiProtUd") != null ? allegatoRecord.getAttribute("estremiProtUd") : "";
+					if(estremiProtUd != null && !"".equals(estremiProtUd)) {		
+						return true;
+					}
 				}
 				return false;
 			}
@@ -1201,6 +1200,8 @@ public class TaskDettFascicoloGenCompletoDetail extends CustomDetail implements 
 	}
 	
 	public RecordList getListaRecordModelliXEsitoPreAvanzamentoFlusso(String esito) {
+		// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+		RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 		if (listaRecordModelli != null && listaRecordModelli.getLength() > 0) {	
 			RecordList listaRecordModelliConEsitoUguale = new RecordList();		
 			RecordList listaRecordModelliSenzaEsito = new RecordList();		
@@ -1228,6 +1229,8 @@ public class TaskDettFascicoloGenCompletoDetail extends CustomDetail implements 
 	}
 	
 	public RecordList getListaRecordModelliXEsitoPostAvanzamentoFlusso(String esito) {
+		// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+		RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 		if (listaRecordModelli != null && listaRecordModelli.getLength() > 0) {	
 			RecordList listaRecordModelliConEsitoUguale = new RecordList();		
 			RecordList listaRecordModelliSenzaEsito = new RecordList();		
@@ -1580,6 +1583,7 @@ public class TaskDettFascicoloGenCompletoDetail extends CustomDetail implements 
 			String userIdFirmatario = recordEvento != null ? recordEvento.getAttribute("docActionsFirmaAutomaticaUseridFirmatario") : null;
 			String firmaInDelega = recordEvento != null ? recordEvento.getAttribute("docActionsFirmaAutomaticaFirmaInDelega") : null;
 			String password = recordEvento != null ? recordEvento.getAttribute("docActionsFirmaAutomaticaPassword") : null;
+			String authPin = recordEvento != null ? recordEvento.getAttribute("docActionsFirmaAutomaticaAuthPIN") : null;
 			String providerFirma = recordEvento != null ? recordEvento.getAttribute("docActionsFirmaAutomaticaProvider") : null;
 			String hsmTipoFirmaAtti = AurigaLayout.getParametroDB("HSM_TIPO_FIRMA_ATTI");
 			String username;
@@ -1591,7 +1595,7 @@ public class TaskDettFascicoloGenCompletoDetail extends CustomDetail implements 
 				username = userIdFirmatario;
 				usernameDelegante = "";
 			}
-			FirmaUtility.firmaMultiplaHsmAutomatica(true, recordList.toArray(), username, usernameDelegante, password, providerFirma, hsmTipoFirmaAtti, callbackFirmaEseguita, callbackFirmaNonEseguita);
+			FirmaUtility.firmaMultiplaHsmAutomatica(true, recordList.toArray(), username, usernameDelegante, password, authPin, providerFirma, hsmTipoFirmaAtti, callbackFirmaEseguita, callbackFirmaNonEseguita);
 		 } else {
 			 // Proseguo normalmente
 			 callbackFirmaEseguita.execute(signedFiles, filesAndUd);
@@ -2351,8 +2355,7 @@ public class TaskDettFascicoloGenCompletoDetail extends CustomDetail implements 
 		dettaglioPraticaLayout.caricaDettaglioEventoSuccessivo(nome);
 	}
 
-	public void caricaAttributiDinamiciFolder(final String nomeFlussoWF, final String processNameWF, final String activityName, final String folderType,
-			final String rowidFolder) {
+	public void caricaAttributiDinamiciFolder(final String nomeFlussoWF, final String processNameWF, final String activityName, final String folderType, final String rowidFolder) {
 		if (folderType != null && !"".equals(folderType)) {
 			Record lRecordLoad = new Record();
 			lRecordLoad.setAttribute("idFolderType", folderType);
@@ -2361,11 +2364,25 @@ public class TaskDettFascicoloGenCompletoDetail extends CustomDetail implements 
 				@Override
 				public void execute(Record object) {
 					final boolean isReload = (attributiAddFolderTabs != null && attributiAddFolderTabs.size() > 0);
+					if(attributiAddFolderLayouts != null) {
+						for (String key : attributiAddFolderLayouts.keySet()) {
+							// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+							if(key != null && !key.startsWith("HEADER_")) {
+								try { attributiAddFolderLayouts.get(key).destroy(); } catch(Exception e) {}
+							}
+						}
+					}
+					if(attributiAddFolderDetails != null) {
+						for (String key : attributiAddFolderDetails.keySet()) {
+							try { attributiAddFolderDetails.get(key).destroy(); } catch(Exception e) {}				
+						}
+					}
 					attributiAddFolderTabs = (LinkedHashMap<String, String>) object.getAttributeAsMap("gruppiAttributiCustomTipoFolder");
 					attributiAddFolderLayouts = new HashMap<String, VLayout>();
 					attributiAddFolderDetails = new HashMap<String, AttributiDinamiciDetail>();
 					if (attributiAddFolderTabs != null && attributiAddFolderTabs.size() > 0) {
 						GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");
+						lGwtRestService.addParam("flgSkipAttrSenzaCategoria", "true");
 						lGwtRestService.addParam("flgNomeAttrConSuff", "true");
 						lGwtRestService.addParam("nomeFlussoWF", nomeFlussoWF);
 						lGwtRestService.addParam("processNameWF", processNameWF);
@@ -2616,5 +2633,26 @@ public class TaskDettFascicoloGenCompletoDetail extends CustomDetail implements 
 			}
 		});
 	}
-
+	
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();		
+		if(attributiAddFolderLayouts != null) {
+			for (String key : attributiAddFolderLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddFolderLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddFolderDetails != null) {
+			for (String key : attributiAddFolderDetails.keySet()) {
+				try { attributiAddFolderDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
+		attributiAddFolderTabs = null;
+		attributiAddFolderLayouts = null;		
+		attributiAddFolderDetails = null;
+	}
+	
 }

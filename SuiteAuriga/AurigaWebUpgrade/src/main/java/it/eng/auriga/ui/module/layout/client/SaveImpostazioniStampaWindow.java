@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -16,6 +17,7 @@ import com.smartgwt.client.widgets.form.FormItemIfFunction;
 import com.smartgwt.client.widgets.form.ValuesManager;
 import com.smartgwt.client.widgets.form.fields.FormItem;
 import com.smartgwt.client.widgets.form.fields.FormItemIcon;
+import com.smartgwt.client.widgets.form.fields.RadioGroupItem;
 import com.smartgwt.client.widgets.form.fields.SelectItem;
 import com.smartgwt.client.widgets.form.fields.SpacerItem;
 import com.smartgwt.client.widgets.form.fields.events.ChangedEvent;
@@ -43,6 +45,7 @@ public class SaveImpostazioniStampaWindow extends ModalWindow {
 	private SezioneContenuti sezioneStampaEtichette;
 	private SezioneContenuti sezioneStampaStandard;
 	private SezioneContenuti sezioneTimbraturaCartaceo;
+	private SezioneContenuti sezioneProtocolloReg;
 	
 	private DynamicForm mDynamicFormStampaEtichette;
 	private TextItem stampanteEtichetteItem;
@@ -69,6 +72,9 @@ public class SaveImpostazioniStampaWindow extends ModalWindow {
 	private TextItem portaStampanteTimbraturaCartaceoItem;
 	private FormItemIcon selezionaPortaStampanteTimbraturaCartaceoItem;
 	
+	private DynamicForm mDynamicFormProtocolloReg;
+	private RadioGroupItem sceltaStampaProtRegItem;
+	
 	public SaveImpostazioniStampaWindow() {
 
 		super("config_utente_impostazioniStampa", true);
@@ -78,7 +84,11 @@ public class SaveImpostazioniStampaWindow extends ModalWindow {
 		settingsMenu.removeItem(separatorMenuItem);
 		settingsMenu.removeItem(autoSearchMenuItem);
 
-		setTitle(I18NUtil.getMessages().configUtenteMenuImpostazioniStampa_title());
+		if (AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO")) {
+			setTitle(I18NUtil.getMessages().configUtenteMenuImpostazioniStampaSegnaturaDocCartacei_title());
+		} else {
+			setTitle(I18NUtil.getMessages().configUtenteMenuImpostazioniStampa_title());
+		}
 		setIcon("postaElettronica/print_file.png");
 
 		setWidth(600);
@@ -103,6 +113,8 @@ public class SaveImpostazioniStampaWindow extends ModalWindow {
 		
 		buildFormTimbraturaCartaceo();
 		
+		buildFormProtocolloReg();
+		
 		sottoSezioneEtichettePer = new SezioneContenuti("Etichette per :", false, true, mDynamicFormEtichettePer) {
 			
 			@Override
@@ -117,6 +129,8 @@ public class SaveImpostazioniStampaWindow extends ModalWindow {
 		
 		sezioneTimbraturaCartaceo = new SezioneContenuti("Timbratura cartaceo", true, true, mDynamicFormTimbraturaCartaceo);
 		
+		sezioneProtocolloReg = new SezioneContenuti("Seleziona modalità di apposizione segnatura di protocollo/registrazione", true, true, mDynamicFormProtocolloReg);
+		
 		Button okButton = new Button("Ok");
 		okButton.setIcon("ok.png");
 		okButton.setIconSize(16);
@@ -129,6 +143,7 @@ public class SaveImpostazioniStampaWindow extends ModalWindow {
 				mDynamicFormEtichettePer.clearErrors(true);
 				mDynamicFormStampaStandard.clearErrors(true);
 				mDynamicFormTimbraturaCartaceo.clearErrors(true);
+				mDynamicFormProtocolloReg.clearErrors(true);
 				if(vm.validate()) {
 					manageOnOkButtonClick(new Record(vm.getValues()));
 					markForDestroy();
@@ -159,11 +174,16 @@ public class SaveImpostazioniStampaWindow extends ModalWindow {
 		spacerLayout.setHeight100();
 		spacerLayout.setWidth100();
 
-		layout.addMember(sezioneStampaEtichette);
-		layout.addMember(sezioneStampaStandard);
 		if (AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO")) {
+			layout.addMember(sezioneProtocolloReg);
 			layout.addMember(sezioneTimbraturaCartaceo);
+			layout.addMember(sezioneStampaEtichette);
+			layout.addMember(sezioneStampaStandard);
+		} else {
+			layout.addMember(sezioneStampaEtichette);
+			layout.addMember(sezioneStampaStandard);
 		}
+		
 		layout.addMember(spacerLayout);
 
 		portletLayout.addMember(layout);
@@ -186,6 +206,7 @@ public class SaveImpostazioniStampaWindow extends ModalWindow {
 		mDynamicFormStampaStandard.clearValues();
 		mDynamicFormEtichettePer.clearValues();
 		mDynamicFormTimbraturaCartaceo.clearValues();
+		mDynamicFormProtocolloReg.clearValues();
 	}
 
 	public void setValues(Record values) {
@@ -194,6 +215,7 @@ public class SaveImpostazioniStampaWindow extends ModalWindow {
 			mDynamicFormStampaStandard.editRecord(values);
 			mDynamicFormEtichettePer.editRecord(values);
 			mDynamicFormTimbraturaCartaceo.editRecord(values);
+			mDynamicFormProtocolloReg.editRecord(values);
 		} else {
 			mDynamicFormStampaEtichette.editNewRecord();
 			mDynamicFormStampaStandard.editNewRecord();
@@ -203,11 +225,13 @@ public class SaveImpostazioniStampaWindow extends ModalWindow {
 			initialValuesEtichettePer.put("flgRicevutaXMittente", true);
 			mDynamicFormEtichettePer.editNewRecord(initialValuesEtichettePer);
 			mDynamicFormTimbraturaCartaceo.editNewRecord();
+			mDynamicFormProtocolloReg.editNewRecord();
 		}
 		mDynamicFormStampaEtichette.clearErrors(true);
 		mDynamicFormStampaStandard.clearErrors(true);
 		mDynamicFormEtichettePer.clearErrors(true);
 		mDynamicFormTimbraturaCartaceo.clearErrors(true);
+		mDynamicFormProtocolloReg.clearErrors(true);
 	}
 
 	public void manageOnOkButtonClick(Record values) {
@@ -311,7 +335,7 @@ public class SaveImpostazioniStampaWindow extends ModalWindow {
 						spacerItem,	stampaEtichettaAutoRegItem,
 						spacerItem, skipSceltaOpzStampaItem
 				);	
-			}else{
+			} else {
 				mDynamicFormStampaEtichette.setItems(
 						stampanteEtichetteItem,
 						notazioneCopiaOriginaleItem,
@@ -327,7 +351,7 @@ public class SaveImpostazioniStampaWindow extends ModalWindow {
 						spacerItem, stampaEtichettaAutoRegItem,
 						spacerItem, skipSceltaOpzStampaItem
 				);
-			}else{
+			} else {
 				mDynamicFormStampaEtichette.setItems(
 						stampanteEtichetteItem,
 						spacerItem, stampaEtichettaAutoRegItem,
@@ -556,6 +580,33 @@ public class SaveImpostazioniStampaWindow extends ModalWindow {
 		});
 		
 		mDynamicFormTimbraturaCartaceo.setItems(portaStampanteTimbraturaCartaceoItem);
+	}
+	
+	private void buildFormProtocolloReg() {
+		mDynamicFormProtocolloReg = new DynamicForm();
+		mDynamicFormProtocolloReg.setKeepInParentRect(true);
+		mDynamicFormProtocolloReg.setWrapItemTitles(false);
+		mDynamicFormProtocolloReg.setWidth100();
+		mDynamicFormProtocolloReg.setHeight100();
+		mDynamicFormProtocolloReg.setNumCols(5);
+		mDynamicFormProtocolloReg.setColWidths(10, 10, 10, 10, "*");
+		mDynamicFormProtocolloReg.setPadding(7);
+		mDynamicFormProtocolloReg.setAlign(Alignment.LEFT);
+		mDynamicFormProtocolloReg.setTop(50);
+		mDynamicFormProtocolloReg.setValuesManager(vm);
+		
+		sceltaStampaProtRegItem = new RadioGroupItem("sceltaStampaProtReg");
+		sceltaStampaProtRegItem.setShowTitle(false);
+		sceltaStampaProtRegItem.setVertical(false);
+		sceltaStampaProtRegItem.setStartRow(true);
+		sceltaStampaProtRegItem.setWrap(false);
+		Map<String, String> valueProtRegMap = new LinkedHashMap<>();
+		valueProtRegMap.put("a", "timbratrice");
+		valueProtRegMap.put("b", "stampante di etichette");
+		sceltaStampaProtRegItem.setValueMap(valueProtRegMap);
+		sceltaStampaProtRegItem.setDefaultValue("a");
+		
+		mDynamicFormProtocolloReg.setItems(sceltaStampaProtRegItem);
 	}
 	
 	protected String setTitleAlign(String title, int width, boolean required) {

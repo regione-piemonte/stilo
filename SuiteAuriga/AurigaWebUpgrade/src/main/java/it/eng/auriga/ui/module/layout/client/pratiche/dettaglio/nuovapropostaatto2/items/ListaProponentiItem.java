@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovapropostaatto2.items;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -565,6 +566,27 @@ public abstract class ListaProponentiItem extends GridItem {
 	public void onClickDeleteButton(final ListGridRecord record) {
 		grid.deselectAllRecords();
 		removeData(record);		
+	}
+	
+	@Override
+	protected void manageOnShowValue(RecordList data) {
+		// ATTENZIONE:
+		// ogni volta che setto un valore sul gridItem finisco qui dentro, sia facendo il setValue() sull'item sia settando il valore nel form o nel vm che lo contiene, quindi non solo quando carico i valori dalla loadDettaglio
+		// anche quando fa lo show per la prima volta del gridItem (tipo selezionando il tab che lo contiene) entra qui dentro 
+		if (data != null) {
+			for (int i = 0; i < data.getLength(); i++) {
+				Record lRecord = data.get(i);
+				if(lRecord.getAttribute("id") == null) {
+					if(lRecord.getAttribute("idUo") != null && !"".equals(lRecord.getAttribute("idUo"))) {
+						lRecord.setAttribute("id", lRecord.getAttribute("idUo"));
+					} else { 
+						lRecord.setAttribute("id", "NEW_" + count++);
+					}
+				}
+				lRecord.setAttribute("valuesOrig", lRecord.toMap());
+			}
+		}
+		setData(data);
 	}
 	
 	@Override

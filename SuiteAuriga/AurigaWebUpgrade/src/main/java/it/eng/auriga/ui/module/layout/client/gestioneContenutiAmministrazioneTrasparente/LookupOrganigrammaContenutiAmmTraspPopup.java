@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.gestioneContenutiAmministrazioneTrasparente;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -72,7 +73,6 @@ public abstract class LookupOrganigrammaContenutiAmmTraspPopup extends ModalWind
 			value.put("parole", parole);
 			int size = Layout.getAttributiValueMap(getNomeEntita()).keySet().size();
 			value.put("attributi", Layout.getAttributiValueMap(getNomeEntita()).keySet().toArray(new String[size]));
-			value.put("flgRicorsiva", true);
 			JSOHelper.setAttribute(lFulltextCriterion.getJsObj(), "value", value);		
 			lCriterionsList.add(lFulltextCriterion);
 			
@@ -91,6 +91,8 @@ public abstract class LookupOrganigrammaContenutiAmmTraspPopup extends ModalWind
 //			}		
 			strInDenominazione = strInDenominazione.trim();
 			lCriterionsList.add(new Criterion("strInDenominazione", OperatorId.WORDS_START_WITH, strInDenominazione));
+			
+			lCriterionsList.add(new Criterion("flgRicercaRicorsiva", OperatorId.EQUALS, "true"));
 			
 			Criterion[] lCriterions = new Criterion[lCriterionsList.size()];				
 			for(int i = 0; i < lCriterionsList.size(); i++) {

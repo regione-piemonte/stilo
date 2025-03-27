@@ -1,9 +1,4 @@
 {
-    "ente" : "Comune di Genova",
-    "logo" : "css/LogoCOGE.png",
-	"loadListOnOpen": true,
-	"treeSideNavbar": true,
-	"username": "admin",
-    "password": "admin" 
+
 }
 

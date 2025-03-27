@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.job.importdocindex;
 
 import java.io.File;
 import java.lang.invoke.MethodHandles;
@@ -22,6 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.hibernate.cfg.NotYetImplementedException;
+import org.springframework.context.ApplicationContext;
 
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.auriga.module.business.beans.SpecializzazioneBean;
@@ -41,6 +43,7 @@ import it.eng.job.importdocindex.manager.FileIndiceManager;
 import it.eng.job.importdocindex.manager.ScansioneDirectoryManager;
 import it.eng.job.importdocindex.manager.impl.FileIndiceManagerImpl;
 import it.eng.job.importdocindex.manager.impl.ScansioneDirectoryManagerImpl;
+import it.eng.spring.utility.SpringAppContext;
 import it.eng.utility.filemanager.FileBean;
 import it.eng.utility.filemanager.FileManager;
 import it.eng.utility.filemanager.FileManagerException;
@@ -67,6 +70,7 @@ public class ImportDocIndexJob extends AbstractJob<String> {
 	private AurigaLoginBean aurigaLoginBean;
 	private Map<String, ConfigurazioniScansione> mappaConfigurazioniScansioneValide = new HashMap<>();
 	private Locale locale;
+	private ApplicationContext context;
 
 	private static final String JOBATTRKEY_SCHEMA = "schema";
 	private static final String JOBATTRKEY_TIPO_DOMINIO = "tipoDominio";
@@ -307,12 +311,20 @@ public class ImportDocIndexJob extends AbstractJob<String> {
 	 */
 
 	private void configurazioneAurigaLoginBean(String localeValue, SpecializzazioneBean specializzazioneBean) {
-
+		
 		aurigaLoginBean = SpringHelper.getSpecializedBean(AurigaSpringContext.SPRINGBEAN_AURIGA_LOGIN_BEAN, null, AurigaLoginBean.class);
 		aurigaLoginBean.setLinguaApplicazione(localeValue);
 		aurigaLoginBean.setSchema(schema);
 		aurigaLoginBean.setToken(specializzazioneBean.getCodIdConnectionToken());
 		aurigaLoginBean.setSpecializzazioneBean(specializzazioneBean);
+		
+		/*
+		aurigaLoginBean = new AurigaLoginBean();
+		aurigaLoginBean.setLinguaApplicazione(localeValue);
+		aurigaLoginBean.setSchema(schema);
+		aurigaLoginBean.setToken(specializzazioneBean.getCodIdConnectionToken());
+		aurigaLoginBean.setSpecializzazioneBean(specializzazioneBean);
+		*/
 	}
 
 	/**
@@ -381,9 +393,14 @@ public class ImportDocIndexJob extends AbstractJob<String> {
 	}
 
 	private void elabora() {
-
+		
+		//context = SpringHelper.getMainApplicationContext();
+		//logger.info("TEST context " + context);
+		// it.eng.utility.jobmanager.SpringAppContext.setContext(context);
+		//SpringAppContext.setContext(context);
+		
 		ExecutorService executorService = SpringHelper.getSpecializedBean(AurigaSpringContext.SPRINGBEAN_EXECUTOR_SERVICE, null, ExecutorService.class);
-
+		
 		ForkJoinPool forkJoinPool = null;
 		try {
 			forkJoinPool = SpringHelper.getSpecializedBean(AurigaSpringContext.SPRINGBEAN_FORK_JOIN_POOL, null, ForkJoinPool.class);

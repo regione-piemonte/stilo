@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -110,12 +111,17 @@ public class ProtocollazioneDetailAtti extends ProtocollazioneDetail {
 	}
 	
 	@Override
+	public boolean isModalitaWizard() {
+		return false;
+	}
+	
+	@Override
 	public boolean isModalitaAllegatiGrid() {
 		return false;
 	}
 	
 	@Override
-	public boolean isModalitaWizard() {
+	public boolean isPresentiFileConOmissis() {
 		return false;
 	}
 
@@ -152,7 +158,7 @@ public class ProtocollazioneDetailAtti extends ProtocollazioneDetail {
 		return isPropostaAtto2Milano() && !AurigaLayout.getParametroDBAsBoolean("ATTIVA_NUOVA_PROPOSTA_ATTO_2") && !AurigaLayout.getParametroDBAsBoolean("GESTIONE_ATTI_COMPLETA");
 	}
 
-	public boolean isPregresso() {
+	public boolean isAttoPregresso() {
 		return false;
 	}
 
@@ -1138,6 +1144,10 @@ public class ProtocollazioneDetailAtti extends ProtocollazioneDetail {
 		detailSectionFolderCustom.setVisible(!isPropostaAtto2Milano());
 		layoutAssegnazioneEClassificazione.addMember(detailSectionFolderCustom);
 		
+		createDetailSectionRelVsPraticheApplEsterne();
+		detailSectionRelVsPraticheApplEsterne.setVisible(false);
+		layoutAssegnazioneEClassificazione.addMember(detailSectionRelVsPraticheApplEsterne);
+		
 		return layoutAssegnazioneEClassificazione;
 	}
 
@@ -1195,10 +1205,24 @@ public class ProtocollazioneDetailAtti extends ProtocollazioneDetail {
 			caricaAttributiDinamiciDoc(idTipoDoc, rowidDoc);
 		} else {
 			// se sono in un task PropostaAttoDetail o PropostaAtto2Detail
+			if(attributiAddDocLayouts != null) {
+				for (String key : attributiAddDocLayouts.keySet()) {
+					// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+					if(key != null && !key.startsWith("HEADER_")) {
+						try { attributiAddDocLayouts.get(key).destroy(); } catch(Exception e) {}
+					}
+				}
+			}
+			if(attributiAddDocDetails != null) {
+				for (String key : attributiAddDocDetails.keySet()) {
+					try { attributiAddDocDetails.get(key).destroy(); } catch(Exception e) {}				
+				}
+			}
 			attributiAddDocLayouts = new HashMap<String, VLayout>();
 			attributiAddDocDetails = new HashMap<String, AttributiDinamiciDetail>();
 			if (attributiAddDocTabs != null && attributiAddDocTabs.size() > 0) {
 				GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");
+				lGwtRestService.addParam("flgSkipAttrSenzaCategoria", "true");
 				lGwtRestService.addParam("nomeFlussoWF", nomeFlussoWF);
 				lGwtRestService.addParam("processNameWF", processNameWF);
 				lGwtRestService.addParam("activityNameWF", activityName);
@@ -1292,6 +1316,27 @@ public class ProtocollazioneDetailAtti extends ProtocollazioneDetail {
 				callback.execute(new Record());
 			}
 		}
+	}
+	
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();		
+		if(attributiAddDocLayouts != null) {
+			for (String key : attributiAddDocLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddDocLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddDocDetails != null) {
+			for (String key : attributiAddDocDetails.keySet()) {
+				try { attributiAddDocDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
+		attributiAddDocTabs = null;
+		attributiAddDocLayouts = null;		
+		attributiAddDocDetails = null;
 	}
 	
 }

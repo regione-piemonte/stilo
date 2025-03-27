@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.pratiche.datasource.bean;
 
 import java.util.List;
 
@@ -359,6 +360,7 @@ public class AttProcBean {
 	private String docActionsFirmaAutomaticaUseridFirmatario;
 	private String docActionsFirmaAutomaticaFirmaInDelega;
 	private String docActionsFirmaAutomaticaPassword;
+	private String docActionsFirmaAutomaticaAuthPIN;
 	
 	private List<InfoFirmaGraficaBean> infoFirmaGrafica; 
 	
@@ -1807,6 +1809,12 @@ public class AttProcBean {
 	}
 	public void setDocActionsFirmaAutomaticaPassword(String docActionsFirmaAutomaticaPassword) {
 		this.docActionsFirmaAutomaticaPassword = docActionsFirmaAutomaticaPassword;
+	}
+	public String getDocActionsFirmaAutomaticaAuthPIN() {
+		return docActionsFirmaAutomaticaAuthPIN;
+	}
+	public void setDocActionsFirmaAutomaticaAuthPIN(String docActionsFirmaAutomaticaAuthPIN) {
+		this.docActionsFirmaAutomaticaAuthPIN = docActionsFirmaAutomaticaAuthPIN;
 	}
 	public List<InfoFirmaGraficaBean> getInfoFirmaGrafica() {
 		return infoFirmaGrafica;

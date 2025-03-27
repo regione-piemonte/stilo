@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.enums;
 
 public enum FormatoLottoEnum {
 	DIRECTORY("CARTELLA", null), ZIP("ZIP", "zip"), SEVENZIP("7Z", "7z"), ATTACHMENT("ATTACHMENT", "xml"), REMOTE_DIR("REMOTE_DIR", null);

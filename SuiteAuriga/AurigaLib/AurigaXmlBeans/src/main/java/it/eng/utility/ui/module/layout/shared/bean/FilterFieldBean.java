@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.shared.bean;
 
 import java.util.List;
 
@@ -15,7 +16,6 @@ public class FilterFieldBean {
 	private boolean fixed;
 	private boolean requiredIfPrivilegi;
 	private String categoria;
-	private boolean showFlgRicorsiva;
 	private boolean showSelectAttributi;
 	private boolean requiredForDepends;
 	private String lookupType;
@@ -117,14 +117,6 @@ public class FilterFieldBean {
 
 	public String getCategoria() {
 		return categoria;
-	}
-
-	public boolean isShowFlgRicorsiva() {
-		return showFlgRicorsiva;
-	}
-
-	public void setShowFlgRicorsiva(boolean showFlgRicorsiva) {
-		this.showFlgRicorsiva = showFlgRicorsiva;
 	}
 
 	public boolean isShowSelectAttributi() {

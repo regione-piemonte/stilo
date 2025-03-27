@@ -1,8 +1,13 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean.restrepresentation;
 
 import java.math.BigDecimal;
+import java.util.Date;
 
 import it.eng.document.NumeroColonna;
+import it.eng.document.TipoData;
+import it.eng.document.TipoData.Tipo;
+import it.eng.document.function.bean.Flag;
 
 /**
  * @author Antonio Peluso
@@ -36,7 +41,56 @@ public class FileAgibilitaXmlInBean {
 	
 	//Firmatari del file (se più di uno separati da ;)
 	@NumeroColonna(numero = "9")
-	private String firmatari;
+	private String firmatari;	
+	
+//	10) Indicazione del tipo di firma (CAdES o PAdES)
+	@NumeroColonna(numero = "10")
+	private String tipoFirma;
+	
+//	11) Info di verifica della firma 
+	@NumeroColonna(numero = "11")
+	private String infoVerificaFirma;
+
+//	12) Data e ora delle marca se presente marca temporale valida (nel formato DD/MM/RRR HH24:MI:SS)
+	@NumeroColonna(numero = "12")
+	private Date dataOraMarca;
+
+//	13) Tipo di marca temporale se presente
+	@NumeroColonna(numero = "13")
+	private String tipoMarca;
+
+//	14) Informazioni di verifica della marca temporale se presente
+	@NumeroColonna(numero = "14")
+	private String infoVerificaMarca;
+
+//	15) Data e ora della firma digitale della busta crittografica più esterna, se presente (nel formato DD/MM/RRR HH24:MI:SS)
+	@NumeroColonna(numero = "15")
+	@TipoData(tipo = Tipo.DATA)
+	private Date dataFirmaBustaCrittografica;
+	
+//	18) Flag di firma non valida alla data (valori 1/0/NULL) (la firma della busta crittografica più esterna)
+	@NumeroColonna(numero = "18")
+	private Flag flgFirmaCrittograficaNonValida;
+	
+//	19) Flag di manca temporale non valida alla data (valori 1/0/NULL)
+	@NumeroColonna(numero = "19")
+	private Flag flgMarcaTemporaleNonValida;
+
+//	20) Data emissione certificato firmatario (se più di uno separati da “;” )
+	@NumeroColonna(numero = "20")
+	private String dataOraEmissioneCertificatoFirma;
+
+//	21) Data scadenza certificato firmatario (se più di uno separati da “;” )
+	@NumeroColonna(numero = "21")
+	private String dataOraScadenzaCertificatoFirma;
+
+//	22) Indica se firma Qualifica (=Q) o Avanzata (=A) (se più di uno separate da “;” )
+	@NumeroColonna(numero = "22")
+	private String tipoFirmaQA;
+
+//	23) Cod. fiscali dei firmatari (se più di uno separati da “;” )
+	@NumeroColonna(numero = "23")
+	private String cfFirmatario;
 
 	public String getUri() {
 		return uri;
@@ -108,6 +162,102 @@ public class FileAgibilitaXmlInBean {
 
 	public void setFirmatari(String firmatari) {
 		this.firmatari = firmatari;
+	}
+
+	public String getTipoFirma() {
+		return tipoFirma;
+	}
+
+	public void setTipoFirma(String tipoFirma) {
+		this.tipoFirma = tipoFirma;
+	}
+
+	public String getInfoVerificaFirma() {
+		return infoVerificaFirma;
+	}
+
+	public void setInfoVerificaFirma(String infoVerificaFirma) {
+		this.infoVerificaFirma = infoVerificaFirma;
+	}
+
+	public Date getDataOraMarca() {
+		return dataOraMarca;
+	}
+
+	public void setDataOraMarca(Date dataOraMarca) {
+		this.dataOraMarca = dataOraMarca;
+	}
+
+	public String getTipoMarca() {
+		return tipoMarca;
+	}
+
+	public void setTipoMarca(String tipoMarca) {
+		this.tipoMarca = tipoMarca;
+	}
+
+	public String getInfoVerificaMarca() {
+		return infoVerificaMarca;
+	}
+
+	public void setInfoVerificaMarca(String infoVerificaMarca) {
+		this.infoVerificaMarca = infoVerificaMarca;
+	}
+
+	public Date getDataFirmaBustaCrittografica() {
+		return dataFirmaBustaCrittografica;
+	}
+
+	public void setDataFirmaBustaCrittografica(Date dataFirmaBustaCrittografica) {
+		this.dataFirmaBustaCrittografica = dataFirmaBustaCrittografica;
+	}
+
+	public Flag getFlgFirmaCrittograficaNonValida() {
+		return flgFirmaCrittograficaNonValida;
+	}
+
+	public void setFlgFirmaCrittograficaNonValida(Flag flgFirmaCrittograficaNonValida) {
+		this.flgFirmaCrittograficaNonValida = flgFirmaCrittograficaNonValida;
+	}
+
+	public Flag getFlgMarcaTemporaleNonValida() {
+		return flgMarcaTemporaleNonValida;
+	}
+
+	public void setFlgMarcaTemporaleNonValida(Flag flgMarcaTemporaleNonValida) {
+		this.flgMarcaTemporaleNonValida = flgMarcaTemporaleNonValida;
+	}
+
+	public String getDataOraEmissioneCertificatoFirma() {
+		return dataOraEmissioneCertificatoFirma;
+	}
+
+	public void setDataOraEmissioneCertificatoFirma(String dataOraEmissioneCertificatoFirma) {
+		this.dataOraEmissioneCertificatoFirma = dataOraEmissioneCertificatoFirma;
+	}
+
+	public String getDataOraScadenzaCertificatoFirma() {
+		return dataOraScadenzaCertificatoFirma;
+	}
+
+	public void setDataOraScadenzaCertificatoFirma(String dataOraScadenzaCertificatoFirma) {
+		this.dataOraScadenzaCertificatoFirma = dataOraScadenzaCertificatoFirma;
+	}
+
+	public String getTipoFirmaQA() {
+		return tipoFirmaQA;
+	}
+
+	public void setTipoFirmaQA(String tipoFirmaQA) {
+		this.tipoFirmaQA = tipoFirmaQA;
+	}
+
+	public String getCfFirmatario() {
+		return cfFirmatario;
+	}
+
+	public void setCfFirmatario(String cfFirmatario) {
+		this.cfFirmatario = cfFirmatario;
 	}
 
 }

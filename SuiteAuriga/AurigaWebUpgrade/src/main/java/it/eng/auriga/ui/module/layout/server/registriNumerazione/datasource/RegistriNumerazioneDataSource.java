@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.registriNumerazione.datasource;
 
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -50,6 +51,12 @@ import it.eng.utility.ui.module.core.shared.message.MessageType;
 import it.eng.utility.ui.user.AurigaUserUtil;
 import it.eng.xml.XmlListaUtility;
 import it.eng.xml.XmlUtilitySerializer;
+import it.eng.auriga.ui.module.layout.server.common.SezioneCacheAttributiDinamici;
+import it.eng.auriga.ui.module.layout.server.common.datasource.bean.AttributiDinamiciXmlBean;
+import it.eng.jaxb.variabili.SezioneCache;
+import it.eng.auriga.ui.module.layout.server.attributiDinamici.datasource.bean.LoadAttrDinamicoListaOutputBean;
+import it.eng.auriga.ui.module.layout.server.attributiDinamici.datasource.bean.DettColonnaAttributoListaBean;
+
 
 @Datasource(id = "RegistriNumerazioneDataSource")
 public class RegistriNumerazioneDataSource extends AurigaAbstractFetchDatasource<RegistriNumerazioneBean>  {
@@ -217,6 +224,19 @@ public class RegistriNumerazioneDataSource extends AurigaAbstractFetchDatasource
 		// Lista con i tipi di documenti ammessi (se FlgAmmEscXTipiDocIn=A)
 		result.setListaTipiDocAmmEsc(getListaDocumentiAmmEsc(output));
 		
+		result.setRowid(output.getResultBean().getRowidout());
+		
+		// legge gli attributi
+		LoadAttrDinamicoListaOutputBean lAttributiDinamici = new LoadAttrDinamicoListaOutputBean();
+		List<DettColonnaAttributoListaBean> ldatiDettLista = new ArrayList<DettColonnaAttributoListaBean>();
+
+		String xmlListaAttributi = output.getResultBean().getAttributiaddout();
+		try {
+			ldatiDettLista = XmlListaUtility.recuperaLista(xmlListaAttributi, DettColonnaAttributoListaBean.class);
+		} catch (Exception e) {
+			throw new StoreException(e.getMessage());
+		}
+		
 		return result;
 	}
 
@@ -300,6 +320,9 @@ public class RegistriNumerazioneDataSource extends AurigaAbstractFetchDatasource
 		// -- (valori I/C) Indica se i tipi di documenti indicati nell'argomento successivo sono forniti in modo incrementale (=I) (solo quelle da inserire/modificare/cancellare) oppure completo (=C), vale a dire che dovranno soppiantare tutti quelli già specificati (e relativi al dominio di lavoro) in caso di tipo di registrazione/numerazione da aggiornare
 		input.setFlgmodtipidocammesclin("C");
 		input.setXmltipidocammescin(createXmlTipiDocAmmEsc(bean.getListaTipiDocAmmEsc()));
+				
+		// Salvo gli attributi		
+		input.setAttributiaddin(getXMLAttributiDinamici(bean));
 				
 		// Eseguo il servizio
 		DmpkTipiRegNumUdIutiporegnum dmpkTipiRegNumUdIutiporegnum = new DmpkTipiRegNumUdIutiporegnum();
@@ -407,7 +430,11 @@ public class RegistriNumerazioneDataSource extends AurigaAbstractFetchDatasource
 		// -- (valori I/C) Indica se i tipi di documenti indicati nell'argomento successivo sono forniti in modo incrementale (=I) (solo quelle da inserire/modificare/cancellare) oppure completo (=C), vale a dire che dovranno soppiantare tutti quelli già specificati (e relativi al dominio di lavoro) in caso di tipo di registrazione/numerazione da aggiornare
 		input.setFlgmodtipidocammesclin("C");
 		input.setXmltipidocammescin(createXmlTipiDocAmmEsc(bean.getListaTipiDocAmmEsc()));
-						
+				
+		// Salvo gli attributi
+		input.setAttributiaddin(getXMLAttributiDinamici(bean));
+
+		
 		// Eseguo il servizio
 		DmpkTipiRegNumUdIutiporegnum dmpkTipiRegNumUdIutiporegnum = new DmpkTipiRegNumUdIutiporegnum();
 		StoreResultBean<DmpkTipiRegNumUdIutiporegnumBean> result = dmpkTipiRegNumUdIutiporegnum.execute(getLocale(), loginBean, input);
@@ -710,4 +737,22 @@ public class RegistriNumerazioneDataSource extends AurigaAbstractFetchDatasource
 		xmlTipiDocAmmEsc = lXmlUtilitySerializer.bindXmlList(listaTipiDocAmmEscOut);
 		return xmlTipiDocAmmEsc;
 	}
+	
+	private String getXMLAttributiDinamici(RegistriNumerazioneBean bean) throws Exception {
+	    	
+	    	// Salvo gli attributi custom
+			AttributiDinamiciXmlBean lAttributiDinamiciXmlBean = new AttributiDinamiciXmlBean();
+			
+			// Attributi dinamici
+			Map<String, Object> valori = bean.getValori() != null ? bean.getValori() : new HashMap<String, Object>();
+			Map<String, String> tipiValori = bean.getTipiValori() != null ? bean.getTipiValori() : new HashMap<String, String>();
+			SezioneCache sezioneCacheAttributiDinamici = SezioneCacheAttributiDinamici.createSezioneCacheAttributiDinamici(null, valori, tipiValori, getSession());
+			lAttributiDinamiciXmlBean.setSezioneCacheAttributiDinamici(sezioneCacheAttributiDinamici);
+			
+			String xmlAttributiDinamici = null;
+			XmlUtilitySerializer lXmlUtilitySerializer = new XmlUtilitySerializer();
+			xmlAttributiDinamici = lXmlUtilitySerializer.bindXml(lAttributiDinamiciXmlBean);
+			
+			return xmlAttributiDinamici;
+	}	 
 }

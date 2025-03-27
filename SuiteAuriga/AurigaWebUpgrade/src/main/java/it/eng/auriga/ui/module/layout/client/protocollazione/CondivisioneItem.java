@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +24,8 @@ public class CondivisioneItem extends ReplicableItem {
 	private boolean attivaEliminazioneUOCoinvolte = false;
 	private String flgUdFolder;
 	private boolean flgSoloUO = false;
-
+	private boolean flgSenzaLD = false;
+	
 	@Override
 	public ReplicableCanvas getCanvasToReply() {
 		CondivisioneCanvas lCondivisioneCanvas = new CondivisioneCanvas(this);		
@@ -92,6 +94,14 @@ public class CondivisioneItem extends ReplicableItem {
 		this.flgSoloUO = flgSoloUO;
 	}
 	
+	public boolean getFlgSenzaLD() {
+		return flgSenzaLD;
+	}
+
+	public void setFlgSenzaLD(boolean flgSenzaLD) {
+		this.flgSenzaLD = flgSenzaLD;
+	}
+
 	public class CondivisioneMultiLookupOrganigramma extends LookupOrganigrammaPopup {
 
 		private List<CondivisioneCanvas> multiLookupList = new ArrayList<CondivisioneCanvas>(); 

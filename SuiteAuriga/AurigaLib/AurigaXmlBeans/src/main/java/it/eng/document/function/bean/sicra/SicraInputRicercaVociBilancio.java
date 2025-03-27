@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean.sicra;
 
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -43,6 +44,8 @@ public class SicraInputRicercaVociBilancio implements Serializable {
 	private Boolean flagRaggruppaTipoFinanz;
 	private Boolean flagRaggruppaProgetto;
 	private Boolean aclBilancio;
+	private String cup;
+	private Boolean flagRaggruppaCup;
 
 	public String getParte() {
 		return parte;
@@ -298,6 +301,22 @@ public class SicraInputRicercaVociBilancio implements Serializable {
 
 	public void setAclBilancio(Boolean aclBilancio) {
 		this.aclBilancio = aclBilancio;
+	}
+
+	public String getCup() {
+		return cup;
+	}
+
+	public void setCup(String cup) {
+		this.cup = cup;
+	}
+
+	public Boolean getFlagRaggruppaCup() {
+		return flagRaggruppaCup;
+	}
+
+	public void setFlagRaggruppaCup(Boolean flagRaggruppaCup) {
+		this.flagRaggruppaCup = flagRaggruppaCup;
 	}
 
 }// SicraInputRicercaVociBilancio

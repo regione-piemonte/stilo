@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.authentication.module;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -18,10 +19,12 @@ import org.apache.log4j.Logger;
 import org.springframework.beans.BeansException;
 
 import it.eng.auriga.database.store.dmpk_login.bean.DmpkLoginLoginapplicazioneBean;
+import it.eng.auriga.database.store.dmpk_login.bean.DmpkLoginLogindaportletBean;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.auriga.ui.module.layout.shared.util.SharedConstants;
 import it.eng.client.DmpkLoginLoginapplicazione;
+import it.eng.client.DmpkLoginLogindaportlet;
 import it.eng.spring.utility.SpringAppContext;
 import it.eng.utility.authentication.AuthType;
 import it.eng.utility.authentication.Authentication;
@@ -80,10 +83,67 @@ public class LoginModuleImpl implements LoginModule {
 
 	@Override
 	public boolean login() throws LoginException {
+
 		mLogger.debug("Start Login");
 
-		boolean fromExtAppl = username != null && username.startsWith("USERID_APPL#");
-		if (fromExtAppl) {
+		// se arrivo da una applicazione esterna tramite portlet
+		
+		if (username != null && username.contains("#COD_APPL#") && username.contains("#COD_APPL_IST#")) {
+			
+			String userid = username.substring(0, username.indexOf("#COD_APPL#"));
+			String codApplicazione = username.substring(username.indexOf("#COD_APPL#") + 10, username.indexOf("#COD_APPL_IST#"));
+			String codIstanzaAppl = username.substring(username.indexOf("#COD_APPL_IST#") + 14);
+			
+			String schema = null;
+			String applicationKey = null;
+			if(password != null) {
+				String[] values = password.split("#SCHEMA#");
+				if (values.length == 1) {
+					// Ho solo lo schema
+					schema = values[0];
+				} else {
+					applicationKey = values[0].length() > 0 ? values[0] : null;
+					schema = values[1];
+				}
+			}
+			
+			DmpkLoginLogindaportletBean input = new DmpkLoginLogindaportletBean();
+			input.setCodapplicazionein(codApplicazione);
+			input.setCodistanzaapplin(codIstanzaAppl);
+			input.setUseridin(userid);
+			input.setPasswordin(applicationKey);
+			
+			AurigaLoginBean lAurigaLoginBean = new AurigaLoginBean();
+			// Inserisco la lingua di default
+			lAurigaLoginBean.setLinguaApplicazione(SharedConstants.DEFAUL_LANGUAGE);
+			lAurigaLoginBean.setSchema(schema);
+			
+			DmpkLoginLogindaportlet loginDaPortlet = new DmpkLoginLogindaportlet();
+			
+			StoreResultBean<DmpkLoginLogindaportletBean> result;
+			Locale locale = new Locale("it", "IT");
+			mLogger.debug("DMPK_LOGIN.LoginDaPortlet");
+			mLogger.debug("schema: " + schema);
+			mLogger.debug("codApplicazione: " + codApplicazione);
+			mLogger.debug("codIstanzaAppl: " + codIstanzaAppl);
+			mLogger.debug("userid: " + userid);
+			mLogger.debug("password: " + applicationKey);
+			try {
+				result = loginDaPortlet.execute(locale, lAurigaLoginBean, input);
+			} catch (Exception e) {
+				mLogger.warn(e);
+				return false;
+			}
+			if (result.isInError()) {
+				mLogger.error(result.getDefaultMessage(), new Throwable(
+						"Messaggio: " + result.getDefaultMessage() + " errorContext: " + result.getErrorContext() + "errorCode: " + result.getErrorCode()));
+				return false;
+			}
+			return true;
+		}
+		
+		if (username != null && username.startsWith("USERID_APPL#")) {
+			
 			String useridappl = username.substring(12);
 			String[] values = password.split("#SCHEMA#");
 			String schema = null;
@@ -104,12 +164,14 @@ public class LoginModuleImpl implements LoginModule {
 			// Inserisco la lingua di default
 			lAurigaLoginBean.setLinguaApplicazione(SharedConstants.DEFAUL_LANGUAGE);
 			lAurigaLoginBean.setSchema(schema);
+			
 			DmpkLoginLoginapplicazione loginApplicazione = new DmpkLoginLoginapplicazione();
 			StoreResultBean<DmpkLoginLoginapplicazioneBean> result;
 			Locale locale = new Locale("it", "IT");
-			mLogger.debug("Schema vale " + schema);
-			mLogger.debug("realPassword vale " + realPassword);
-			mLogger.debug("username vale " + username);
+			mLogger.debug("DMPK_LOGIN.LoginApplicazione");
+			mLogger.debug("schema: " + schema);
+			mLogger.debug("useridApplicazione: " + username);
+			mLogger.debug("password: " + realPassword);
 			try {
 				result = loginApplicazione.execute(locale, lAurigaLoginBean, input);
 			} catch (Exception e) {

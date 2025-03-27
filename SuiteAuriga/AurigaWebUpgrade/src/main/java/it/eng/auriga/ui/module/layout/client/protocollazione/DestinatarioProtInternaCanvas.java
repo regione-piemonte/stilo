@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -138,7 +139,7 @@ public class DestinatarioProtInternaCanvas extends IndirizzoCanvas {
 	}
 	
 	public boolean showSelectOrganigramma(String tipoDestinatario) {
-		if(AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT")) {
+		if(AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") && !((DestinatarioProtItem) getItem()).isProtPregresso()) {
 			// essendo il destinatario di una prot. interna quando il tipo non è valorizzato di default deve comparire la select organigramma (soggetto interno)
 			return tipoDestinatario == null || tipoDestinatario.equals("") || tipoDestinatario.equals("UP_UOI");
 		}
@@ -375,20 +376,21 @@ public class DestinatarioProtInternaCanvas extends IndirizzoCanvas {
 								boolean trovato = false;
 								if (data.getLength() > 0) {
 									for (int i = 0; i < data.getLength(); i++) {
+										String typeNodo = data.get(i).getAttribute("typeNodo");
 										String codice = data.get(i).getAttribute("codice");
 										String flgSelXFinalita = data.get(i).getAttribute("flgSelXFinalita");
-										if (event.getValue().equals(codice) && (flgSelXFinalita == null || "1".equals(flgSelXFinalita))) {
+										// va fatto solo nei destinatari interni o anche gli altri?
+										if ("UO".equals(typeNodo) && event.getValue().equals(codice) && (flgSelXFinalita == null || "1".equals(flgSelXFinalita))) {
 											mDynamicForm.setValue("organigrammaDestinatario", data.get(i).getAttribute("id"));
 											mDynamicForm.setValue("idDestinatario", data.get(i).getAttribute("idUo"));
 											mDynamicForm.setValue("idSoggetto", data.get(i).getAttribute("idRubrica"));
-											String typeNodo = data.get(i).getAttribute("typeNodo");
 											if(typeNodo != null) {												
 												if(typeNodo.equals("UO")) {
 													mDynamicForm.setValue("idUoSoggetto", data.get(i).getAttribute("idUo"));
-													mDynamicForm.setValue("tipoDestinatario", AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") ? "UP_UOI" : "UOI");	
+													mDynamicForm.setValue("tipoDestinatario", AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") && !((DestinatarioProtItem) getItem()).isProtPregresso() ? "UP_UOI" : "UOI");	
 												} else if(typeNodo.equals("SV")) {
 													mDynamicForm.setValue("idScrivaniaSoggetto", data.get(i).getAttribute("idUo"));
-													mDynamicForm.setValue("tipoDestinatario", AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") ? "UP_UOI" : "UP");	
+													mDynamicForm.setValue("tipoDestinatario", AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") && !((DestinatarioProtItem) getItem()).isProtPregresso() ? "UP_UOI" : "UP");	
 												}												
 											}											
 											mDynamicForm.setValue("flgSelXAssegnazione", data.get(i).getAttribute("flgSelXAssegnazione"));
@@ -515,10 +517,10 @@ public class DestinatarioProtInternaCanvas extends IndirizzoCanvas {
 				String typeNodo = record.getAttributeAsString("typeNodo");
 				if(typeNodo != null) {
 					if(typeNodo.equals("UO")) {
-						mDynamicForm.setValue("tipoDestinatario", AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") ? "UP_UOI" : "UOI");
+						mDynamicForm.setValue("tipoDestinatario", AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") && !((DestinatarioProtItem) getItem()).isProtPregresso() ? "UP_UOI" : "UOI");
 						mDynamicForm.setValue("idUoSoggetto", record.getAttributeAsString("idUo"));
 					} else if(typeNodo.equals("SV")) {
-						mDynamicForm.setValue("tipoDestinatario", AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") ? "UP_UOI" : "UP");
+						mDynamicForm.setValue("tipoDestinatario", AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") && !((DestinatarioProtItem) getItem()).isProtPregresso() ? "UP_UOI" : "UP");
 						mDynamicForm.setValue("idScrivaniaSoggetto", record.getAttributeAsString("idUo"));
 					}					
 				}								
@@ -1416,11 +1418,13 @@ public class DestinatarioProtInternaCanvas extends IndirizzoCanvas {
 				if(((DestinatarioProtItem) getItem()).isFlgAssegnazioneCondivisioneMutuamenteEsclusivi()) {
 					if (checked) {										
 						mDynamicForm.setValue("flgAssegnaAlDestinatario", false);
+						flgAssegnaAlDestinatarioItem.setAttribute("valueAfterChange", "false");
 					}
 				}
 				if(((DestinatarioProtItem) getItem()).isForzaAssegnazioneCondivisione()) {
 					if (!checked) {										
 						mDynamicForm.setValue("flgAssegnaAlDestinatario", true);
+						flgAssegnaAlDestinatarioItem.setAttribute("valueAfterChange", "true");
 					}
 				}				
 				mDynamicForm.redraw();
@@ -1644,8 +1648,9 @@ public class DestinatarioProtInternaCanvas extends IndirizzoCanvas {
 
 			@Override
 			public void onChanged(ChangedEvent event) {
-				((DestinatarioProtItem) getItem()).manageChangedFlgAssegnaAlDestinatario(mDynamicForm.getValuesAsRecord());
 				boolean checked = event.getValue() != null && (Boolean) event.getValue();
+				flgAssegnaAlDestinatarioItem.setAttribute("valueAfterChange", checked ? "true" : "false");
+				((DestinatarioProtItem) getItem()).manageChangedFlgAssegnaAlDestinatario(mDynamicForm.getValuesAsRecord());
 				if(((DestinatarioProtItem) getItem()).isFlgAssegnazioneCondivisioneMutuamenteEsclusivi()) {
 					if (checked) {					
 						mDynamicForm.setValue("flgPC", false);
@@ -2349,9 +2354,9 @@ public class DestinatarioProtInternaCanvas extends IndirizzoCanvas {
 		String tipoSoggetto = null;
 		if (((DestinatarioProtInternaItem) getItem()).isAbilitatiDestEsterniInRegInt()) {			
 			if ("UO;UOI".equals(tipo)) {
-				tipoSoggetto = AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") ? "UP_UOI" : "UOI";
+				tipoSoggetto = AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") && !((DestinatarioProtItem) getItem()).isProtPregresso() ? "UP_UOI" : "UOI";
 			} else if ("UP".equals(tipo)) {
-				tipoSoggetto = AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") ? "UP_UOI" : "UP";
+				tipoSoggetto = AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") && !((DestinatarioProtItem) getItem()).isProtPregresso() ? "UP_UOI" : "UP";
 			} else if ("#APA".equals(tipo)) {
 				tipoSoggetto = "PA";
 			} else if ("#IAMM".equals(tipo)) {
@@ -2419,20 +2424,32 @@ public class DestinatarioProtInternaCanvas extends IndirizzoCanvas {
 					}
 				}
 				if (mDynamicForm.getValue("flgAssegnaAlDestinatario") == null) {
-					if(mDynamicForm.getValue("flgAssegnaAlDestinatarioXNuovaProtComeCopia") != null) {
+					if(mDynamicForm.getValue("flgAssegnaAlDestinatarioXNuovaProtComeCopia") != null) {	
 						boolean flgAssegnaAlDestinatarioXNuovaProtComeCopia = (Boolean) mDynamicForm.getValue("flgAssegnaAlDestinatarioXNuovaProtComeCopia");
 						mDynamicForm.setValue("flgAssegnaAlDestinatario", flgAssegnaAlDestinatarioXNuovaProtComeCopia);
+						if(((DestinatarioProtItem) getItem()).isFlgAssegnazioneCondivisioneMutuamenteEsclusivi() && flgAssegnaAlDestinatarioXNuovaProtComeCopia) {
+							mDynamicForm.setValue("flgPC", false);
+						}
 						((DestinatarioProtItem) getItem()).manageChangedFlgAssegnaAlDestinatario(mDynamicForm.getValuesAsRecord());
 					} else {
 						// se il soggetto è selezionabile per l'assegnazione allora setto il check al valore di default
 						if(flgSelXAssegnazione) {
-							mDynamicForm.setValue("flgAssegnaAlDestinatario", ((DestinatarioProtItem) getItem()).getFlgAssegnaAlDestinatarioDefault());
-							if(((DestinatarioProtItem) getItem()).isFlgAssegnazioneCondivisioneMutuamenteEsclusivi() && ((DestinatarioProtItem) getItem()).getFlgAssegnaAlDestinatarioDefault()) {
-								mDynamicForm.setValue("flgPC", false);
+							// se l'utente ha modificato il valore del check "effettua assegnazione", rispetto a quello di default, allora devo caricare quello
+							Boolean flgAssegnaAlDestinatarioValueAfterChange = flgAssegnaAlDestinatarioItem.getAttribute("valueAfterChange") != null ? "true".equals(flgAssegnaAlDestinatarioItem.getAttribute("valueAfterChange")) : null;
+							if(flgAssegnaAlDestinatarioValueAfterChange != null) {
+								mDynamicForm.setValue("flgAssegnaAlDestinatario", flgAssegnaAlDestinatarioValueAfterChange);
+								if(((DestinatarioProtItem) getItem()).isFlgAssegnazioneCondivisioneMutuamenteEsclusivi() && flgAssegnaAlDestinatarioValueAfterChange) {
+									mDynamicForm.setValue("flgPC", false);
+								}
+							} else {
+								mDynamicForm.setValue("flgAssegnaAlDestinatario", ((DestinatarioProtItem) getItem()).getFlgAssegnaAlDestinatarioDefault());
+								if(((DestinatarioProtItem) getItem()).isFlgAssegnazioneCondivisioneMutuamenteEsclusivi() && ((DestinatarioProtItem) getItem()).getFlgAssegnaAlDestinatarioDefault()) {
+									mDynamicForm.setValue("flgPC", false);
+								}
 							}
-							((DestinatarioProtItem) getItem()).manageChangedFlgAssegnaAlDestinatario(mDynamicForm.getValuesAsRecord());
+							((DestinatarioProtItem) getItem()).manageChangedFlgAssegnaAlDestinatario(mDynamicForm.getValuesAsRecord());							
 						}
-					}		
+					}
 				} else if(afterChangedDest && !flgSelXAssegnazione) {
 //					mDynamicForm.setValue("flgAssegnaAlDestinatario", false); // non posso settare il check a false altrimenti non viene caricato successivamente  
 					  														  // il valore di default, quindi utilizzo il clearValue()
@@ -2525,12 +2542,12 @@ public class DestinatarioProtInternaCanvas extends IndirizzoCanvas {
 		mDynamicForm.setValue("idSoggetto", record.getAttribute("idRubrica"));
 		String tipo = record.getAttribute("tipo");
 		if (tipo.startsWith("UO")) {
-			mDynamicForm.setValue("tipoDestinatario", AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") ? "UP_UOI" : "UOI");
+			mDynamicForm.setValue("tipoDestinatario", AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") && !((DestinatarioProtItem) getItem()).isProtPregresso() ? "UP_UOI" : "UOI");
 			mDynamicForm.setValue("codRapidoDestinatario", record.getAttribute("codRapidoUo"));
 			mDynamicForm.setValue("denominazioneDestinatario", record.getAttribute("descrUoSvUt"));
 			mDynamicForm.setValue("idUoSoggetto", idUoSvUt);
 		} else {
-			mDynamicForm.setValue("tipoDestinatario", AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") ? "UP_UOI" : "UP");
+			mDynamicForm.setValue("tipoDestinatario", AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") && !((DestinatarioProtItem) getItem()).isProtPregresso() ? "UP_UOI" : "UP");
 			if(record.getAttribute("codRapidoSvUt") != null && !"".equals(record.getAttribute("codRapidoSvUt"))) {
 				mDynamicForm.setValue("codRapidoDestinatario", record.getAttribute("codRapidoSvUt"));
 			} else {
@@ -2809,7 +2826,7 @@ public class DestinatarioProtInternaCanvas extends IndirizzoCanvas {
 					tipoValueMap.put("AOOI", I18NUtil.getMessages().protocollazione_select_listmap_AOOI_value());
 				}
 			}
-			if(AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT")) {
+			if(AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") && !((DestinatarioProtItem) getItem()).isProtPregresso()) {
 				tipoValueMap.put("UP_UOI", I18NUtil.getMessages().protocollazione_select_listmap_UP_UOI_value());
 			} else {
 				tipoValueMap.put("UOI", I18NUtil.getMessages().protocollazione_select_listmap_UOI_value());
@@ -2823,7 +2840,7 @@ public class DestinatarioProtInternaCanvas extends IndirizzoCanvas {
 //				tipoValueMap.put("PREF", I18NUtil.getMessages().protocollazione_select_listmap_PREF_value());
 //			}
 		} else {
-			if(AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT")) {
+			if(AurigaLayout.getParametroDBAsBoolean("DEST_INT_CON_SELECT") && !((DestinatarioProtItem) getItem()).isProtPregresso()) {
 				tipoValueMap.put("UP_UOI", I18NUtil.getMessages().protocollazione_select_listmap_UP_UOI_value());	
 			} else {
 				tipoValueMap.put("UOI", I18NUtil.getMessages().protocollazione_select_listmap_UOI_value());

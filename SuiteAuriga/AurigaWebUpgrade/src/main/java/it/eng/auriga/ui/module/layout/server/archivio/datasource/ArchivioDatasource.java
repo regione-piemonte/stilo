@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.archivio.datasource;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -45,6 +46,7 @@ import com.itextpdf.text.pdf.PdfWriter;
 
 import it.eng.auriga.compiler.ModelliUtil;
 import it.eng.auriga.database.store.dmpk_collaboration.bean.DmpkCollaborationInvioBean;
+import it.eng.auriga.database.store.dmpk_collaboration.bean.DmpkCollaborationSavenextactposttaskitersignBean;
 import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreDelfolderBean;
 import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreFirmadocumentoBean;
 import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreGetidnodoclassificaBean;
@@ -68,6 +70,7 @@ import it.eng.auriga.ui.module.layout.server.archivio.datasource.bean.ArchivioBe
 import it.eng.auriga.ui.module.layout.server.archivio.datasource.bean.ArchivioXmlBean;
 import it.eng.auriga.ui.module.layout.server.archivio.datasource.bean.ArchivioXmlBeanDeserializationHelper;
 import it.eng.auriga.ui.module.layout.server.archivio.datasource.bean.AzioneSuccessivaBean;
+import it.eng.auriga.ui.module.layout.server.archivio.datasource.bean.AzioneSuccessivaIterFirmaBozzeBean;
 import it.eng.auriga.ui.module.layout.server.archivio.datasource.bean.CausaleAggNoteBean;
 import it.eng.auriga.ui.module.layout.server.archivio.datasource.bean.CriteriAvanzati;
 import it.eng.auriga.ui.module.layout.server.archivio.datasource.bean.CriteriPersonalizzati;
@@ -106,6 +109,7 @@ import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.All
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.AltraViaProtBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.AssegnazioneBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.AttestatoConformitaBean;
+import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.ConcessioneBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DatiUdOutBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DestInvioBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DestInvioCCBean;
@@ -114,6 +118,7 @@ import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.Doc
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DownloadDocsZipBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.FileScaricoZipBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.MittenteProtBean;
+import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.PeriziaBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.ProtocollazioneBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.TaskBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.TipoDocumentoBean;
@@ -125,6 +130,7 @@ import it.eng.aurigamailbusiness.bean.SenderBean;
 import it.eng.client.AurigaMailService;
 import it.eng.client.AurigaService;
 import it.eng.client.DmpkCollaborationInvio;
+import it.eng.client.DmpkCollaborationSavenextactposttaskitersign;
 import it.eng.client.DmpkCoreDelfolder;
 import it.eng.client.DmpkCoreFirmadocumento;
 import it.eng.client.DmpkCoreGetidnodoclassifica;
@@ -149,6 +155,8 @@ import it.eng.document.function.bean.AltreUbicazioniBean;
 import it.eng.document.function.bean.AssegnatariBean;
 import it.eng.document.function.bean.AssegnatariOutBean;
 import it.eng.document.function.bean.CollocazioneFisicaFascicoloBean;
+import it.eng.document.function.bean.ConcessioneXmlInBean;
+import it.eng.document.function.bean.ConcessioneXmlOutBean;
 import it.eng.document.function.bean.CreaModDocumentoInBean;
 import it.eng.document.function.bean.CreaModDocumentoOutBean;
 import it.eng.document.function.bean.DestInvioCCOutBean;
@@ -165,6 +173,7 @@ import it.eng.document.function.bean.LoadFascicoloIn;
 import it.eng.document.function.bean.LoadFascicoloOut;
 import it.eng.document.function.bean.ModificaFascicoloIn;
 import it.eng.document.function.bean.ModificaFascicoloOut;
+import it.eng.document.function.bean.PeriziaXmlBean;
 import it.eng.document.function.bean.ProcedimentiCollegatiOutBean;
 import it.eng.document.function.bean.RebuildedFile;
 import it.eng.document.function.bean.RecuperaDocumentoInBean;
@@ -188,7 +197,6 @@ import it.eng.jaxb.variabili.SezioneCache;
 import it.eng.services.fileop.InfoFileUtility;
 import it.eng.spring.utility.SpringAppContext;
 import it.eng.utility.DocumentConfiguration;
-import it.eng.utility.FirmaUtility;
 import it.eng.utility.MessageUtil;
 import it.eng.utility.XmlUtility;
 import it.eng.utility.module.config.StorageImplementation;
@@ -589,6 +597,7 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 			result.setAbilAvvioIterWF(lXmlFascicoloOut.getAbilitazioni() != null ? lXmlFascicoloOut.getAbilitazioni().getAvvioIterWF() : null);
 			result.setAbilPresaInCarico(lXmlFascicoloOut.getAbilitazioni() != null ? lXmlFascicoloOut.getAbilitazioni().getPresaInCarico() : null);
 			result.setAbilRestituzione(lXmlFascicoloOut.getAbilitazioni() != null ? lXmlFascicoloOut.getAbilitazioni().getRestituzione() : null);
+			result.setAbilRilascia((lXmlFascicoloOut.getAbilitazioni() != null && lXmlFascicoloOut.getAbilitazioni().getRilascia() != null) ? lXmlFascicoloOut.getAbilitazioni().getRilascia() : null);
 			result.setAbilArchiviazione(lXmlFascicoloOut.getAbilitazioni() != null ? lXmlFascicoloOut.getAbilitazioni().getArchiviazione() : null);
 			result.setAbilChiudiFascicolo(lXmlFascicoloOut.getAbilitazioni() != null ? lXmlFascicoloOut.getAbilitazioni().getChiusura() : null);
 			result.setAbilRiapriFascicolo(lXmlFascicoloOut.getAbilitazioni() != null ? lXmlFascicoloOut.getAbilitazioni().getRiapertura() : null);
@@ -821,6 +830,31 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 				result.setListaProcCollegati(listaProcCollegati);
 			}
 			
+			// Lista perizie ADSP
+			if (lXmlFascicoloOut.getListaPerizie() != null && lXmlFascicoloOut.getListaPerizie().size() > 0) {
+				List<PeriziaBean> listaPerizie = new ArrayList<PeriziaBean>();
+				for (PeriziaXmlBean periziaXmlBean : lXmlFascicoloOut.getListaPerizie()) {
+					PeriziaBean periziaBean = new PeriziaBean();				
+					periziaBean.setPerizia(periziaXmlBean.getPerizia());
+					periziaBean.setDescrizione(periziaXmlBean.getDescrizione());
+					periziaBean.setCodiceRapido(periziaXmlBean.getPerizia());				
+					listaPerizie.add(periziaBean);
+				}
+				result.setListaPerizie(listaPerizie);
+			}
+
+			// Lista concessioni ADSP
+			if (lXmlFascicoloOut.getListaConcessioni() != null && lXmlFascicoloOut.getListaConcessioni().size() > 0) {
+				List<ConcessioneBean> listaConcessioni = new ArrayList<ConcessioneBean>();
+				for (ConcessioneXmlOutBean concessioneXmlBean : lXmlFascicoloOut.getListaConcessioni()) {
+					ConcessioneBean concessioneBean = new ConcessioneBean();				
+					concessioneBean.setConcessione(concessioneXmlBean.getCodice());
+					concessioneBean.setDescrizione(concessioneXmlBean.getDescrizione());
+					concessioneBean.setCodiceRapido(concessioneXmlBean.getCodice());				
+					listaConcessioni.add(concessioneBean);
+				}
+				result.setListaConcessioni(listaConcessioni);
+			}			
 		}
 
 		return result;
@@ -1100,6 +1134,12 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 		}
 		
 		salvaAltreUbicazioni(bean, xmlFascicoloIn);
+		
+		// Salvo la lista delle perizie
+		salvaPerizie(bean, xmlFascicoloIn);
+		
+		// Salvo la lista delle concessioni
+		salvaConcessioni(bean, xmlFascicoloIn);
 		
 		Map<String, Object> valori = bean.getValori() != null ? bean.getValori() : new HashMap<String, Object>();
 		Map<String, String> tipiValori = bean.getTipiValori() != null ? bean.getTipiValori() : new HashMap<String, String>();
@@ -1721,12 +1761,18 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 		
 		salvaAltreUbicazioni(bean, xmlFascicoloIn);
 
+		// Salvo la lista delle perizie
+		salvaPerizie(bean, xmlFascicoloIn);
+		
+		// Salvo la lista delle concessioni
+		salvaConcessioni(bean, xmlFascicoloIn);
+
 		Map<String, Object> valori = bean.getValori() != null ? bean.getValori() : new HashMap<String, Object>();
 		Map<String, String> tipiValori = bean.getTipiValori() != null ? bean.getTipiValori() : new HashMap<String, String>();
 		SezioneCache sezioneCacheAttributiDinamici = SezioneCacheAttributiDinamici.createSezioneCacheAttributiDinamici(null, valori, tipiValori, getSession());
 		salvaAttributiCustomSemplici(bean, sezioneCacheAttributiDinamici);
 		salvaAttributiCustomLista(bean, sezioneCacheAttributiDinamici);
-		xmlFascicoloIn.setSezioneCacheAttributiDinamici(sezioneCacheAttributiDinamici);		
+		xmlFascicoloIn.setSezioneCacheAttributiDinamici(sezioneCacheAttributiDinamici);
 
 		lSalvaFascicoloIn.setXmlFascicolo(xmlFascicoloIn);
 
@@ -2719,19 +2765,22 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 		String colsToReturn;
 
 		if (ParametriDBUtil.getParametroDBAsBoolean(getSession(), "ATTIVO_MODULO_PROT")) {
-			colsToReturn = "1,2,3,4,5,6,7,10,14,15,16,17,18,20,29,30,31,32,33,36,37,39,42,53,72,88,89,90,91,92,93,94,95,96,97,99,100,201,203,204,205,206,207,208,214,215,227,232,258,259,260,261,216,281,282,284,285,298,300,CAUSALE_AGG_NOTE,FLG_IMMEDIATAMENTE_ESEGUIBILE,FLG_SOTTOPOSTO_CONTROLLO_REG_AMM,ID_PROCESS_CONTROLLO_REG_AMM,315";
+			colsToReturn = "1,2,3,4,5,6,7,10,14,15,16,17,18,20,29,30,31,32,33,36,37,39,42,53,88,89,90,91,92,93,94,95,96,97,99,100,201,203,204,205,206,207,208,214,215,227,232,258,259,260,261,216,281,282,284,285,298,300,CAUSALE_AGG_NOTE,FLG_IMMEDIATAMENTE_ESEGUIBILE,FLG_SOTTOPOSTO_CONTROLLO_REG_AMM,ID_PROCESS_CONTROLLO_REG_AMM,315";
 			if (ParametriDBUtil.getParametroDB(getSession(), "CLIENTE") != null && "ADSP".equalsIgnoreCase(ParametriDBUtil.getParametroDB(getSession(), "CLIENTE"))) {
-				colsToReturn += ",296";
+				colsToReturn += ",296,316";
 			}
 			if (ParametriDBUtil.getParametroDB(getSession(), "CLIENTE") != null && "COTO".equalsIgnoreCase(ParametriDBUtil.getParametroDB(getSession(), "CLIENTE"))) {
 				colsToReturn += ",312,313,314";
 			}
 		} else {
-			colsToReturn = "1,2,3,4,6,7,10,14,15,16,17,18,20,29,30,31,32,33,36,37,39,53,72,88,89,90,93,94,95,99,100,201,205,232,258,261,216,281,282,284,285,298,300,CAUSALE_AGG_NOTE,FLG_IMMEDIATAMENTE_ESEGUIBILE,FLG_SOTTOPOSTO_CONTROLLO_REG_AMM,ID_PROCESS_CONTROLLO_REG_AMM,315";
+			colsToReturn = "1,2,3,4,6,7,10,14,15,16,17,18,20,29,30,31,32,33,36,37,39,53,88,89,90,93,94,95,99,100,201,205,232,258,261,216,281,282,284,285,298,300,CAUSALE_AGG_NOTE,FLG_IMMEDIATAMENTE_ESEGUIBILE,FLG_SOTTOPOSTO_CONTROLLO_REG_AMM,ID_PROCESS_CONTROLLO_REG_AMM,315";
 			if (ParametriDBUtil.getParametroDB(getSession(), "CLIENTE") != null && "COTO".equalsIgnoreCase(ParametriDBUtil.getParametroDB(getSession(), "CLIENTE"))) {
 				colsToReturn += ",312,313,314";
 			}
 		}
+		
+	
+		
 
 		String filtroFullText = null;
 		String[] checkAttributes = null;
@@ -2908,12 +2957,15 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 		String nroImmagineScansioneMassivaA  = null;
 		
 		String presenzaOpere = null;
+		String presenzaConcessioni = null;
 		String sottoTipologiaAtto = null;
 		String statiTrasfBloomfleet = null;
 		String regoleRegistrazioneAutomaticaEmail = null;
 		String rdAeAttiCollegati = null;
 		String statoClassFascDocumenti = null;
 		
+		Date dataEsecutivitaDa = null;
+		Date dataEsecutivitaA = null;
 		
 		
 		boolean setNullFlgSubfolderSearch = getExtraparams().get("setNullFlgSubfolderSearch") != null ? new Boolean(getExtraparams().get(
@@ -2923,6 +2975,7 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 		List<CriteriPersonalizzati> listCustomFilters = new ArrayList<CriteriPersonalizzati>();
 
 		if (criteria != null && criteria.getCriteria() != null) {
+			boolean flgRicercaRicorsivaSettato = false;
 			for (Criterion crit : criteria.getCriteria()) {
 				if ("maxRecordVisualizzabili".equals(crit.getFieldName())) {
 					if (StringUtils.isNotBlank((String) crit.getValue())) {
@@ -2940,6 +2993,12 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 					if (StringUtils.isNotBlank((String) crit.getValue())) {
 						String[] filterNroPagina = getNumberFilterValue(crit);
 						nroPagina = filterNroPagina[0] != null ? Integer.valueOf(filterNroPagina[0]) : null;
+					}
+				} else if ("flgRicercaRicorsiva".equals(crit.getFieldName())) {
+					if (StringUtils.isNotBlank((String) crit.getValue())) {
+						boolean flgRicorsiva = new Boolean((String) crit.getValue());
+						includiSottoCartelle = flgRicorsiva ? "1" : "0";
+						flgRicercaRicorsivaSettato = true;
 					}
 				} else if ("idNode".equals(crit.getFieldName())) {
 					if (StringUtils.isNotBlank((String) crit.getValue())) {
@@ -3002,16 +3061,15 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 					}
 				} else if ("searchFulltext".equals(crit.getFieldName())) {
 					// se sono entrato qui sono in modalita' di ricerca con i filtri quindi imposto il valore di default a 1
-					includiSottoCartelle = "1";
+					if (!flgRicercaRicorsivaSettato) {
+						// Lo setto solamente non ho già settato il valore tramite il criterio flgRicercaRicorsiva
+						includiSottoCartelle = "1";
+					}
 					if (crit.getValue() != null) {
 						Map map = (Map) crit.getValue();
 						filtroFullText = (String) map.get("parole");
 						ArrayList<String> lArrayList = (ArrayList<String>) map.get("attributi");
 						checkAttributes = lArrayList != null ? lArrayList.toArray(new String[] {}) : null;
-						Boolean flgRicorsiva = (Boolean) map.get("flgRicorsiva");
-						if (flgRicorsiva != null) {
-							includiSottoCartelle = flgRicorsiva ? "1" : "0";
-						}
 						String operator = crit.getOperator();
 						if (StringUtils.isNotBlank(operator)) {
 							if ("allTheWords".equals(operator)) {
@@ -3436,7 +3494,9 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 				} else if ("cig".equals(crit.getFieldName())) {
 					listCustomFilters.add(CriteriPersonalizzatiUtil.getCriterioPersonalizzato("CIG", crit));
 				} else if ("perizia".equals(crit.getFieldName())) {
-					listCustomFilters.add(CriteriPersonalizzatiUtil.getCriterioPersonalizzato("COD_PERIZIA_ADSP", crit));
+					listCustomFilters.add(CriteriPersonalizzatiUtil.getCriterioPersonalizzato("COD_PERIZIA_ADSP", crit));				
+				} else if ("concessione".equals(crit.getFieldName())) {
+					listCustomFilters.add(CriteriPersonalizzatiUtil.getCriterioPersonalizzato("COD_CONCESSIONE", crit));				
 				} else if("centroDiCosto".equals(crit.getFieldName())) {
 //					centroDiCosto = getTextFilterValue(crit);
 					centroDiCosto = getValueStringaFullTextMista(crit);
@@ -3512,6 +3572,13 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 					}
 				}
 				
+				// Presenza concessioni (solo per ADSP)
+				else if ("presenzaConcessioni".equals(crit.getFieldName())) {
+					if (crit.getValue() != null) {
+						presenzaConcessioni = new Boolean(String.valueOf(crit.getValue())) ? "1" : "0";
+					}
+				}
+				
 				// Sotto tipologia (solo per ADSP)
 				else if("sottoTipologiaAtto".equals(crit.getFieldName())) {
 					sottoTipologiaAtto = getTextFilterValue(crit);
@@ -3535,6 +3602,21 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 				// Documenti classificati/fascicolati
 				else if("statoClassFascDocumenti".equals(crit.getFieldName())) {
 					statoClassFascDocumenti = getTextFilterValue(crit);
+				}
+				
+				// Data esecutività
+				else if ("dtEsecutivita".equals(crit.getFieldName())) {
+					Date[] estremiDataEsecutivita = getDateFilterValue(crit);
+					if (dataEsecutivitaDa != null) {
+						dataEsecutivitaDa = dataEsecutivitaDa.compareTo(estremiDataEsecutivita[0]) < 0 ? estremiDataEsecutivita[0] : dataEsecutivitaDa;
+					} else {
+						dataEsecutivitaDa = estremiDataEsecutivita[0];
+					}
+					if (dataEsecutivitaA != null) {
+						dataEsecutivitaA = dataEsecutivitaA.compareTo(estremiDataEsecutivita[1]) > 0 ? estremiDataEsecutivita[1] : dataEsecutivitaA;
+					} else {
+						dataEsecutivitaA = estremiDataEsecutivita[1];
+					}
 				}
 			}
 		}
@@ -4224,6 +4306,11 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 			scCriteriAvanzati.setPresenzaOpere(presenzaOpere);
 		}
 		
+		// Presenza concessioni (solo ADSP) 
+		if (StringUtils.isNotBlank(presenzaConcessioni)) {
+			scCriteriAvanzati.setPresenzaConcessioni(presenzaConcessioni);
+		}
+				
 		// Sotto tipologia atto (solo ADSP)
 		if (StringUtils.isNotBlank(sottoTipologiaAtto)) {
 			scCriteriAvanzati.setSottoTipologiaAtto(sottoTipologiaAtto);
@@ -4248,7 +4335,16 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 		if (StringUtils.isNotBlank(statoClassFascDocumenti)) {
 			scCriteriAvanzati.setStatoClassFascDocumenti(statoClassFascDocumenti);
 		}
-		
+	
+		// Data esecutività
+		if (dataEsecutivitaDa != null) {
+			scCriteriAvanzati.setDtEsecutivitaDal(dataEsecutivitaDa);
+		}
+	
+		if (dataEsecutivitaA != null) {
+			scCriteriAvanzati.setDtEsecutivitaAl(dataEsecutivitaA);
+		}
+	
 		XmlUtilitySerializer lXmlUtilitySerializer = new XmlUtilitySerializer();
 		advancedFilters = lXmlUtilitySerializer.bindXml(scCriteriAvanzati);
 
@@ -4427,6 +4523,12 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 				}
 		}
 		
+		// Sia la colonna "Data adozione" (colonna 71) che la colonna "Data esecutività" (colonna 72)  
+		// devono essere visibili SOLO se almeno uno dei parametri DB ATTIVATO_MODULO_ATTI e ATTIVA_ALBO = true
+		if (ParametriDBUtil.getParametroDBAsBoolean(getSession(), "ATTIVATO_MODULO_ATTI") || 
+			ParametriDBUtil.getParametroDBAsBoolean(getSession(), "ATTIVA_ALBO")) {
+			colsToReturn += ",71,72";
+		}
 				
 		FindRepositoryObjectBean lFindRepositoryObjectBean = new FindRepositoryObjectBean();
 
@@ -4639,8 +4741,8 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 				
 				CreaModDocumentoInBean creaModDocumentoInBean = new CreaModDocumentoInBean();
 				if("NESSUN_TIPO".equalsIgnoreCase(getExtraparams().get("stato"))) {
-					creaModDocumentoInBean.setCodStato("NULL");
-					creaModDocumentoInBean.setCodStatoDett("NULL");	
+					creaModDocumentoInBean.setCodStato("#NULL");
+					creaModDocumentoInBean.setCodStatoDett("#NULL");	
 				} else {
 					creaModDocumentoInBean.setCodStatoDett(getExtraparams().get("stato"));	
 				}
@@ -4657,6 +4759,18 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 				input.setIduserlavoroin(StringUtils.isNotBlank((CharSequence) idUserLavoro) ? new BigDecimal(idUserLavoro) : null);
 				input.setIdfolderin(new BigDecimal(udFolder.getIdUdFolder()));
 				
+				
+				CreaModDocumentoInBean creaModDocumentoInBean = new CreaModDocumentoInBean();
+				if("NESSUN_TIPO".equalsIgnoreCase(getExtraparams().get("stato"))) {
+					creaModDocumentoInBean.setCodStato("#NULL");
+					creaModDocumentoInBean.setCodStatoDett("#NULL");	
+				} else {
+					creaModDocumentoInBean.setCodStatoDett(getExtraparams().get("stato"));	
+				}
+				input.setAttributixmlin(lXmlUtilitySerializer.bindXml(creaModDocumentoInBean));
+				
+				
+				/*
 				XmlFascicoloIn xmlFascicoloIn = new XmlFascicoloIn();
 				if("NESSUN_TIPO".equalsIgnoreCase(getExtraparams().get("stato"))) {
 					xmlFascicoloIn.setCodStato("NULL");
@@ -4669,6 +4783,8 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 				lListNomiVariabiliToSet.add("#CodStato");
 				lListNomiVariabiliToSet.add("#CodStatoDett");
 				input.setAttributixmlin(lXmlUtilitySerializer.bindXmlParziale(xmlFascicoloIn,lListNomiVariabiliToSet));
+				*/
+				
 				
 				DmpkCoreUpdfolder dmpkCoreUpdfolder = new DmpkCoreUpdfolder();
 				StoreResultBean<DmpkCoreUpdfolderBean> output = dmpkCoreUpdfolder.execute(this.getLocale(), loginBean, input);
@@ -4848,6 +4964,46 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 			}
 	    }	    
 	    
+		return bean;
+	}
+	
+	public OperazioneMassivaArchivioBean segnaInvioEmailExtraSistema(OperazioneMassivaArchivioBean bean) throws Exception {
+		AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo((HttpSession) this.getSession());
+		String token = loginBean.getToken();
+		String idUserLavoro = loginBean.getIdUserLavoro();
+		XmlUtilitySerializer lXmlUtilitySerializer = new XmlUtilitySerializer();
+		HashMap<String, String> errorMessages = new HashMap<String, String>();
+
+		if (bean!=null && bean.getListaRecord()!=null && bean.getListaRecord().size()>0){
+
+			for(ArchivioBean archivioBean : bean.getListaRecord()) {
+				DmpkCoreUpddocudBean input = new DmpkCoreUpddocudBean();
+				input.setCodidconnectiontokenin(token);
+				input.setIduserlavoroin(
+						StringUtils.isNotBlank((CharSequence) idUserLavoro) ? new BigDecimal(idUserLavoro) : null);
+				input.setFlgtipotargetin("U");
+				input.setIduddocin(new BigDecimal(archivioBean.getIdUdFolder()));
+
+				CreaModDocumentoInBean lCreaModDocumentoInBean = new CreaModDocumentoInBean();
+				lCreaModDocumentoInBean.setFlgInviataMailExtraSistema(new Integer(1));
+
+				lXmlUtilitySerializer = new XmlUtilitySerializer();
+				input.setAttributiuddocxmlin(lXmlUtilitySerializer.bindXml((Object) lCreaModDocumentoInBean));
+
+				DmpkCoreUpddocud dmpkCoreUpddocud = new DmpkCoreUpddocud();
+				StoreResultBean<DmpkCoreUpddocudBean> output = dmpkCoreUpddocud.execute(this.getLocale(), loginBean,
+						(DmpkCoreUpddocudBean) input);
+
+				if (output.isInError() && output.getDefaultMessage() != null) {
+					if (errorMessages == null)
+						errorMessages = new HashMap<String, String>();
+					errorMessages.put(archivioBean.getIdUdFolder(), output.getDefaultMessage());
+				}
+			}
+			if (errorMessages != null && !errorMessages.isEmpty()) {
+				bean.setErrorMessages(errorMessages);
+			}
+		}
 		return bean;
 	}
 	
@@ -6193,6 +6349,157 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 		return bean;
 	}
 	
+	
+	public AzioneSuccessivaIterFirmaBozzeBean azioneSuccessivaIterFirmaBozze(AzioneSuccessivaIterFirmaBozzeBean bean) throws Exception {
+		
+		AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo(getSession());
+		String token = loginBean.getToken();
+		String idUserLavoro = loginBean.getIdUserLavoro();
+		HashMap<String, String> errorMessages = new HashMap<String, String>();
+		XmlUtilitySerializer lXmlUtilitySerializer = new XmlUtilitySerializer();
+		
+		if (bean != null && bean.getListUD() != null) {
+
+			Boolean flgFirma = bean.getFlgFirma() != null && bean.getFlgFirma();
+			Boolean flgInviaAlVistoDi = bean.getFlgInviaAlVistoDi() != null && bean.getFlgInviaAlVistoDi();
+			Boolean flgInvioA = bean.getFlgInvioA() != null && bean.getFlgInvioA();
+
+			Boolean flgRestituzioneRedattori = bean.getFlgRestituzioneRedattori() != null
+					&& bean.getFlgRestituzioneRedattori();
+			Boolean flgTrasmissioneMailAiDestinatari = bean.getFlgTrasmissioneMailAiDestinatari() != null
+					&& bean.getFlgTrasmissioneMailAiDestinatari();
+			Boolean flgInviaPassoSuccessivo = bean.getFlgInviaPassoSuccessivo() != null
+					&& bean.getFlgInviaPassoSuccessivo();
+
+			for (ArchivioBean archivioBean : bean.getListUD()) {
+				
+				
+				if(flgFirma || flgInviaAlVistoDi || flgInvioA) {
+					// Imposto i valori del bean da passare alla store
+					DmpkCollaborationInvioBean input = new DmpkCollaborationInvioBean();
+					input.setCodidconnectiontokenin(token);
+					input.setIduserlavoroin(StringUtils.isNotBlank(idUserLavoro) ? new BigDecimal(idUserLavoro) : null);
+					input.setFlgtypeobjtosendin("U");
+					input.setIdobjtosendin(archivioBean.getIdUdFolder() != null && !"".equals(archivioBean.getIdUdFolder())
+							? new BigDecimal(archivioBean.getIdUdFolder())
+							: null);
+					input.setFlgcallbyguiin(new Integer(0));
+
+					if (flgFirma) {
+						input.setCodmotivoinvioin("PAF");
+						if (StringUtils.isNotBlank(bean.getIdFirmatario())) {
+
+							List<AssegnatariBean> listaAssegnatari = new ArrayList<AssegnatariBean>();
+
+							AssegnatariBean lAssegnatariBean = new AssegnatariBean();
+							lAssegnatariBean.setTipo(TipoAssegnatario.UTENTE);
+							lAssegnatariBean.setIdSettato(bean.getIdFirmatario());
+							lAssegnatariBean.setRuolo("F");
+							lAssegnatariBean.setPermessiAccesso("FC");
+							if (StringUtils.isNotBlank(lAssegnatariBean.getIdSettato())) {
+								listaAssegnatari.add(lAssegnatariBean);
+							}
+
+							input.setRecipientsxmlin(lXmlUtilitySerializer.bindXmlList(listaAssegnatari));
+
+						}
+					} else if (flgInviaAlVistoDi) {
+						input.setCodmotivoinvioin("PAV");
+						if (StringUtils.isNotBlank(bean.getIdVistatore())) {
+
+							List<AssegnatariBean> listaAssegnatari = new ArrayList<AssegnatariBean>();
+
+							AssegnatariBean lAssegnatariBean = new AssegnatariBean();
+							lAssegnatariBean.setTipo(TipoAssegnatario.UTENTE);
+							lAssegnatariBean.setIdSettato(bean.getIdVistatore());
+							lAssegnatariBean.setRuolo("F");
+							lAssegnatariBean.setPermessiAccesso("FC");
+							if (StringUtils.isNotBlank(lAssegnatariBean.getIdSettato())) {
+								listaAssegnatari.add(lAssegnatariBean);
+							}
+
+							input.setRecipientsxmlin(lXmlUtilitySerializer.bindXmlList(listaAssegnatari));
+
+						}
+					} else if (flgInvioA) {
+						input.setCodmotivoinvioin("PP_TRASM");
+						if (bean.getInvioA() != null && bean.getInvioA().size() > 0 && bean.getInvioA().get(0) != null
+								&& StringUtils.isNotBlank(bean.getInvioA().get(0).getIdUo())) {
+
+							List<AssegnatariBean> listaAssegnatari = new ArrayList<AssegnatariBean>();
+
+							AssegnazioneBean assegnazioneBean = bean.getInvioA().get(0);
+
+							AssegnatariBean lAssegnatariBean = new AssegnatariBean();
+							lAssegnatariBean.setTipo(getTipoAssegnatarioFirmaUD(assegnazioneBean.getTypeNodo()));
+							lAssegnatariBean.setIdSettato(assegnazioneBean.getIdUo());
+							lAssegnatariBean.setRuolo("F");
+							lAssegnatariBean.setPermessiAccesso("FC");
+							if (StringUtils.isNotBlank(lAssegnatariBean.getIdSettato())) {
+								listaAssegnatari.add(lAssegnatariBean);
+							}
+
+							input.setRecipientsxmlin(lXmlUtilitySerializer.bindXmlList(listaAssegnatari));
+
+						}
+					} 
+
+					mLogger.debug("Eseguo la chiamata alla DmpkCollaborationInvio");
+					DmpkCollaborationInvio dmpkCollaborationInvio = new DmpkCollaborationInvio();
+					StoreResultBean<DmpkCollaborationInvioBean> output = dmpkCollaborationInvio.execute(getLocale(),
+							loginBean, input);
+					if (StringUtils.isNotBlank(output.getDefaultMessage())) {
+						mLogger.error("Si è verificato un errore durante la chiamata alla DmpkCollaborationInvio: "
+								+ output.getDefaultMessage());
+						errorMessages.put(archivioBean.getIdUdFolder(), output.getDefaultMessage());
+					} else {
+						mLogger.debug("Chiamata alla DmpkCollaborationInvio effettuata con successo");
+					}
+				}else {
+
+					// Imposto i valori del bean da passare alla store
+					DmpkCollaborationSavenextactposttaskitersignBean input = new DmpkCollaborationSavenextactposttaskitersignBean();
+					input.setCodidconnectiontokenin(token);
+					input.setIduserlavoroin(StringUtils.isNotBlank(idUserLavoro) ? new BigDecimal(idUserLavoro) : null);
+					input.setIdudin(archivioBean.getIdUdFolder() != null && !"".equals(archivioBean.getIdUdFolder())
+							? new BigDecimal(archivioBean.getIdUdFolder())
+							: null);
+			
+					if(flgRestituzioneRedattori) {
+						input.setActtypein("restituzione_redattori");
+						
+					}else if(flgTrasmissioneMailAiDestinatari) {
+						input.setActtypein("trasm_destinatari");
+						
+					}else if(flgInviaPassoSuccessivo) {
+						input.setActtypein("next_step");
+					}
+					
+					mLogger.debug("Eseguo la chiamata alla DmpkCollaborationSavenextactposttaskitersign");
+					DmpkCollaborationSavenextactposttaskitersign lDmpkCollaborationSavenextactposttaskitersign = new DmpkCollaborationSavenextactposttaskitersign();
+					StoreResultBean<DmpkCollaborationSavenextactposttaskitersignBean> output = lDmpkCollaborationSavenextactposttaskitersign.execute(getLocale(),
+							loginBean, input);
+					if (StringUtils.isNotBlank(output.getDefaultMessage())) {
+						mLogger.error("Si è verificato un errore durante la chiamata alla DmpkCollaborationSavenextactposttaskitersign: "
+								+ output.getDefaultMessage());
+						errorMessages.put(archivioBean.getIdUdFolder(), output.getDefaultMessage());
+					} else {
+						mLogger.debug("Chiamata alla DmpkCollaborationSavenextactposttaskitersign effettuata con successo");
+					}
+					
+					
+				}				
+
+			}
+		}
+		
+		if(errorMessages != null && !errorMessages.isEmpty()) {
+			bean.setErrorMessages(errorMessages);
+		}
+		
+		return bean;
+	}
+	
 	public String getXmlAssegnatariFirmaUD(AzioneSuccessivaBean bean,String tipo) throws Exception {
 		XmlUtilitySerializer lXmlUtilitySerializer = new XmlUtilitySerializer();
 		return lXmlUtilitySerializer.bindXmlList(getAssegnatariFirmaUD(bean,tipo));
@@ -6842,12 +7149,16 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 		String token = loginBean.getToken();
 		String idUserLavoro = loginBean.getIdUserLavoro();
 		
-		List<ArchivioBean> listaRecordCorrettamenteProtocollati = new ArrayList<>();
+		List<ArchivioBean> listaRecordCorrettamenteProtocollati = new ArrayList<ArchivioBean>();
 		HashMap<String, String> mappaErrori = new HashMap<>();
 		
 		if (bean.getListaRecord() != null) {
 			for (ArchivioBean archivioBean : bean.getListaRecord()) {
-				if (archivioBean.getNroProt() == null) {
+				// Il controllo che c'era prima era inutile perchè nroProt non è mai valorizzato, nemmeno quando il documento risulta già numerato
+				boolean skipProtBeforeFirma = archivioBean.getSkipProtBeforeFirma() != null && archivioBean.getSkipProtBeforeFirma();
+				if (skipProtBeforeFirma) {
+					listaRecordCorrettamenteProtocollati.add(archivioBean);
+				} else {
 					DmpkCoreUpddocudBean input = new DmpkCoreUpddocudBean();
 					input.setCodidconnectiontokenin(token);
 					input.setIduserlavoroin(StringUtils.isNotBlank(idUserLavoro) ? new BigDecimal(idUserLavoro) : null);
@@ -6887,14 +7198,13 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 					input.setAttributiuddocxmlin(lXmlUtilitySerializer.bindXml(creaModDocumentoInBean));
 					
 					DmpkCoreUpddocud dmpkCoreUpddocud = new DmpkCoreUpddocud();
+					// Se è già protocollato questa update non fa nulla
 					StoreResultBean<DmpkCoreUpddocudBean> output = dmpkCoreUpddocud.execute(this.getLocale(), loginBean, input);
 					if(output.isInError()) {
 						mappaErrori.put(archivioBean.getIdUdFolder(), output.getDefaultMessage());
 					} else {
 						listaRecordCorrettamenteProtocollati.add(archivioBean); 
 					}
-				} else {
-					listaRecordCorrettamenteProtocollati.add(archivioBean);
 				}
 			}
 		}
@@ -6917,7 +7227,7 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 			RecuperoDocumenti lRecuperoDocumenti = new RecuperoDocumenti();
 			RecuperaDocumentoOutBean lRecuperaDocumentoOutBean = lRecuperoDocumenti.loaddocumento(getLocale(), lAurigaLoginBean, lRecuperaDocumentoInBean);
 			if(!lRecuperaDocumentoOutBean.isInError()) {
-				List<FileDaFirmareBean> listaAllegatiDaFirmareUd = new ArrayList<FileDaFirmareBean>();
+				List<FileDaFirmareBean> listaFileDaFirmareUd = new ArrayList<FileDaFirmareBean>();
 				DocumentoXmlOutBean lDocumentoXmlOutBean = lRecuperaDocumentoOutBean.getDocumento();
 				ProtocolloUtility lProtocolloUtility = new ProtocolloUtility(getSession());			
 				//la variabile documento ha al suo interno tutti i valori come nomeDocumento, allegati,....
@@ -6931,7 +7241,7 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 						lFileDaFirmareBean.setIdUd(idUd);
 						lFileDaFirmareBean.setInfoFile(documento.getInfoFile());
 						lFileDaFirmareBean.setCodiceTipoRelazione("P");
-						listaAllegatiDaFirmareUd.add(lFileDaFirmareBean);
+						listaFileDaFirmareUd.add(lFileDaFirmareBean);
 					}				
 					if(documento.getFilePrimarioOmissis() != null && StringUtils.isNotBlank(documento.getFilePrimarioOmissis().getUriFile())) {
 						FileDaFirmareBean lFileDaFirmareBeanOmissis = new FileDaFirmareBean();
@@ -6941,7 +7251,7 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 						lFileDaFirmareBeanOmissis.setIdUd(idUd);
 						lFileDaFirmareBeanOmissis.setInfoFile(documento.getFilePrimarioOmissis().getInfoFile());
 						lFileDaFirmareBeanOmissis.setCodiceTipoRelazione("P");
-						listaAllegatiDaFirmareUd.add(lFileDaFirmareBeanOmissis);
+						listaFileDaFirmareUd.add(lFileDaFirmareBeanOmissis);
 					}				
 				} 
 				if (documento.getListaAllegati() != null) {
@@ -6957,7 +7267,7 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 								lFileDaFirmareBean.setInfoFile(allegatoUdBean.getInfoFile());
 								lFileDaFirmareBean.setCodiceTipoRelazione("ALL");
 								lFileDaFirmareBean.setNroProgAllegato(allegatoUdBean.getNumeroProgrAllegato() != null ? Integer.parseInt(allegatoUdBean.getNumeroProgrAllegato()) : null);
-								listaAllegatiDaFirmareUd.add(lFileDaFirmareBean);	
+								listaFileDaFirmareUd.add(lFileDaFirmareBean);	
 							}
 							if (StringUtils.isNotBlank(allegatoUdBean.getUriFileOmissis())) {
 								FileDaFirmareBean lFileDaFirmareBeanOmissis = new FileDaFirmareBean();
@@ -6968,15 +7278,19 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 								lFileDaFirmareBeanOmissis.setInfoFile(allegatoUdBean.getInfoFileOmissis());
 								lFileDaFirmareBeanOmissis.setCodiceTipoRelazione("ALL");
 								lFileDaFirmareBeanOmissis.setNroProgAllegato(allegatoUdBean.getNumeroProgrAllegato() != null ? Integer.parseInt(allegatoUdBean.getNumeroProgrAllegato()) : null);
-								listaAllegatiDaFirmareUd.add(lFileDaFirmareBeanOmissis);
+								listaFileDaFirmareUd.add(lFileDaFirmareBeanOmissis);
 							}
 						}
 					}
 				}
-				// L'unità documentale deve essere firmata, aggiunto allegati e
-				// primario alla lista file da firmare
-				for (FileDaFirmareBean allegatoUd : listaAllegatiDaFirmareUd) {
-					lListaFileDaFirmare.add(allegatoUd);
+				// L'unità documentale deve essere firmata, aggiungo allegati e primario alla lista file da firmare
+				if(listaFileDaFirmareUd.size() > 0) {
+					for (FileDaFirmareBean fileDaFirmareUd : listaFileDaFirmareUd) {
+						lListaFileDaFirmare.add(fileDaFirmareUd);
+					}
+				} else {
+					listaIdUdInErrore.add(bean.getListaRecord().get(i).getIdUdFolder());
+					mappaErrori.put(bean.getListaRecord().get(i).getIdUdFolder(), "Non ci sono file associati: operazione di firma con segnatura di protocollo non consentita");
 				}
 			} else {
 				listaIdUdInErrore.add(bean.getListaRecord().get(i).getIdUdFolder());
@@ -7032,8 +7346,13 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 					lMimeTypeFirmaBean.setDaScansione(false);
 					lFileDaTimbrareBean.setInfoFile(lMimeTypeFirmaBean);
 				} else {
+					String errorMessage = "Si è verificato un errore durante la timbratura del file";
+					if (StringUtils.isNotBlank(lTimbraResultBean.getError())) {
+						errorMessage += ": " + lTimbraResultBean.getError();
+					}
+					logger.error(errorMessage);
 					// La timbratura è fallita, setto l'errore e tengo traccia della idUd in modo da non proseguire con la sua elaborazione
-					mappaErrori.put(lFileDaTimbrareBean.getIdUd(), "Il documento è stato protocollato. Non è stato tuttavia portare a termine l'operazione di firma");
+					mappaErrori.put(lFileDaTimbrareBean.getIdUd(), "Il documento risulta protocollato. Non è stato tuttavia possibile portare a termine l'operazione di firma.");
 					listaIdUdNonTimbrate.add(lFileDaTimbrareBean.getIdUd());
 				}
 			}
@@ -7054,7 +7373,7 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 	
 	public FirmaMassivaFilesBean aggiornaDocumentoAfterProtocollazioneTimbraEFirma(FirmaMassivaFilesBean pFirmaMassivaFilesBean) throws Exception {
 		FirmaMassivaFilesBean lFirmaMassivaFilesBean = new FirmaMassivaFilesBean();
-		HashMap<String, String> filesInError = new HashMap<>();
+		HashMap<String, String> mappaErrori = new HashMap<>();
 		// Mantengouna lista di idUd versionate correttamente
 		List<String> listaIdUdAggiornateCorretamente = new ArrayList<>();
 		for (FileDaFirmareBean lFileDaFirmareBean : pFirmaMassivaFilesBean.getFiles()) {
@@ -7079,7 +7398,8 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 				}
 				versionaDocumento(lFileDaFirmareBean);				
 			} catch (Exception e) {
-				filesInError.put(lFileDaFirmareBean.getIdUd(), "Il documento è stato protocollato. Non è stato tuttavia portare a termine l'operazione di firma");
+				logger.error("Si è verificato un errore durante la firma: " + e.getMessage(), e);
+				mappaErrori.put(lFileDaFirmareBean.getIdUd(), "Il documento risulta protocollato. Non è stato tuttavia possibile portare a termine l'operazione di firma.");
 				// Aggiorno la lista delle idUd aggiornate correttamente, rimuovendo quella attuale
 				listaIdUdAggiornateCorretamente.remove(lFileDaFirmareBean.getIdUd());
 			}
@@ -7099,12 +7419,13 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 			DmpkCoreFirmadocumento dmpkCoreFirmaDocumento = new DmpkCoreFirmadocumento();
 			StoreResultBean<DmpkCoreFirmadocumentoBean> output = dmpkCoreFirmaDocumento.execute(getLocale(), loginBean, input);
 	
-			if (output.getDefaultMessage() != null) {
-				filesInError.put(idUdDaAggiornare, output.getDefaultMessage());
+			if(output.isInError()) {
+				logger.error("Si è verificato un errore durante la firma: " + output.getDefaultMessage(), new StoreException(output));
+				mappaErrori.put(idUdDaAggiornare, output.getDefaultMessage());
 			}
 		}
 				
-		lFirmaMassivaFilesBean.setErrorMessages(filesInError);
+		lFirmaMassivaFilesBean.setErrorMessages(mappaErrori);
 		return lFirmaMassivaFilesBean;
 	}
 	
@@ -7189,7 +7510,10 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 			String xmlLista = lStoreResultBean.getResultBean().getListaxmlout();
 			List<TipoDocumentoBean> lListXml = XmlListaUtility.recuperaLista(xmlLista, TipoDocumentoBean.class);
 			for (TipoDocumentoBean lRiga : lListXml) {
-				mappaTipiDocFlgRichiestaFirmaDigitale.put(lRiga.getIdTipoDocumento(), lRiga.getFlgRichiestaFirmaDigitale());
+				String flgRichiestoFile = lRiga.getFlgRichiestoFile() != null && "1".equals(lRiga.getFlgRichiestoFile()) ? "1" : "0";
+				String flgRichiestoFileConFirma = lRiga.getFlgRichiestoFileConFirma() != null && "1".equals(lRiga.getFlgRichiestoFileConFirma())? "1" : "0";
+				String flgRichiestoFileConFirmaValida = lRiga.getFlgRichiestoFileConFirmaValida() != null && "1".equals(lRiga.getFlgRichiestoFileConFirmaValida()) ? "1" : "0";
+				mappaTipiDocFlgRichiestaFirmaDigitale.put(lRiga.getIdTipoDocumento(), flgRichiestoFile + flgRichiestoFileConFirma + flgRichiestoFileConFirmaValida);
 			}
 		}
 		return mappaTipiDocFlgRichiestaFirmaDigitale;
@@ -7202,10 +7526,8 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 		HashSet<String> setTipiDocumento = new HashSet<String>();
 		if (bean.getListaDocumentiIstruttoria() != null) {
 			for (AllegatoProtocolloBean allegato : bean.getListaDocumentiIstruttoria()) {
-				if (StringUtils.isNotBlank(allegato.getUriFileAllegato()) && StringUtils.isNotBlank(allegato.getNomeFileAllegato())) {
-					if(StringUtils.isNotBlank(allegato.getListaTipiFileAllegato())) {
-						setTipiDocumento.add(allegato.getListaTipiFileAllegato());
-					}
+				if(StringUtils.isNotBlank(allegato.getListaTipiFileAllegato())) {
+					setTipiDocumento.add(allegato.getListaTipiFileAllegato());
 				}
 			}
 		}	
@@ -7217,32 +7539,41 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 			int n = 0;
 			for (AllegatoProtocolloBean allegato : bean.getListaDocumentiIstruttoria()) {
 				n++;
-				String flgRichiestaFirmaDigitaleAllegato = StringUtils.isNotBlank(allegato.getListaTipiFileAllegato()) ? mappaTipiDocFlgRichiestaFirmaDigitale.get(allegato.getListaTipiFileAllegato()) : null;
-				if (StringUtils.isNotBlank(flgRichiestaFirmaDigitaleAllegato)) {
+				if(StringUtils.isNotBlank(allegato.getListaTipiFileAllegato()) && StringUtils.isNotBlank(mappaTipiDocFlgRichiestaFirmaDigitale.get(allegato.getListaTipiFileAllegato()))) {
+					String flgRichiestoFile = mappaTipiDocFlgRichiestaFirmaDigitale.get(allegato.getListaTipiFileAllegato()).substring(0,1);
+					String flgRichiestoFileConFirma = mappaTipiDocFlgRichiestaFirmaDigitale.get(allegato.getListaTipiFileAllegato()).substring(1,2);
+					String flgRichiestoFileConFirmaValida = mappaTipiDocFlgRichiestaFirmaDigitale.get(allegato.getListaTipiFileAllegato()).substring(2,3);
 					// Se si protocollo o repertoria un documento di istruttoria
 					if(StringUtils.isNotBlank(allegato.getEstremiProtUd())) {
 						// in questo caso fileOp non andrà mai chiamato perchè dopo la protocollazione/repertoriazione del documento di istruttoria il file viene sempre rigenerato
 						// quindi non avrò mai il caso in cui il file è stato salvato precedentemente alla protocollazione/repertoriazione del documento di istruttoria
 						if (StringUtils.isNotBlank(allegato.getUriFileAllegato()) && StringUtils.isNotBlank(allegato.getNomeFileAllegato())) {
-							if ("P".equals(flgRichiestaFirmaDigitaleAllegato) && allegato.getInfoFile() != null && !allegato.getInfoFile().isFirmato()) {
-								valid = false;
-								sb.append("<li>Per la tipologia del documento di istruttoria N. " + n + " è obbligatorio che il file sia firmato digitalmente.</li>");
-								mappaErroriFile.put("" + n, "Per la tipologia del documento di istruttoria è obbligatorio che il file sia firmato digitalmente");
-							} else if ("V".equals(flgRichiestaFirmaDigitaleAllegato) && allegato.getInfoFile() != null && (!allegato.getInfoFile().isFirmato() || !allegato.getInfoFile().isFirmaValida())) {
-								valid = false;
-								sb.append("<li>Per la tipologia del documento di istruttoria N. " + n + " è obbligatorio che il file sia firmato digitalmente con firma valida.</li>");
-								mappaErroriFile.put("" + n, "Per la tipologia del documento di istruttoria è obbligatorio che il file sia firmato digitalmente con firma valida");
-							}						
+							// se c'è il file
+							if(allegato.getInfoFile() != null && allegato.getInfoFile().isFirmato()) {
+								// se il file è firmato
+								if(flgRichiestoFileConFirmaValida != null && "1".equals(flgRichiestoFileConFirmaValida)) {
+									if(!allegato.getInfoFile().isFirmaValida()) {
+										// se il file non ha una firma valida
+										valid = false;
+										sb.append("<li>Per la tipologia del documento di istruttoria N. " + n + " è obbligatorio che il file, se firmato digitalmente, abbia una firma valida.</li>");
+										mappaErroriFile.put("" + n, "Per la tipologia del documento di istruttoria è obbligatorio che il file, se firmato digitalmente, abbia una firma valida");
+									}
+								}
+							} else {
+								// se il file non è firmato
+								if(flgRichiestoFileConFirma != null && "1".equals(flgRichiestoFileConFirma)) {
+									valid = false;
+									sb.append("<li>Per la tipologia del documento di istruttoria N. " + n + " è obbligatorio che il file sia firmato digitalmente.</li>");
+									mappaErroriFile.put("" + n, "Per la tipologia del documento di istruttoria è obbligatorio che il file sia firmato digitalmente");
+								}
+							}								
 						} else {
-							if ("P".equals(flgRichiestaFirmaDigitaleAllegato)) {
+							// se non c'è il file
+							if(flgRichiestoFile != null && "1".equals(flgRichiestoFile)) {
 								valid = false;
-								sb.append("<li>Per la tipologia del documento di istruttoria N. " + n + " è obbligatorio che ci sia un file firmato digitalmente.</li>");
-								mappaErroriFile.put("" + n, "Per la tipologia del documento di istruttoria è obbligatorio che ci sia un file firmato digitalmente");
-							} else if ("V".equals(flgRichiestaFirmaDigitaleAllegato)) {
-								valid = false;
-								sb.append("<li>Per la tipologia del documento di istruttoria N. " + n + " è obbligatorio che ci sia un file firmato digitalmente con firma valida.</li>");
-								mappaErroriFile.put("" + n, "Per la tipologia del documento di istruttoria è obbligatorio che ci sia un file firmato digitalmente con firma valida");
-							}	
+								sb.append("<li>Per la tipologia del documento di istruttoria N. " + n + " è obbligatorio che ci sia un file.</li>");
+								mappaErroriFile.put("" + n, "Per la tipologia del documento di istruttoria è obbligatorio che ci sia un file");
+							}
 						}
 					}
 				}
@@ -7260,4 +7591,28 @@ public class ArchivioDatasource extends AurigaAbstractFetchDatasource<ArchivioBe
 		}
 	}
 	
+	private void salvaPerizie(ArchivioBean bean, XmlFascicoloIn lXmlFascicoloIn) throws Exception {
+		List<PeriziaXmlBean> listaPerizie = new ArrayList<PeriziaXmlBean>();
+		if (bean.getListaPerizie() != null) {
+			for (PeriziaBean perizia : bean.getListaPerizie()) {				
+				PeriziaXmlBean periziaBean = new PeriziaXmlBean();
+				periziaBean.setPerizia(perizia.getPerizia());
+				periziaBean.setDescrizione(perizia.getDescrizione());
+				listaPerizie.add(periziaBean);
+			}			
+			lXmlFascicoloIn.setListaPerizie(listaPerizie);
+		}
+	}
+	
+	private void salvaConcessioni(ArchivioBean bean, XmlFascicoloIn lXmlFascicoloIn)  throws Exception {
+		List<ConcessioneXmlInBean> listaConcessioni = new ArrayList<ConcessioneXmlInBean>();
+		if (bean.getListaConcessioni() != null) {
+			for (ConcessioneBean concessione : bean.getListaConcessioni()) {				
+				ConcessioneXmlInBean concessioneBean = new ConcessioneXmlInBean();
+				concessioneBean.setCodice(concessione.getConcessione());
+				listaConcessioni.add(concessioneBean);
+			}			
+			lXmlFascicoloIn.setListaConcessioni(listaConcessioni);
+		}
+	}
 }

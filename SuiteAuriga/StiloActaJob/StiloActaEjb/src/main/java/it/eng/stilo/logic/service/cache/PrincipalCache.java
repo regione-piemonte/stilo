@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.stilo.logic.service.cache;
 
 import it.doqui.acta.acaris.archive.IdFormaDocumentariaType;
 import it.doqui.acta.acaris.archive.IdStatoDiEfficaciaType;

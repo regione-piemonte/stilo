@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean;
 
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,8 @@ public class CaricamentoDestinatariExcelBean<T> extends ExecutionResultBean<T> {
 	private List<ErroreRigaExcelBean> listaExcelDatiInError;
 	
 	private String numRigheDestinatari;
+	
+	String invioMailPrevisto;
 
 	public String getMimetype() {
 		return mimetype;
@@ -76,6 +79,14 @@ public class CaricamentoDestinatariExcelBean<T> extends ExecutionResultBean<T> {
 
 	public void setIdFoglio(String idFoglio) {
 		this.idFoglio = idFoglio;
+	}
+
+	public String getInvioMailPrevisto() {
+		return invioMailPrevisto;
+	}
+
+	public void setInvioMailPrevisto(String invioMailPrevisto) {
+		this.invioMailPrevisto = invioMailPrevisto;
 	}
 	
 }

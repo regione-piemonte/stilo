@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovarichaccessoatti;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -2770,11 +2771,24 @@ public class NuovaRichiestaAccessoAttiDetail extends DocumentDetail {
 	}
 	
 	public void caricaAttributiDinamiciDoc(String nomeFlussoWF, String processNameWF, String activityName, String idTipoDoc, String rowidDoc) {
-		
+		if(attributiAddDocLayouts != null) {
+			for (String key : attributiAddDocLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddDocLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddDocDetails != null) {
+			for (String key : attributiAddDocDetails.keySet()) {
+				try { attributiAddDocDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
 		attributiAddDocLayouts = new HashMap<String, VLayout>();
 		attributiAddDocDetails = new HashMap<String, AttributiDinamiciDetail>();
 		if (attributiAddDocTabs != null && attributiAddDocTabs.size() > 0) {
 			GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");
+			lGwtRestService.addParam("flgSkipAttrSenzaCategoria", "true");
 			lGwtRestService.addParam("nomeFlussoWF", nomeFlussoWF);
 			lGwtRestService.addParam("processNameWF", processNameWF);
 			lGwtRestService.addParam("activityNameWF", activityName);
@@ -3355,12 +3369,12 @@ public class NuovaRichiestaAccessoAttiDetail extends DocumentDetail {
 			});
 		}
 		operazioniFilePrimarioSubmenu.addItem(scaricaFilePrimarioMenuItem);
-
-//		if() {     TODO: timbro
-			buildTimbraButtons(listRecord, detailRecord, lInfoFileRecord, operazioniFilePrimarioSubmenu);	
-//		}
 		
-		if (lInfoFileRecord != null && Layout.isPrivilegioAttivo("SCC")) {
+		if(AurigaLayout.showOperazioniTimbratura()) {
+			buildTimbraButtons(listRecord, detailRecord, lInfoFileRecord, operazioniFilePrimarioSubmenu);
+		}
+		
+		if (lInfoFileRecord != null && AurigaLayout.showCopiaConformeCustom()) {
 			String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 			MenuItem timbroConformitaCustomPrimarioMenuItem = new MenuItem(labelConformitaCustom, "file/copiaConformeCustom.png");
 			timbroConformitaCustomPrimarioMenuItem.setEnabled(lInfoFileRecord != null && lInfoFileRecord.isConvertibile());
@@ -3375,11 +3389,12 @@ public class NuovaRichiestaAccessoAttiDetail extends DocumentDetail {
 
 			operazioniFilePrimarioSubmenu.addItem(timbroConformitaCustomPrimarioMenuItem);
 		}
-
-		// Attestato conformità all’originale
-		MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(
-				I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(), "file/attestato.png");
-		attestatoConformitaOriginaleMenuItem
+		
+		if(AurigaLayout.showAttestatoConformitaOriginale()) {
+			// Attestato conformità all’originale
+			MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(
+					I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(), "file/attestato.png");
+			attestatoConformitaOriginaleMenuItem
 				.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
 
 					@Override
@@ -3415,9 +3430,9 @@ public class NuovaRichiestaAccessoAttiDetail extends DocumentDetail {
 
 					}
 				});
-		attestatoConformitaOriginaleMenuItem
-				.setEnabled(lInfoFileRecord != null);
-		operazioniFilePrimarioSubmenu.addItem(attestatoConformitaOriginaleMenuItem);
+			attestatoConformitaOriginaleMenuItem.setEnabled(lInfoFileRecord != null);
+			operazioniFilePrimarioSubmenu.addItem(attestatoConformitaOriginaleMenuItem);
+		}
 
 		filePrimarioMenuItem.setSubmenu(operazioniFilePrimarioSubmenu);
 	}
@@ -3607,14 +3622,13 @@ public class NuovaRichiestaAccessoAttiDetail extends DocumentDetail {
 		}
 
 		operazioniFileAllegatoSubmenu.addItem(scaricaFileAllegatoMenuItem);
-
-//		if() {     TODO: timbro
-			buildTimbraAllegato(listRecord, detailRecord, nroAllegato, operazioniFileAllegatoSubmenu,
-					lInfoFileRecord);	
-//		}
+		
+		if(AurigaLayout.showOperazioniTimbratura()) {
+			buildTimbraAllegato(listRecord, detailRecord, nroAllegato, operazioniFileAllegatoSubmenu, lInfoFileRecord);		
+		}
 		
 			
-		if (lInfoFileRecord != null && Layout.isPrivilegioAttivo("SCC")) {
+		if (lInfoFileRecord != null && AurigaLayout.showCopiaConformeCustom()) {
 			String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 			MenuItem timbroConformitaCustomAllegatoMenuItem = new MenuItem(labelConformitaCustom, "file/copiaConformeCustom.png");
 			timbroConformitaCustomAllegatoMenuItem.setEnabled(lInfoFileRecord != null && lInfoFileRecord.isConvertibile());
@@ -3629,56 +3643,57 @@ public class NuovaRichiestaAccessoAttiDetail extends DocumentDetail {
 
 			operazioniFileAllegatoSubmenu.addItem(timbroConformitaCustomAllegatoMenuItem);
 
-		}	
-	
-
-		// Attestato conformità all’originale
-		MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(
-				I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(),
-				"file/attestato.png");
-		attestatoConformitaOriginaleMenuItem
-				.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
-
-					@Override
-					public void onClick(MenuItemClickEvent event) {
-						final InfoFileRecord fileAllegato;
-						final String uri;
-						final String idUd = detailRecord.getAttributeAsString("idUd");
-						final String idDoc;
+		}
+		
+		if(AurigaLayout.showAttestatoConformitaOriginale()) {
+			// Attestato conformità all’originale
+			MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(
+					I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(),
+					"file/attestato.png");
+			attestatoConformitaOriginaleMenuItem
+					.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
 						
-						//se è un allegato integrale
-						if(allegatoIntegrale) {
-						
-							fileAllegato = InfoFileRecord
-									.buildInfoFileRecord(allegatoRecord.getAttributeAsObject("infoFile"));
-							uri = allegatoRecord.getAttributeAsString("uriFileAllegato");
-							idDoc = allegatoRecord.getAttributeAsString("idDocAllegato");
-
-						}
-						//versione con omissis
-						else {
-							fileAllegato = InfoFileRecord
-									.buildInfoFileRecord(allegatoRecord.getAttributeAsObject("infoFileOmissis"));
-							uri = allegatoRecord.getAttributeAsString("uriFileOmissis");
-							idDoc = allegatoRecord.getAttributeAsString("idDocOmissis");
-						}
-						SC.ask("Vuoi firmare digitalmente l'attestato?", new BooleanCallback() {
-
-							@Override
-							public void execute(Boolean value) {
-								if (value) {
-									creaAttestato(idUd, idDoc, listRecord, fileAllegato, uri, true);
-								} else {
-									creaAttestato(idUd, idDoc, listRecord, fileAllegato, uri, false);
-								}
+						@Override
+						public void onClick(MenuItemClickEvent event) {
+							final InfoFileRecord fileAllegato;
+							final String uri;
+							final String idUd = detailRecord.getAttributeAsString("idUd");
+							final String idDoc;
+							
+							//se è un allegato integrale
+							if(allegatoIntegrale) {
+								
+								fileAllegato = InfoFileRecord
+										.buildInfoFileRecord(allegatoRecord.getAttributeAsObject("infoFile"));
+								uri = allegatoRecord.getAttributeAsString("uriFileAllegato");
+								idDoc = allegatoRecord.getAttributeAsString("idDocAllegato");
+								
 							}
-						});
-					}
-				});
-		attestatoConformitaOriginaleMenuItem.setEnabled(lInfoFileRecord != null);
-		operazioniFileAllegatoSubmenu.addItem(attestatoConformitaOriginaleMenuItem);
+							//versione con omissis
+							else {
+								fileAllegato = InfoFileRecord
+										.buildInfoFileRecord(allegatoRecord.getAttributeAsObject("infoFileOmissis"));
+								uri = allegatoRecord.getAttributeAsString("uriFileOmissis");
+								idDoc = allegatoRecord.getAttributeAsString("idDocOmissis");
+							}
+							SC.ask("Vuoi firmare digitalmente l'attestato?", new BooleanCallback() {
+								
+								@Override
+								public void execute(Boolean value) {
+									if (value) {
+										creaAttestato(idUd, idDoc, listRecord, fileAllegato, uri, true);
+									} else {
+										creaAttestato(idUd, idDoc, listRecord, fileAllegato, uri, false);
+									}
+								}
+							});
+						}
+					});
+			attestatoConformitaOriginaleMenuItem.setEnabled(lInfoFileRecord != null);
+			operazioniFileAllegatoSubmenu.addItem(attestatoConformitaOriginaleMenuItem);
+		}
+		
 		fileAllegatoMenuItem.setSubmenu(operazioniFileAllegatoSubmenu);
-
 	}
 	
 	protected void creaAttestato(final String idUd, final String idDoc, ListGridRecord listRecord, final InfoFileRecord infoFileAllegato, final String uriFileAllegato, final boolean attestatoFirmato) {
@@ -4247,4 +4262,26 @@ public class NuovaRichiestaAccessoAttiDetail extends DocumentDetail {
 
 		}
 	}
+	
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();		
+		if(attributiAddDocLayouts != null) {
+			for (String key : attributiAddDocLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddDocLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddDocDetails != null) {
+			for (String key : attributiAddDocDetails.keySet()) {
+				try { attributiAddDocDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
+		attributiAddDocTabs = null;
+		attributiAddDocLayouts = null;		
+		attributiAddDocDetails = null;
+	}
+	
 }

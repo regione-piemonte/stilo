@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.anagrafiche;
 
 import java.util.LinkedHashMap;
 
@@ -89,6 +90,7 @@ public abstract class LookupSoggettiPopup extends ModalWindow {
 						mapCriterion.put(criterion.getFieldName(), criterion);
 					}				
 				}
+				boolean hasFilter = false;
 				if(filterValues != null || (tipoSoggetto != null && !"".equals(tipoSoggetto)) || (getTipiAmmessi() != null && getTipiAmmessi().length > 0)) {					
 					if(filterValues != null) {	
 						String strInDenominazione = "";
@@ -103,12 +105,15 @@ public abstract class LookupSoggettiPopup extends ModalWindow {
 						}							
 						strInDenominazione = strInDenominazione.trim();
 						
-						if(!strInDenominazione.equals(""))
-							mapCriterion.put("strInDenominazione", new Criterion("strInDenominazione", OperatorId.WORDS_START_WITH, strInDenominazione));	
+						if(!strInDenominazione.equals("")) {
+							mapCriterion.put("strInDenominazione", new Criterion("strInDenominazione", OperatorId.WORDS_START_WITH, strInDenominazione));
+							hasFilter = true;
+						}
 					}	
 					
 					if(tipoSoggetto != null && !"".equals(tipoSoggetto)) {
-						mapCriterion.put("tipologia", new Criterion("tipologia", OperatorId.EQUALS, getTipologiaFromTipoSoggetto(tipoSoggetto)));													
+						mapCriterion.put("tipologia", new Criterion("tipologia", OperatorId.EQUALS, getTipologiaFromTipoSoggetto(tipoSoggetto)));	
+						hasFilter = true;
 					} 
 					else if(getTipiAmmessi() != null) {
 						String[] tipologieAmmesse = new String[getTipiAmmessi().length];
@@ -116,12 +121,14 @@ public abstract class LookupSoggettiPopup extends ModalWindow {
 							tipologieAmmesse[i] = getTipologiaFromTipoSoggetto(getTipiAmmessi()[i]);
 						} 
 						mapCriterion.put("tipologia", new Criterion("tipologia", OperatorId.EQUALS, tipologieAmmesse));
+						hasFilter = true;
 					} 
 					else {
 						mapCriterion.put("tipologia", new Criterion("tipologia", OperatorId.EQUALS, new String[0]));
+						hasFilter = true;
 					}
-				}				
-				super.setCriteriaAndFirstSearch(new AdvancedCriteria(OperatorId.AND, mapCriterion.values().toArray(new Criterion[0])), (filterValues != null || autoSearch));
+				}
+				super.setCriteriaAndFirstSearch(new AdvancedCriteria(OperatorId.AND, mapCriterion.values().toArray(new Criterion[0])), (hasFilter || autoSearch));
 			}
 			
 			@Override

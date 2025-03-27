@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+// Install NodeJS Linux Binaries (x86/x64)
 // scaricare http://nodejs.org/dist/v6.11.4/node-v6.11.4-linux-x64.tar.gz
 // copiare il tar.gz in /tmp e da /usr/local lanciare il comando: tar --strip-components 1 -xzf /tmp/node-v*.tar.gz
 // npm config set proxy http://<username>:<password>@<proxy-server-url>:<port>

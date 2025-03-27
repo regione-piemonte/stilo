@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pubblicazioneAlbo;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -3237,12 +3238,12 @@ public class PubblicazioneAlboConsultazioneRichiesteDetail extends CustomDetail 
 					altreOpMenu.addItem(item);
 				}
 				
-//				if() {     TODO: timbro					
+				if(AurigaLayout.showOperazioniTimbratura()) {
 					buildMenuBarcodeEtichetta(altreOpMenu);
-//				}
+				}
 					
 				final InfoFileRecord lInfoFileRecord = InfoFileRecord.buildInfoFileRecord(filePrimarioForm.getValue("infoFile"));
-				if (lInfoFileRecord != null && Layout.isPrivilegioAttivo("SCC")) {
+				if (lInfoFileRecord != null && AurigaLayout.showCopiaConformeCustom()) {
 					String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 					MenuItem timbroConformitaCustomAllegatoMenuItem = new MenuItem(labelConformitaCustom, "file/copiaConformeCustom.png");
 					timbroConformitaCustomAllegatoMenuItem.setEnabled(lInfoFileRecord != null && lInfoFileRecord.isConvertibile());
@@ -3388,7 +3389,7 @@ public class PubblicazioneAlboConsultazioneRichiesteDetail extends CustomDetail 
 	 * 
 	 */
 	public boolean showVersioneOmissis() {
-		return true; //AurigaLayout.getParametroDBAsBoolean("SHOW_VERS_CON_OMISSIS") && !showFlgNoPubblPrimarioItem();
+		return true;
 	}
 	
 	/**
@@ -4331,6 +4332,14 @@ public class PubblicazioneAlboConsultazioneRichiesteDetail extends CustomDetail 
 		
 		String idUd = new Record(vm.getValues()).getAttribute("idUdFolder");
 		if (idUd != null && !"".equals(idUd)) {
+
+			if (AurigaLayout.getParametroDBAsBoolean("SHOW_BARCODE_MENU")) {
+				altreOpMenu.addItem(barcodeA4MenuItem);
+				altreOpMenu.addItem(barcodeA4MultipliMenuItem);
+				altreOpMenu.addItem(barcodeEtichettaMenuItem);
+				altreOpMenu.addItem(barcodeEtichettaMultiploMenuItem);
+			}
+			
 			// Se ho piu voci aggiungo il sottoMenu Timbra
 			if (flgAddSubMenuTimbra) {
 				altreOpMenu.addItem(timbraMenuItem);
@@ -4340,13 +4349,6 @@ public class PubblicazioneAlboConsultazioneRichiesteDetail extends CustomDetail 
 					timbraDatiSegnaturaMenuItem.setTitle("Timbra");
 					altreOpMenu.addItem(timbraDatiSegnaturaMenuItem);
 				}
-			}
-
-			if (AurigaLayout.getParametroDBAsBoolean("SHOW_BARCODE_MENU")) {
-				altreOpMenu.addItem(barcodeA4MenuItem);
-				altreOpMenu.addItem(barcodeA4MultipliMenuItem);
-				altreOpMenu.addItem(barcodeEtichettaMenuItem);
-				altreOpMenu.addItem(barcodeEtichettaMultiploMenuItem);
 			}
 		}
 	

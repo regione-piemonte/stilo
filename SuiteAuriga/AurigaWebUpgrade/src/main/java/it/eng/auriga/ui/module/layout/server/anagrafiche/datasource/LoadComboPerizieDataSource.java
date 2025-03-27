@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.anagrafiche.datasource;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ public class LoadComboPerizieDataSource extends SelectDataSource<PeriziaComboXml
 	@Override
 	public PaginatorBean<PeriziaComboXmlBean> realFetch(AdvancedCriteria criteria, Integer startRow, Integer endRow, List<OrderByBean> orderby) throws Exception {
 
+		boolean flgAncheNonVld = StringUtils.isNotBlank(getExtraparams().get("flgAncheNonVld")) && "true".equals(getExtraparams().get("flgAncheNonVld"));
 		String codice = StringUtils.isNotBlank(getExtraparams().get("codice")) ? getExtraparams().get("codice") : "";
 		String descrizione = StringUtils.isNotBlank(getExtraparams().get("descrizione")) ? getExtraparams().get("descrizione") : "";
 		
@@ -46,7 +48,7 @@ public class LoadComboPerizieDataSource extends SelectDataSource<PeriziaComboXml
 		DmpkLoadComboDmfn_load_comboBean lDmpkLoadComboDmfn_load_comboBean = new DmpkLoadComboDmfn_load_comboBean();
 		DmpkLoadComboDmfn_load_combo lDmpkLoadComboDmfn_load_combo = new DmpkLoadComboDmfn_load_combo();
 		lDmpkLoadComboDmfn_load_comboBean.setTipocomboin("PERIZIA_ADSP");		
-		lDmpkLoadComboDmfn_load_comboBean.setFlgsolovldin(new BigDecimal(1));
+		lDmpkLoadComboDmfn_load_comboBean.setFlgsolovldin(flgAncheNonVld ? null : new BigDecimal(1));
 		lDmpkLoadComboDmfn_load_comboBean.setTsvldin(null);
 		
 		String altriParametri = "STR_IN_DES|*|"  +  descrizione + "|*|CODICE|*|" + codice;

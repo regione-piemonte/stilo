@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.archivio.datasource.bean;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -104,6 +105,10 @@ public class ArchivioXmlBean {
 
 	@NumeroColonna(numero = "62")
 	private String estremiInvioNotifiche;
+	
+	@NumeroColonna(numero = "71")
+	@TipoData(tipo = Tipo.DATA_SENZA_ORA)
+	private Date dtAdozione;
 	
 	@NumeroColonna(numero = "72")
 	@TipoData(tipo = Tipo.DATA_SENZA_ORA)
@@ -343,6 +348,9 @@ public class ArchivioXmlBean {
 	
 	@NumeroColonna(numero = "315")
 	private String inConoscenzaA;
+	
+	@NumeroColonna(numero = "316")
+	private String concessioni;
 	
 	
 	public String getFlgUdFolder() {
@@ -1183,6 +1191,22 @@ public class ArchivioXmlBean {
 
 	public void setInConoscenzaA(String inConoscenzaA) {
 		this.inConoscenzaA = inConoscenzaA;
+	}
+
+	public Date getDtAdozione() {
+		return dtAdozione;
+	}
+
+	public void setDtAdozione(Date dtAdozione) {
+		this.dtAdozione = dtAdozione;
+	}
+
+	public String getConcessioni() {
+		return concessioni;
+	}
+
+	public void setConcessioni(String concessioni) {
+		this.concessioni = concessioni;
 	}
 	
 }

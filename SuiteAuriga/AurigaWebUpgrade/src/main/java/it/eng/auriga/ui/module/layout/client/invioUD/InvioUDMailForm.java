@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.invioUD;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -130,14 +131,16 @@ public class InvioUDMailForm extends DynamicForm {
 	private HiddenItem lHiddenItemIdMailPartenza;
 	
 	private Boolean invioMailFromAtti;
+	private String idUD;
 	
-	public InvioUDMailForm(String pTipoMail, Boolean invioMailFromAtti) {
+	public InvioUDMailForm(String pTipoMail, String idUD, Boolean invioMailFromAtti) {
 
 		setOverflow(Overflow.AUTO);
 		setWidth100();
 		setHeight100();
 
 		this.invioMailFromAtti = invioMailFromAtti;
+		this.idUD = idUD;
 
 		setWrapItemTitles(false);
 		setNumCols(20);
@@ -991,12 +994,13 @@ public class InvioUDMailForm extends DynamicForm {
 		lSelectItemMittente.setAllowEmptyValue(false);
 		lSelectItemMittente.setWidth(COMPONENT_WIDTH);
 		lSelectItemMittente.setAddUnknownValues(false);
-		lSelectItemMittente.setRejectInvalidValueOnChange(true);		
+		lSelectItemMittente.setRejectInvalidValueOnChange(true);	
 		GWTRestDataSource accounts = new GWTRestDataSource("AccountInvioEmailDatasource");
 		accounts.addParam("finalita", "INVIO");
 		if (tipoMail != null && tipoMail.equals("PEC")) {
 			accounts.addParam("tipoMail", tipoMail);
 		}
+		accounts.addParam("idUdToSend", idUD);
 		lSelectItemMittente.setOptionDataSource(accounts);
 		lSelectItemMittente.addDataArrivedHandler(new DataArrivedHandler() {
 
@@ -1022,11 +1026,18 @@ public class InvioUDMailForm extends DynamicForm {
 					String tipoAccount = "PEO";
 					String mittenteCorrente = (String) (lValuesManager != null && !"".equals(lValuesManager.getValue("mittente")) ?
 							lValuesManager.getValue("mittente") : null);
-					if(mittenteCorrente != null) {
-						if (event.getData().getLength() > 0) {
+					
+					if (event.getData().getLength() > 0) {
+						if(event.getData().getLength() == 1) {
+							Record accountRecord = event.getData().get(0);
+							if(accountRecord.getAttribute("value").contains("PEC")) {
+								tipoAccount = "PEC";
+							}
+							lSelectItemMittente.setValue(accountRecord.getAttribute("key"));
+						} else {
 							for(int i=0; i < event.getData().getLength(); i++) {
 								Record accountRecord = event.getData().get(i);
-								if(accountRecord.getAttribute("key").equals(mittenteCorrente)) {
+								if(mittenteCorrente != null && accountRecord.getAttribute("key").equals(mittenteCorrente)) {
 									if(accountRecord.getAttribute("value").contains("PEC")) {
 										tipoAccount = "PEC";
 									}
@@ -1037,6 +1048,8 @@ public class InvioUDMailForm extends DynamicForm {
 								}
 							}
 						}
+					} else {
+						lSelectItemMittente.setValue("");
 					}
 					if (AurigaLayout.getParametroDBAsBoolean("HIDE_CONF_LETTURA_MAIL")) {
 						lCheckboxConfermaLettura.setVisible(false);
@@ -1726,7 +1739,7 @@ public class InvioUDMailForm extends DynamicForm {
 	public void selezionaDestinatarioSecondario(Record record,Boolean isCC) {
 		if(isCC){	
 			lComboBoxDestinatariCC.setValue(record.getAttribute("indirizzoEmail").replace(" ", ";"));
-		}else{
+		} else {
 			lComboBoxDestinatariCCN.setValue(record.getAttribute("indirizzoEmail").replace(" ", ";"));
 		}
 		markForRedraw();

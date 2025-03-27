@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+/*
  * Smart GWT (GWT for SmartClient)
  * Copyright 2008 and beyond, Isomorphic Software, Inc.
  *
@@ -75,6 +76,7 @@ import com.google.gwt.event.shared.HasHandlers;
 import com.google.gwt.regexp.shared.RegExp;
 
 import it.eng.utility.ui.module.core.client.UserInterfaceFactory;
+import it.eng.auriga.ui.module.layout.client.editor.CKEditorItem;
 import it.eng.utility.ui.module.core.client.RequestValidatorClient;
 
 /**
@@ -86,6 +88,8 @@ import it.eng.utility.ui.module.core.client.RequestValidatorClient;
  */
 @BeanFactory.FrameworkClass
 public class FormItem extends RefDataClass implements com.smartgwt.client.widgets.form.fields.events.HasBlurHandlers, com.smartgwt.client.widgets.form.fields.events.HasChangeHandlers, com.smartgwt.client.widgets.form.fields.events.HasChangedHandlers, com.smartgwt.client.widgets.form.fields.events.HasClickHandlers, com.smartgwt.client.widgets.form.fields.events.HasDoubleClickHandlers, com.smartgwt.client.widgets.form.fields.events.HasEditorEnterHandlers, com.smartgwt.client.widgets.form.fields.events.HasEditorExitHandlers, com.smartgwt.client.widgets.form.fields.events.HasFocusHandlers, com.smartgwt.client.widgets.form.fields.events.HasIconClickHandlers, com.smartgwt.client.widgets.form.fields.events.HasIconKeyPressHandlers, com.smartgwt.client.widgets.form.fields.events.HasItemHoverHandlers, com.smartgwt.client.widgets.form.fields.events.HasKeyDownHandlers, com.smartgwt.client.widgets.form.fields.events.HasKeyPressHandlers, com.smartgwt.client.widgets.form.fields.events.HasKeyUpHandlers, com.smartgwt.client.widgets.form.fields.events.HasPendingStatusChangedHandlers, com.smartgwt.client.widgets.form.fields.events.HasPickerIconClickHandlers, com.smartgwt.client.widgets.form.fields.events.HasShowContextMenuHandlers, com.smartgwt.client.widgets.form.fields.events.HasTitleClickHandlers, com.smartgwt.client.widgets.form.fields.events.HasTitleDoubleClickHandlers, com.smartgwt.client.widgets.form.fields.events.HasTitleHoverHandlers, com.smartgwt.client.widgets.form.fields.events.HasValueHoverHandlers, com.smartgwt.client.widgets.form.fields.events.HasValueIconClickHandlers {
+	
+	private FormItem _instance = this;
 
     public static FormItem getOrCreateRef(JavaScriptObject jsObj) {
         if (jsObj == null) return null;
@@ -5381,7 +5385,7 @@ public class FormItem extends RefDataClass implements com.smartgwt.client.widget
     
     //TODO AURIGA START    	
 	 public void setValidators(Validator... validators) {
-		if(UserInterfaceFactory.getParametroDBAsBoolean("ATTIVA_SCRIPT_VALIDATOR_FOR_TEXT_INPUT") && ((this instanceof TextItem) || (this instanceof TextAreaItem) || (this instanceof ComboBoxItem))) {
+		if(UserInterfaceFactory.getParametroDBAsBoolean("ATTIVA_SCRIPT_VALIDATOR_FOR_TEXT_INPUT") && ((this instanceof TextItem) || (this instanceof TextAreaItem) || (this instanceof ComboBoxItem) || (this instanceof CKEditorItem))) {
 			Validator[] newValidators = new Validator[validators.length + 1];
 			for(int i = 0; i < validators.length; i++) {
 				newValidators[i] = validators[i];
@@ -5390,7 +5394,12 @@ public class FormItem extends RefDataClass implements com.smartgwt.client.widget
 
 				@Override
 				protected boolean condition(Object value) {
-					String valueStr = value != null ? String.valueOf(value) : null;
+					String valueStr = null;
+					if (_instance != null && _instance instanceof CKEditorItem) {
+						valueStr = ((CKEditorItem) _instance).getValue();
+					} else {
+						valueStr = value != null ? String.valueOf(value) : null;
+					}
 					if(valueStr != null && !"".equals(valueStr)) {
 						if(RequestValidatorClient.containsScript(valueStr)) {
 							return false;

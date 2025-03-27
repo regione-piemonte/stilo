@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovarichaccessoatti;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -87,9 +88,7 @@ public class TaskNuovaRichiestaAccessoAttiDetail extends NuovaRichiestaAccessoAt
 	protected String msgTaskDaPreimpostare;
 	
 	protected DettaglioPraticaLayout dettaglioPraticaLayout;
-	
-	protected RecordList listaRecordModelli;
-	
+		
 	protected Set<String> esitiTaskOk;	
 	protected HashMap<String, Record> controlliXEsitiTaskDoc;
 	protected HashSet<String> valoriEsito;
@@ -138,8 +137,6 @@ public class TaskNuovaRichiestaAccessoAttiDetail extends NuovaRichiestaAccessoAt
 		this.flgInvioNotEmail = lRecordEvento != null ? lRecordEvento.getAttributeAsBoolean("flgInvioNotEmail") : null;
 		
 		this.dettaglioPraticaLayout = dettaglioPraticaLayout;
-		
-		this.listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 
 		RecordList listaEsitiTaskOk = lRecordEvento != null ? lRecordEvento.getAttributeAsRecordList("esitiTaskOk") : null;
 		if(listaEsitiTaskOk != null && listaEsitiTaskOk.getLength() > 0) {
@@ -237,6 +234,7 @@ public class TaskNuovaRichiestaAccessoAttiDetail extends NuovaRichiestaAccessoAt
 			final TabSet tabSetDatiStorici = new TabSet();
 
 			GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");
+			lGwtRestService.addParam("flgSkipAttrSenzaCategoria", "true");
 			// lGwtRestService.addParam("suffisso", "_CMMI");
 			lGwtRestService.addParam("nomeFlussoWF", nomeFlussoWF);
 			lGwtRestService.addParam("processNameWF", processNameWF);
@@ -802,7 +800,9 @@ public class TaskNuovaRichiestaAccessoAttiDetail extends NuovaRichiestaAccessoAt
 	}
 	
 	public Record getRecordModelloXEsito(String esito) {		
-		Record recordModello = null;		
+		Record recordModello = null;	
+		// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+		RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 		if (listaRecordModelli != null && listaRecordModelli.getLength() > 0) {			
 			for (int i = 0; i < listaRecordModelli.getLength(); i++) {
 				String listaEsitiXGenModello = listaRecordModelli.get(i).getAttribute("esitiXGenModello");					
@@ -1474,6 +1474,8 @@ public class TaskNuovaRichiestaAccessoAttiDetail extends NuovaRichiestaAccessoAt
 	
 	@Override
 	public boolean isModelloModificabileInAllegati(String idModello) {
+		// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+		RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 		if(listaRecordModelli != null && listaRecordModelli.getLength() > 0) {
 			for (int i = 0; i < listaRecordModelli.getLength(); i++) {
 				if(idModello != null && idModello.equals(listaRecordModelli.get(i).getAttribute("idModello"))) {

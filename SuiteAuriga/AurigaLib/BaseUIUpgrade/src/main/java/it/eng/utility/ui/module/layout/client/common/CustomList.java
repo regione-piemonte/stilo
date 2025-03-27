@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -108,6 +109,7 @@ public class CustomList extends ListGrid {
 	protected ListGridRecord currentRecord;
 	protected ListGridRecord mouseOverRecord;
 
+	protected String[] pkRecordsToSelect;	
 	protected int[] recordsToSelect;	
 	
 	protected boolean selectionUpdated;
@@ -491,12 +493,18 @@ public class CustomList extends ListGrid {
 	}
 
 	public void manageDataArrived() {
-		if(recordsToSelect != null) {
-//			for(int i = 0; i < recordsToSelect.length; i++) {
-//				selectRecord(recordsToSelect[i]);
-//			}
+		if(pkRecordsToSelect != null) {
+			int[] recordsToSelect = new int[pkRecordsToSelect.length];
+			for(int i = 0; i < pkRecordsToSelect.length; i++) {
+				ListGridRecord recordToSelect = new ListGridRecord();
+				recordToSelect.setAttribute(getDataSource().getPrimaryKeyFieldName(), pkRecordsToSelect[i]);
+				recordsToSelect[i] = getRecordIndex(recordToSelect);
+			}
 			selectRecords(recordsToSelect);
-			recordsToSelect = null;					
+			pkRecordsToSelect = null;
+		} else if(recordsToSelect != null) {
+			selectRecords(recordsToSelect);
+			recordsToSelect = null;
 		} else if(currentRecord != null) {
 			if(layout != null && layout.getMultiselect()) {
 				// se sono nella modalità di seleziona multipla non funziona perchè la selezione della riga prevede la spunta sulla casella
@@ -1918,6 +1926,14 @@ public class CustomList extends ListGrid {
 				}
 			});
 		}
+	}
+	
+	public String[] getPkRecordsToSelect() {
+		return pkRecordsToSelect;
+	}
+	
+	public void setPkRecordsToSelect(String[] pkRecordsToSelect) {
+		this.pkRecordsToSelect = pkRecordsToSelect;
 	}
 
 	public int[] getRecordsToSelect() {

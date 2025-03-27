@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.core.client.i18n.defaults;
 
 /**
  * Interfaccia che espone i le costanti delle label da inserire nelle gui
@@ -505,6 +506,9 @@ public interface Messages extends com.google.gwt.i18n.client.Messages {
 	//#                          Messaggi                          #
 	//##############################################################
 	
+	@Key("beforeSearch_postaElettronica_dataInvio_mancante")
+	String beforeSearch_postaElettronica_dataInvio_mancante();
+	
 	@Key("beforeSearch_postaElettronica_dataInvio_meseMax")
 	String beforeSearch_postaElettronica_dataInvio_meseMax();
 	
@@ -516,6 +520,9 @@ public interface Messages extends com.google.gwt.i18n.client.Messages {
 	
 	@Key("beforeSearch_postaElettronica_ricercaMailArchiviate")
 	String beforeSearch_postaElettronica_ricercaMailArchiviate(String cliente);
+	
+	@Key("beforeSearch_archivio_data_mancante")
+	String beforeSearch_archivio_data_mancante();
 	
 	@Key("beforeSearch_archivio_data_meseMax")
 	String beforeSearch_archivio_data_meseMax();

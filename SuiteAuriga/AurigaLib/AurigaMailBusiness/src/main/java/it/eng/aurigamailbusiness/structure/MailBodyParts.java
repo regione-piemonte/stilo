@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.aurigamailbusiness.structure;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -37,7 +38,7 @@ public class MailBodyParts {
 	private static final String ENCODING_8BIT = "8bit";
 
 	private static final String MIMETYPE_TEXT_HTML = "text/html";
-
+   
 	private static final String FILENAME_DATICERT_XML = "daticert.xml";
 
 	private static final String FILENAME_POSTACERT_EML = "postacert.eml";
@@ -51,6 +52,24 @@ public class MailBodyParts {
 	private final List<AttachmentInfo> attachments = new ArrayList<>();
 
 	private DeliveryStatus attachmentDeliveryStatusNotification = null;
+	
+	/*
+	AURIGA-766
+	Immagini nel body delle mail (es loghi) salvate da mailui come allegati (correttiva)
+	Aggiunta gestione della verifica dei parametri nell'estrazione del body della mail
+	Content-Disposition
+	Content-Type
+	Nel caso in cui il Content-Disposition: inline e Content-Type: image/png; o Content-Type: image/jpeg;
+	Non viene salvata l'immagine come attachment
+	Negli altri casi
+	Content-Disposition: attachment
+	Viene salvato
+	*/
+	private static final String CONTENT_INLINE = "inline";
+	
+	private static final String MIMETYPE_IMAGE_PNG = "image/png";
+	
+	private static final String MIMETYPE_IMAGE_JPEG = "image/jpeg";
 
 	private MimeMessage postaCertMimeMessage = null;
 
@@ -84,7 +103,7 @@ public class MailBodyParts {
 		final String idAttachment = KeyGenerator.gen();
 		// recuperiamo il nome
 		final String name = MailUtil.getAttachmentName(dataHandlerMulti);
-
+		
 		final String mimeType = bodyPiece.getContentType();
 		final String charset = MailUtil.getCharset(dataHandlerMulti);
 
@@ -99,8 +118,9 @@ public class MailBodyParts {
 			String contentGeneric = bodyPiece.getHeader("Content-Disposition")[0];
 			// ci interessa il valore fino al primo punto e virgola
 			contentDisposition = contentGeneric.substring(0, contentGeneric.indexOf(';'));
+			log.error("ParseException: "+pe.getMessage());
 		}
-
+		
 		// recupero il content-transfer-encoding
 		String contentTransferEncoding = null;
 		try {
@@ -279,9 +299,9 @@ public class MailBodyParts {
 				if (bodyPiece.isMimeType("message/delivery-status")) {
 					// allegato di tipo disposition/notification -> salvo
 					// l'informazione nel relativo oggetto
-					this.setAttachmentDeliveryStatusNotification((DeliveryStatus) bodyPiece.getContent());
-				}
-
+                    this.setAttachmentDeliveryStatusNotification((DeliveryStatus) bodyPiece.getContent());
+	             }
+				
 				// attachment daticert
 				if (FILENAME_DATICERT_XML.equalsIgnoreCase(name)) {
 
@@ -348,7 +368,30 @@ public class MailBodyParts {
 				}
 
 				else if (StringUtils.isNotEmpty(name)) {
-					setInfoAttachment(dataHandlerMulti, idAttachment, name, mimeType, contentDisposition, contentTransferEncoding);
+
+					/*
+					 * AURIGA-766 Immagini nel body delle mail (es loghi) salvate da mailui come
+					 * allegati (correttiva) Aggiunta gestione della verifica dei parametri
+					 * nell'estrazione del body della mail Content-Disposition Content-Type Nel caso
+					 * in cui il Content-Disposition: inline e Content-Type: image/png; o
+					 * Content-Type: image/jpeg; Non viene salvata l'immagine come attachment Negli
+					 * altri casi Content-Disposition: attachment Viene salvato
+					 */
+
+					log.error("attachmentMail.getName: " + name);
+					log.error("bodyPiece.getDisposition(): " + bodyPiece.getDisposition());
+					log.error("bodyPiece.getContentType(): " + bodyPiece.getContentType());
+					if (StringUtils.containsIgnoreCase(bodyPiece.getContentType(), MIMETYPE_IMAGE_PNG)
+							&& StringUtils.containsIgnoreCase(bodyPiece.getDisposition(), CONTENT_INLINE)) {
+						log.error("logo nel corpo della mail PNG: " + name);
+					} else if (StringUtils.containsIgnoreCase(bodyPiece.getContentType(), MIMETYPE_IMAGE_JPEG)
+							&& StringUtils.containsIgnoreCase(bodyPiece.getDisposition(), CONTENT_INLINE)) {
+						log.error("logo nel corpo della mail JPEG: " + name);
+					} else {
+						log.error("attachment da salvare: " + name);
+						setInfoAttachment(dataHandlerMulti, idAttachment, name, mimeType, contentDisposition,
+								contentTransferEncoding);
+					}
 				}
 
 			}

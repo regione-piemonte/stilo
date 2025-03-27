@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovapropostaatto2;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -114,7 +115,6 @@ public class TaskNuovaPropostaAtto2Detail extends NuovaPropostaAtto2Detail imple
 	
 	protected DettaglioPraticaLayout dettaglioPraticaLayout;
 	
-	protected RecordList listaRecordModelli;
 	protected Record allegatoGeneratoDaModelloTask;
 	
 	protected Set<String> esitiTaskOk;	
@@ -193,8 +193,6 @@ public class TaskNuovaPropostaAtto2Detail extends NuovaPropostaAtto2Detail imple
 		this.flgAttivaSalvataggioMovimentiDaAMC = lRecordEvento != null ? lRecordEvento.getAttributeAsBoolean("flgAttivaSalvataggioMovimentiDaAMC") : null;
 		
 		this.dettaglioPraticaLayout = dettaglioPraticaLayout;
-		
-		this.listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 
 		RecordList listaEsitiTaskOk = lRecordEvento != null ? lRecordEvento.getAttributeAsRecordList("esitiTaskOk") : null;
 		if(listaEsitiTaskOk != null && listaEsitiTaskOk.getLength() > 0) {
@@ -561,6 +559,7 @@ public class TaskNuovaPropostaAtto2Detail extends NuovaPropostaAtto2Detail imple
 			final TabSet tabSetDatiStorici = new TabSet();
 
 			GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");
+			lGwtRestService.addParam("flgSkipAttrSenzaCategoria", "true");
 			// lGwtRestService.addParam("suffisso", "_CMMI");
 			lGwtRestService.addParam("nomeFlussoWF", nomeFlussoWF);
 			lGwtRestService.addParam("processNameWF", processNameWF);
@@ -939,6 +938,8 @@ public class TaskNuovaPropostaAtto2Detail extends NuovaPropostaAtto2Detail imple
 					rowidDoc = lRecord.getAttribute("rowidDoc");
 					tipoDocumento = lRecord.getAttribute("tipoDocumento");
 					if (isEseguibile() && !isReadOnly()) {
+						// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+						RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 						if(listaRecordModelli != null && listaRecordModelli.getLength() > 0) {
 							RecordList listaAllegati = lRecord.getAttributeAsRecordList("listaAllegati");
 							for (int i = 0; i < listaRecordModelli.getLength(); i++) {
@@ -1375,7 +1376,9 @@ public class TaskNuovaPropostaAtto2Detail extends NuovaPropostaAtto2Detail imple
 	
 	public Record getRecordModelloXEsito(String esito) {
 		
-		Record recordModello = null;		
+		Record recordModello = null;
+		// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+		RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 		if (listaRecordModelli != null && listaRecordModelli.getLength() > 0) {			
 			for (int i = 0; i < listaRecordModelli.getLength(); i++) {
 				String listaEsitiXGenModello = listaRecordModelli.get(i).getAttribute("esitiXGenModello");					

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.common.items;
 
 import java.util.Date;
 
@@ -1098,24 +1099,26 @@ public abstract class FileButtonsItem extends NestedFormItem {
 		
 		if(showTimbraBarcodeMenuItems()) {
 			
-			// Attestato di conformità originale
-			MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(
-					I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(), "file/attestato.png");
-			attestatoConformitaOriginaleMenuItem.setEnableIfCondition(new MenuItemIfFunction() {
-
-				@Override
-				public boolean execute(Canvas target, Menu menu, MenuItem item) {
-					return enableAttestatoConformitaOriginaleMenuItem();
-				}
-			});
-			attestatoConformitaOriginaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
-
-				@Override
-				public void onClick(MenuItemClickEvent event) {
-					clickAttestatoConformitaOriginaleMenuItem();
-				}
-			});			
-			altreOpMenu.addItem(attestatoConformitaOriginaleMenuItem);		
+			if(AurigaLayout.showAttestatoConformitaOriginale()) {
+				// Attestato di conformità originale
+				MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(
+						I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(), "file/attestato.png");
+				attestatoConformitaOriginaleMenuItem.setEnableIfCondition(new MenuItemIfFunction() {
+					
+					@Override
+					public boolean execute(Canvas target, Menu menu, MenuItem item) {
+						return enableAttestatoConformitaOriginaleMenuItem();
+					}
+				});
+				attestatoConformitaOriginaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+					
+					@Override
+					public void onClick(MenuItemClickEvent event) {
+						clickAttestatoConformitaOriginaleMenuItem();
+					}
+				});			
+				altreOpMenu.addItem(attestatoConformitaOriginaleMenuItem);
+			}
 			
 			if (getIdUd() != null && !"".equals(getIdUd())) {
 				if (showAzioniTimbratura()) {								
@@ -1125,7 +1128,7 @@ public abstract class FileButtonsItem extends NestedFormItem {
 		}
 		
 		final InfoFileRecord lInfoFileRecord = InfoFileRecord.buildInfoFileRecord(form.getValue(infoFileFieldName()));
-		if (lInfoFileRecord != null && Layout.isPrivilegioAttivo("SCC")) {
+		if (lInfoFileRecord != null && AurigaLayout.showCopiaConformeCustom()) {
 			String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 			MenuItem timbroConformitaCustomMenuItem = new MenuItem(labelConformitaCustom, "file/copiaConformeCustom.png");
 			timbroConformitaCustomMenuItem.setEnabled(lInfoFileRecord != null && lInfoFileRecord.isConvertibile());
@@ -1678,6 +1681,7 @@ public abstract class FileButtonsItem extends NestedFormItem {
 					//Se ho un unica voce la aggiungo ad altreOperazioni con voce "Timbra"
 				}else { 
 					if (timbraDatiSegnaturaMenuItem != null) {
+						timbraDatiSegnaturaMenuItem.setTitle("Timbra");
 						altreOpMenu.addItem(timbraDatiSegnaturaMenuItem);
 					}
 				}
@@ -2590,7 +2594,7 @@ public abstract class FileButtonsItem extends NestedFormItem {
 		return false;
 	}
 	public boolean showAzioniTimbratura() {
-		return true;
+		return AurigaLayout.showOperazioniTimbratura();
 	}
 
 }

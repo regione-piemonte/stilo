@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.scrivania;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -34,6 +35,7 @@ import com.smartgwt.client.widgets.toolbar.ToolStripButton;
 import it.eng.auriga.ui.module.layout.client.AurigaLayout;
 import it.eng.auriga.ui.module.layout.client.DocumentDetail;
 import it.eng.auriga.ui.module.layout.client.ErroreMassivoPopup;
+import it.eng.auriga.ui.module.layout.client.TipologiaAllegatiInvioMailCostants;
 import it.eng.auriga.ui.module.layout.client.archivio.ApposizioneCommentiPopup;
 import it.eng.auriga.ui.module.layout.client.archivio.ArchivioDetail;
 import it.eng.auriga.ui.module.layout.client.archivio.ArchivioFilter;
@@ -86,6 +88,7 @@ import it.eng.auriga.ui.module.layout.client.protocollazione.RegistroFattureDeta
 import it.eng.auriga.ui.module.layout.client.protocollazione.RepertorioDetailUscita;
 import it.eng.auriga.ui.module.layout.client.protocollazione.SceltaTipoDocPopup;
 import it.eng.auriga.ui.module.layout.client.protocollazione.VerificaRegDuplicataWindow;
+import it.eng.auriga.ui.module.layout.client.pubblicazioneAlbo.NuovaRichiestaPubblicazioneWindow;
 import it.eng.auriga.ui.module.layout.client.richiestaAccessoAtti.AzioneSuRichAccessoAttiPopup;
 import it.eng.auriga.ui.module.layout.client.richiestaAccessoAtti.RichiestaAccessoAttiDetail;
 import it.eng.auriga.ui.module.layout.client.richiestaAccessoAtti.RichiestaAccessoAttiWindow;
@@ -136,6 +139,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 	private boolean abilFolderizzazione;
 	private boolean abilAssegnazione;
 	private boolean abilRestituzione;
+	private boolean abilRilascia;
 	private boolean abilSmistamento;
 	private boolean abilSmistamentoCC;
 	private boolean abilInvioPerConoscenza;
@@ -157,6 +161,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 	private boolean abilChiudiFascicoloMultiButton;
 	private boolean abilRiapriFascicoloMultiButton;
 	private boolean abilSegnaComeVisionatoMultiButton;
+	private boolean abilSegnaInvioEmailExtraSistemaMultiButton;
 	
 	private boolean abilRichiesteAccessoAttiInvioInApprovazione;
 	private boolean abilRichiesteAccessoAttiApprovazione;
@@ -223,7 +228,10 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 	private ArchivioMultiToolStripButton segnaComeVisionatoMultiButton;//impostazioneComeVisionato 
 	private ArchivioMultiToolStripButton segnaComeArchiviatoMultiButton;//impostazioneComeArchiviato 
 	private ArchivioMultiToolStripButton associazioneImgAProtocolloMultiButton; 
+	private ArchivioMultiToolStripButton segnaInvioEmailExtraSistemaMultiButton; //segnaInvioEmailExtraSistema
 
+	private ArchivioMultiToolStripButton rilasciaMultiButton; // rilascia 
+	
 	
 	// OPERAZIONI SULLE RICHIESTE ACCESSO ATTI
 	private ToolStripButton nuovaRichiestaAttoButton;
@@ -275,6 +283,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 	protected DetailToolStripButton profilaModelloDocButton;
 	protected DetailToolStripButton presaInCaricoButton;
 	protected DetailToolStripButton restituisciButton;
+	protected DetailToolStripButton rilasciaButton;
 	protected DetailToolStripButton segnaComeVisionatoButton;
 	protected DetailToolStripButton segnaComeArchiviatoButton;
 	protected DetailToolStripButton classificazioneFascicolazioneButton;
@@ -288,7 +297,9 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 	protected DetailToolStripButton protocollazioneInternaButton;
 	// protected DetailToolStripButton permessiUdButton;
 	protected DetailToolStripButton invioPECButton;
+	protected FrecciaDetailToolStripButton frecciainvioPECButton;
 	protected DetailToolStripButton invioPEOButton;
+	protected FrecciaDetailToolStripButton frecciainvioPEOButton;
 	protected DetailToolStripButton inviaRaccomandataButton;
 	protected DetailToolStripButton inviaPostaPrioritariaButton;
 	protected DetailToolStripButton verificaRegistrazioneButton;
@@ -306,12 +317,15 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 	protected DetailToolStripButton riapriFascicoloButton;
 	protected DetailToolStripButton versaInArchivioStoricoFascicoloButton;
 	protected DetailToolStripButton avviaIterButton;
+	protected DetailToolStripButton azioniIstruttoriaPubblButton;
+	protected DetailToolStripButton avviaIterFirmeButton;
 	protected DetailToolStripButton osservazioniNotificheButton;
 	protected DetailToolStripButton apposizioneFirmaButton;
 	protected DetailToolStripButton apposizioneFirmaProtocollazioneButton;
 	protected DetailToolStripButton rifiutoApposizioneFirmaButton;
 	protected DetailToolStripButton vistoButtonApposizione;
 	protected DetailToolStripButton vistoButtonRifiuto;
+	protected DetailToolStripButton pubblicazioneButton;
 	protected DetailToolStripButton pubblicazioneTraspAmmButton;
 	
 	/*******************************************
@@ -494,6 +508,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		nuovaProtComeCopiaButton.hide();
 		presaInCaricoButton.hide();
 		restituisciButton.hide();
+		rilasciaButton.hide();
 		segnaComeVisionatoButton.hide();
 		segnaComeArchiviatoButton.hide();
 		classificazioneFascicolazioneButton.hide();
@@ -507,7 +522,9 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		protocollazioneInternaButton.hide();
 		// permessiUdButton.hide();
 		invioPECButton.hide();
+		frecciainvioPECButton.hide();
 		invioPEOButton.hide();
+		frecciainvioPEOButton.hide();
 		inviaRaccomandataButton.hide();
 		inviaPostaPrioritariaButton.hide();
 		downloadDocZipButton.hide();
@@ -516,12 +533,15 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		riapriFascicoloButton.hide();
 		versaInArchivioStoricoFascicoloButton.hide();
 		avviaIterButton.hide();
+		azioniIstruttoriaPubblButton.hide();
+		avviaIterFirmeButton.hide();
 		osservazioniNotificheButton.hide();
 		apposizioneFirmaButton.hide();
 		rifiutoApposizioneFirmaButton.hide();
 		apposizioneFirmaProtocollazioneButton.hide();
 		vistoButtonApposizione.hide();
 		vistoButtonRifiuto.hide();
+		pubblicazioneButton.hide();
 		pubblicazioneTraspAmmButton.hide();
 	}
 
@@ -572,6 +592,11 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 				restituisciButton.show();
 			} else {
 				restituisciButton.hide();
+			}
+			if (record.getAttributeAsBoolean("abilRilascia")) {
+				rilasciaButton.show();
+			} else {
+				rilasciaButton.hide();
 			}
 			if (record.getAttributeAsBoolean("abilSetVisionato")) {
 				segnaComeVisionatoButton.show();
@@ -626,6 +651,12 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			} else {
 				restituisciButton.hide();
 			}
+			if (record.getAttributeAsBoolean("abilRilascia")) {
+				rilasciaButton.show();
+			} else {
+				rilasciaButton.hide();
+			}
+			
 			if (record.getAttributeAsBoolean("abilSetVisionato")) {
 				segnaComeVisionatoButton.show();
 			} else {
@@ -642,7 +673,9 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			modificaDatiRegButton.hide();
 			// permessiUdButton.hide();
 			invioPECButton.hide();
+			frecciainvioPECButton.hide();
 			invioPEOButton.hide();
+			frecciainvioPEOButton.hide();
 			inviaRaccomandataButton.hide();
 			inviaPostaPrioritariaButton.hide();
 			salvaComeModelloButton.hide();
@@ -651,6 +684,12 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			} else {
 				avviaIterButton.hide();
 			}
+			if(showAzioniIstruttoriaPubbl(record)) {
+				azioniIstruttoriaPubblButton.show();
+			} else {
+				azioniIstruttoriaPubblButton.hide();
+			}
+			avviaIterFirmeButton.hide();
 			if (record.getAttributeAsBoolean("abilOsservazioniNotifiche")){
 				osservazioniNotificheButton.show();
 			}else{
@@ -665,6 +704,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			apposizioneFirmaProtocollazioneButton.hide();
 			vistoButtonApposizione.hide();
 			vistoButtonRifiuto.hide();
+			pubblicazioneButton.hide();
 			pubblicazioneTraspAmmButton.hide();
 		} else if (detail instanceof FolderCustomDetail) {
 			((FolderCustomDetail) detail).viewMode();
@@ -678,6 +718,11 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 				restituisciButton.show();
 			} else {
 				restituisciButton.hide();
+			}
+			if (record.getAttributeAsBoolean("abilRilascia")) {
+				rilasciaButton.show();
+			} else {
+				rilasciaButton.hide();
 			}
 			if (record.getAttributeAsBoolean("abilSetVisionato")) {
 				segnaComeVisionatoButton.show();
@@ -721,6 +766,11 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			} else {
 				restituisciButton.hide();
 			}
+			if (record.getAttributeAsBoolean("abilRilascia")) {
+				rilasciaButton.show();
+			} else {
+				rilasciaButton.hide();
+			}
 			if (record.getAttributeAsBoolean("abilSetVisionato")) {
 				segnaComeVisionatoButton.show();
 			} else {
@@ -737,7 +787,9 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			modificaDatiRegButton.hide();
 			// permessiUdButton.hide();
 			invioPECButton.hide();
+			frecciainvioPECButton.hide();
 			invioPEOButton.hide();
+			frecciainvioPEOButton.hide();
 			inviaRaccomandataButton.hide();
 			inviaPostaPrioritariaButton.hide();
 			salvaComeModelloButton.hide();
@@ -746,6 +798,8 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			} else {
 				avviaIterButton.hide();
 			}
+			azioniIstruttoriaPubblButton.hide();
+			avviaIterFirmeButton.hide();
 			if (record.getAttributeAsBoolean("abilOsservazioniNotifiche")){
 				osservazioniNotificheButton.show();
 			}else{
@@ -760,6 +814,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			apposizioneFirmaProtocollazioneButton.hide();
 			vistoButtonApposizione.hide();
 			vistoButtonRifiuto.hide();
+			pubblicazioneButton.hide();
 			pubblicazioneTraspAmmButton.hide();
 			if ((detail instanceof PraticaPregressaDetail) && ((PraticaPregressaDetail) detail).showRegistraPrelievoButton()) {
 				registraPrelievoButton.show();
@@ -842,6 +897,11 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 					restituisciButton.show();
 				} else {
 					restituisciButton.hide();
+				}
+				if (record.getAttributeAsBoolean("abilRilascia")) {
+					rilasciaButton.show();
+				} else {
+					rilasciaButton.hide();
 				}
 				if (record.getAttributeAsBoolean("abilSetVisionato")) {
 					segnaComeVisionatoButton.show();
@@ -997,6 +1057,11 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 				} else {
 					restituisciButton.hide();
 				}
+				if (record.getAttributeAsBoolean("abilRilascia")) {
+					rilasciaButton.show();
+				} else {
+					rilasciaButton.hide();
+				}
 				if (record.getAttributeAsBoolean("abilSetVisionato")) {
 					segnaComeVisionatoButton.show();
 				} else {
@@ -1069,13 +1134,26 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			// permessiUdButton.show();
 			if (record.getAttributeAsBoolean("abilInvioPEC")) {
 				invioPECButton.show();
+				if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_OPZ_AVANZATE_INVIO_EMAIL_UD")) {
+					frecciainvioPECButton.show();
+				}else {
+					frecciainvioPECButton.hide();
+				}
 			} else {
 				invioPECButton.hide();
+				frecciainvioPECButton.hide();
 			}
 			if (record.getAttributeAsBoolean("abilInvioPEO")) {
 				invioPEOButton.show();
+				if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_OPZ_AVANZATE_INVIO_EMAIL_UD")) {
+					frecciainvioPEOButton.show();
+				}else {
+					frecciainvioPEOButton.hide();
+				}
+				
 			} else {
 				invioPEOButton.hide();
+				frecciainvioPEOButton.hide();
 			}
 			if (Layout.isPrivilegioAttivo("PRT/U") && ((ProtocollazioneDetail) detail) instanceof ProtocollazioneDetailUscita && !(record.getAttributeAsBoolean("annullata")) && AurigaLayout.getParametroDB("CLIENTE").equalsIgnoreCase("ARPA_LAZ")) {
 				ProtocollazioneUtil.isPossibleToPostel(record.getAttributeAsInt("idUd"), ETypePoste.RACCOMANDATA.value(), new ServiceCallback<Record>() {
@@ -1114,10 +1192,25 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			} else {
 				avviaIterButton.hide();
 			}
+			if(showAzioniIstruttoriaPubbl(record)) {
+				azioniIstruttoriaPubblButton.show();
+			} else {
+				azioniIstruttoriaPubblButton.hide();
+			}
+			if(showAvviaIterFirme(record)) {
+				avviaIterFirmeButton.show();
+			} else {
+				avviaIterFirmeButton.hide();
+			}
 			if (record.getAttributeAsBoolean("abilOsservazioniNotifiche")){
 				osservazioniNotificheButton.show();
 			}else{
 				osservazioniNotificheButton.hide();
+			}
+			if (record.getAttributeAsBoolean("abilPubblicazione")) {
+				pubblicazioneButton.show();
+			} else {
+				pubblicazioneButton.hide();
 			}
 			if (record.getAttributeAsBoolean("abilPubblicazioneTraspAmm")) {
 				pubblicazioneTraspAmmButton.show();
@@ -1133,6 +1226,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			}
 			presaInCaricoButton.hide();
 			restituisciButton.hide();
+			rilasciaButton.hide();
 			segnaComeVisionatoButton.hide();
 			segnaComeArchiviatoButton.hide();
 			classificazioneFascicolazioneButton.hide();
@@ -1141,6 +1235,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			} else {
 				frecciaModificaButton.hide();
 			}
+			osservazioniNotificheButton.hide();
 			if (record.getAttributeAsBoolean("abilOsservazioniNotifiche")){
 				osservazioniNotificheButton.show();
 			}else{
@@ -1174,6 +1269,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			nuovaProtComeCopiaButton.hide();	
 			presaInCaricoButton.hide();
 			restituisciButton.hide();
+			rilasciaButton.hide();
 			segnaComeVisionatoButton.hide();
 			segnaComeArchiviatoButton.hide();
 			classificazioneFascicolazioneButton.hide();
@@ -1183,7 +1279,9 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			modificaDatiRegButton.hide();
 			// permessiUdButton.hide();
 			invioPECButton.hide();
+			frecciainvioPECButton.hide();
 			invioPEOButton.hide();
+			frecciainvioPEOButton.hide();
 			inviaRaccomandataButton.hide();
 			inviaPostaPrioritariaButton.hide();
 			deleteButton.hide();
@@ -1198,6 +1296,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			apposizioneFirmaProtocollazioneButton.hide();
 			vistoButtonApposizione.hide();
 			vistoButtonRifiuto.hide();
+			pubblicazioneButton.hide();
 			pubblicazioneTraspAmmButton.hide();
 		} else if (detail instanceof ModelliDocDetail) {
 			((ModelliDocDetail) detail).viewMode();
@@ -1207,6 +1306,8 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			} else {
 				profilaModelloDocButton.hide();
 			}
+			azioniIstruttoriaPubblButton.hide();
+			avviaIterFirmeButton.hide();
 			osservazioniNotificheButton.hide();
 			stampaEtichettaButton.hide();
 			frecciaStampaEtichettaButton.hide();
@@ -1225,6 +1326,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			nuovaProtComeCopiaButton.hide();
 			presaInCaricoButton.hide();
 			restituisciButton.hide();
+			rilasciaButton.hide();
 			segnaComeVisionatoButton.hide();
 			segnaComeArchiviatoButton.hide();
 			classificazioneFascicolazioneButton.hide();
@@ -1233,7 +1335,9 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			modificaDatiRegButton.hide();
 			// permessiUdButton.hide();
 			invioPECButton.hide();
+			frecciainvioPECButton.hide();
 			invioPEOButton.hide();
+			frecciainvioPEOButton.hide();
 			inviaRaccomandataButton.hide();
 			inviaPostaPrioritariaButton.hide();
 			deleteButton.hide();
@@ -1248,6 +1352,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			apposizioneFirmaProtocollazioneButton.hide();
 			vistoButtonApposizione.hide();
 			vistoButtonRifiuto.hide();
+			pubblicazioneButton.hide();
 			pubblicazioneTraspAmmButton.hide();
 		} else {
 			stampaEtichettaButton.hide();
@@ -1268,6 +1373,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			editButton.hide();
 			presaInCaricoButton.hide();
 			restituisciButton.hide();
+			rilasciaButton.hide();
 			segnaComeVisionatoButton.hide();
 			segnaComeArchiviatoButton.hide();
 			classificazioneFascicolazioneButton.hide();
@@ -1276,7 +1382,9 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			modificaDatiRegButton.hide();
 			// permessiUdButton.hide();
 			invioPECButton.hide();
+			frecciainvioPECButton.hide();
 			invioPEOButton.hide();
+			frecciainvioPEOButton.hide();
 			inviaRaccomandataButton.hide();
 			inviaPostaPrioritariaButton.hide();
 			deleteButton.hide();
@@ -1291,6 +1399,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			apposizioneFirmaProtocollazioneButton.hide();
 			vistoButtonApposizione.hide();
 			vistoButtonRifiuto.hide();
+			pubblicazioneButton.hide();
 			pubblicazioneTraspAmmButton.hide();
 //			if ((detail instanceof RepertorioDetailEntrata || detail instanceof RepertorioDetailEntrata) && showRispondiButton(record)){
 //				rispondiButton.show();
@@ -1356,7 +1465,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			altreOpButton.hide();
 			lookupButton.hide();
 		} else {
-		super.editMode(fromViewMode);
+			super.editMode(fromViewMode);
 		}
 		
 		profilaModelloDocButton.hide();
@@ -1433,6 +1542,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		nuovaProtComeCopiaButton.hide();
 		presaInCaricoButton.hide();
 		restituisciButton.hide();
+		rilasciaButton.hide();
 		segnaComeVisionatoButton.hide();
 		segnaComeArchiviatoButton.hide();
 		classificazioneFascicolazioneButton.hide();
@@ -1442,7 +1552,9 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		modificaDatiRegButton.hide();
 		// permessiUdButton.hide();
 		invioPECButton.hide();
+		frecciainvioPECButton.hide();
 		invioPEOButton.hide();
+		frecciainvioPEOButton.hide();
 		inviaRaccomandataButton.hide();
 		inviaPostaPrioritariaButton.hide();
 		chiudiFascicoloButton.hide();
@@ -1458,7 +1570,10 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		protocollazioneInternaButton.hide();
 		vistoButtonApposizione.hide();
 		vistoButtonRifiuto.hide();
+		pubblicazioneButton.hide();
 		pubblicazioneTraspAmmButton.hide();	
+		azioniIstruttoriaPubblButton.hide();
+		avviaIterFirmeButton.hide();
 	}
 	
 	private String getTitleUnicaStampaAbilitata(Record record) {
@@ -1509,10 +1624,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		List<ToolStripButton> detailButtons = new ArrayList<ToolStripButton>();
 
 		if(stampaEtichettaButton == null) {		
-			stampaEtichettaButton = new DetailToolStripButton(
-					AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") ? "Timbra" 
-					: I18NUtil.getMessages().protocollazione_detail_stampaEtichettaButton_prompt(),
-					"protocollazione/barcode.png");
+			stampaEtichettaButton = new DetailToolStripButton(getTitleStampaEtichetta(), "protocollazione/barcode.png");
 			stampaEtichettaButton.addClickHandler(new ClickHandler() {
 	
 				@Override
@@ -2100,6 +2212,22 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			});
 		}
 		
+		if(rilasciaButton == null) {	
+			rilasciaButton = new DetailToolStripButton(I18NUtil.getMessages().protocollazione_detail_rilascia_title(),
+					"archivio/rilascia_a_uo.png");
+			rilasciaButton.addClickHandler(new ClickHandler() {
+				
+				@Override
+				public void onClick(ClickEvent event) {
+					if (detail instanceof ProtocollazioneDetail) {
+						((ProtocollazioneDetail) detail).clickRilascia();
+					} else if (detail instanceof ArchivioDetail) {
+						((ArchivioDetail) detail).clickRilascia();
+					}
+				}
+			});
+		}
+		
 		if(segnaComeVisionatoButton == null) {	
 			segnaComeVisionatoButton = new DetailToolStripButton(I18NUtil.getMessages().protocollazione_detail_segnaComeVisionato_title(),
 					"postaElettronica/flgRicevutaLettura.png");
@@ -2155,7 +2283,9 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 					editMode(true);
 					Record record = new Record(detail.getValuesManager().getValues());
 					if (detail instanceof ProtocollazioneDetail) {
-						if (!(detail instanceof ProtocollazioneDetailBozze)) {
+						if (detail instanceof ProtocollazioneDetailBozze) {
+							((ProtocollazioneDetailBozze) detail).modificaDatiMode(record.getAttributeAsBoolean("abilAggiuntaFile"));
+						} else {
 							if (record.getAttributeAsBoolean("abilModificaDati")) {
 								((ProtocollazioneDetail) detail).modificaDatiMode(record.getAttributeAsBoolean("abilAggiuntaFile"));
 							} else if (record.getAttributeAsBoolean("abilAggiuntaFile")) {
@@ -2281,62 +2411,18 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 	
 				@Override
 				public void onClick(ClickEvent event) {
-					Record record = new Record(detail.getValuesManager().getValues());
-					
-					final Boolean flgInvioPECMulti = record.getAttributeAsBoolean("flgInvioPECMulti") != null &&
-							record.getAttributeAsBoolean("flgInvioPECMulti") ? true : false;	
-					GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AurigaInvioUDMailDatasource");
-					if(flgInvioPECMulti) {
-						lGwtRestService.extraparam.put("PEC_MULTI", "1");
-					} 
-					lGwtRestService.extraparam.put("tipoMail", "PEC");
-					lGwtRestService.call(record, new ServiceCallback<Record>() {
-	
-						@Override
-						public void execute(Record object) {
-							
-							if(flgInvioPECMulti) {
-								object.setAttribute("tipoMail", "PEO");
-								InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", new DSCallback() {
-									
-									@Override
-									public void execute(DSResponse response, Object rawData, DSRequest request) {
-										
-										reload(new DSCallback() {
+					apriWindowInvioPEC(null);
+				}
+			});
+		}
 		
-											@Override
-											public void execute(DSResponse response, Object rawData, DSRequest request) {
-												
-												viewMode();
-											}
-										});
-									}
-								});
-								lInvioUdMailWindow.loadMail(object);
-								lInvioUdMailWindow.show();
-								
-							} else {
-								InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEC", new DSCallback() {
-									
-									@Override
-									public void execute(DSResponse response, Object rawData, DSRequest request) {
-										
-										reload(new DSCallback() {
-		
-											@Override
-											public void execute(DSResponse response, Object rawData, DSRequest request) {
-												
-												viewMode();
-											}
-										});
-									}
-								});
-								lInvioUdMailWindow.loadMail(object);
-								lInvioUdMailWindow.show();
-							}
-													
-						}
-					});
+		if(frecciainvioPECButton == null) {
+			frecciainvioPECButton = new FrecciaDetailToolStripButton();
+			frecciainvioPECButton.addClickHandler(new ClickHandler() {
+
+				@Override
+				public void onClick(ClickEvent event) {
+					clickFrecciaInvioPECButton();
 				}
 			});
 		}
@@ -2347,30 +2433,18 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 	
 				@Override
 				public void onClick(ClickEvent event) {
-					Record record = new Record(detail.getValuesManager().getValues());
-					GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AurigaInvioUDMailDatasource");
-					lGwtRestService.extraparam.put("tipoMail", "PEO");
-					lGwtRestService.call(record, new ServiceCallback<Record>() {
-	
-						@Override
-						public void execute(Record object) {
-							InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", new DSCallback() {
-	
-								@Override
-								public void execute(DSResponse response, Object rawData, DSRequest request) {
-									reload(new DSCallback() {
-	
-										@Override
-										public void execute(DSResponse response, Object rawData, DSRequest request) {
-											viewMode();
-										}
-									});
-								}
-							});
-							lInvioUdMailWindow.loadMail(object);
-							lInvioUdMailWindow.show();
-						}
-					});
+					apriWindowInvioPEO(null);
+				}
+			});
+		}
+		
+		if(frecciainvioPEOButton == null) {
+			frecciainvioPEOButton = new FrecciaDetailToolStripButton();
+			frecciainvioPEOButton.addClickHandler(new ClickHandler() {
+
+				@Override
+				public void onClick(ClickEvent event) {
+					clickFrecciaInvioPEOButton();
 				}
 			});
 		}
@@ -2752,6 +2826,32 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			});
 		}
 		
+		if(azioniIstruttoriaPubblButton == null) {	
+			azioniIstruttoriaPubblButton = new DetailToolStripButton("Azioni istruttoria pubblicazione", "pratiche/icone/complessa.png");
+			azioniIstruttoriaPubblButton.addClickHandler(new ClickHandler() {
+	
+				@Override
+				public void onClick(ClickEvent event) {
+					if (detail instanceof ProtocollazioneDetail) {
+						((ProtocollazioneDetail)detail).clickAzioniIstruttoriaPubbl();
+					}
+				}
+			});
+		}
+		
+		if(avviaIterFirmeButton == null) {	
+			avviaIterFirmeButton = new DetailToolStripButton("Avvia raccolta firme", "file/mini_sign.png");
+			avviaIterFirmeButton.addClickHandler(new ClickHandler() {
+	
+				@Override
+				public void onClick(ClickEvent event) {
+					if (detail instanceof ProtocollazioneDetail) {
+						((ProtocollazioneDetail)detail).clickAvviaIterFirme(avviaIterFirmeButton);
+					}
+				}
+			});
+		}
+		
 		if(osservazioniNotificheButton == null) {	
 			osservazioniNotificheButton = new DetailToolStripButton("Osservazioni e notifiche", "osservazioni_notifiche.png");
 			osservazioniNotificheButton.addClickHandler(new ClickHandler() {
@@ -2909,7 +3009,64 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 				}
 			});
 		} 
-				
+		
+		if(pubblicazioneButton == null) {	
+			String labelTastoPubblAlbo = AurigaLayout.getParametroDB("LABEL_TASTO_PUBBL_ALBO");
+			if(labelTastoPubblAlbo == null || "".equals(labelTastoPubblAlbo)) {
+				labelTastoPubblAlbo = "Pubblica";
+			}	
+			pubblicazioneButton = new DetailToolStripButton(labelTastoPubblAlbo, "buttons/richiesta_pubblicazione.png");
+			pubblicazioneButton.addClickHandler(new ClickHandler() {
+	
+				@Override
+				public void onClick(ClickEvent event) {
+					final Record detailRecord = new Record(detail.getValuesManager().getValues());
+					final String idUd = detailRecord.getAttribute("idUd");
+					if (detail instanceof ProtocollazioneDetail) {			
+						final Record recordPubblicazione = new Record(detail.getValuesManager().getValues());
+						recordPubblicazione.setAttribute("statoAtto", "presente");
+						recordPubblicazione.setAttribute("tipoRegNum", detailRecord.getAttribute("tipoProtocollo"));
+						recordPubblicazione.setAttribute("siglaRegNum", detailRecord.getAttribute("siglaProtocollo"));
+						recordPubblicazione.setAttribute("annoRegNum", detailRecord.getAttribute("annoProtocollo"));
+						recordPubblicazione.setAttribute("nroRegNum", detailRecord.getAttribute("nroProtocollo"));
+						NuovaRichiestaPubblicazioneWindow lNuovaRichiestaPubblicazioneWindow = new NuovaRichiestaPubblicazioneWindow(recordPubblicazione.toMap(), null, new ServiceCallback<Record>() {
+							
+							@Override
+							public void execute(Record object) {
+								reload(new DSCallback() {
+
+									@Override
+									public void execute(DSResponse response, Object rawData, DSRequest request) {
+										detail.setSaved(true);
+										viewMode();
+									}
+								});
+							}
+						}) {
+							
+							@Override
+							public void afterLoadDetail() {
+								if(idUd != null && !"".equals(idUd)) {
+									detail.loadDettaglio(idUd, new ServiceCallback<Record>() {
+
+										@Override
+										public void execute(Record recordDettaglio) {
+											if (recordDettaglio != null) {
+												recordDettaglio.setAttribute("dataAdozione", recordDettaglio.getAttribute("tsRegistrazione"));
+												detail.editRecord(recordDettaglio);
+												detail.markForRedraw();
+												detail.setCanEdit(true);
+											}
+										}
+									});
+								}
+							}
+						};
+					}
+				}
+			});
+		}
+		
 		if(pubblicazioneTraspAmmButton == null) {	
 			pubblicazioneTraspAmmButton = new DetailToolStripButton("Pubbl. Trasp. Amm.", "buttons/richiesta_pubblicazione.png");
 			pubblicazioneTraspAmmButton.addClickHandler(new ClickHandler() {
@@ -2921,7 +3078,8 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 				}
 			});
 		}
-		
+		detailButtons.add(azioniIstruttoriaPubblButton);
+		detailButtons.add(avviaIterFirmeButton);
 		detailButtons.add(apposizioneFirmaButton);
 		detailButtons.add(apposizioneFirmaProtocollazioneButton);
 		detailButtons.add(rifiutoApposizioneFirmaButton);
@@ -2937,6 +3095,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		detailButtons.add(editButton);
 		detailButtons.add(presaInCaricoButton);
 		detailButtons.add(restituisciButton);
+		detailButtons.add(rilasciaButton);
 		detailButtons.add(segnaComeVisionatoButton);
 		detailButtons.add(segnaComeArchiviatoButton);
 		detailButtons.add(classificazioneFascicolazioneButton);
@@ -2949,7 +3108,9 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		detailButtons.add(protocollazioneUscitaButton);
 		detailButtons.add(protocollazioneInternaButton);
 		detailButtons.add(invioPECButton);
+		detailButtons.add(frecciainvioPECButton);
 		detailButtons.add(invioPEOButton);
+		detailButtons.add(frecciainvioPEOButton);
 		detailButtons.add(inviaRaccomandataButton);
 		detailButtons.add(inviaPostaPrioritariaButton);
 		detailButtons.add(verificaRegistrazioneButton);
@@ -2981,6 +3142,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		detailButtons.add(riapriFascicoloButton);
 		detailButtons.add(versaInArchivioStoricoFascicoloButton);
 		detailButtons.add(avviaIterButton);
+		detailButtons.add(pubblicazioneButton);
 		detailButtons.add(pubblicazioneTraspAmmButton);
 
 		if (detail instanceof RichiestaAccessoAttiDetail) {
@@ -2994,6 +3156,103 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		*/
 		
 		return detailButtons;
+	}
+
+	protected void clickFrecciaInvioPEOButton() {
+		final Menu invioPEOMenu = new Menu();
+		MenuItem bustaFilePrincipaleMenuItem = new MenuItem("Standard", "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				apriWindowInvioPEO(null);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleMenuItem);
+		
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_BUSTA_PDF_FILE_FIRMATO")) {
+			
+			MenuItem filePrincipaleMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.FILE_PRINCIPALE, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+			filePrincipaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+	
+				@Override
+				public void onClick(MenuItemClickEvent event) {
+					apriWindowInvioPEO(TipologiaAllegatiInvioMailCostants.FILE_PRINCIPALE);
+				}
+			});
+			invioPEOMenu.addItem(filePrincipaleMenuItem);
+		}
+		
+		MenuItem bustaFilePrincipaleAllegatiEsterniMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI_ESTERNI, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleAllegatiEsterniMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				apriWindowInvioPEO(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI_ESTERNI);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleAllegatiEsterniMenuItem);
+		
+		MenuItem bustaFilePrincipaleEAllegatiMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleEAllegatiMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				apriWindowInvioPEO(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleEAllegatiMenuItem);
+
+		invioPEOMenu.showContextMenu();		
+	}
+
+	protected void clickFrecciaInvioPECButton() {
+		final Menu invioPEOMenu = new Menu();
+		MenuItem bustaFilePrincipaleMenuItem = new MenuItem("Standard", "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				apriWindowInvioPEC(null);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleMenuItem);
+		
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_BUSTA_PDF_FILE_FIRMATO")) {
+			
+			MenuItem filePrincipaleMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.FILE_PRINCIPALE, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+			filePrincipaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+	
+				@Override
+				public void onClick(MenuItemClickEvent event) {
+					apriWindowInvioPEC(TipologiaAllegatiInvioMailCostants.FILE_PRINCIPALE);
+				}
+			});
+			invioPEOMenu.addItem(filePrincipaleMenuItem);
+		}
+		
+		MenuItem bustaFilePrincipaleAllegatiEsterniMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI_ESTERNI, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleAllegatiEsterniMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				apriWindowInvioPEC(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI_ESTERNI);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleAllegatiEsterniMenuItem);
+		
+		MenuItem bustaFilePrincipaleEAllegatiMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleEAllegatiMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				apriWindowInvioPEC(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleEAllegatiMenuItem);
+
+		invioPEOMenu.showContextMenu();
+		
 	}
 
 	/**
@@ -3060,7 +3319,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			}
 		}
 		
-		if(Layout.isPrivilegioAttivo("SCC")) {
+		if(AurigaLayout.showCopiaConformeCustom()) {
 			String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 			MenuItem scaricaFileConformitaCustomMenuItem = new MenuItem("File " + labelConformitaCustom, "buttons/download_zip.png");
 			scaricaFileConformitaCustomMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
@@ -3135,9 +3394,11 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 				editMode(true);
 				Record record = new Record(detail.getValuesManager().getValues());
 				if (detail instanceof ProtocollazioneDetail) {
-					if (!(detail instanceof ProtocollazioneDetailBozze)) {
+					if (detail instanceof ProtocollazioneDetailBozze) {
+						((ProtocollazioneDetailBozze) detail).modificaDatiMode(record.getAttributeAsBoolean("abilAggiuntaFile"));
+					} else {
 						if (record.getAttributeAsBoolean("abilModificaDati")) {
-							((ProtocollazioneDetail) detail).modificaDatiMode();
+							((ProtocollazioneDetail) detail).modificaDatiMode(record.getAttributeAsBoolean("abilAggiuntaFile"));
 						} else if (record.getAttributeAsBoolean("abilAggiuntaFile")) {
 							((ProtocollazioneDetail) detail).aggiuntaFileMode();
 						} else if (record.getAttributeAsBoolean("abilModificaDatiExtraIter")) {
@@ -3840,9 +4101,8 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForArchivio() {
-					return abilPresaInCarico;
-//					return (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/UUD", "GRD/FLD/UM") && 
-//							(idNode.startsWith("FD.2A")	|| idNode.startsWith("D.2A") || idNode.startsWith("F.2A"))); // Arrivo e novità - Per competenza
+					return abilPresaInCarico && (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/UUD", "GRD/FLD/UM")); 
+//					&& (idNode.startsWith("FD.2A")	|| idNode.startsWith("D.2A") || idNode.startsWith("F.2A"))); // Arrivo e novità - Per competenza
 				}
 
 				@Override
@@ -3871,8 +4131,8 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForArchivio() {
-					return abilAssegnazione;
-//					return (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/INV", "GRD/FLD/INV") && 
+					return abilAssegnazione && (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/INV", "GRD/FLD/INV")); 
+//							&&
 //							(idNode.startsWith("D.2A") || // Arrivo e novità - Per competenza -  Documenti
 //							 "D.7".equals(idNode) || // Documenti da completare /lavorare - Da assegnare
 //							 "D.11".equals(idNode) || // Documenti da completare /lavorare - Da firmare
@@ -4102,8 +4362,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForArchivio() {
-					return abilRestituzione;
-//					return (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/RS", "GRD/FLD/RS") &&
+					return abilRestituzione && (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/RS", "GRD/FLD/RS"));
 //						(idNode.equals("D.2A.DP.R")	|| idNode.equals("D.2A.DP"))  // Nodi "Da prendere in carico"
 //					);
 				}
@@ -4144,13 +4403,66 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			};
 		}
 		
+		// RILASCIA MULTI
+		if (rilasciaMultiButton == null) {
+			rilasciaMultiButton = new ArchivioMultiToolStripButton("archivio/rilascia_a_uo.png", this, I18NUtil.getMessages().protocollazione_detail_rilascia_title(), false) {
+
+					@Override
+					public boolean toShowForArchivio() {
+						return abilRilascia;
+					}
+
+					@Override
+					public void doSomething() {
+						boolean isSoloDocumenti = true;
+						final RecordList listaUdFolder = new RecordList();
+						for (int i = 0; i < list.getSelectedRecords().length; i++) {
+							if (list.getSelectedRecords()[i].getAttribute("flgUdFolder").equalsIgnoreCase("U")) {
+								listaUdFolder.add(list.getSelectedRecords()[i]);	
+							}
+							else {
+								isSoloDocumenti = false;
+								break;
+							}
+						}
+						
+						if (isSoloDocumenti) {
+							SC.ask("Sei sicuro di voler rilasciare i documenti ?", new BooleanCallback() {
+								@Override 
+								public void execute(Boolean value) {  
+									if (value) {
+										Record record = new Record();
+										record.setAttribute("listaRecord", listaUdFolder);
+										Layout.showWaitPopup("Operazione in corso: potrebbe richiedere qualche secondo. Attendere…");
+										GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("RilasciaDataSource");
+										try {
+											lGwtRestDataSource.addData(record, new DSCallback() {
+
+												@Override
+												public void execute(DSResponse response, Object rawData, DSRequest request) {
+													massiveOperationCallback(response, listaUdFolder, "idUdFolder", "segnatura", "Rilascio effettuato con successo",
+															"Tutti i record selezionati per il rilascio sono andati in errore!",
+															"Alcuni dei record selezionati per il rilascio sono andati in errore!", null);
+												}
+											});
+										} catch (Exception e) {
+											Layout.hideWaitPopup();
+										}
+									} 
+								} 
+							}); 
+						} else
+							Layout.addMessage(new MessageBean("La selezione comprende anche dei fascicoli: operazione non consentita", "", MessageType.ERROR));
+					}
+				};
+		}
+				
 		if(smistaMultiButton == null) {
 		   smistaMultiButton = new ArchivioMultiToolStripButton("archivio/smistamento.png", this, "Smista", false) {
 
 				@Override
 				public boolean toShowForArchivio() {
-					return abilSmistamento;
-//					return (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/INV", "GRD/FLD/INV") && 
+					return abilSmistamento && (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/INV", "GRD/FLD/INV")); 
 //							(idNode.startsWith("D.2A") || // Arrivo e novità - Per competenza - Documenti
 //							 "D.7".equals(idNode) || // Documenti da completare /lavorare - Da assegnare
 //							 "D.18".equals(idNode) || // Recenti - Registrazioni effettuate
@@ -4346,8 +4658,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForArchivio() {
-					return abilSmistamentoCC;
-//					return (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/INV", "GRD/FLD/INV") && 
+					return abilSmistamentoCC && (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/NOT", "GRD/FLD/NOT")); 
 //							(idNode.startsWith("D.2A") || // Arrivo e novità - Per competenza - Documenti
 //							 "D.7".equals(idNode) || // Documenti da completare /lavorare - Da assegnare
 //							 "D.18".equals(idNode) || // Recenti - Registrazioni effettuate
@@ -4551,8 +4862,8 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForArchivio() {
-					return abilClassificazioneFascicolazione;
-					//return (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/UUD", "GRD/FLD/UM") && (AurigaLayout.isAttivoClassifSenzaFasc(null) && "D.9".equals(idNode))); // Documenti da completare /lavorare - Da classificare (se CLASSIF_SENZA_FASC = true)
+					return abilClassificazioneFascicolazione && (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/UUD", "GRD/FLD/UM")); 
+//							&& (AurigaLayout.isAttivoClassifSenzaFasc(null) && "D.9".equals(idNode))); // Documenti da completare /lavorare - Da classificare (se CLASSIF_SENZA_FASC = true)
 				}
 
 				@Override
@@ -4592,8 +4903,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForArchivio() {
-					return abilFascicolazione;
-//					return (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/UUD", "GRD/FLD/UM") && 
+					return abilFascicolazione && (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/UUD", "GRD/FLD/UM")); 
 //							((!AurigaLayout.isAttivoClassifSenzaFasc(null) && "D.9".equals(idNode)) || // Documenti da completare /lavorare - Da classificare (se CLASSIF_SENZA_FASC = false)
 //							 "D.10".equals(idNode) || // Documenti da completare /lavorare - Da fascicolare
 //							 idNode.startsWith("D.2A") || // Arrivo e novità - Per competenza - Documenti
@@ -4639,8 +4949,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForArchivio() {
-					return abilModificaTipologiaMultiButton;
-//					return (Layout.isPrivilegioAttivo("GRD/UD/UUD") || Layout.isPrivilegioAttivo("GRD/FLD/UM"));
+					return abilModificaTipologiaMultiButton && (Layout.isPrivilegioAttivo("GRD/UD/UUD") || Layout.isPrivilegioAttivo("GRD/FLD/UM"));
 //					return true;
 				}
 
@@ -4772,8 +5081,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForArchivio() {
-					return abilFolderizzazione;
-//					return (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/UUD", "GRD/FLD/UM") && 
+					return abilFolderizzazione && (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/UUD", "GRD/FLD/UM")); 
 //							AurigaLayout.getParametroDBAsBoolean("ATTIVA_FOLDER_CUSTOM") & 
 //							("D.9".equals(idNode) || // Documenti da completare /lavorare - Da classificare
 //							 "D.10".equals(idNode) || // Documenti da completare /lavorare - Da fascicolare
@@ -4820,8 +5128,8 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForArchivio() {
-					return abilInvioPerConoscenza;
-					//return (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/NOT", "GRD/FLD/NOT") && !idNode.equals("D.23")); // Solo documenti o solo fascicoli (tranne Stampe ed esportazioni su file)
+					return abilInvioPerConoscenza && (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/NOT", "GRD/FLD/NOT"));
+//							&& !idNode.equals("D.23")); // Solo documenti o solo fascicoli (tranne Stampe ed esportazioni su file)
 				}
 
 				@Override
@@ -5125,8 +5433,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForArchivio() {					
-					return abilAnnullamentoArchiviazione;
-//					return (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/UUD", "GRD/FLD/UM")
+					return abilAnnullamentoArchiviazione && (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/UUD", "GRD/FLD/UM"));
 //							&& ("FD.21".equals(idNode) || "D.21".equals(idNode) || "F.21".equals(idNode)) && !controlloButtonArchiviaMassivo());
 				}
 
@@ -5159,8 +5466,8 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForArchivio() {
-					return abilAggiuntaAiPreferiti;
-					//return Layout.isPrivilegioAttivo("PRF") && ((idFolder == null || !"-999".equals(idFolder)) && !(idNode != null && idNode.equals("D.23"))); // Se non è in Preferiti (e non è in Stampe ed esportazioni su file)
+					return abilAggiuntaAiPreferiti && Layout.isPrivilegioAttivo("PRF");
+//					&& ((idFolder == null || !"-999".equals(idFolder)) && !(idNode != null && idNode.equals("D.23"))); // Se non è in Preferiti (e non è in Stampe ed esportazioni su file)
 				}
 
 				@Override
@@ -5189,8 +5496,8 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForArchivio() {
-					return abilRimozioneDaiPreferiti;
-					//return Layout.isPrivilegioAttivo("PRF") && (idFolder != null && "-999".equals(idFolder)); // Se è in Preferiti
+					return abilRimozioneDaiPreferiti &&  Layout.isPrivilegioAttivo("PRF");
+//					&& (idFolder != null && "-999".equals(idFolder)); // Se è in Preferiti
 				}
 
 				@Override
@@ -5219,8 +5526,8 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForArchivio() {
-					return abilAssegnazioneRiservatezza;
-//					return (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/UUD", "GRD/FLD/UM") && !idNode.equalsIgnoreCase("D.BOZZE") && !idNode
+					return abilAssegnazioneRiservatezza && (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/UUD", "GRD/FLD/UM"));
+//							&& !idNode.equalsIgnoreCase("D.BOZZE") && !idNode
 //							.equalsIgnoreCase("D.23")); // Se non è in Bozze e non è in Stampe e export
 				}
 
@@ -5251,8 +5558,8 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForArchivio() {
-					return abilRimozioneRiservatezza;
-//					return (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/UUD", "GRD/FLD/UM") && !idNode.equalsIgnoreCase("D.BOZZE") && !idNode
+					return abilRimozioneRiservatezza && (idNode != null && isPrivilegioDocFascAttivo(idNode, "GRD/UD/UUD", "GRD/FLD/UM"));
+//					&& !idNode.equalsIgnoreCase("D.BOZZE") && !idNode
 //							.equalsIgnoreCase("D.23")); // Se non è in Bozze e non è in Stampe e export
 				}
 
@@ -5283,8 +5590,8 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForArchivio() {
-					return abilAnnullamentoEliminazione;
-					//return Layout.isPrivilegioAttivo("ELS") && (idFolder != null && "-99999".equals(idFolder)); // Se è in Eliminati
+					return abilAnnullamentoEliminazione && Layout.isPrivilegioAttivo("ELS");
+//					&& (idFolder != null && "-99999".equals(idFolder)); // Se è in Eliminati
 				}
 
 				@Override
@@ -5489,7 +5796,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 							}
 						}
 						
-						if(Layout.isPrivilegioAttivo("SCC")) {
+						if(AurigaLayout.showCopiaConformeCustom()) {
 							String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 							MenuItem scaricaFileConformitaCustomMenuItem = new MenuItem("File " + labelConformitaCustom, "buttons/download_zip.png");
 							scaricaFileConformitaCustomMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
@@ -5713,6 +6020,8 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 						// Segna come visionato massivo
 						
 						GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("LoadComboUoDestNotificheDataSource", "key", FieldType.TEXT);
+						String idNodo = getIdNode();
+						lGwtRestDataSource.addParam("altriParametriIn", "TIPO_AZIONE|*|V|*|CI_NODO_SCRIVANIA|*|" + idNodo);
 						lGwtRestDataSource.fetchData(null, new DSCallback() {
 
 							@Override
@@ -5847,6 +6156,45 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 				@Override
 				public void doSomething() {					
 					manageAssociazioneImgAProtocolloMassiva();
+				}
+			};
+		}
+		
+		if (segnaInvioEmailExtraSistemaMultiButton == null) {
+			segnaInvioEmailExtraSistemaMultiButton = new ArchivioMultiToolStripButton("buttons/segnaInvioEmailExtraSistema.png", this, "Segna come inviata via PEC extra-sistema") {
+				
+				@Override
+				public boolean toShowForArchivio() {
+					return abilSegnaInvioEmailExtraSistemaMultiButton && (idNode != null && idNode.startsWith("D.") && idNode.length()>"D.".length());
+				}
+				
+				@Override
+				public void doSomething() {			
+					if (list.getSelectedRecords().length < 1) {
+						Layout.addMessage(new MessageBean("Nessun record selezionato", "", MessageType.WARNING));
+						return;
+					}
+					
+					final RecordList listaUd = new RecordList();
+					for (int i = 0; i < list.getSelectedRecords().length; i++) {
+						listaUd.add(list.getSelectedRecords()[i]);
+					}
+					
+					Record lRecordSelezionatiUd = new Record();
+					lRecordSelezionatiUd.setAttribute("listaRecord", listaUd);
+					
+					final GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("ArchivioDatasource");
+					lGwtRestDataSource.executecustom("segnaInvioEmailExtraSistema", lRecordSelezionatiUd, new DSCallback() {
+						
+						@Override
+						public void execute(DSResponse response, Object rawData, DSRequest request) {
+							massiveOperationCallback(response, listaUd, "idUdFolder", "segnatura",
+									"Operazione effettuata con successo",
+									"Tutti i record selezionati sono andati in errore!",
+									"Alcuni dei record selezionati sono andati in errore!", null);
+						}
+					});
+					
 				}
 			};
 		}
@@ -6385,7 +6733,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForEmail() {
-					return abilEmailPresaInCarico;
+					return abilEmailPresaInCarico && ((Layout.isPrivilegioAttivo("EML/LK/ASS")) || (Layout.isPrivilegioAttivo("EML/PLK/ASS")));
 //					if (AurigaLayout.getParametroDBAsBoolean("DISATTIVA_PRESA_IN_CARICO_EMAIL")) {
 //						return false;
 //					}
@@ -6418,7 +6766,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 			messaInCaricoEmailMultiButton = new EmailMultiToolStripButton("postaElettronica/mettiInCarico.png", this, "Metti in Carico", false) {
 
 				public boolean toShowForEmail() {
-					return abilEmailMessaInCarico;
+					return abilEmailMessaInCarico && Layout.isPrivilegioAttivo("EML/PLK/ASS");
 //					if (AurigaLayout.getParametroDBAsBoolean("DISATTIVA_PRESA_IN_CARICO_EMAIL")) {
 //						return false;
 //					}
@@ -6532,7 +6880,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForEmail() {
-					return abilEmailInvioInApprovazione;
+					return abilEmailInvioInApprovazione && ((Layout.isPrivilegioAttivo("EML/LK/ASS")) || (Layout.isPrivilegioAttivo("EML/PLK/ASS")));
 //					if(AurigaLayout.getParametroDBAsBoolean("DISATTIVA_PRESA_IN_CARICO_EMAIL")) {
 //						return false;
 //					}
@@ -6653,7 +7001,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForEmail() {
-					return abilEmailRilascio;
+					return abilEmailRilascio && Layout.isPrivilegioAttivo("EML/ULK/ASS");
 //					if (AurigaLayout.getParametroDBAsBoolean("DISATTIVA_PRESA_IN_CARICO_EMAIL")) {
 //						return false;
 //					}
@@ -6685,7 +7033,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 
 				@Override
 				public boolean toShowForEmail() {
-					return abilEmailEliminazione;
+					return abilEmailEliminazione && Layout.isPrivilegioAttivo("EML/DEL");
 					//return Layout.isPrivilegioAttivo("EML/DEL");
 				}
 
@@ -6720,7 +7068,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 				
 				@Override
 				public boolean toShowForArchivio() {
-					return abilChiudiFascicoloMultiButton;
+					return abilChiudiFascicoloMultiButton && Layout.isPrivilegioAttivo("GRD/FLD/C");
 //					if (idNode != null && idNode.startsWith("F.") ) {
 //						return Layout.isPrivilegioAttivo("GRD/FLD/C");
 //					}
@@ -6771,7 +7119,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 				
 				@Override
 				public boolean toShowForArchivio() {
-					return abilRiapriFascicoloMultiButton;
+					return abilRiapriFascicoloMultiButton && Layout.isPrivilegioAttivo("GRD/FLD/C");
 //					if (idNode != null && idNode.startsWith("F.") ) {
 //						return Layout.isPrivilegioAttivo("GRD/FLD/C");
 //					}
@@ -6832,6 +7180,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 				prendiInCaricoMultiButton, 
 				assegnaMultiButton, 
 				restituisciMultiButton,
+				rilasciaMultiButton,
 				smistaMultiButton,
 				smistaCCMultiButton, 
 				classificaMultiButton, 
@@ -6854,6 +7203,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 				modificaTipologiaMultiButton,
 				segnaComeVisionatoMultiButton,
 				segnaComeArchiviatoMultiButton,
+				segnaInvioEmailExtraSistemaMultiButton,
 				eliminaMultiButton,
 				eliminaImgScansioneMultiButton,
 				associazioneImgAProtocolloMultiButton,
@@ -8196,6 +8546,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		setAbilFolderizzazione(false); 
 		setAbilAssegnazione(false); 
 		setAbilRestituzione(false); 
+		setAbilRilascia(false);
 		setAbilSmistamento(false); 
 		setAbilSmistamentoCC(false);
 		setAbilInvioPerConoscenza(false); 
@@ -8216,6 +8567,7 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		setAbilChiudiFascicoloMultiButton(false); 
 		setAbilRiapriFascicoloMultiButton(false); 
 		setAbilSegnaComeVisionatoMultiButton(false); 
+		setAbilSegnaInvioEmailExtraSistemaMultiButton(false); 
 		
 		setAbilRichiesteAccessoAttiInvioInApprovazione(false); 
 		setAbilRichiesteAccessoAttiApprovazione(false); 
@@ -8284,6 +8636,31 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 	 */
 	public boolean showFirmaProtocollaButton(Record record) {
 		return record != null && record.getAttributeAsBoolean("abilFirmaProtocolla");
+	}
+	
+	/**
+	 * METODO CHE VERIFICA ABILITAZIONE BOTTONE AZIONI ISTRUTTORIA PUBBLICAZIONE
+	 */
+	public boolean showAzioniIstruttoriaPubbl(Record record) {
+		boolean verify = false;
+		if (record.getAttributeAsBoolean("abilIstruttoriaPubblCollegaComeIstConcorrente") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblScollegaDaIstPadre") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblAvvioComparativo") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblAvvio") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblProseguimentoConInterruzioneTermini") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblProseguimentoSenzaInterruzioneTermini") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblRipubblicazione") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblPubblicazione") ) {
+				verify = true;
+		}
+		return verify;
+	}
+	
+	/**
+	 * METODO CHE VERIFICA ABILITAZIONE BOTTONE AVVIA ITER FIRME
+	 */
+	public boolean showAvviaIterFirme(Record record) {
+		return record.getAttributeAsBoolean("abilAvviaIterFirme");
 	}
 	
 	/**
@@ -8379,12 +8756,12 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		return record != null && record.getAttributeAsBoolean("abilModAssInviiCC");
 	}
 	
-	private void manageVistoButtonClickOnMultiToolstrip(boolean apposizioneForzata) {
+	private void manageVistoButtonClickOnMultiToolstrip(boolean flgApposizione) {
 		final RecordList listaUd = new RecordList();
 		for (int i = 0; i < list.getSelectedRecords().length; i++) {
 			listaUd.add(list.getSelectedRecords()[i]);
 		}
-		((ArchivioList)list).manageApponiVisto(listaUd, apposizioneForzata);
+		((ArchivioList)list).manageApponiVisto(listaUd, flgApposizione);
 	}
 	
 	/**
@@ -8856,6 +9233,14 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		this.abilSegnaComeVisionatoMultiButton = abilSegnaComeVisionatoMultiButton;
 	}
 
+	public boolean isAbilSegnaInvioEmailExtraSistemaMultiButton() {
+		return abilSegnaInvioEmailExtraSistemaMultiButton;
+	}
+
+	public void setAbilSegnaInvioEmailExtraSistemaMultiButton(boolean abilSegnaInvioEmailExtraSistemaMultiButton) {
+		this.abilSegnaInvioEmailExtraSistemaMultiButton = abilSegnaInvioEmailExtraSistemaMultiButton;
+	}
+
 	public boolean isAbilRichiesteAccessoAttiInvioInApprovazione() {
 		return abilRichiesteAccessoAttiInvioInApprovazione;
 	}
@@ -9045,6 +9430,14 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 		this.abilEmailApposizioneTagCommenti = abilEmailApposizioneTagCommenti;
 	}
 
+	public boolean isAbilRilascia() {
+		return abilRilascia;
+	}
+
+	public void setAbilRilascia(boolean abilRilascia) {
+		this.abilRilascia = abilRilascia;
+	}
+	
 	/**
 	 * @param listaIdUDScansioniFinal
 	 * @param idUd
@@ -9080,9 +9473,115 @@ public class ScrivaniaLayout extends CustomSimpleTreeLayout {
 	}
 	
 	private boolean showOperazioniTimbratura(Record detailRecord) {
-		return detailRecord != null && detailRecord.getAttribute("codCategoriaProtocollo") != null && !"".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo"))
-				&& ("PG".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")) ||
-						"R".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")) ||
-						"PP".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")));
+		if(AurigaLayout.showOperazioniTimbratura()) {
+			return detailRecord != null && detailRecord.getAttribute("codCategoriaProtocollo") != null && !"".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo"))
+					&& ("PG".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")) ||
+							"R".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")) ||
+							"PP".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")));
+		}
+		return false;
+	}
+	
+	private String getTitleStampaEtichetta() {
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") &&
+		   (AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg") == null || "a".equalsIgnoreCase(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg")))) {
+			return "Timbra";
+		} else {
+			return I18NUtil.getMessages().protocollazione_detail_stampaEtichettaButton_prompt();
+		}
+	}
+
+	/**
+	 * 
+	 */
+	public void apriWindowInvioPEC(String tipologiaAllegati) {
+		final Record record = new Record(detail.getValuesManager().getValues());
+		
+		final Boolean flgInvioPECMulti = record.getAttributeAsBoolean("flgInvioPECMulti") != null &&
+				record.getAttributeAsBoolean("flgInvioPECMulti") ? true : false;	
+		GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AurigaInvioUDMailDatasource");
+		if(flgInvioPECMulti) {
+			lGwtRestService.extraparam.put("PEC_MULTI", "1");
+		} 
+		lGwtRestService.extraparam.put("tipoMail", "PEC");
+		lGwtRestService.extraparam.put("tipologiaAllegati", tipologiaAllegati);
+		lGwtRestService.call(record, new ServiceCallback<Record>() {
+
+			@Override
+			public void execute(Record object) {
+				
+				if(flgInvioPECMulti) {
+					object.setAttribute("tipoMail", "PEO");
+					InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO",  record.getAttributeAsString("idUd"), new DSCallback() {
+						
+						@Override
+						public void execute(DSResponse response, Object rawData, DSRequest request) {
+							
+							reload(new DSCallback() {
+
+								@Override
+								public void execute(DSResponse response, Object rawData, DSRequest request) {
+									
+									viewMode();
+								}
+							});
+						}
+					});
+					lInvioUdMailWindow.loadMail(object);
+					lInvioUdMailWindow.show();
+					
+				} else {
+					InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEC", record.getAttributeAsString("idUd"), new DSCallback() {
+						
+						@Override
+						public void execute(DSResponse response, Object rawData, DSRequest request) {
+							
+							reload(new DSCallback() {
+
+								@Override
+								public void execute(DSResponse response, Object rawData, DSRequest request) {
+									
+									viewMode();
+								}
+							});
+						}
+					});
+					lInvioUdMailWindow.loadMail(object);
+					lInvioUdMailWindow.show();
+				}
+										
+			}
+		});
+	}
+
+	/**
+	 * 
+	 */
+	public void apriWindowInvioPEO(String tipologiaAllegati) {
+		final Record record = new Record(detail.getValuesManager().getValues());
+		GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AurigaInvioUDMailDatasource");
+		lGwtRestService.extraparam.put("tipoMail", "PEO");
+		lGwtRestService.extraparam.put("tipologiaAllegati", tipologiaAllegati);
+		lGwtRestService.call(record, new ServiceCallback<Record>() {
+
+			@Override
+			public void execute(Record object) {
+				InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", record.getAttributeAsString("idUd"), new DSCallback() {
+
+					@Override
+					public void execute(DSResponse response, Object rawData, DSRequest request) {
+						reload(new DSCallback() {
+
+							@Override
+							public void execute(DSResponse response, Object rawData, DSRequest request) {
+								viewMode();
+							}
+						});
+					}
+				});
+				lInvioUdMailWindow.loadMail(object);
+				lInvioUdMailWindow.show();
+			}
+		});
 	}
 }

@@ -1,4 +1,4 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
 package it.eng.fileOperation.clientws;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -33,7 +33,8 @@ import javax.xml.datatype.XMLGregorianCalendar;
  *                   &lt;element name="issuer" type="{it.eng.fileoperation.ws}dnType" minOccurs="0"/&gt;
  *                   &lt;element name="qcStatements" type="{it.eng.fileoperation.ws}qcStatements" minOccurs="0"/&gt;
  *                   &lt;element name="keyUsages" type="{it.eng.fileoperation.ws}keyUsages" minOccurs="0"/&gt;
- *                   &lt;element name="serialNumber" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt;
+ *                   &lt;element name="serialNumber" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt; 
+ *                   &lt;element name="codiceFiscale" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt; 
  *                 &lt;/sequence&gt;
  *               &lt;/restriction&gt;
  *             &lt;/complexContent&gt;
@@ -85,7 +86,7 @@ public class SignerInformationType
     protected SignerInformationType controFirma;
 
     /**
-     * Recupera il valore della propriet‡ signingTime.
+     * Recupera il valore della proprietÔøΩ signingTime.
      * 
      * @return
      *     possible object is
@@ -97,7 +98,7 @@ public class SignerInformationType
     }
 
     /**
-     * Imposta il valore della propriet‡ signingTime.
+     * Imposta il valore della proprietÔøΩ signingTime.
      * 
      * @param value
      *     allowed object is
@@ -109,7 +110,7 @@ public class SignerInformationType
     }
 
     /**
-     * Recupera il valore della propriet‡ tipoFirmaQA.
+     * Recupera il valore della proprietÔøΩ tipoFirmaQA.
      * 
      * @return
      *     possible object is
@@ -121,7 +122,7 @@ public class SignerInformationType
     }
 
     /**
-     * Imposta il valore della propriet‡ tipoFirmaQA.
+     * Imposta il valore della proprietÔøΩ tipoFirmaQA.
      * 
      * @param value
      *     allowed object is
@@ -133,7 +134,7 @@ public class SignerInformationType
     }
 
     /**
-     * Recupera il valore della propriet‡ certificato.
+     * Recupera il valore della proprietÔøΩ certificato.
      * 
      * @return
      *     possible object is
@@ -145,7 +146,7 @@ public class SignerInformationType
     }
 
     /**
-     * Imposta il valore della propriet‡ certificato.
+     * Imposta il valore della proprietÔøΩ certificato.
      * 
      * @param value
      *     allowed object is
@@ -157,7 +158,7 @@ public class SignerInformationType
     }
 
     /**
-     * Recupera il valore della propriet‡ marca.
+     * Recupera il valore della proprietÔøΩ marca.
      * 
      * @return
      *     possible object is
@@ -169,7 +170,7 @@ public class SignerInformationType
     }
 
     /**
-     * Imposta il valore della propriet‡ marca.
+     * Imposta il valore della proprietÔøΩ marca.
      * 
      * @param value
      *     allowed object is
@@ -181,7 +182,7 @@ public class SignerInformationType
     }
 
     /**
-     * Recupera il valore della propriet‡ controFirma.
+     * Recupera il valore della proprietÔøΩ controFirma.
      * 
      * @return
      *     possible object is
@@ -193,7 +194,7 @@ public class SignerInformationType
     }
 
     /**
-     * Imposta il valore della propriet‡ controFirma.
+     * Imposta il valore della proprietÔøΩ controFirma.
      * 
      * @param value
      *     allowed object is
@@ -223,6 +224,7 @@ public class SignerInformationType
      *         &lt;element name="qcStatements" type="{it.eng.fileoperation.ws}qcStatements" minOccurs="0"/&gt;
      *         &lt;element name="keyUsages" type="{it.eng.fileoperation.ws}keyUsages" minOccurs="0"/&gt;
      *         &lt;element name="serialNumber" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt;
+     *         &lt;element name="codiceFiscale" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt;
      *       &lt;/sequence&gt;
      *     &lt;/restriction&gt;
      *   &lt;/complexContent&gt;
@@ -240,7 +242,8 @@ public class SignerInformationType
         "issuer",
         "qcStatements",
         "keyUsages",
-        "serialNumber"
+        "serialNumber",
+        "codiceFiscale"
     })
     public static class Certificato {
 
@@ -255,9 +258,10 @@ public class SignerInformationType
         protected QcStatements qcStatements;
         protected KeyUsages keyUsages;
         protected String serialNumber;
+        protected String codiceFiscale;
 
         /**
-         * Recupera il valore della propriet‡ contenuto.
+         * Recupera il valore della propriet√† contenuto.
          * 
          * @return
          *     possible object is
@@ -268,7 +272,7 @@ public class SignerInformationType
         }
 
         /**
-         * Imposta il valore della propriet‡ contenuto.
+         * Imposta il valore della propriet√† contenuto.
          * 
          * @param value
          *     allowed object is
@@ -279,7 +283,7 @@ public class SignerInformationType
         }
 
         /**
-         * Recupera il valore della propriet‡ dataDecorrenza.
+         * Recupera il valore della propriet√† dataDecorrenza.
          * 
          * @return
          *     possible object is
@@ -291,7 +295,7 @@ public class SignerInformationType
         }
 
         /**
-         * Imposta il valore della propriet‡ dataDecorrenza.
+         * Imposta il valore della propriet√† dataDecorrenza.
          * 
          * @param value
          *     allowed object is
@@ -303,7 +307,7 @@ public class SignerInformationType
         }
 
         /**
-         * Recupera il valore della propriet‡ dataScadenza.
+         * Recupera il valore della propriet√† dataScadenza.
          * 
          * @return
          *     possible object is
@@ -315,7 +319,7 @@ public class SignerInformationType
         }
 
         /**
-         * Imposta il valore della propriet‡ dataScadenza.
+         * Imposta il valore della propriet√† dataScadenza.
          * 
          * @param value
          *     allowed object is
@@ -327,7 +331,7 @@ public class SignerInformationType
         }
 
         /**
-         * Recupera il valore della propriet‡ subject.
+         * Recupera il valore della propriet√† subject.
          * 
          * @return
          *     possible object is
@@ -339,7 +343,7 @@ public class SignerInformationType
         }
 
         /**
-         * Imposta il valore della propriet‡ subject.
+         * Imposta il valore della propriet√† subject.
          * 
          * @param value
          *     allowed object is
@@ -351,7 +355,7 @@ public class SignerInformationType
         }
 
         /**
-         * Recupera il valore della propriet‡ issuer.
+         * Recupera il valore della propriet√† issuer.
          * 
          * @return
          *     possible object is
@@ -363,7 +367,7 @@ public class SignerInformationType
         }
 
         /**
-         * Imposta il valore della propriet‡ issuer.
+         * Imposta il valore della propriet√† issuer.
          * 
          * @param value
          *     allowed object is
@@ -375,7 +379,7 @@ public class SignerInformationType
         }
 
         /**
-         * Recupera il valore della propriet‡ qcStatements.
+         * Recupera il valore della propriet√† qcStatements.
          * 
          * @return
          *     possible object is
@@ -387,7 +391,7 @@ public class SignerInformationType
         }
 
         /**
-         * Imposta il valore della propriet‡ qcStatements.
+         * Imposta il valore della propriet√† qcStatements.
          * 
          * @param value
          *     allowed object is
@@ -399,7 +403,7 @@ public class SignerInformationType
         }
 
         /**
-         * Recupera il valore della propriet‡ keyUsages.
+         * Recupera il valore della propriet√† keyUsages.
          * 
          * @return
          *     possible object is
@@ -411,7 +415,7 @@ public class SignerInformationType
         }
 
         /**
-         * Imposta il valore della propriet‡ keyUsages.
+         * Imposta il valore della propriet√† keyUsages.
          * 
          * @param value
          *     allowed object is
@@ -423,7 +427,7 @@ public class SignerInformationType
         }
 
         /**
-         * Recupera il valore della propriet‡ serialNumber.
+         * Recupera il valore della propriet√† serialNumber.
          * 
          * @return
          *     possible object is
@@ -435,7 +439,7 @@ public class SignerInformationType
         }
 
         /**
-         * Imposta il valore della propriet‡ serialNumber.
+         * Imposta il valore della propriet√† serialNumber.
          * 
          * @param value
          *     allowed object is
@@ -444,6 +448,30 @@ public class SignerInformationType
          */
         public void setSerialNumber(String value) {
             this.serialNumber = value;
+        }
+        
+        /**
+         * Recupera il valore della propriet√† codiceFiscale.
+         * 
+         * @return
+         *     possible object is
+         *     {@link String }
+         *     
+         */
+        public String getCodiceFiscale() {
+            return codiceFiscale;
+        }
+
+        /**
+         * Imposta il valore della propriet√† codiceFiscale
+         * 
+         * @param value
+         *     allowed object is
+         *     {@link String }
+         *     
+         */
+        public void setCodiceFiscale(String value) {
+            this.codiceFiscale = value;
         }
 
     }
@@ -493,7 +521,7 @@ public class SignerInformationType
         protected String policy;
 
         /**
-         * Recupera il valore della propriet‡ contenuto.
+         * Recupera il valore della propriet√† contenuto.
          * 
          * @return
          *     possible object is
@@ -504,7 +532,7 @@ public class SignerInformationType
         }
 
         /**
-         * Imposta il valore della propriet‡ contenuto.
+         * Imposta il valore della propriet√† contenuto.
          * 
          * @param value
          *     allowed object is
@@ -515,7 +543,7 @@ public class SignerInformationType
         }
 
         /**
-         * Recupera il valore della propriet‡ tsaName.
+         * Recupera il valore della propriet√† tsaName.
          * 
          * @return
          *     possible object is
@@ -527,7 +555,7 @@ public class SignerInformationType
         }
 
         /**
-         * Imposta il valore della propriet‡ tsaName.
+         * Imposta il valore della propriet√† tsaName.
          * 
          * @param value
          *     allowed object is
@@ -539,7 +567,7 @@ public class SignerInformationType
         }
 
         /**
-         * Recupera il valore della propriet‡ serialNumber.
+         * Recupera il valore della propriet√† serialNumber.
          * 
          * @return
          *     possible object is
@@ -551,7 +579,7 @@ public class SignerInformationType
         }
 
         /**
-         * Imposta il valore della propriet‡ serialNumber.
+         * Imposta il valore della propriet√† serialNumber.
          * 
          * @param value
          *     allowed object is
@@ -563,7 +591,7 @@ public class SignerInformationType
         }
 
         /**
-         * Recupera il valore della propriet‡ date.
+         * Recupera il valore della propriet√† date.
          * 
          * @return
          *     possible object is
@@ -575,7 +603,7 @@ public class SignerInformationType
         }
 
         /**
-         * Imposta il valore della propriet‡ date.
+         * Imposta il valore della propriet√† date.
          * 
          * @param value
          *     allowed object is
@@ -587,7 +615,7 @@ public class SignerInformationType
         }
 
         /**
-         * Recupera il valore della propriet‡ policy.
+         * Recupera il valore della propriet√† policy.
          * 
          * @return
          *     possible object is
@@ -599,7 +627,7 @@ public class SignerInformationType
         }
 
         /**
-         * Imposta il valore della propriet‡ policy.
+         * Imposta il valore della propriet√† policy.
          * 
          * @param value
          *     allowed object is

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.tipologieDocumentali.datasource;
 
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -77,7 +78,6 @@ public class TipologieDocumentaliDataSource extends AbstractFetchDataSource<Tipo
 	@Override
 	public PaginatorBean<TipologieDocumentaliBean> fetch(AdvancedCriteria criteria, Integer startRow, Integer endRow, List<OrderByBean> orderby) throws Exception {
 	
-		
 		AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo(getSession());
 
 		String token = loginBean.getToken();
@@ -103,7 +103,6 @@ public class TipologieDocumentaliDataSource extends AbstractFetchDataSource<Tipo
 			String opzioniAbil = getExtraparams().get("opzioniAbil");
 			input.setOpzioniabilin(opzioniAbil);			
 		}
-		
 		
 		input.setFlginclannullatiio(new BigDecimal(1));
 		
@@ -159,12 +158,13 @@ public class TipologieDocumentaliDataSource extends AbstractFetchDataSource<Tipo
 					bean.setFlgAbilUtilizzo(v.get(30).equalsIgnoreCase("1") ? true : false);
 					bean.setFlgAbilFirma(v.get(31).equalsIgnoreCase("1") ? true : false);
 					bean.setFlgIsAssociataIterWf(v.get(32).equalsIgnoreCase("1") ? true : false);
-					bean.setFlgRichFirmaDigitale(v.get(33) == null ? "0" : v.get(33));
+					bean.setFlgRichFile(v.get(33).equalsIgnoreCase("1") ? true : false);
+					bean.setFlgRichFirmaDigitale(v.get(34).equalsIgnoreCase("1") ? true : false);
+					bean.setFlgRichFirmaValida(v.get(35).equalsIgnoreCase("1") ? true : false);
 					data.add(bean);
 				}
 			}
 		}
-
 		PaginatorBean<TipologieDocumentaliBean> lPaginatorBean = new PaginatorBean<TipologieDocumentaliBean>();
 		lPaginatorBean.setData(data);
 		lPaginatorBean.setStartRow(startRow);
@@ -215,8 +215,10 @@ public class TipologieDocumentaliDataSource extends AbstractFetchDataSource<Tipo
 		result.setFlgAbilFirma(output.getResultBean().getFlgrichabilxfirmaout() != null && output.getResultBean().getFlgrichabilxfirmaout() == 1 ? true : false);
 		result.setRowid(output.getResultBean().getRowidout());
 		result.setFlgIsAssociataIterWf(bean.getFlgIsAssociataIterWf());
-		result.setFlgRichFirmaDigitale(output.getResultBean().getFlgrichfirmadigitaleout() != null ? output.getResultBean().getFlgrichfirmadigitaleout().toString() : null);
-		
+		result.setFlgRichFile(output.getResultBean().getFlgrichfileout() != null && output.getResultBean().getFlgrichfileout().intValue() == 1 ? true : false);
+		result.setFlgRichFirmaDigitale(output.getResultBean().getFlgrichfirmadigitaleout() != null && output.getResultBean().getFlgrichfirmadigitaleout().intValue() == 1 ? true : false);
+		result.setFlgRichFirmaValida(output.getResultBean().getFlgrichfirmavalidaout() != null && output.getResultBean().getFlgrichfirmavalidaout().intValue() == 1 ? true : false);
+
 		List<AttrAddXEvtDelTipoBean> listaAttrAddXml = new ArrayList<AttrAddXEvtDelTipoBean>();
 		if (output.getResultBean().getXmlattraddxdocdeltipoout() != null) {
 			StringReader sr = new StringReader(output.getResultBean().getXmlattraddxdocdeltipoout());
@@ -307,7 +309,6 @@ public class TipologieDocumentaliDataSource extends AbstractFetchDataSource<Tipo
 				addMessage(result.getDefaultMessage(), "", MessageType.WARNING);
 			}
 		}
-		
 		return bean;
 	}
 
@@ -335,11 +336,8 @@ public class TipologieDocumentaliDataSource extends AbstractFetchDataSource<Tipo
 				addMessage(output.getDefaultMessage(), "", MessageType.WARNING);
 			}
 		}
-		
 		return bean;
 	}
-
-	
 	
 	protected String getXMLAbilitazioniPubbl(TipologieDocumentaliBean bean) throws JAXBException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
 		String xmlBean;
@@ -349,7 +347,6 @@ public class TipologieDocumentaliDataSource extends AbstractFetchDataSource<Tipo
 		xmlBean = lXmlUtilitySerializer.bindXmlList(lList);
 		return xmlBean;
 	}
-	
 	
 	/**
 	 * 
@@ -435,7 +432,6 @@ public class TipologieDocumentaliDataSource extends AbstractFetchDataSource<Tipo
 				addMessage(output.getDefaultMessage(), "", MessageType.WARNING);
 			}
 		}
-
 		return bean;
 	}
 	
@@ -628,10 +624,11 @@ public class TipologieDocumentaliDataSource extends AbstractFetchDataSource<Tipo
 			xmlUoGpPrivAbilitatiPubblicazione = getXMLAbilitazioniPubbl(bean);   
 		}
 		input.setAbilitazionipubblin(xmlUoGpPrivAbilitatiPubblicazione);
-		input.setFlgrichfirmadigitalein(bean.getFlgRichFirmaDigitale() != null && !"".equals(bean.getFlgRichFirmaDigitale()) && !"0".equals(bean.getFlgRichFirmaDigitale()) ? bean.getFlgRichFirmaDigitale() : null);
 		
-		
-		
+		input.setFlgrichfilein(bean.getFlgRichFile() != null && bean.getFlgRichFile() ? new BigDecimal(1) : new BigDecimal(0));
+		input.setFlgrichfirmadigitalein(bean.getFlgRichFirmaDigitale() != null && bean.getFlgRichFirmaDigitale() ? new BigDecimal(1) : new BigDecimal(0));
+		input.setFlgrichfirmavalidain(bean.getFlgRichFirmaValida() != null && bean.getFlgRichFirmaValida() ? new BigDecimal(1) : new BigDecimal(0));
+				
 		// Attributi dinamici
 		Map<String, Object> valori = bean.getValori() != null ? bean.getValori() : new HashMap<String, Object>();
 		Map<String, String> tipiValori = bean.getTipiValori() != null ? bean.getTipiValori() : new HashMap<String, String>();
@@ -644,9 +641,7 @@ public class TipologieDocumentaliDataSource extends AbstractFetchDataSource<Tipo
 		xmlAttributiDinamici = lXmlUtilitySerializer.bindXml(lAttributiDinamiciXmlBean);
 		input.setAttributiaddin(xmlAttributiDinamici);
 		
-		
 		return input;
-		
 	}
 	
 	private Map<String, String> createRemapConditionsMap() {

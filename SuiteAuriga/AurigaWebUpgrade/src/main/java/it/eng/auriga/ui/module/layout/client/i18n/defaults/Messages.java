@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.i18n.defaults;
 
 /**
  * Interfaccia che espone i le costanti delle label da inserire nelle gui
@@ -408,6 +409,9 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   @Key("archivio_list_dtEsecutivitaField_title")
   String archivio_list_dtEsecutivitaField_title();
   
+  @Key("archivio_list_dtAdozioneField_title")
+  String archivio_list_dtAdozioneField_title();
+  
   @Key("archivio_list_flgImmediatamenteEsegField")
   String archivio_list_flgImmediatamenteEsegField();
   
@@ -516,6 +520,9 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   @Key("archivio_list_perizie_title")
   String archivio_list_perizie_title();
   
+  @Key("archivio_list_concessioni_title")
+  String archivio_list_concessioni_title();
+  	  
   @Key("archivio_list_centroDiCosto_title")
   String archivio_list_centroDiCosto_title();
   
@@ -625,6 +632,12 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
 
   @Key("archivio_detail_datiprincipaliSection_title")
   String archivio_detail_datiprincipaliSection_title(); 
+  
+  @Key("archivio_detail_periziaSection_title")
+  String archivio_detail_periziaSection_title(); 
+
+  @Key("archivio_detail_concessioneSection_title")
+  String archivio_detail_concessioneSection_title(); 
 
   @Key("archivio_detail_descContenutiFascicoloItem_title")
   String archivio_detail_descContenutiFascicoloItem_title(); 
@@ -1322,7 +1335,56 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   @Key("atti_personali_list_assegnatarioUffAcquisti")
   String atti_personali_list_assegnatarioUffAcquisti();
   
+
+  //##############################################################
+  //# 		       ANNULLA ATTI IN ITER ANNO PREC              #
+  //##############################################################
   
+  @Key("annullaAttiInIterAnnoPrec_window_title")
+  String annullaAttiInIterAnnoPrec_window_title();
+
+  @Key("annullaAttiInIterAnnoPrecDetail_proposteDecretoAnnoPassatoAncoraInIter_section_title")
+  String annullaAttiInIterAnnoPrecDetail_proposteDecretoAnnoPassatoAncoraInIter_section_title();
+  
+  @Key("annullaAttiInIterAnnoPrecDetail_proposteRdaAnnoPassatoAncoraInIter_section_title")
+  String annullaAttiInIterAnnoPrecDetail_proposteRdaAnnoPassatoAncoraInIter_section_title();
+  
+  @Key("annullaAttiInIterAnnoPrecDetail_nroTotaleProposteDecretoItem_title")
+  String annullaAttiInIterAnnoPrecDetail_nroTotaleProposteDecretoItem_title();
+
+  @Key("annullaAttiInIterAnnoPrecDetail_nroTotaleProposteDecretoConMovimentiContabiliItem_title")
+  String annullaAttiInIterAnnoPrecDetail_nroTotaleProposteDecretoConMovimentiContabiliItem_title();
+
+  @Key("annullaAttiInIterAnnoPrecDetail_nroProposteDecretoInFaseIstruttoriaItem_title")
+  String annullaAttiInIterAnnoPrecDetail_nroProposteDecretoInFaseIstruttoriaItem_title();
+
+  @Key("annullaAttiInIterAnnoPrecDetail_flgAnnullaConRilevContabTitleItem_title")
+  String annullaAttiInIterAnnoPrecDetail_flgAnnullaConRilevContabTitleItem_title();
+  
+  @Key("annullaAttiInIterAnnoPrecDetail_flgAnnullaConRilevContabNoValueItem_title")
+  String annullaAttiInIterAnnoPrecDetail_flgAnnullaConRilevContabNoValueItem_title();
+
+  @Key("annullaAttiInIterAnnoPrecDetail_flgAnnullaConRilevContabSiValueItem_title")
+  String annullaAttiInIterAnnoPrecDetail_flgAnnullaConRilevContabSiValueItem_title();
+
+  @Key("annullaAttiInIterAnnoPrecDetail_flgAnnullaConRilevContabSiSenzaMovContabItem_title")
+  String annullaAttiInIterAnnoPrecDetail_flgAnnullaConRilevContabSiSenzaMovContabItem_title();
+
+  @Key("annullaAttiInIterAnnoPrecDetail_nroProposteDecretoInVerificaBilancioItem_title")
+  String annullaAttiInIterAnnoPrecDetail_nroProposteDecretoInVerificaBilancioItem_title();
+
+  @Key("annullaAttiInIterAnnoPrecDetail_nroProposteDecretoInVerificaBilancioLabel_title")
+  String annullaAttiInIterAnnoPrecDetail_nroProposteDecretoInVerificaBilancioLabel_title();
+
+  @Key("annullaAttiInIterAnnoPrecDetail_nroProposteDecretoInFasePerfezionamentoItem_title")
+  String annullaAttiInIterAnnoPrecDetail_nroProposteDecretoInFasePerfezionamentoItem_title();
+
+  @Key("annullaAttiInIterAnnoPrecDetail_nroProposteRdaItem_title")
+  String annullaAttiInIterAnnoPrecDetail_nroProposteRdaItem_title();
+  
+  @Key("annullaAttiInIterAnnoPrecDetail_flgProposteRdaDaAnnullareItem_title")
+  String annullaAttiInIterAnnoPrecDetail_flgProposteRdaDaAnnullareItem_title();
+
   
   //#############################################################
   //#                      ATTRIBUTI CUSTOM                     #
@@ -1397,6 +1459,9 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   @Key("attributi_custom_scelta_tipologia_editorHtml")
   String attributi_custom_scelta_tipologia_editorHtml(); 
   
+  @Key("attributi_custom_scelta_tipo_filtro_comboBox")
+  String attributi_custom_scelta_tipo_filtro_comboBox(); 
+  
   @Key("attributi_custom_select_area_testo")
   String attributi_custom_select_area_testo(); 
 
@@ -1459,6 +1524,8 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
 
   @Key("attributi_custom_view_title")
   String attributi_custom_view_title(String attribute0);
+  
+  
 
 
 
@@ -3269,6 +3336,9 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   @Key("auriga_filter_archivio_statoClassFascDocumenti_title")
   String auriga_filter_archivio_statoClassFascDocumenti_title(); 
   
+  @Key("auriga_filter_archivio_dataEsecutivita_title")
+  String auriga_filter_archivio_dataEsecutivita_title(); 
+  
   
   //#ScrivaniaFilter
   @Key("auriga_filter_scrivania_nroProt_title")
@@ -3477,6 +3547,9 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
 
   @Key("auriga_filter_scrivania_perizia_title")
   String auriga_filter_scrivania_perizia_title();
+  
+  @Key("auriga_filter_scrivania_concessione_title")
+  String auriga_filter_scrivania_concessione_title();
   
   @Key("auriga_filter_scrivania_riservatezza_title")
   String auriga_filter_scrivania_riservatezza_title(); 
@@ -4044,6 +4117,9 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
 
   @Key("gestioneutenti_gruppoClientiSection_title")
   String gestioneutenti_gruppoClientiSection_title(); 
+  
+  @Key("gestioneutenti_notificaEmailSection_title")
+  String gestioneutenti_notificaEmailSection_title();
 
   @Key("gestioneutenti_gruppoClienti_title")
   String gestioneutenti_gruppoClienti_title(); 
@@ -4144,7 +4220,11 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   
   @Key("gestioneutenti_flgUtenzaApplicativa_title")
   String gestioneutenti_flgUtenzaApplicativa_title(); 
-    
+  
+  @Key("gestioneutenti_flgPresaInCaricoAutomaticaInRegUd_title")
+  String gestioneutenti_flgPresaInCaricoAutomaticaInRegUd_title(); 
+  
+  
   @Key("gestioneutenti_flgDisattivaNotifDocDaPrendereInCarico_title")
   String gestioneutenti_flgDisattivaNotifDocDaPrendereInCarico_title(); 
   
@@ -4963,6 +5043,14 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   @Key("menu_atti_completi_personali_prompt")
   String menu_atti_completi_personali_prompt();
 
+  
+  @Key("menu_annulla_atti_in_iter_anno_prec_title")
+  String menu_annulla_atti_in_iter_anno_prec_title();
+  
+  @Key("menu_annulla_atti_in_iter_anno_prec_prompt")
+  String menu_annulla_atti_in_iter_anno_prec_prompt();
+  
+  
   @Key("menu_attributi_custom_prompt")
   String menu_attributi_custom_prompt(); 
 
@@ -5409,7 +5497,12 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
 
   @Key("menu_statisticheTrasparenzaAmministrativa_title")
   String menu_statisticheTrasparenzaAmministrativa_title(); 
-
+  
+  @Key("menu_monitoraggio_registrazioni_multiple_uscita_title")
+  String menu_monitoraggio_registrazioni_multiple_uscita_title(); 
+  
+  @Key("menu_monitoraggio_registrazioni_multiple_uscita_prompt")
+  String menu_monitoraggio_registrazioni_multiple_uscita_prompt(); 
   
   //#############################################################
   //#                     	  MODELLI DOCUMENTO                 #        
@@ -8970,6 +9063,11 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   @Key("protocollazione_detail_periziaForm_title")
   String protocollazione_detail_periziaForm_title(); 
   
+  
+  @Key("protocollazione_detail_concessioneForm_title")
+  String protocollazione_detail_concessioneForm_title(); 
+  
+  
   @Key("protocollazione_detail_variazioneDatiRegistrazione_title")
   String protocollazione_detail_variazioneDatiRegistrazione_title(); 
 
@@ -9029,6 +9127,12 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   
   @Key("protocollazione_detail_tabPubblicazione_title")
   String protocollazione_detail_tabPubblicazione_title(); 
+  
+  @Key("protocollazione_detail_tabIterFirmeTrasmissione_prompt")
+  String protocollazione_detail_tabIterFirmeTrasmissione_prompt();
+  
+  @Key("protocollazione_detail_tabIterFirmeTrasmissione_title")
+  String protocollazione_detail_tabIterFirmeTrasmissione_title();
 
   @Key("protocollazione_detail_stampe")
   String protocollazione_detail_stampe(); 
@@ -9050,6 +9154,10 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   
   @Key("protocollazione_detail_restituisci_title")
   String protocollazione_detail_restituisci_title();
+  
+
+  @Key("protocollazione_detail_rilascia_title")
+  String protocollazione_detail_rilascia_title();
   
   @Key("protocollazione_detail_segnaComeVisionato_title")
   String protocollazione_detail_segnaComeVisionato_title();
@@ -11697,6 +11805,12 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   @Key("tipologieDocumentali_flgRichFirmaDigitale_list")
   String tipologieDocumentali_flgRichFirmaDigitale_list();
   
+  @Key("tipologieDocumentali_flgRichFile_list")
+  String tipologieDocumentali_flgRichFile_list();
+  
+  @Key("tipologieDocumentali_flgRichFirmaValida_list")
+  String tipologieDocumentali_flgRichFirmaValida_list();
+    
   @Key("tipologieDocumentali_flgIsAssociataIterWfAlt_list")
   String tipologieDocumentali_flgIsAssociataIterWfAlt_list(); 
   
@@ -11705,7 +11819,6 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   
   @Key("tipologieDocumentali_flgRichFirmaDigitaleNonValidaAlt_list")
   String tipologieDocumentali_flgRichFirmaDigitaleNonValidaAlt_list(); 
-
 
   @Key("tipologieDocumentali_detail_section_attradd")
   String tipologieDocumentali_detail_section_attradd(); 
@@ -11718,9 +11831,6 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
 
   @Key("tipologieDocumentali_detail_flgAllegato")
   String tipologieDocumentali_detail_flgAllegato(); 
-  
-  @Key("tipologieDocumentali_detail_flgRichFirmaDigitale")
-  String tipologieDocumentali_detail_flgRichFirmaDigitale(); 
   
   @Key("tipologieDocumentali_detail_idDocTypeGen")
   String tipologieDocumentali_detail_idDocTypeGen(); 
@@ -11761,11 +11871,18 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   @Key("tipologieDocumentali_detail_flgTipoProv")
   String tipologieDocumentali_detail_flgTipoProv();
   
-  
   @Key("tipologieDocumentali_lookupTipologieDocumentaliPopup_title")
   String tipologieDocumentali_lookupTipologieDocumentaliPopup_title();
   
-
+  @Key("tipologieDocumentali_detail_flgRichFileItem")
+  String tipologieDocumentali_detail_flgRichFileItem(); 
+  
+  @Key("tipologieDocumentali_detail_flgRichFirmaDigitaleItem")
+  String tipologieDocumentali_detail_flgRichFirmaDigitaleItem(); 
+  
+  @Key("tipologieDocumentali_detail_flgRichFirmaValidaItem")
+  String tipologieDocumentali_detail_flgRichFirmaValidaItem(); 
+  
   //#############################################################
   //#                       TITOLARIO                           #
   //#############################################################
@@ -12729,7 +12846,13 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   String menu_pubblicazione_albo_title(); 
   
   @Key("menu_pubblicazione_albo_prompt")
-  String menu_pubblicazione_albo_prompt(); 
+  String menu_pubblicazione_albo_prompt();
+  
+  @Key("menu_pubblicazione_bollettino_title")
+  String menu_pubblicazione_bollettino_title(); 
+  
+  @Key("menu_pubblicazione_bollettino_prompt")
+  String menu_pubblicazione_bollettino_prompt();
   
   @Key("menu_pubblicazione_albo_nuova_richiesta_title")
   String menu_pubblicazione_albo_nuova_richiesta_title(); 
@@ -12806,6 +12929,9 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   
   @Key("pubblicazione_albo_rettifica_pubblicazione_title")
   String pubblicazione_albo_rettifica_pubblicazione_title(); 
+  
+  @Key("pubblicazione_albo_modifica_pubblicazione_title")
+  String pubblicazione_albo_modifica_pubblicazione_title(); 
 		  
   // PubblicazioneAlboConsultazioneRichiesteLayout
   @Key("pubblicazione_albo_consultazione_richieste_detail_new_title")
@@ -13015,6 +13141,9 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   @Key("configUtenteMenuPreferenzaNotificheMail_title")
   String configUtenteMenuPreferenzaNotificheMail_title();
   
+   @Key("configUtenteMenuPreferenzaFirmeBozze_title")
+   String configUtenteMenuPreferenzaFirmeBozze_title();
+ 
   @Key("configUtenteMenuPreferenzaIterAtti_title")
   String configUtenteMenuPreferenzaIterAtti_title();
   
@@ -13023,6 +13152,9 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
 
   @Key("configUtenteMenuImpostazioniStampa_title")
   String configUtenteMenuImpostazioniStampa_title();
+  
+  @Key("configUtenteMenuImpostazioniStampaSegnaturaDocCartacei_title")
+  String configUtenteMenuImpostazioniStampaSegnaturaDocCartacei_title();
   
   @Key("configUtenteMenuImpostazioniFirma_title")
   String configUtenteMenuImpostazioniFirma_title();
@@ -13081,11 +13213,23 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   @Key("configUtenteMenuImpostazioniFirma_password")
   String configUtenteMenuImpostazioniFirma_password();
   
+  @Key("configUtenteMenuImpostazioniFirma_passwordAsSeparateFiled")
+  String configUtenteMenuImpostazioniFirma_passwordAsSeparateFiled();
+  
+  @Key("configUtenteMenuImpostazioniFirma_pinAsSeparateFiled")
+  String configUtenteMenuImpostazioniFirma_pinAsSeparateFiled();
+  
   @Key("configUtenteMenuImpostazioniFirma_confermaPassword")
   String configUtenteMenuImpostazioniFirma_confermaPassword();
   
   @Key("configUtenteMenuImpostazioniFirma_cambiaPassword")
   String configUtenteMenuImpostazioniFirma_cambiaPassword();
+  
+  @Key("configUtenteMenuImpostazioniFirma_confermaPasswordAsSeparateFiled")
+  String configUtenteMenuImpostazioniFirma_confermaPasswordAsSeparateFiled();
+  
+  @Key("configUtenteMenuImpostazioniFirma_cambiaPasswordAsSeparateFiled")
+  String configUtenteMenuImpostazioniFirma_cambiaPasswordAsSeparateFiled();
   
   
   @Key("configUtenteMenuImpostazioniFirma_usernameRichOtp")
@@ -13291,6 +13435,20 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   @Key("perizia_combo_descrizioneField_title")
   String perizia_combo_descrizioneField_title(); 
 
+  
+  //#############################################################
+  //#                     CONCESSIONE CANVAS                    #
+  //#############################################################
+  @Key("concessione_codiceRapitoItem_title")
+  String concessione_codiceRapitoItem_title(); 
+  
+  @Key("concessione_combo_codiceField_title")
+  String concessione_combo_codiceField_title(); 
+  
+  @Key("concessione_combo_descrizioneField_title")
+  String concessione_combo_descrizioneField_title(); 
+
+  
   
   //#############################################################
   //#                     DATI CONTABILI                        #
@@ -14040,4 +14198,34 @@ public interface Messages extends it.eng.utility.ui.module.core.client.i18n.defa
   @Key("messaggioRichiestaLogin")
   String messaggioRichiestaLogin();
 
+  //#############################################################
+  //#           Registrazioni multiple in uscita                #
+  //#############################################################
+  
+  @Key("monitoraggio_registrazioni_multiple_uscita_list_nroRichiesta_title")
+  String monitoraggio_registrazioni_multiple_uscita_list_nroRichiesta_title();
+  
+  @Key("monitoraggio_registrazioni_multiple_uscita_list_tsInvioRichiesta_title")
+  String monitoraggio_registrazioni_multiple_uscita_list_tsInvioRichiesta_title();
+  
+  @Key("monitoraggio_registrazioni_multiple_uscita_list_userRichiesta_title")
+  String monitoraggio_registrazioni_multiple_uscita_list_userRichiesta_title();
+  
+  @Key("monitoraggio_registrazioni_multiple_uscita_list_tipoRichiesta_title")
+  String monitoraggio_registrazioni_multiple_uscita_list_tipoRichiesta_title();
+  
+  @Key("monitoraggio_registrazioni_multiple_uscita_list_statoRichiesta_title")
+  String monitoraggio_registrazioni_multiple_uscita_list_statoRichiesta_title();
+  
+  @Key("monitoraggio_registrazioni_multiple_uscita_list_nroRegistrazioniRichieste_title")
+  String monitoraggio_registrazioni_multiple_uscita_list_nroRegistrazioniRichieste_title();
+  
+  @Key("monitoraggio_registrazioni_multiple_uscita_list_nroRegistrazioniEffettuate_title")
+  String monitoraggio_registrazioni_multiple_uscita_list_nroRegistrazioniEffettuate_title();
+  
+  @Key("monitoraggio_registrazioni_multiple_uscita_list_nroRegistrazioniDaTrasmettereViaMail_title")
+  String monitoraggio_registrazioni_multiple_uscita_list_nroRegistrazioniDaTrasmettereViaMail_title();
+  
+  @Key("monitoraggio_registrazioni_multiple_uscita_list_nroRegistrazioniTrasmesseViaMail_title")
+  String monitoraggio_registrazioni_multiple_uscita_list_nroRegistrazioniTrasmesseViaMail_title(); 
 }

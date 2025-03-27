@@ -1,6 +1,16 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.servlet.fileExtractor.impl;
 
 
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
+import javax.servlet.http.HttpServletRequest;
 
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.client.RecuperoFile;
@@ -12,13 +22,9 @@ import it.eng.utility.ui.servlet.fileExtractor.FileToExtractBean;
 import it.eng.utility.ui.user.AurigaUserUtil;
 import it.eng.utility.ui.user.UserUtil;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-
-import javax.servlet.http.HttpServletRequest;
-
 public class AurigaFileExtractor extends RecordExtractorUtil {
+	
+	private long fileLength = 0;
 
 	public AurigaFileExtractor(HttpServletRequest pHttpServletRequest) {
 		super(pHttpServletRequest);
@@ -76,13 +82,40 @@ public class AurigaFileExtractor extends RecordExtractorUtil {
 			FileExtractedOut out = lRecuperoFile.extractfile(UserUtil.getLocale(), lAurigaLoginBean, lFileExtractedIn);
 			file = StorageImplementation.getStorage().getRealFile(StorageImplementation.getStorage().store(out.getExtracted()));
 		}
+		fileLength = file.length();
 		if (!mFileToExtractBean.isSbustato())
 			return new FileInputStream(file);
 		else {
 			InfoFileUtility lInfoFileUtility = new InfoFileUtility();
 			InputStream lInputStreamExtracted = lInfoFileUtility.sbusta(file.toURI().toString(), getCorrectFileName());
-			return lInputStreamExtracted;
+			
+			return getInputStreamFile(lInputStreamExtracted);
 		}
+	}
+
+	@Override
+	public long getFileLength() throws Exception {
+		return fileLength;
+	}
+	
+	private InputStream getInputStreamFile(InputStream inputStream) throws IOException {
+		try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
+
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                byteArrayOutputStream.write(buffer, 0, bytesRead);
+            }
+            
+            byte[] data = byteArrayOutputStream.toByteArray();
+
+            // Crea due ByteArrayInputStream distinti basati sullo stesso array di byte
+            ByteArrayInputStream inputStream1 = new ByteArrayInputStream(data);
+
+            fileLength = byteArrayOutputStream.size();
+            
+            return inputStream1;
+        }
 	}
 
 }

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.archivio;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -11,6 +12,7 @@ import com.smartgwt.client.data.AdvancedCriteria;
 import com.smartgwt.client.data.Criteria;
 import com.smartgwt.client.data.Criterion;
 import com.smartgwt.client.data.DataSourceField;
+import com.smartgwt.client.types.ListGridComponent;
 import com.smartgwt.client.types.OperatorId;
 import com.smartgwt.client.util.JSOHelper;
 import com.smartgwt.client.widgets.form.FilterClause;
@@ -19,6 +21,10 @@ import com.smartgwt.client.widgets.form.events.FilterChangedHandler;
 import com.smartgwt.client.widgets.form.fields.FormItem;
 import com.smartgwt.client.widgets.form.fields.FormItemFunctionContext;
 import com.smartgwt.client.widgets.form.fields.SelectItem;
+import com.smartgwt.client.widgets.form.fields.events.ChangedEvent;
+import com.smartgwt.client.widgets.form.fields.events.ChangedHandler;
+import com.smartgwt.client.widgets.grid.ListGrid;
+import com.smartgwt.client.widgets.toolbar.ToolStrip;
 
 import it.eng.auriga.ui.module.layout.client.AurigaLayout;
 import it.eng.utility.ui.module.core.client.datasource.FieldFetchDataSource;
@@ -26,6 +32,7 @@ import it.eng.utility.ui.module.core.client.datasource.GWTRestDataSource;
 import it.eng.utility.ui.module.layout.client.common.ConfigurableFilter;
 import it.eng.utility.ui.module.layout.client.common.SelectItemFiltrabile;
 import it.eng.utility.ui.module.layout.client.common.filter.AttributiCustomDelTipo;
+import it.eng.utility.ui.module.layout.client.common.items.CheckboxItem;
 import it.eng.utility.ui.module.layout.client.common.items.TextItem;
 import it.eng.utility.ui.module.layout.shared.bean.FilterBean;
 import it.eng.utility.ui.module.layout.shared.bean.FilterFieldBean;
@@ -36,6 +43,7 @@ public class ArchivioFilter extends ConfigurableFilter {
 	private String tipoNodo;
 	private String idNode;
 
+	private String showFlgRicorsiva;
 	private String showFilterFullText;	
 	private String showFilterProtocollo;
 	private String showFilterDataApertura;
@@ -74,6 +82,7 @@ public class ArchivioFilter extends ConfigurableFilter {
 	private String showFilterDataPresaInCarico;
 	private String showFilterEsibente;
 	private String showFilterPerizia;
+	private String showFilterConcessione;
 	private String showFilterCentroDiCosto;
 	private String showFilterFlgSottopostoControlloRegAmm;
 	private String showFilterDataScadenza;
@@ -82,6 +91,7 @@ public class ArchivioFilter extends ConfigurableFilter {
 	private String showFilterOrganiCollegiali;
 	private String showFilterUOCompetente;
 	private String showFilterPresenzaOpere;
+	private String showFilterPresenzaConcessioni;
 	private String showFilterSottoTipologiaAtto;
 	private String showFilterStatiTrasfBloomfleet;
 	private String showRegoleRegistrazioneAutomaticaEmail;
@@ -96,12 +106,11 @@ public class ArchivioFilter extends ConfigurableFilter {
 	private String showFilterRichiesteDaVerificareUrbanistica;
 	private String showFilterRichiesteAppuntamentoUrbanistica;
 	private String showFilterAppuntamentiDaFissare;
-	
 	private String showFilterProtNoScan;
 	private String showFilterImmaginiNonAssociateAiProtocolli;
-	
 	private String showFilterRdAeAttiCollegati;
-	
+	private String showFilterDtEsecutivita;
+	private String showFilterDtFirmaAtto;
 	
 	
 	public ArchivioFilter(String lista, Map<String, String> extraparam) {
@@ -614,17 +623,11 @@ public class ArchivioFilter extends ConfigurableFilter {
 				}
 				int posStatiDoc = getClausePosition("statiDoc");
 				if (posStatiDoc != -1) {
-					if (hideFilterModuloAtti()) {
+					if (hideFilterStatoDoc()) {
 						removeClause(getClause(posStatiDoc));
 					}
 				}
-				int posDataFirmaAtto = getClausePosition("dataFirmaAtto");
-				if (posDataFirmaAtto != -1) {
-					if (hideFilterModuloAtti()) {
-						removeClause(getClause(posDataFirmaAtto));
-					}
-				}
-
+				
 				if (showFilterStampe.equalsIgnoreCase("S")) {
 					List<FilterClause> lClausesToRemoveList = new ArrayList<FilterClause>();
 					for (int i = 0; i < getClauseStack().getMembers().length - 1; i++) {
@@ -639,7 +642,6 @@ public class ArchivioFilter extends ConfigurableFilter {
 						    !lClauseFieldNameItem.getValue().equals("tsRichiestaStampaExp")       
 						   
                            ) 
-
                         {
 							lClausesToRemoveList.add(getClause(i));
 						}
@@ -814,8 +816,7 @@ public class ArchivioFilter extends ConfigurableFilter {
 						removeClause(getClause(flgAppuntamentiDaFissare));
 					}
 				}
-				
-				
+								
 				// Filtro CLASSIFICAZIONE 
 				int posClassificazione = getClausePosition("classificazioneArchivio");
 				if (posClassificazione != -1) {
@@ -886,12 +887,27 @@ public class ArchivioFilter extends ConfigurableFilter {
 						removeClause(getClause(posPerizia));
 					}
 				}
+				// Filtro concessione (solo per ADSP)
+				int posConcessione = getClausePosition("concessione");
+				if (posConcessione != -1) {
+					if (showFilterConcessione.equalsIgnoreCase("N")) {
+						removeClause(getClause(posConcessione));
+					}
+				}
 					
 				// Filtro Presenza opere (solo per ADSP)
 				int posPresenzaOpere = getClausePosition("presenzaOpere");
 				if (posPresenzaOpere != -1) {
 					if (showFilterPresenzaOpere.equalsIgnoreCase("N")) {
 						removeClause(getClause(posPresenzaOpere));
+					}
+				}
+				
+				// Filtro Presenza concessioni (solo per ADSP)
+				int posPresenzaConcessioni = getClausePosition("presenzaConcessioni");
+				if (posPresenzaConcessioni != -1) {
+					if (showFilterPresenzaConcessioni.equalsIgnoreCase("N")) {
+						removeClause(getClause(posPresenzaConcessioni));
 					}
 				}
 				
@@ -941,8 +957,7 @@ public class ArchivioFilter extends ConfigurableFilter {
 						removeClause(getClause(posDataScadenza));
 					}
 				}
-				
-				
+							
 				// Filtro 'Passato dallo smistamento'
 				int flgPassaggioDaSmistamento = getClausePosition("flgPassaggioDaSmistamento");
 				if (flgPassaggioDaSmistamento != -1) {
@@ -951,8 +966,7 @@ public class ArchivioFilter extends ConfigurableFilter {
 					if (showFilterDocumenti.equalsIgnoreCase("N")) {
 						removeClause(getClause(flgPassaggioDaSmistamento));
 					}
-				}
-				
+				}				
 				
 				// Filtro UO competente atto (solo per ADSP)
 				int posUOCompetente = getClausePosition("uoCompetente");
@@ -1021,8 +1035,7 @@ public class ArchivioFilter extends ConfigurableFilter {
 						removeClause(getClause(statiTrasfBloomfleet));
 					}
 				}	
-				
-				
+								
 				// Filtro 'Regola reg. automatica'
 				// quando sono in archivio showFilterFascicoli = S e showFilterDocumenti = S, se uno dei due è N o entrambi vuol dire che sono in scrivania
 				// se sono in scrivania lo nascondo
@@ -1031,6 +1044,22 @@ public class ArchivioFilter extends ConfigurableFilter {
 				if (regoleRegistrazioneAutomaticaEmail != -1) {
 					if ( showFilterFascicoli.equalsIgnoreCase("N") || showFilterDocumenti.equalsIgnoreCase("N") || showRegoleRegistrazioneAutomaticaEmail.equalsIgnoreCase("N") ){	
 						removeClause(getClause(regoleRegistrazioneAutomaticaEmail));
+					}
+				}
+				
+				// Filtro "Data esecutività"
+				int posDtEsecutivita = getClausePosition("dtEsecutivita");
+				if (posDtEsecutivita != -1) {
+					if (showFilterDtEsecutivita.equalsIgnoreCase("N")) {
+						removeClause(getClause(posDtEsecutivita));
+					}
+				}
+				
+				// Filtro "Data adozione"
+				int posDataFirmaAtto = getClausePosition("dataFirmaAtto");
+				if (posDataFirmaAtto != -1) {
+					if (showFilterDtFirmaAtto.equalsIgnoreCase("N")) {
+						removeClause(getClause(posDataFirmaAtto));
 					}
 				}
 			}
@@ -1048,22 +1077,16 @@ public class ArchivioFilter extends ConfigurableFilter {
 		showFilterDocumenti = getExtraParam().get("showFilterDocumenti") != null ? getExtraParam().get("showFilterDocumenti") : "S";
 		// showFilterRestringiRicercaA = getExtraParam().get("showFilterRestringiRicercaA") != null ? getExtraParam().get("showFilterRestringiRicercaA") : "S";		
 		if (AurigaLayout.getParametroDBAsBoolean("HIDE_FILTER_FULLTEXT_REP_DOC")) {
-			String showFlgRicorsivaStringaFullText = getExtraParam().get("showFlgRicorsiva");
-			if (showFlgRicorsivaStringaFullText == null) {
-				FilterBean filterBean = getFilterConfigBean();
-				if(filterBean != null) {
-					for (FilterFieldBean lFilterFieldBean : filterBean.getFields()) {
-						if ("searchFulltext".equalsIgnoreCase(lFilterFieldBean.getName())) {
-							showFlgRicorsivaStringaFullText = String.valueOf(lFilterFieldBean.isShowFlgRicorsiva());
-							break;
-						}
-					}				
-				}
-			}
-			showFilterFullText = showFlgRicorsivaStringaFullText != null && new Boolean(showFlgRicorsivaStringaFullText) ? "S" : "N";
+			showFilterFullText = "N";
 		} else {
 			showFilterFullText = "S";
 		}
+		String showFlgRicorsivaStringaFullText = getExtraParam().get("showFlgRicorsiva");
+		if (showFlgRicorsivaStringaFullText == null) {
+			FilterBean filterBean = getFilterConfigBean();
+			showFlgRicorsivaStringaFullText = filterBean.getShowFlgRicorsiva();
+		}
+		showFlgRicorsiva = showFlgRicorsivaStringaFullText;
 		showFilterProtocollo = getExtraParam().get("showFilterProtocollo") != null ? getExtraParam().get("showFilterProtocollo") : "S";
 		showFilterDataApertura = getExtraParam().get("showFilterDataApertura") != null ? getExtraParam().get("showFilterDataApertura") : "S";		
 		showFilterBozze = getExtraParam().get("showFilterBozze") != null ? getExtraParam().get("showFilterBozze") : "S";
@@ -1149,6 +1172,13 @@ public class ArchivioFilter extends ConfigurableFilter {
 			showFilterPerizia = "N";
 		}
 
+		// Filtro CONCESSIONE (solo per ADSP)
+		if (AurigaLayout.isAttivoClienteADSP()){
+			showFilterConcessione = getExtraParam().get("showFilterConcessione") != null ? getExtraParam().get("showFilterConcessione") : "S";
+		} else {
+			showFilterConcessione = "N";
+		}
+
 		// Filtro PRESENZA OPERE (solo per ADSP)
 		if (AurigaLayout.isAttivoClienteADSP()){
 			showFilterPresenzaOpere = getExtraParam().get("showFilterPresenzaOpere") != null ? getExtraParam().get("showFilterPresenzaOpere") : "S";
@@ -1156,6 +1186,13 @@ public class ArchivioFilter extends ConfigurableFilter {
 			showFilterPresenzaOpere = "N";
 		}
 		
+		// Filtro PRESENZA CONCESSIONI (solo per ADSP)
+		if (AurigaLayout.isAttivoClienteADSP()){
+			showFilterPresenzaConcessioni = getExtraParam().get("showFilterPresenzaConcessioni") != null ? getExtraParam().get("showFilterPresenzaConcessioni") : "S";
+		} else {
+			showFilterPresenzaConcessioni = "N";
+		}
+				
 		
 		// Filtro SOTTO TIPOLOGIA (solo per ADSP)
 		if (AurigaLayout.isAttivoClienteADSP()){
@@ -1221,6 +1258,19 @@ public class ArchivioFilter extends ConfigurableFilter {
 		// Filtro "Immagini non associate ai protocolli"
 		showFilterImmaginiNonAssociateAiProtocolli = getExtraParam().get("showFilterImmaginiNonAssociateAiProtocolli") != null ? getExtraParam().get("showFilterImmaginiNonAssociateAiProtocolli") : "N";
 		
+		// Filtro "Data Esecutività"
+		if (AurigaLayout.getParametroDBAsBoolean("ATTIVATO_MODULO_ATTI") || AurigaLayout.getParametroDBAsBoolean("ATTIVA_ALBO")){
+			showFilterDtEsecutivita = getExtraParam().get("showFilterDtEsecutivita") != null ? getExtraParam().get("showFilterDtEsecutivita") : "S";
+		} else {
+			showFilterDtEsecutivita = "N";
+		}
+				
+		// Data adozione
+		if (AurigaLayout.getParametroDBAsBoolean("ATTIVATO_MODULO_ATTI") || AurigaLayout.getParametroDBAsBoolean("ATTIVA_ALBO")){
+			showFilterDtFirmaAtto = getExtraParam().get("showFilterDtFirmaAtto") != null ? getExtraParam().get("showFilterDtFirmaAtto") : "S";
+		} else {
+			showFilterDtFirmaAtto = "N";
+		}
 	}
 	
 	@Override
@@ -1321,9 +1371,11 @@ public class ArchivioFilter extends ConfigurableFilter {
 		if (lMap.containsKey("searchFulltext") && showFilterFullText.equalsIgnoreCase("N")) {
 			lMap.remove("searchFulltext");
 		}
-		
-		
-
+		if (showFlgRicorsiva != null && new Boolean(showFlgRicorsiva)) {
+			getLayout().setRicercaRicorsivaItemVisibility(true);
+		} else {
+			getLayout().setRicercaRicorsivaItemVisibility(false);
+		}
 		/** FILTRI DIN RICERCA ALTRE NUMERAZIONI **/
 		if (lMap.containsKey("statoLavorazioneAperto") && showFilterStatoLavAperta.equalsIgnoreCase("N")) {
 			lMap.remove("statoLavorazioneAperto");
@@ -1547,11 +1599,8 @@ public class ArchivioFilter extends ConfigurableFilter {
 		if (lMap.containsKey("utentiAdozioneAtto") && hideFilterModuloAtti()) {
 			lMap.remove("utentiAdozioneAtto");
 		}
-		if (lMap.containsKey("statiDoc") && hideFilterModuloAtti()) {
+		if (lMap.containsKey("statiDoc") && hideFilterStatoDoc()) {
 			lMap.remove("statiDoc");
-		}
-		if (lMap.containsKey("dataFirmaAtto") && hideFilterModuloAtti()) {
-			lMap.remove("dataFirmaAtto");
 		}
 		if (lMap.containsKey("capoFilaFasc") && (showFilterCapoFilaFasc.equalsIgnoreCase("N"))) {		
 			lMap.remove("capoFilaFasc");
@@ -1670,12 +1719,22 @@ public class ArchivioFilter extends ConfigurableFilter {
 		if (lMap.containsKey("perizia") && showFilterPerizia.equalsIgnoreCase("N")) {
 			lMap.remove("perizia");
 		}
-		
+
+		// Filtro concessione (solo per ADSP)
+		if (lMap.containsKey("concessione") && showFilterConcessione.equalsIgnoreCase("N")) {
+			lMap.remove("concessione");
+		}
+
 		// Filtro Presenza opere (solo per ADSP)
 		if (lMap.containsKey("presenzaOpere") && showFilterPresenzaOpere.equalsIgnoreCase("N")) {
 			lMap.remove("presenzaOpere");
 		}
-		
+
+		// Filtro Presenza concessioni (solo per ADSP)
+		if (lMap.containsKey("presenzaConcessioni") && showFilterPresenzaConcessioni.equalsIgnoreCase("N")) {
+			lMap.remove("presenzaConcessioni");
+		}
+
 		// Filtro Sotto tipologia (solo per ADSP)
 		if (lMap.containsKey("sottoTipologiaAtto") && showFilterSottoTipologiaAtto.equalsIgnoreCase("N")) {
 			lMap.remove("sottoTipologiaAtto");
@@ -1749,6 +1808,16 @@ public class ArchivioFilter extends ConfigurableFilter {
 			}
 		}
 		
+		// Filtro "Data esecutività"
+		if (lMap.containsKey("dtEsecutivita") && showFilterDtEsecutivita.equalsIgnoreCase("N")) {
+			lMap.remove("dtEsecutivita");
+		}
+		
+		// Filtro "Data adozione"
+		if (lMap.containsKey("dataFirmaAtto") && showFilterDtFirmaAtto.equalsIgnoreCase("N")) {
+			lMap.remove("dataFirmaAtto");
+		}
+		
 		return lMap;
 	}
 
@@ -1761,6 +1830,72 @@ public class ArchivioFilter extends ConfigurableFilter {
 				datasource.addParam("tipoNodo", tipoNodo);
 				lSelectItem.setOptionDataSource(datasource);
 			}
+		} else if ("perizia".equals(pDataSourceField.getName())) {
+//			ListGrid pickListProperties = lSelectItem.getPickListProperties();
+//			ToolStrip toolStrip = new ToolStrip();  
+//	        toolStrip.setHeight(30);  
+//	        toolStrip.setWidth100(); 
+//	        CheckboxItem flgAncheNonVldItem = new CheckboxItem("flgAncheNonVld", "includi anche cessate");
+//	        flgAncheNonVldItem.setWidth(50);
+//	        flgAncheNonVldItem.setStartRow(true);
+//	        flgAncheNonVldItem.addChangedHandler(new ChangedHandler() {
+//
+//				@Override
+//				public void onChanged(ChangedEvent event) {
+//					int pos = getClausePositionByFieldName("perizia");
+//					if(pos != -1) {
+//						final SelectItem periziaItem = (SelectItem) getClauseValueItem(pos);					
+//		              	GWTRestDataSource periziaDS = (GWTRestDataSource) periziaItem.getOptionDataSource();
+//						periziaDS.addParam("flgAncheNonVld", event.getValue() != null && (Boolean) event.getValue() ? "true" : "");
+//						periziaItem.setOptionDataSource(periziaDS);
+//						periziaItem.invalidateDisplayValueCache();
+//						periziaItem.fetchData();
+//					}
+//				}
+//			});
+//	        toolStrip.addFormItem(flgAncheNonVldItem);
+//			pickListProperties.setGridComponents(toolStrip, ListGridComponent.HEADER, ListGridComponent.FILTER_EDITOR, ListGridComponent.BODY);
+//			lSelectItem.setPickListProperties(pickListProperties);
+			if(lSelectItem.getOptionDataSource() != null && (lSelectItem.getOptionDataSource() instanceof GWTRestDataSource)) {				
+				GWTRestDataSource datasource = (GWTRestDataSource) lSelectItem.getOptionDataSource();
+				datasource.addParam("flgAncheNonVld", "true");
+				lSelectItem.setOptionDataSource(datasource);
+			}
+			lSelectItem.setEmptyPickListMessage("Nessun record trovato o filtri incompleti o poco restrittivi: filtrare per codice o descrizione");
+			lSelectItem.setWidth(480);
+		} else if ("concessione".equals(pDataSourceField.getName())) {
+//			ListGrid pickListProperties = lSelectItem.getPickListProperties();
+//			ToolStrip toolStrip = new ToolStrip();  
+//	        toolStrip.setHeight(30);  
+//	        toolStrip.setWidth100();
+//	        CheckboxItem flgAncheNonVldItem = new CheckboxItem("flgAncheNonVld", "includi anche cessate");
+//	        flgAncheNonVldItem.setWidth(50);
+//	        flgAncheNonVldItem.setStartRow(true);
+//	        flgAncheNonVldItem.addChangedHandler(new ChangedHandler() {
+//
+//				@Override
+//				public void onChanged(ChangedEvent event) {
+//					int pos = getClausePositionByFieldName("concessione");
+//					if(pos != -1) {
+//						final SelectItem concessioneItem = (SelectItem) getClauseValueItem(pos);					
+//		              	GWTRestDataSource concessioneDS = (GWTRestDataSource) concessioneItem.getOptionDataSource();
+//						concessioneDS.addParam("flgAncheNonVld", event.getValue() != null && (Boolean) event.getValue() ? "true" : "");
+//						concessioneItem.setOptionDataSource(concessioneDS);
+//						concessioneItem.invalidateDisplayValueCache();
+//						concessioneItem.fetchData();
+//					}
+//				}
+//			});
+//	        toolStrip.addFormItem(flgAncheNonVldItem);
+//			pickListProperties.setGridComponents(toolStrip, ListGridComponent.HEADER, ListGridComponent.FILTER_EDITOR, ListGridComponent.BODY);
+//			lSelectItem.setPickListProperties(pickListProperties);
+			if(lSelectItem.getOptionDataSource() != null && (lSelectItem.getOptionDataSource() instanceof GWTRestDataSource)) {				
+				GWTRestDataSource datasource = (GWTRestDataSource) lSelectItem.getOptionDataSource();
+				datasource.addParam("flgAncheNonVld", "true");
+				lSelectItem.setOptionDataSource(datasource);
+			}
+			lSelectItem.setEmptyPickListMessage("Nessun record trovato o filtri incompleti o poco restrittivi: filtrare per codice o descrizione");
+			lSelectItem.setWidth(480);
 		}
 		pDataSourceField.setEditorType(lSelectItem);
 		pDataSourceField.setFilterEditorType(SelectItem.class);
@@ -1932,7 +2067,7 @@ public class ArchivioFilter extends ConfigurableFilter {
 		}
 		/** FILTRI MODULO ATTI **/
 		if (hideFilterModuloAtti()) {
-			selected = selected + "uoProponente,utentiAvvioAtto,utentiAdozioneAtto,statiDoc,dataFirmaAtto,";
+			selected = selected + "uoProponente,utentiAvvioAtto,utentiAdozioneAtto,";
 		}
 		if (showFilterStampe.equalsIgnoreCase("S")) {
 			// Recupero la select sui campi relativa all'ultima clausola
@@ -2032,11 +2167,21 @@ public class ArchivioFilter extends ConfigurableFilter {
 			selected = selected + "perizia,";
 		}
 		
+		// Filtro concessione (solo per ADSP)
+		if (showFilterConcessione.equalsIgnoreCase("N")) {
+			selected = selected + "concessione,";
+		}
+				
 		// Filtro Presenza opere (solo per ADSP)
 		if (showFilterPresenzaOpere.equalsIgnoreCase("N")) {
 			selected = selected + "presenzaOpere,";
 		}
 		
+		// Filtro Presenza concessioni (solo per ADSP)
+		if (showFilterPresenzaConcessioni.equalsIgnoreCase("N")) {
+			selected = selected + "presenzaConcessioni,";
+		}
+				
 		// Filtro Sotto tipologia atto(solo per ADSP)
 		if (showFilterSottoTipologiaAtto.equalsIgnoreCase("N")) {
 			selected = selected + "sottoTipologiaAtto,";
@@ -2159,6 +2304,17 @@ public class ArchivioFilter extends ConfigurableFilter {
 			selected = selected + "regoleRegistrazioneAutomaticaEmail,";
 		}
 		
+		// Filtro "Data esecutività"
+		if (showFilterDtEsecutivita.equalsIgnoreCase("N")) {
+			selected = selected + "dtEsecutivita,";
+		}
+
+		// Data adozione
+		if (showFilterDtFirmaAtto.equalsIgnoreCase("N")) {
+			selected = selected + "dataFirmaAtto,";
+		}
+		
+		
 		for (Criterion lCriterion : lCriterions) {
 			if (lCriterion.getFieldName() != null && !lCriterion.getFieldName().equals(lSelectItem.getValue())) {
 				selected += lCriterion.getFieldName() + ",";
@@ -2169,6 +2325,10 @@ public class ArchivioFilter extends ConfigurableFilter {
 
 	public boolean hideFilterModuloAtti() {
 		return fromScrivania || !AurigaLayout.getParametroDBAsBoolean("ATTIVATO_MODULO_ATTI");
+	}
+	
+	public boolean hideFilterStatoDoc() {
+		return fromScrivania;
 	}
 	
 	@Override

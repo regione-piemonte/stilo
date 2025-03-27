@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.module.foutility.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -19,6 +20,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,7 +37,6 @@ import org.bouncycastle.asn1.ASN1Set;
 import org.bouncycastle.asn1.ASN1TaggedObject;
 import org.bouncycastle.asn1.DERBitString;
 import org.bouncycastle.asn1.DERGeneralizedTime;
-import org.bouncycastle.asn1.DERIA5String;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.DEROutputStream;
 import org.bouncycastle.asn1.DERSequence;
@@ -74,6 +76,8 @@ import org.bouncycastle.i18n.filter.TrustedInput;
 public class CertificateUtil {
 
 	static final String term = System.getProperty("line.separator");
+	
+	private static final String REGEX_CF = "[a-zA-Z]{6}\\d\\d[a-zA-Z]\\d\\d[a-zA-Z]\\d\\d\\d[a-zA-Z]";
 
 	public static final Logger log = LogManager.getLogger(CertificateUtil.class);
 
@@ -948,5 +952,17 @@ public class CertificateUtil {
 		}
 
 		return "";
+	}
+	
+	public static String getCodiceFiscaleFromSerialNumber(String serialNumber) {
+		if (serialNumber == null || "".equalsIgnoreCase(serialNumber)) {
+			return null;
+		}
+		Pattern p = Pattern.compile(REGEX_CF);
+		Matcher matcher = p.matcher(serialNumber);
+		if(matcher.find()) {
+			return matcher.group();
+		}
+		return null;
 	}
 }

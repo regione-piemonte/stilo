@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.io.Serializable;
 
@@ -20,6 +21,9 @@ public class DestintarioUoProtocollazioneXmlBean implements Serializable {
 	
 	@NumeroColonna(numero ="2")
 	private String descrizione;
+	
+	@NumeroColonna(numero ="3")
+	private String tipo;
 
 	public String getIdUO() {
 		return idUO;
@@ -35,6 +39,14 @@ public class DestintarioUoProtocollazioneXmlBean implements Serializable {
 
 	public void setDescrizione(String descrizione) {
 		this.descrizione = descrizione;
+	}
+
+	public String getTipo() {
+		return tipo;
+	}
+
+	public void setTipo(String tipo) {
+		this.tipo = tipo;
 	}
 
 }

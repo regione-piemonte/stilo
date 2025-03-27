@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import java.util.Date;
 
@@ -123,6 +124,9 @@ public class MovimentiContabiliSICRAXmlBean {
 	@NumeroColonna(numero = "38")
 	private String flgAutoIncrementante;
 
+	@NumeroColonna(numero = "39")
+	private String codiceCUPCapitolo;
+	
 	public String getFlgEntrataUscita() {
 		return flgEntrataUscita;
 	}
@@ -417,6 +421,14 @@ public class MovimentiContabiliSICRAXmlBean {
 
 	public void setFlgAutoIncrementante(String flgAutoIncrementante) {
 		this.flgAutoIncrementante = flgAutoIncrementante;
+	}
+	
+	public String getCodiceCUPCapitolo() {
+		return codiceCUPCapitolo;
+	}
+
+	public void setCodiceCUPCapitolo(String codiceCUPCapitolo) {
+		this.codiceCUPCapitolo = codiceCUPCapitolo;
 	}
 	
 }

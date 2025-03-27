@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.job;
 
 
 
@@ -11,7 +12,7 @@ public final class AurigaSpringContext {
 	public static final String SPRINGBEAN_CONF_PROCESSI_AGGIUNTAMARCA = "configurazioniProcessiAggiuntaMarca";
 	public static final String SPRINGBEAN_CONF_SCHEMA = "configurazioniSchema";
 	public static final String SPRINGBEAN_MARCA_CONFIG = "marcaConfigBean";
-	
+	public static final String SPRINGBEAN_HSM_CONFIG = "hsmConfigBean";
 	
 
 }

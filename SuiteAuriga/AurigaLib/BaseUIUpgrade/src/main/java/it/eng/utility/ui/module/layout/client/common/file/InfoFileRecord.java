@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common.file;
 
 import java.util.Date;
 
@@ -94,6 +95,7 @@ public class InfoFileRecord extends Record{
 				lFirmatarioBean.setCodiceActivityFirma(lRecord.getAttribute("codiceActivityFirma"));
 				lFirmatarioBean.setIdUtenteLavoroFirma(lRecord.getAttribute("idUtenteLavoroFirma"));
 				lFirmatarioBean.setIdUtenteLoggatoFirma(lRecord.getAttribute("idUtenteLoggatoFirma"));
+				lFirmatarioBean.setCfFirmatario(lRecord.getAttribute("cfFirmatario"));
 				Record marcaRecord = lRecord.getAttributeAsRecord("marcaTemporale");
 				if (marcaRecord != null) {
 					MarcaBean marcaBean = new MarcaBean();

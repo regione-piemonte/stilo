@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.invioUD;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -63,19 +64,22 @@ public class InvioUDMailWindow extends ModalWindow {
 	
 	protected GWTRestDataSource firmeDS;
 	
+	protected String idUD;
+	
 	public InvioUDMailWindow(String pTipoMail){
-		this(pTipoMail, null);
+		this(pTipoMail, null, null);
 	}
 	
-	public InvioUDMailWindow(String pTipoMail, DSCallback callback){
-		this(pTipoMail, false, callback);
+	public InvioUDMailWindow(String pTipoMail, String idUD, DSCallback callback){
+		this(pTipoMail, idUD, false, callback);
 	}
 		
-	public InvioUDMailWindow(String pTipoMail, Boolean invioMailFromAtti, DSCallback callback){
+	public InvioUDMailWindow(String pTipoMail, String idUD, Boolean invioMailFromAtti, DSCallback callback){
 		
 		super("invioudmail" + pTipoMail, true);
 		
 		this.tipoMail = pTipoMail;
+		this.idUD = idUD;
 		
 		_window = this;
 		
@@ -90,7 +94,7 @@ public class InvioUDMailWindow extends ModalWindow {
 		
 		removeItem();
 		createMainToolstrip();
-		createMainLayout(invioMailFromAtti, callback);
+		createMainLayout(invioMailFromAtti, idUD, callback);
 		setBody(portletLayout);
 		
 		vm = new ValuesManager();
@@ -147,9 +151,9 @@ public class InvioUDMailWindow extends ModalWindow {
 		return tipoMail;
 	}
 	
-	protected void createMainLayout(Boolean invioMailFromAtti, DSCallback callback) {
+	protected void createMainLayout(Boolean invioMailFromAtti, String idUD, DSCallback callback) {
 
-		portletLayout = new InvioUDMailLayout(this, invioMailFromAtti, callback);
+		portletLayout = new InvioUDMailLayout(this, idUD, invioMailFromAtti, callback);
 		portletLayout.setHeight100();
 		portletLayout.setWidth100();
 		portletLayout.addMember(mainToolStrip, 0);

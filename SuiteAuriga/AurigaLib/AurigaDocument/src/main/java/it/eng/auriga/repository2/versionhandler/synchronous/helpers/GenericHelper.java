@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.versionhandler.synchronous.helpers;
 
 import it.eng.auriga.repository2.generic.ObjectHandlerException;
 import it.eng.auriga.repository2.generic.VersionHandlerException;
@@ -133,13 +134,22 @@ public class GenericHelper {
 			// e' un TxtClob
 			if (sprm instanceof TxtClobParameter) {
 				try {
-					
-					String str = IOUtils.toString(((CLOB)sprm.getValue()).characterStreamValue());
-					try { ((CLOB)sprm.getValue()).close(); }
-					catch (Exception e){}
-					
+//					aLogger.debug("getStoreProcedureParametersValues: Variabile " + nome[i] + ": " + sprm.getValue());
+					String str = null;
+					if(sprm.getValue() != null) {
+						str = IOUtils.toString(((CLOB)sprm.getValue()).characterStreamValue());
+						try { 
+							// controllo che il CLOB non sia già chiuso quando faccio il close()
+							if(((CLOB)sprm.getValue()).isOpen()) {
+								((CLOB)sprm.getValue()).close();
+							}
+						} catch (Exception e){
+							aLogger.error("Errore nella chiusura del clob in getStoreProcedureParametersValues", e);
+						}
+					}
 					res[i] = str;
 				} catch (Exception e) {
+					 aLogger.error("Errore nel recupero del clob in getStoreProcedureParametersValues", e);
 				}
 			} else {
 								

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.organigramma;
 
 import java.util.LinkedHashMap;
 
@@ -12,7 +13,6 @@ import com.smartgwt.client.widgets.layout.VLayout;
 
 import it.eng.auriga.ui.module.layout.client.AurigaLayout;
 import it.eng.auriga.ui.module.layout.client.i18n.I18NUtil;
-import it.eng.utility.ui.module.layout.client.common.CustomDetail;
 import it.eng.utility.ui.module.layout.client.portal.ModalWindow;
 
 public class SaveUoLavoroWindow extends ModalWindow {

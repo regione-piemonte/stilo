@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.storageutil.impl.filesystem.zip;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -220,6 +221,11 @@ public class ZipFileSystemStorage extends FileSystemStorage {
 			throw new StorageException(e);
 		}
 	}
+	
+	@Override
+	public File retrievRealFile(String id) throws StorageException {
+		return retrieveFile(id);
+	}
 
 	@Override
 	public File retrieveFile(String id) throws StorageException {
@@ -237,8 +243,10 @@ public class ZipFileSystemStorage extends FileSystemStorage {
 			FileHeader fileHeader = zipFile.getFileHeader(baseName);
 			File fileToReturn = new File(zip.getParentFile().getAbsoluteFile() + File.separator + baseName);
 			OutputStream outputStream = new FileOutputStream(fileToReturn);
-			IOUtils.copy(zipFile.getInputStream(fileHeader), outputStream);
+			InputStream fileHeaderInputStream =  zipFile.getInputStream(fileHeader);
+			IOUtils.copy(fileHeaderInputStream, outputStream);
 			outputStream.close();
+			fileHeaderInputStream.close();
 			return fileToReturn;
 		} catch (Exception e) {
 			throw new StorageException(e);

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.aurigamailbusiness.bean;
 
 import java.io.File;
 
@@ -37,6 +38,8 @@ public class InfoFileRimodulatoBean {
 	private String dimensioneFile;
 	@NumeroColonna(numero = "10")
 	private String nomeFileOriginale;
+	@NumeroColonna(numero = "11")
+	private String opzioniVulnerabilita;
 	
 	private File fileRimodulato;
 
@@ -127,5 +130,15 @@ public class InfoFileRimodulatoBean {
 	public void setNomeFileOriginale(String nomeFileOriginale) {
 		this.nomeFileOriginale = nomeFileOriginale;
 	}
+
+	public String getOpzioniVulnerabilita() {
+		return opzioniVulnerabilita;
+	}
+
+	public void setOpzioniVulnerabilita(String opzioniVulnerabilita) {
+		this.opzioniVulnerabilita = opzioniVulnerabilita;
+	}
+	
+	
 	
 }

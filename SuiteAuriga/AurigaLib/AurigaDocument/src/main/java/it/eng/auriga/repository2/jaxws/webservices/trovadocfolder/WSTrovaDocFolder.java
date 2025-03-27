@@ -1,5 +1,7 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.trovadocfolder;
 
+import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreTrovarepositoryobjBean;
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsTrovadocfolderBean;
 import it.eng.auriga.database.store.dmpk_ws.store.Trovadocfolder;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
@@ -11,6 +13,7 @@ import it.eng.auriga.repository2.generic.VersionHandler;
 import it.eng.auriga.repository2.jaxws.webservices.common.JAXWSAbstractAurigaService;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
 import it.eng.document.function.GestioneFascicoli;
+import it.eng.document.function.StoreException;
 import it.eng.document.function.bean.TrovaDocFolderOut;
 import it.eng.jaxb.context.SingletonJAXBContext;
 import it.eng.jaxb.variabili.Lista;
@@ -24,6 +27,8 @@ import java.util.List;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import it.eng.jaxb.variabili.Lista.Riga;
@@ -74,6 +79,7 @@ public class WSTrovaDocFolder extends JAXWSAbstractAurigaService implements WSIT
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
 
 
@@ -83,7 +89,8 @@ public class WSTrovaDocFolder extends JAXWSAbstractAurigaService implements WSIT
     String errMsg = null;
     String xmlIn = null;
     String warnRegIn         = "";
-
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
+    
     try {
 
         aLogger.info("Inizio WSTrovaDocFolder");
@@ -128,6 +135,11 @@ public class WSTrovaDocFolder extends JAXWSAbstractAurigaService implements WSIT
    	         
 		}
 		catch (Exception e){
+			if (e instanceof StoreException) {
+	    		if(((StoreException) e).getError()!=null){
+	    			errCode = ((StoreException) e).getError().getErrorCode();
+	    		}
+	    	}
 			if(e.getMessage()!=null)
 	 			 errMsg = "Errore = " + e.getMessage();
 	 		 else
@@ -175,7 +187,7 @@ public class WSTrovaDocFolder extends JAXWSAbstractAurigaService implements WSIT
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", warnRegIn);
 	 	}
 	 	else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	}
 
         aLogger.info("Fine WSTrovaDocFolder");
@@ -195,116 +207,108 @@ public class WSTrovaDocFolder extends JAXWSAbstractAurigaService implements WSIT
     }
         
     private WSTrovaDocFolderBean callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-   
-    	aLogger.debug("Eseguo il WS DmpkWSTrovaDocFolder.");
+      aLogger.debug("Eseguo il WS DMPK_WS->TrovaDocFolder.");
     	
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsTrovadocfolderBean input = new DmpkWsTrovadocfolderBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		  
-    		  // Eseguo il servizio
-    		  Trovadocfolder service = new Trovadocfolder();
-    		  StoreResultBean<DmpkWsTrovadocfolderBean> output = service.execute(loginBean, input);
+	  // Inizializzo l'INPUT    		
+	  DmpkWsTrovadocfolderBean input = new DmpkWsTrovadocfolderBean();
+	  input.setCodidconnectiontokenin(loginBean.getToken());
+	  input.setXmlin(xmlIn);
+	  
+	  // Eseguo il servizio
+	  Trovadocfolder service = new Trovadocfolder();
+	  StoreResultBean<DmpkWsTrovadocfolderBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
-    		      	
-    		  // popolo il bean di out
-    	      WSTrovaDocFolderBean  result = new WSTrovaDocFolderBean();
+	  if (output.isInError()){
+  		aLogger.debug(output.getDefaultMessage());
+  		aLogger.debug(output.getErrorContext());
+  		aLogger.debug(output.getErrorCode());
+  		throw new StoreException(output);
+  	  }		
+	      	
+	  // popolo il bean di out
+      WSTrovaDocFolderBean  result = new WSTrovaDocFolderBean();
 
-    	      // AttributiXRicercaFTOut
-    		  if (output.getResultBean().getAttributixricercaftout() != null && !output.getResultBean().getAttributixricercaftout().equalsIgnoreCase("")){
-    			  result.setAttributiXRicercaFT(output.getResultBean().getAttributixricercaftout());
-    		  }
-    			  
-    		  // FlgUDFolderOut
-    		  if (output.getResultBean().getFlgudfolderout()!= null && !output.getResultBean().getFlgudfolderout().equalsIgnoreCase("")){
-    			  result.setFlgUDFolder(output.getResultBean().getFlgudfolderout());
-    		  }
-    		  
-    		  // CercaInFolderOut
-    		  if (output.getResultBean().getCercainfolderout()!= null){
-    			  result.setCercaInFolder(output.getResultBean().getCercainfolderout().longValue());
-    		  }
-    		      				  
-    		  // FlgCercaInSubFolderOut
-    		  if (output.getResultBean().getFlgcercainsubfolderout()!= null){
-    			  result.setFlgCercaInSubFolder(output.getResultBean().getFlgcercainsubfolderout().toString());
-    		  }
-    		  
-    		  
-    		  // momentanemante forzo = 1
-    		  // result.setFlgCercaInSubFolder("1");
-    		  
-    		      		  
-    		  // FiltroFullTextOutOut
-    		  if (output.getResultBean().getFiltrofulltextout()!= null && !output.getResultBean().getFiltrofulltextout().equalsIgnoreCase("")){
-    			  result.setFiltroFullText(output.getResultBean().getFiltrofulltextout());
-    		  }
-    		  
-    		  // FlgTutteLeParoleOut
-    		  if (output.getResultBean().getFlgtutteleparoleout()!= null){
-    			  result.setFlgTutteLeParole(output.getResultBean().getFlgtutteleparoleout());
-    		  }
-    		  
-    		  // CriteriAvanzatiOut
-    		  if (output.getResultBean().getCriteriavanzatiout()!= null && !output.getResultBean().getCriteriavanzatiout().equalsIgnoreCase("")){
-    			  result.setCriteriAvanzati(output.getResultBean().getCriteriavanzatiout());
-    		  }
-    		  
-    		  // CriteriPersonalizzatiOut
-    		  if (output.getResultBean().getCriteripersonalizzatiout()!= null && !output.getResultBean().getCriteripersonalizzatiout().equalsIgnoreCase("")){
-    			  result.setCriteriPersonalizzati(output.getResultBean().getCriteripersonalizzatiout());
-    		  }
-    		  
-    		  // ColOrderByOut
-    		  if (output.getResultBean().getColorderbyout()!= null && !output.getResultBean().getColorderbyout().equalsIgnoreCase("")){
-    			  result.setColOrderBy(output.getResultBean().getColorderbyout());
-    		  }
-    		  
-    		  // FlgDescOrderByOut
-    		  if (output.getResultBean().getFlgdescorderbyout()!= null && !output.getResultBean().getFlgdescorderbyout().equalsIgnoreCase("")){
-    			  result.setFlgDescOrderBy(output.getResultBean().getFlgdescorderbyout());
-    		  }
-    		  
-    		  // FlgSenzaPaginazioneOut
-    		  if (output.getResultBean().getFlgsenzapaginazioneout()!= null){
-    			  result.setFlgSenzaPaginazione(output.getResultBean().getFlgsenzapaginazioneout());
-    		  }
-    		  
-    		  // NroPaginaOut
-    		  if (output.getResultBean().getNropaginaout()!= null){
-    			  result.setNroPagina(output.getResultBean().getNropaginaout());
-    		  }
-    		  
-    		  // BachSizeOut
-    		  if (output.getResultBean().getBachsizeout()!= null){
-    			  result.setBachSize(output.getResultBean().getBachsizeout());
-    		  }
-    		  
-    		  // FlgBatchSearchOut
-    		  if (output.getResultBean().getFlgbatchsearchout()!= null){
-    			  result.setFlgBatchSearch(output.getResultBean().getFlgbatchsearchout());
-    		  }
-    		  
-    		  // ColToReturnOut
-    		  if (output.getResultBean().getColtoreturnout()!= null && !output.getResultBean().getColtoreturnout().equalsIgnoreCase("")){
-    			  result.setColToReturn(output.getResultBean().getColtoreturnout());
-    		  }
-    		 // result.setBachSize(1);
-    		  
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+      // AttributiXRicercaFTOut
+	  if (output.getResultBean().getAttributixricercaftout() != null && !output.getResultBean().getAttributixricercaftout().equalsIgnoreCase("")){
+		  result.setAttributiXRicercaFT(output.getResultBean().getAttributixricercaftout());
+	  }
+		  
+	  // FlgUDFolderOut
+	  if (output.getResultBean().getFlgudfolderout()!= null && !output.getResultBean().getFlgudfolderout().equalsIgnoreCase("")){
+		  result.setFlgUDFolder(output.getResultBean().getFlgudfolderout());
+	  }
+	  
+	  // CercaInFolderOut
+	  if (output.getResultBean().getCercainfolderout()!= null){
+		  result.setCercaInFolder(output.getResultBean().getCercainfolderout().longValue());
+	  }
+	      				  
+	  // FlgCercaInSubFolderOut
+	  if (output.getResultBean().getFlgcercainsubfolderout()!= null){
+		  result.setFlgCercaInSubFolder(output.getResultBean().getFlgcercainsubfolderout().toString());
+	  }
+	  
+	  // FiltroFullTextOutOut
+	  if (output.getResultBean().getFiltrofulltextout()!= null && !output.getResultBean().getFiltrofulltextout().equalsIgnoreCase("")){
+		  result.setFiltroFullText(output.getResultBean().getFiltrofulltextout());
+	  }
+	  
+	  // FlgTutteLeParoleOut
+	  if (output.getResultBean().getFlgtutteleparoleout()!= null){
+		  result.setFlgTutteLeParole(output.getResultBean().getFlgtutteleparoleout());
+	  }
+	  
+	  // CriteriAvanzatiOut
+	  if (output.getResultBean().getCriteriavanzatiout()!= null && !output.getResultBean().getCriteriavanzatiout().equalsIgnoreCase("")){
+		  result.setCriteriAvanzati(output.getResultBean().getCriteriavanzatiout());
+	  }
+	  
+	  // CriteriPersonalizzatiOut
+	  if (output.getResultBean().getCriteripersonalizzatiout()!= null && !output.getResultBean().getCriteripersonalizzatiout().equalsIgnoreCase("")){
+		  result.setCriteriPersonalizzati(output.getResultBean().getCriteripersonalizzatiout());
+	  }
+	  
+	  // ColOrderByOut
+	  if (output.getResultBean().getColorderbyout()!= null && !output.getResultBean().getColorderbyout().equalsIgnoreCase("")){
+		  result.setColOrderBy(output.getResultBean().getColorderbyout());
+	  }
+	  
+	  // FlgDescOrderByOut
+	  if (output.getResultBean().getFlgdescorderbyout()!= null && !output.getResultBean().getFlgdescorderbyout().equalsIgnoreCase("")){
+		  result.setFlgDescOrderBy(output.getResultBean().getFlgdescorderbyout());
+	  }
+	  
+	  // FlgSenzaPaginazioneOut
+	  if (output.getResultBean().getFlgsenzapaginazioneout()!= null){
+		  result.setFlgSenzaPaginazione(output.getResultBean().getFlgsenzapaginazioneout());
+	  }
+	  
+	  // NroPaginaOut
+	  if (output.getResultBean().getNropaginaout()!= null){
+		  result.setNroPagina(output.getResultBean().getNropaginaout());
+	  }
+	  
+	  // BachSizeOut
+	  if (output.getResultBean().getBachsizeout()!= null){
+		  result.setBachSize(output.getResultBean().getBachsizeout());
+	  }
+	  
+	  // FlgBatchSearchOut
+	  if (output.getResultBean().getFlgbatchsearchout()!= null){
+		  result.setFlgBatchSearch(output.getResultBean().getFlgbatchsearchout());
+	  }
+	  
+	  // ColToReturnOut
+	  if (output.getResultBean().getColtoreturnout()!= null && !output.getResultBean().getColtoreturnout().equalsIgnoreCase("")){
+		  result.setColToReturn(output.getResultBean().getColtoreturnout());
+	  }
+	  
+	  return result;
     }
     
     private WSTrovaDocFolderOutBean eseguiServizio(AurigaLoginBean loginBean, WSTrovaDocFolderBean bean) throws Exception {
-    	aLogger.debug("Eseguo il servizio di AurigaDocument.");
+    	
+    	aLogger.debug("Eseguo il servizio di DmpkCoreTrovarepositoryobj.");
     	
 
     	WSTrovaDocFolderOutBean  ret = new WSTrovaDocFolderOutBean();
@@ -337,55 +341,55 @@ public class WSTrovaDocFolder extends JAXWSAbstractAurigaService implements WSIT
 		input.setCheckAttributes(checkAttributes);
 		
     	// eseguo il servizio
-		try {
-				GestioneFascicoli servizio = new GestioneFascicoli();
-				TrovaDocFolderOut servizioOut = new TrovaDocFolderOut();
-				WSTrovaDocFolder ws =this;
-				VersionHandler vh = ws.getVersionHandlerWS();
-				servizioOut = servizio.trovaDocFolderWS(loginBean, input,vh);
-    	    
-				// Se il servizio e' andato in errore restituisco il messaggio di errore 	    	    
-				if(servizioOut.isInError()) {
-					throw new Exception(servizioOut.getDefaultMessage());	
-				}
-
-				String xmlDefaultMessageOut = servizioOut.getDefaultMessage();
-				
-				String xmlResultSetOut = servizioOut.getResultOut();
-	    	    String xmlPercorsiOut = servizioOut.getPercorsoRicercaXMLOut();
-	    	    String dettagliCercaInFolderOut = servizioOut.getDettagliCercaInFolderOut();
-	    	    
-				String numTotRecOut    =  "";
-				if(servizioOut.getNroTotRecOut()!=null)
-					numTotRecOut    =  servizioOut.getNroTotRecOut().toString();
-				
-				String numRecInPagOut = "";
-				if(servizioOut.getNroRecInPaginaOut()!=null)
-					numRecInPagOut = servizioOut.getNroRecInPaginaOut().toString();
-				
-				//ritocco la lista A MANO aggiungendo i 2 attributi in piu
-				if (xmlResultSetOut != null && xmlResultSetOut.indexOf("<Lista")!= -1) {
-					String prima = xmlResultSetOut.substring(0, xmlResultSetOut.indexOf("<Lista"));
-					String dopo = xmlResultSetOut.substring(xmlResultSetOut.indexOf("<Lista")+6);
-					String attrs = "<Lista NroTotaleRecord=\""+numTotRecOut+"\" ";
-					if (numRecInPagOut != null && !"".equals(numRecInPagOut.trim()) && !"0".equals(numRecInPagOut.trim())) {
-						Integer tot = new Integer(numTotRecOut);
-						Integer recPag = new Integer(numRecInPagOut);
-						int pagine = tot.intValue()/recPag.intValue();
-						if (tot.intValue()%recPag.intValue()!=0) pagine+=1;
-						attrs += "NroPagine=\""+pagine+"\"";
-					}
-					xmlResultSetOut = prima + attrs + dopo;
-				}
-				// Restituisco l'xml
-		     	ret.setXmlRegOut(xmlResultSetOut);
-		     	ret.setWarnRegOut(xmlDefaultMessageOut);
+		GestioneFascicoli servizio = new GestioneFascicoli();
+		TrovaDocFolderOut servizioOut = new TrovaDocFolderOut();
+		WSTrovaDocFolder ws =this;
+		VersionHandler vh = ws.getVersionHandlerWS();
+		servizioOut = servizio.trovaDocFolderWS(loginBean, input,vh);
+    
+		// Se il servizio e' andato in errore restituisco il messaggio di errore 	    	    
+		if(servizioOut.isInError()) {
+			StoreResultBean<DmpkCoreTrovarepositoryobjBean> output = new StoreResultBean<DmpkCoreTrovarepositoryobjBean>();
+			output.setDefaultMessage(servizioOut.getDefaultMessage());
+			output.setErrorContext(servizioOut.getErrorContext());
+			output.setErrorCode(servizioOut.getErrorCode());
+			aLogger.debug(output.getDefaultMessage());
+			aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+    	    throw new StoreException(output);	
+		}
+		
+		String xmlDefaultMessageOut = servizioOut.getDefaultMessage();
+		String xmlResultSetOut = servizioOut.getResultOut();
+	    String xmlPercorsiOut = servizioOut.getPercorsoRicercaXMLOut();
+	    String dettagliCercaInFolderOut = servizioOut.getDettagliCercaInFolderOut();
+	    
+		String numTotRecOut    =  "";
+		if(servizioOut.getNroTotRecOut()!=null)
+			numTotRecOut    =  servizioOut.getNroTotRecOut().toString();
+		
+		String numRecInPagOut = "";
+		if(servizioOut.getNroRecInPaginaOut()!=null)
+			numRecInPagOut = servizioOut.getNroRecInPaginaOut().toString();
+		
+		//ritocco la lista A MANO aggiungendo i 2 attributi in piu
+		if (xmlResultSetOut != null && xmlResultSetOut.indexOf("<Lista")!= -1) {
+			String prima = xmlResultSetOut.substring(0, xmlResultSetOut.indexOf("<Lista"));
+			String dopo = xmlResultSetOut.substring(xmlResultSetOut.indexOf("<Lista")+6);
+			String attrs = "<Lista NroTotaleRecord=\""+numTotRecOut+"\" ";
+			if (numRecInPagOut != null && !"".equals(numRecInPagOut.trim()) && !"0".equals(numRecInPagOut.trim())) {
+				Integer tot = new Integer(numTotRecOut);
+				Integer recPag = new Integer(numRecInPagOut);
+				int pagine = tot.intValue()/recPag.intValue();
+				if (tot.intValue()%recPag.intValue()!=0) pagine+=1;
+				attrs += "NroPagine=\""+pagine+"\"";
+			}
+			xmlResultSetOut = prima + attrs + dopo;
+		}
+		// Restituisco l'xml
+     	ret.setXmlRegOut(xmlResultSetOut);
+     	ret.setWarnRegOut(xmlDefaultMessageOut);
 		     	
-	 		}
-	 	catch (Exception e){
-	 		throw new Exception(e.getMessage());	
-	 	}
-	 	aLogger.debug("xmlOut = " + ret);
     	return ret;
     }
     
@@ -437,7 +441,7 @@ public class WSTrovaDocFolder extends JAXWSAbstractAurigaService implements WSIT
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             
         	//xmlInEsc = xmlIn;        	

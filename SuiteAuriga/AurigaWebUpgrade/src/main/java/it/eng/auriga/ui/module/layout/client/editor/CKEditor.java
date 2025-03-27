@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.editor;
 
 import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.dom.client.Element;
@@ -219,111 +220,111 @@ public class CKEditor extends Canvas {
 	        	$wnd.CKEDITOR.addCss('.cke_editable{font-size:' + fontsize + ';}');
 	        }
 	        var self = this;	  
-
-	        currentInstance.on("instanceReady", function(event) {
-				self.@it.eng.auriga.ui.module.layout.client.editor.CKEditor::onInstanceReady()();
-				if(currentInstance){
-					if (altezza != null && altezza.indexOf('%') != -1) {
-						currentInstance.element.$.parentElement.style.height = altezza;
-						if (currentInstance.element.$.nextSibling) {
-							currentInstance.element.$.nextSibling.style.height = altezza;
-							if (hideBorder) {
-								currentInstance.element.$.nextSibling.style.border = 'none';
-							}
-							if (currentInstance.element.$.nextSibling.children[1]) {
-								currentInstance.element.$.nextSibling.children[1].style.height = '100%';
+			if (currentInstance != null && currentInstance != undefined) {
+		        currentInstance.on("instanceReady", function(event) {
+					self.@it.eng.auriga.ui.module.layout.client.editor.CKEditor::onInstanceReady()();
+					if(currentInstance){
+						if (altezza != null && altezza.indexOf('%') != -1) {
+							currentInstance.element.$.parentElement.style.height = altezza;
+							if (currentInstance.element.$.nextSibling) {
+								currentInstance.element.$.nextSibling.style.height = altezza;
 								if (hideBorder) {
-									currentInstance.element.$.nextSibling.children[1].children[0].style.border = '1px solid #d1d1d1';
+									currentInstance.element.$.nextSibling.style.border = 'none';
+								}
+								if (currentInstance.element.$.nextSibling.children[1]) {
+									currentInstance.element.$.nextSibling.children[1].style.height = '100%';
+									if (hideBorder) {
+										currentInstance.element.$.nextSibling.children[1].children[0].style.border = '1px solid #d1d1d1';
+									}
 								}
 							}
 						}
 					}
-				}
-			});
-			
-			currentInstance.on("blur", function(event) {
-				self.@it.eng.auriga.ui.module.layout.client.editor.CKEditor::onBlur()();
-			});
-			
-			currentInstance.on("change", function(event) {
-				self.@it.eng.auriga.ui.module.layout.client.editor.CKEditor::onChange()();
-			});
-			
-			currentInstance.on("key", function(event) {
-				console.log(event.data.keyCode);
+				});
 				
-				if ($wnd.Browser.isFirefox) {
-					console.log(String.fromCharCode(event.data.keyCode));
-				}
+				currentInstance.on("blur", function(event) {
+					self.@it.eng.auriga.ui.module.layout.client.editor.CKEditor::onBlur()();
+				});
 				
-				if (upperCase && event.data.domEvent.$.type ==  "keydown") {
+				currentInstance.on("change", function(event) {
+					self.@it.eng.auriga.ui.module.layout.client.editor.CKEditor::onChange()();
+				});
+				
+				currentInstance.on("key", function(event) {
+					console.log(event.data.keyCode);
 					
-						var textIn;
-						var keyCode1, keyCode2, keyCode3;
-						if ($wnd.Browser.isFirefox && $wnd.Browser.version<50) {
-							textIn = String.fromCharCode(event.data.keyCode);
-						} else if ($wnd.Browser.isFirefox && $wnd.Browser.version>50) {
-							textIn = event.data.domEvent.$.key;
-							keyCode1 = 59;
-							keyCode2 = 160;
-							keyCode3 = 2228283;
-						} else {
-							textIn = event.data.domEvent.$.key;
-							keyCode1 = 186;
-							keyCode2 = 221;
-							keyCode3 = 2228410;
-						}
-						
-						if ((event.data.keyCode < 91 && event.data.keyCode > 64) || (event.data.keyCode <=2228314 && event.data.keyCode >=2228289)) {
-							event.cancel();
-							var textInUpper = textIn.toUpperCase();
-							currentInstance.insertText(textInUpper);
-						} else if ((event.data.keyCode === 222 || event.data.keyCode === keyCode1 || event.data.keyCode === 192 || 
-							event.data.keyCode === keyCode2 || event.data.keyCode === 191 || event.data.keyCode === keyCode3)) {
-							event.cancel();
-							var textConvertedCharacters = convertCharacters(textIn);
-							currentInstance.insertText(textConvertedCharacters.toUpperCase());
-						}
+					if ($wnd.Browser.isFirefox) {
+						console.log(String.fromCharCode(event.data.keyCode));
+					}
 					
-				}
-
-			});
-			
-			currentInstance.on("paste", function(event) {
-				console.log(event.data.dataValue);
-				event.cancel();
-				var textIn =  event.data.dataValue;
-				
-				textIn = @it.eng.auriga.ui.module.layout.client.editor.CKEditor::correggiElenchiPuntati(Ljava/lang/String;)(textIn);
-				textIn = @it.eng.auriga.ui.module.layout.client.editor.CKEditor::correggiStileElenchiPuntati(Ljava/lang/String;)(textIn);
-				
-				if (upperCase && event.data.dataValue != null && event.data.dataValue != "") {
-					var textOut = textIn.toUpperCase();
-					var textOutConvertedCharacters = convertCharacters(textOut);
-					textOutConvertedCharacters = textOutConvertedCharacters.replace(/&nbsp;/gi, "&nbsp;");
-					textOutConvertedCharacters = textOutConvertedCharacters.replace(/&ensp;/gi, "&ensp;");
-					// Usare insertHtml mi evita di dover convertire le entity html
-					currentInstance.insertHtml(textOutConvertedCharacters);
-				}else{
-					currentInstance.insertHtml(textIn);
-				}
-			});
+					if (upperCase && event.data.domEvent.$.type ==  "keydown") {
 						
-			function convertCharacters(string) {
-				conv_map = {
-					'À': 'A\'', 'à': 'a\'', 'Á': 'A\'', 'á': 'a\'',
-					'È': 'E\'', 'è': 'e\'', 'É': 'E\'', 'é': 'e\'',
-					'Ì': 'I\'', 'ì': 'i\'', 'Í': 'I\'', 'í': 'i\'',
-					'Ò': 'O\'', 'ò': 'o\'', 'Ó': 'O\'', 'ó': 'o\'',
-					'Ù': 'U\'', 'ù': 'u\'', 'Ú': 'U\'', 'ú': 'u\''
-				};
-			 
-				for (var i in conv_map) {
-					string = string.replace(new RegExp(i, "g"), conv_map[i]);
+							var textIn;
+							var keyCode1, keyCode2, keyCode3;
+							if ($wnd.Browser.isFirefox && $wnd.Browser.version<50) {
+								textIn = String.fromCharCode(event.data.keyCode);
+							} else if ($wnd.Browser.isFirefox && $wnd.Browser.version>50) {
+								textIn = event.data.domEvent.$.key;
+								keyCode1 = 59;
+								keyCode2 = 160;
+								keyCode3 = 2228283;
+							} else {
+								textIn = event.data.domEvent.$.key;
+								keyCode1 = 186;
+								keyCode2 = 221;
+								keyCode3 = 2228410;
+							}
+							
+							if ((event.data.keyCode < 91 && event.data.keyCode > 64) || (event.data.keyCode <=2228314 && event.data.keyCode >=2228289)) {
+								event.cancel();
+								var textInUpper = textIn.toUpperCase();
+								currentInstance.insertText(textInUpper);
+							} else if ((event.data.keyCode === 222 || event.data.keyCode === keyCode1 || event.data.keyCode === 192 || 
+								event.data.keyCode === keyCode2 || event.data.keyCode === 191 || event.data.keyCode === keyCode3)) {
+								event.cancel();
+								var textConvertedCharacters = convertCharacters(textIn);
+								currentInstance.insertText(textConvertedCharacters.toUpperCase());
+							}
+						
+					}
+	
+				});
+				
+				currentInstance.on("paste", function(event) {
+					console.log(event.data.dataValue);
+					event.cancel();
+					var textIn =  event.data.dataValue;
+					
+					textIn = @it.eng.auriga.ui.module.layout.client.editor.CKEditor::correggiElenchiPuntati(Ljava/lang/String;)(textIn);
+					textIn = @it.eng.auriga.ui.module.layout.client.editor.CKEditor::correggiStileElenchiPuntati(Ljava/lang/String;)(textIn);
+					
+					if (upperCase && event.data.dataValue != null && event.data.dataValue != "") {
+						var textOut = textIn.toUpperCase();
+						var textOutConvertedCharacters = convertCharacters(textOut);
+						textOutConvertedCharacters = textOutConvertedCharacters.replace(/&nbsp;/gi, "&nbsp;");
+						textOutConvertedCharacters = textOutConvertedCharacters.replace(/&ensp;/gi, "&ensp;");
+						// Usare insertHtml mi evita di dover convertire le entity html
+						currentInstance.insertHtml(textOutConvertedCharacters);
+					}else{
+						currentInstance.insertHtml(textIn);
+					}
+				});
+							
+				function convertCharacters(string) {
+					conv_map = {
+						'À': 'A\'', 'à': 'a\'', 'Á': 'A\'', 'á': 'a\'',
+						'È': 'E\'', 'è': 'e\'', 'É': 'E\'', 'é': 'e\'',
+						'Ì': 'I\'', 'ì': 'i\'', 'Í': 'I\'', 'í': 'i\'',
+						'Ò': 'O\'', 'ò': 'o\'', 'Ó': 'O\'', 'ó': 'o\'',
+						'Ù': 'U\'', 'ù': 'u\'', 'Ú': 'U\'', 'ú': 'u\''
+					};
+				 
+					for (var i in conv_map) {
+						string = string.replace(new RegExp(i, "g"), conv_map[i]);
+					}
+					return string;
 				}
-				return string;
 			}
-			
 		}
 	}-*/;
 	

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,6 +9,11 @@ import com.smartgwt.client.widgets.Canvas;
 import com.smartgwt.client.widgets.ImgButton;
 import com.smartgwt.client.widgets.events.ClickEvent;
 import com.smartgwt.client.widgets.events.ClickHandler;
+import com.smartgwt.client.widgets.form.DynamicForm;
+import com.smartgwt.client.widgets.form.FormItemIfFunction;
+import com.smartgwt.client.widgets.form.fields.FormItem;
+import com.smartgwt.client.widgets.form.fields.events.ChangedEvent;
+import com.smartgwt.client.widgets.form.fields.events.ChangedHandler;
 import com.smartgwt.client.widgets.layout.HLayout;
 import com.smartgwt.client.widgets.layout.VLayout;
 
@@ -16,10 +22,14 @@ import it.eng.auriga.ui.module.layout.client.anagrafiche.LookupSoggettiPopup;
 import it.eng.auriga.ui.module.layout.client.i18n.I18NUtil;
 import it.eng.auriga.ui.module.layout.client.organigramma.LookupOrganigrammaPopup;
 import it.eng.utility.ui.module.layout.client.common.ReplicableCanvas;
+import it.eng.utility.ui.module.layout.client.common.items.CheckboxItem;
 
 public class DestinatarioProtUscitaItem extends DestinatarioProtItem{
 
 	private boolean canEditMezzoTrasmissione = false;
+	protected DynamicForm dynamicItemForm;
+	protected CheckboxItem flgSegnaInvioMailExtraSistemaItem;
+	protected CheckboxItem flgInviataMailExtraSistemaItem;
 	
 	@Override
 	public ReplicableCanvas getCanvasToReply() {
@@ -60,6 +70,121 @@ public class DestinatarioProtUscitaItem extends DestinatarioProtItem{
 			lDestinatarioProtUscitaCanvas.resetDefaultValueFlgAssegnaAlDestinatario();
 		}
 	}
+	
+	@Override
+	public HLayout createAddButtonsLayout() {
+		HLayout addButtonsLayout = super.createAddButtonsLayout();
+		
+		flgSegnaInvioMailExtraSistemaItem = new CheckboxItem("flgSegnaInvioMailExtraSistema", "da inviare via PEC/e-mail extra sistema");
+		flgSegnaInvioMailExtraSistemaItem.setRequired(false);
+		flgSegnaInvioMailExtraSistemaItem.setColSpan(1);
+		flgSegnaInvioMailExtraSistemaItem.setWidth(25);
+		flgSegnaInvioMailExtraSistemaItem.setShowIfCondition(new FormItemIfFunction() {
+			
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				return (AurigaLayout.getParametroDBAsBoolean("ATTIVA_SEGNA_INVIO_MAIL_EXTRA_SISTEMA"));
+			}
+		});
+		
+		flgSegnaInvioMailExtraSistemaItem.addChangedHandler(new ChangedHandler() {
+
+			@Override
+			public void onChanged(ChangedEvent event) {
+				boolean checked = event.getValue() != null && (Boolean) event.getValue();	
+				// Se NON è ceccato allora il check "inviata via PEC extra sistema" deve essere settato a NULL
+				if (!checked) {							
+					dynamicItemForm.setValue("flgInviataMailExtraSistema", false);
+				} 
+				dynamicItemForm.markForRedraw();
+			}
+		});
+		
+		flgInviataMailExtraSistemaItem = new CheckboxItem("flgInviataMailExtraSistema", "inviata via PEC/e-mail extra sistema");
+		flgInviataMailExtraSistemaItem.setRequired(false);
+		flgInviataMailExtraSistemaItem.setColSpan(1);
+		flgInviataMailExtraSistemaItem.setWidth(25);
+		flgInviataMailExtraSistemaItem.setShowIfCondition(new FormItemIfFunction() {
+			
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				
+				boolean isBozza = isInBozza();
+				boolean isProtocollata = isProtocollata();
+				boolean isRepertoriata = isRepertoriata();
+				boolean flgSegnaInvioMailExtraSistema = dynamicItemForm.getValue("flgSegnaInvioMailExtraSistema") != null && (Boolean) dynamicItemForm.getValue("flgSegnaInvioMailExtraSistema");
+				
+				// Si vede SOLO se : 
+				// a) Non è una BOZZA
+				// b) è stata protocollata o repertoriata
+				// c) se il check "da inviare via PEC extra sistema" è spuntato
+				return (!isBozza && (isProtocollata || isRepertoriata) && flgSegnaInvioMailExtraSistema && AurigaLayout.getParametroDBAsBoolean("ATTIVA_SEGNA_INVIO_MAIL_EXTRA_SISTEMA"));
+			}
+		});
+		
+		dynamicItemForm = new DynamicForm();
+		dynamicItemForm.setNumCols(10);
+		dynamicItemForm.setColWidths(1,1,1,1,1,1,1,1,"*");
+		dynamicItemForm.setMargin(0);	
+		
+		dynamicItemForm.setFields(flgSegnaInvioMailExtraSistemaItem, flgInviataMailExtraSistemaItem);
+
+		addButtonsLayout.addMember(dynamicItemForm);
+
+		return addButtonsLayout;
+	}
+	
+	@Override
+	public void setShowHideAddButtonsLayout(HLayout addButtonsLayout, boolean isToShow) {
+		if(addButtonsLayout != null ) {
+			Canvas[] members = addButtonsLayout.getMembers();
+			for (Canvas canvas : members) {
+				if(canvas instanceof DynamicForm) {
+					DynamicForm dynamicForm = (DynamicForm) canvas;
+					dynamicForm.show();
+					dynamicForm.setCanEdit(editing);
+				} else {
+					if(isToShow) {
+						canvas.show();
+					} else {
+						canvas.hide();
+					}
+				}
+			}
+		}
+	}
+	
+//	@Override
+//	public HLayout createOtherItemsLayout() {
+//		
+//		if (AurigaLayout.getParametroDBAsBoolean("ATTIVA_SEGNA_INVIO_MAIL_EXTRA_SISTEMA")) {
+//			HLayout otherItemsLayout;
+//			otherItemsLayout = new HLayout();
+//			otherItemsLayout.setMembersMargin(3);
+//			flgSegnaInvioMailExtraSistemaItem = new CheckboxItem("flgSegnaInvioMailExtraSistema",
+//					"da inviare/inviata via PEC extra-sistema");
+//			flgSegnaInvioMailExtraSistemaItem.setRequired(false);
+//			flgSegnaInvioMailExtraSistemaItem.setColSpan(1);
+//			flgSegnaInvioMailExtraSistemaItem.setWidth(25);
+//			flgSegnaInvioMailExtraSistemaItem.setShowIfCondition(new FormItemIfFunction() {
+//
+//				@Override
+//				public boolean execute(FormItem item, Object value, DynamicForm form) {
+//					return (AurigaLayout.getParametroDBAsBoolean("ATTIVA_SEGNA_INVIO_MAIL_EXTRA_SISTEMA"));
+//				}
+//			});
+//			dynamicItemForm = new DynamicForm();
+//			dynamicItemForm.setNumCols(10);
+//			dynamicItemForm.setColWidths(1, 1, 1, 1, 1, 1, 1, 1, "*");
+//			dynamicItemForm.setMargin(0);
+//			dynamicItemForm.setFields(flgSegnaInvioMailExtraSistemaItem);
+//			otherItemsLayout.addMember(dynamicItemForm);
+//			
+//			return otherItemsLayout;
+//		} else {
+//			return null;
+//		}
+//	}
 	
 	@Override
 	protected ImgButton[] createAddButtons() {
@@ -109,11 +234,42 @@ public class DestinatarioProtUscitaItem extends DestinatarioProtItem{
 					DestinatarioProtUscitaMultiLookupOrganigramma lookupOrganigrammaPopup = new DestinatarioProtUscitaMultiLookupOrganigramma(null);				
 					lookupOrganigrammaPopup.show(); 	
 				}   
-			});				
+			});
 		}
 					
 		return addButtons;				
 	}
+	
+	public Boolean isFlgSegnaInvioMailExtraSistema() {
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_SEGNA_INVIO_MAIL_EXTRA_SISTEMA")) {
+			Boolean flgSegnaInvioMailExtraSistema = dynamicItemForm != null && dynamicItemForm.getValue("flgSegnaInvioMailExtraSistema") != null && (Boolean) dynamicItemForm.getValue("flgSegnaInvioMailExtraSistema");
+			return flgSegnaInvioMailExtraSistema != null && flgSegnaInvioMailExtraSistema;
+		}
+		return false;
+	}
+	
+	public void setFlgSegnaInvioMailExtraSistema(Boolean flgSegnaInvioMailExtraSistema) {
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_SEGNA_INVIO_MAIL_EXTRA_SISTEMA") && dynamicItemForm != null) {
+			dynamicItemForm.setValue("flgSegnaInvioMailExtraSistema", flgSegnaInvioMailExtraSistema);
+		}
+	}
+	
+	
+	public Boolean isFlgInviataMailExtraSistemaItem() {
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_SEGNA_INVIO_MAIL_EXTRA_SISTEMA")) {
+			Boolean flgInviataMailExtraSistema = dynamicItemForm != null && dynamicItemForm.getValue("flgInviataMailExtraSistema") != null && (Boolean) dynamicItemForm.getValue("flgInviataMailExtraSistema");
+			return flgInviataMailExtraSistema != null && flgInviataMailExtraSistema;
+		}
+		return false;
+		
+	}
+
+	public void setFlgInviataMailExtraSistemaItem(Boolean flgInviataMailExtraSistema) {
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_SEGNA_INVIO_MAIL_EXTRA_SISTEMA") && dynamicItemForm != null) {
+			dynamicItemForm.setValue("flgInviataMailExtraSistema", flgInviataMailExtraSistema);
+		}
+	}
+
 	
 	public String getFinalitaLookup(){
 		if(isEscludiDestinatariNonEsterni() || AurigaLayout.getParametroDBAsBoolean("DEST_USCITA_CERCA_IN_RUBR_SOLO_ESTERNI")) {			
@@ -348,5 +504,12 @@ public class DestinatarioProtUscitaItem extends DestinatarioProtItem{
 			lDestinatarioProtUscitaCanvas.reloadTipoValueMap();
 		}
 	}
-	
+
+	public void setCanEditFlgSegnaInvioMailExtraSistema(boolean canEditFlgSegnaInvioMailExtraSistema) {
+		flgSegnaInvioMailExtraSistemaItem.setCanEdit(canEditFlgSegnaInvioMailExtraSistema);
+	}
+
+	public void setCanEditFlgInviataMailExtraSistema(boolean canEditFlgInviataMailExtraSistema) {
+		flgInviataMailExtraSistemaItem.setCanEdit(canEditFlgInviataMailExtraSistema);
+	}
 }

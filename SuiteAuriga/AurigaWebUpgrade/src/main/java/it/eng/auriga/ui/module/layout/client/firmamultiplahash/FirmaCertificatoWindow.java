@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+/**
  * Applet che, a partire dall'impronta del pdf generata dopo l'esecuzione dell'applet che preleva il certificato, apre l'applet di firma in cui non viene
  * richiesto il pin e le informazioni del firmatario.
  */

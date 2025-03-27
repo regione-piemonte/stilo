@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -59,7 +60,7 @@ public class LoadComboTipoDocumentoDataSource extends AbstractFetchDataSource<Ti
 
 		String altriParametri = "ID_USER_LAVORO|*|" + idUserLavoro + "|*|FLG_ALLEGATO_PRIMARIO|*|P";
 		if (StringUtils.isNotBlank(finalita)) {
-			altriParametri += finalita;
+			altriParametri += finalita; // nell'extraparams la finalita viene già passata preceduta dalla stringa |*|FINALITA|*|
 		}		
 		// Differenziare per i filtri dove non va passato FLG_SOLO_ASSEGNABILI a 1 in AltriParametriIn
 		if (!isFromFilter) {

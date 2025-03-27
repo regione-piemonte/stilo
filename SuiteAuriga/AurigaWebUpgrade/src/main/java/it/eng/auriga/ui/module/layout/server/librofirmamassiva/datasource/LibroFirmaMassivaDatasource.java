@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.librofirmamassiva.datasource;
 
 import java.io.File;
 import java.io.StringReader;
@@ -248,6 +249,7 @@ public class LibroFirmaMassivaDatasource extends AurigaAbstractFetchDatasource<D
 				lFile.setDataOraEmissioneCertificatoFirma(firmatarioPiuRecente.getDataEmissione());
 				lFile.setDataOraScadenzaCertificatoFirma(firmatarioPiuRecente.getDataScadenza());
 				lFile.setTipoFirmaQA(firmatarioPiuRecente.getTipoFirmaQA());
+				lFile.setCfFirmatario(firmatarioPiuRecente.getCfFirmatario());
 			}
 			filesToStore.add(lFile);
 		}

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.gestioneUtenti;
 
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
@@ -475,6 +476,16 @@ public class AurigaGestioneUtentiDataSource extends AurigaAbstractFetchDatasourc
 							}
 						}
 						
+						// Se e' il FLG_PRESA_IN_CARICO_AUTOMATICA_IN_REG_UD
+						else if (key.equalsIgnoreCase("FLG_PRESA_IN_CARICO_AUTOMATICA_IN_REG_UD")) {
+							if (valoreAttributo != null && !valoreAttributo.equalsIgnoreCase("")) {
+								if (valoreAttributo.equalsIgnoreCase("1"))
+									result.setFlgPresaInCaricoAutomaticaInRegUd(true);
+								else
+									result.setFlgPresaInCaricoAutomaticaInRegUd(false);
+							}
+						}
+						
 					}
 				}
 			}
@@ -798,9 +809,48 @@ public class AurigaGestioneUtentiDataSource extends AurigaAbstractFetchDatasourc
 									result.setFlgDisattivaNotifDocDaPrendereInCarico(false);
 							}
 						}
+						
+						// Se e' il FLG_PRESA_IN_CARICO_AUTOMATICA_IN_REG_UD
+						else if (key.equalsIgnoreCase("FLG_PRESA_IN_CARICO_AUTOMATICA_IN_REG_UD")) {
+							if (valoreAttributo != null && !valoreAttributo.equalsIgnoreCase("")) {
+								if (valoreAttributo.equalsIgnoreCase("1"))
+									result.setFlgPresaInCaricoAutomaticaInRegUd(true);
+								else
+									result.setFlgPresaInCaricoAutomaticaInRegUd(false);
+							}
+						}
+						
+						// TS_CHECK_NOTIF_DOC_DA_PRENDERE_IN_CARICO
+						else if (key.equalsIgnoreCase("TS_CHECK_NOTIF_DOC_DA_PRENDERE_IN_CARICO")) {
+							if (valoreAttributo != null && !valoreAttributo.equalsIgnoreCase("")) {						
+								result.setTsCheckNotifDocDaPrendereInCarico(new SimpleDateFormat(FMT_STD_TIMESTAMP).parse(valoreAttributo));
+							}
+						}
+						
+						// ESITO_NOTIF_DOC_DA_PRENDERE_IN_CARICO
+						else if (key.equalsIgnoreCase("ESITO_NOTIF_DOC_DA_PRENDERE_IN_CARICO")) {
+							if (valoreAttributo != null && !valoreAttributo.equalsIgnoreCase("")) {
+								result.setEsitoNotifDocDaPrendereInCarico(valoreAttributo);
+							}
+						}
+						
+						// MSG_ERR_NOTIF_DOC_DA_PRENDERE_IN_CARICO 
+						else if (key.equalsIgnoreCase("MSG_ERR_NOTIF_DOC_DA_PRENDERE_IN_CARICO")) {
+							if (valoreAttributo != null && !valoreAttributo.equalsIgnoreCase("")) {
+								result.setMsgErrNotifDocDaPrendereInCarico(valoreAttributo);
+							}
+						}
+						
+						// NRO_DOC_NOTIF_DOC_DA_PRENDERE_IN_CARICO
+						else if (key.equalsIgnoreCase("NRO_DOC_NOTIF_DOC_DA_PRENDERE_IN_CARICO")) {
+							if (valoreAttributo != null && !valoreAttributo.equalsIgnoreCase("")) {
+								result.setNroDocNotifDocDaPrendereInCarico(valoreAttributo);
+							}
+						}
 					}
 				}
 			}
+					
 			result.setListaSocietaUtenti(listaSocietaUtente);
 			result.setListaGruppoClientiUtenti(listaGruppoClientiUtenti);
 		}
@@ -1698,9 +1748,14 @@ public class AurigaGestioneUtentiDataSource extends AurigaAbstractFetchDatasourc
 		
 		// attributo custom FLG_DISATTIVA_NOTIF_X_DOC_DA_PRENDERE_IN_CARICO
 		if (isDisattivaNotifDocDaPrendereInCarico){
-			valoriAttributiDinamici.put("FLG_DISATTIVA_NOTIF_X_DOC_DA_PRENDERE_IN_CARICO", (bean.getFlgDisattivaNotifDocDaPrendereInCarico()!=null && bean.getFlgDisattivaNotifDocDaPrendereInCarico()) ?  (String)"1" : (String)"");
+			valoriAttributiDinamici.put("FLG_DISATTIVA_NOTIF_X_DOC_DA_PRENDERE_IN_CARICO", (bean.getFlgDisattivaNotifDocDaPrendereInCarico() != null && bean.getFlgDisattivaNotifDocDaPrendereInCarico()) ?  (String)"1" : (String)"");
 			tipiValoriAttributiDinamici.put("FLG_DISATTIVA_NOTIF_X_DOC_DA_PRENDERE_IN_CARICO", (String)"");
 		}
+		
+		// attributo custom FLG_PRESA_IN_CARICO_AUTOMATICA_IN_REG_UD
+		valoriAttributiDinamici.put("FLG_PRESA_IN_CARICO_AUTOMATICA_IN_REG_UD", (bean.getFlgPresaInCaricoAutomaticaInRegUd()!=null && bean.getFlgPresaInCaricoAutomaticaInRegUd()) ?  (String)"1" : (String)"");
+		tipiValoriAttributiDinamici.put("FLG_PRESA_IN_CARICO_AUTOMATICA_IN_REG_UD", (String)"");
+		
 		
 		// *****************************************
     	// Attributi lista

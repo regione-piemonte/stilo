@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -136,6 +137,7 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 	protected AllegatiListGridField flgParteDispositivoSalvato;
 	protected AllegatiListGridField flgParteDispositivo;
 	protected AllegatiListGridField flgParere;
+	protected AllegatiListGridField flgParteDispositivoParereXOrd;
 	protected AllegatiListGridField idTipoFileAllegatoSalvato;	
 	protected AllegatiListGridField idTipoFileAllegato;
 	protected AllegatiListGridField descTipoFileAllegato;
@@ -476,6 +478,20 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 				return getShowFlgParere();
 			}
 		});	
+		
+		flgParteDispositivoParereXOrd = new AllegatiListGridField("flgParteDispositivoParereXOrd"); flgParteDispositivoParereXOrd.setHidden(true); flgParteDispositivoParereXOrd.setCanHide(false);		
+		flgParteDispositivoParereXOrd.setSortNormalizer(new SortNormalizer() {
+			
+			@Override
+			public Object normalize(ListGridRecord record, String fieldName) {
+				boolean isParere = getShowFlgParere() && record.getAttribute("flgParere") != null && "true".equals(record.getAttribute("flgParere"));
+				boolean isParteIntegrante = getShowFlgParteDispositivo() && record.getAttribute("flgParteDispositivo") != null && "true".equals(record.getAttribute("flgParteDispositivo"));
+				if(isParere || isParteIntegrante) {	
+					return "true";
+				}
+				return "false";
+			}
+		});
 		
 		idTipoFileAllegatoSalvato = new AllegatiListGridField("idTipoFileAllegatoSalvato"); idTipoFileAllegatoSalvato.setHidden(true); idTipoFileAllegatoSalvato.setCanHide(false);		
 		idTipoFileAllegato = new AllegatiListGridField("idTipoFileAllegato"); idTipoFileAllegato.setHidden(true); idTipoFileAllegato.setCanHide(false);
@@ -2257,6 +2273,7 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 		gridFields.add(flgParteDispositivoSalvato);
 		gridFields.add(flgParteDispositivo);
 		gridFields.add(flgParere);
+		gridFields.add(flgParteDispositivoParereXOrd);
 		gridFields.add(idTipoFileAllegatoSalvato);
 		gridFields.add(idTipoFileAllegato);
 		gridFields.add(descTipoFileAllegato);
@@ -2769,54 +2786,56 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 			}	
 		}
 		if (!isHideTimbraInAltreOperazioniButton()) {
-			MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(), "file/attestato.png");
-			attestatoConformitaOriginaleMenuItem.setEnableIfCondition(new MenuItemIfFunction() {
-
-				@Override
-				public boolean execute(Canvas target, Menu menu, MenuItem item) {
-					if (uriFileAllegato != null && !uriFileAllegato.equals("")) {
-						return infoFileAllegato != null;
-					}
-					return false;
-				}
-			});
-			attestatoConformitaOriginaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
-
-				@Override
-				public void onClick(MenuItemClickEvent event) {
-					String strIdUdAppartenza = listRecord.getAttribute("idUdAppartenenza");	
-					Record detailRecord = getDetailRecord();		
-					final String idUd;
-					if (detailRecord != null ) {
-						idUd = detailRecord.getAttribute("idUd");
-					} else {
-						//se detailRecord è null vuol dire che l'allegatoItem è quello di DocumentiIstruttoria,
-						//quindi l'idUd è l'idUdAppartenenza del canvas
-						idUd = strIdUdAppartenza;
-					}
-					final String idDoc = listRecord.getAttributeAsString("idDocAllegato");
+			if(AurigaLayout.showAttestatoConformitaOriginale()) {
+				MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(), "file/attestato.png");
+				attestatoConformitaOriginaleMenuItem.setEnableIfCondition(new MenuItemIfFunction() {
 					
-					SC.ask("Vuoi firmare digitalmente l'attestato ?", new BooleanCallback() {
-
-						@Override
-						public void execute(Boolean value) {
-							if (value) {
-								creaAttestato(idUd, idDoc, infoFileAllegato, uriFileAllegato, true);
-							} else {
-								creaAttestato(idUd, idDoc, infoFileAllegato, uriFileAllegato, false);
-							}
+					@Override
+					public boolean execute(Canvas target, Menu menu, MenuItem item) {
+						if (uriFileAllegato != null && !uriFileAllegato.equals("")) {
+							return infoFileAllegato != null;
 						}
-					});
-				}
-			});					
-			altreOpMenu.addItem(attestatoConformitaOriginaleMenuItem);	
+						return false;
+					}
+				});
+				attestatoConformitaOriginaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+					
+					@Override
+					public void onClick(MenuItemClickEvent event) {
+						String strIdUdAppartenza = listRecord.getAttribute("idUdAppartenenza");	
+						Record detailRecord = getDetailRecord();		
+						final String idUd;
+						if (detailRecord != null ) {
+							idUd = detailRecord.getAttribute("idUd");
+						} else {
+							//se detailRecord è null vuol dire che l'allegatoItem è quello di DocumentiIstruttoria,
+							//quindi l'idUd è l'idUdAppartenenza del canvas
+							idUd = strIdUdAppartenza;
+						}
+						final String idDoc = listRecord.getAttributeAsString("idDocAllegato");
+					
+						SC.ask("Vuoi firmare digitalmente l'attestato ?", new BooleanCallback() {
+							
+							@Override
+							public void execute(Boolean value) {
+								if (value) {
+									creaAttestato(idUd, idDoc, infoFileAllegato, uriFileAllegato, true);
+								} else {
+									creaAttestato(idUd, idDoc, infoFileAllegato, uriFileAllegato, false);
+								}
+							}
+						});
+					}
+				});					
+				altreOpMenu.addItem(attestatoConformitaOriginaleMenuItem);
+			}
 			
 			if(showOperazioniTimbraturaAllegato(listRecord)) {				
 				buildMenuBarcodeEtichetta(listRecord, altreOpMenu, false);
 			}
 			
 			final InfoFileRecord lInfoFileRecord = InfoFileRecord.buildInfoFileRecord(listRecord.getAttributeAsObject("infoFileOmissis"));
-			if (lInfoFileRecord != null && Layout.isPrivilegioAttivo("SCC")) {
+			if (lInfoFileRecord != null && AurigaLayout.showCopiaConformeCustom()) {
 				String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 				MenuItem timbroConformitaCustomAllegatoMenuItem = new MenuItem(labelConformitaCustom, "file/copiaConformeCustom.png");
 				timbroConformitaCustomAllegatoMenuItem.setEnabled(lInfoFileRecord != null && lInfoFileRecord.isConvertibile());
@@ -3019,53 +3038,55 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 			}
 		}
 		if (!isHideTimbraInAltreOperazioniButton()) {
-			MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(), "file/attestato.png");
-			attestatoConformitaOriginaleMenuItem.setEnableIfCondition(new MenuItemIfFunction() {
-
-				@Override
-				public boolean execute(Canvas target, Menu menu, MenuItem item) {
-					if (uriFileOmissis != null && !uriFileOmissis.equals("")) {
-						return infoFileOmissis != null;
-					}
-					return false;
-				}
-			});
-			attestatoConformitaOriginaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
-
-				@Override
-				public void onClick(MenuItemClickEvent event) {
-					String strIdUdAppartenza = listRecord.getAttribute("idUdAppartenenza");	
-					Record detailRecord = getDetailRecord();		
-					final String idUd;
-					if (detailRecord != null ) {
-						idUd = detailRecord.getAttribute("idUd");
-					} else {
-						//se detailRecord è null vuol dire che l'allegatoItem è quello di DocumentiIstruttoria,
-						//quindi l'idUd è l'idUdAppartenenza del canvas
-						idUd = strIdUdAppartenza;
-					}
-					final String idDoc = listRecord.getAttributeAsString("idDocOmissis");
-					SC.ask("Vuoi firmare digitalmente l'attestato ?", new BooleanCallback() {
-
-						@Override
-						public void execute(Boolean value) {
-							if (value) {
-								creaAttestato(idUd, idDoc, infoFileOmissis, uriFileOmissis, true);
-							} else {
-								creaAttestato(idUd, idDoc, infoFileOmissis, uriFileOmissis, false);
-							}
+			if(AurigaLayout.showAttestatoConformitaOriginale()) {
+				MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(), "file/attestato.png");
+				attestatoConformitaOriginaleMenuItem.setEnableIfCondition(new MenuItemIfFunction() {
+					
+					@Override
+					public boolean execute(Canvas target, Menu menu, MenuItem item) {
+						if (uriFileOmissis != null && !uriFileOmissis.equals("")) {
+							return infoFileOmissis != null;
 						}
-					});
-				}
-			});					
-			altreOpMenuOmissis.addItem(attestatoConformitaOriginaleMenuItem);	
+						return false;
+					}
+				});
+				attestatoConformitaOriginaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+					
+					@Override
+					public void onClick(MenuItemClickEvent event) {
+						String strIdUdAppartenza = listRecord.getAttribute("idUdAppartenenza");	
+						Record detailRecord = getDetailRecord();		
+						final String idUd;
+						if (detailRecord != null ) {
+							idUd = detailRecord.getAttribute("idUd");
+						} else {
+							//se detailRecord è null vuol dire che l'allegatoItem è quello di DocumentiIstruttoria,
+							//quindi l'idUd è l'idUdAppartenenza del canvas
+							idUd = strIdUdAppartenza;
+						}
+						final String idDoc = listRecord.getAttributeAsString("idDocOmissis");
+						SC.ask("Vuoi firmare digitalmente l'attestato ?", new BooleanCallback() {
+							
+							@Override
+							public void execute(Boolean value) {
+								if (value) {
+									creaAttestato(idUd, idDoc, infoFileOmissis, uriFileOmissis, true);
+								} else {
+									creaAttestato(idUd, idDoc, infoFileOmissis, uriFileOmissis, false);
+								}
+							}
+						});
+					}
+				});					
+				altreOpMenuOmissis.addItem(attestatoConformitaOriginaleMenuItem);	
+			}
 			
 			if(showOperazioniTimbraturaAllegato(listRecord)) {											
 				buildMenuBarcodeEtichetta(listRecord, altreOpMenuOmissis, true);	
 			}
 			
 			final InfoFileRecord lInfoFileRecord = InfoFileRecord.buildInfoFileRecord(listRecord.getAttributeAsObject("infoFileOmissis"));
-			if (lInfoFileRecord != null && Layout.isPrivilegioAttivo("SCC")) {
+			if (lInfoFileRecord != null && AurigaLayout.showCopiaConformeCustom()) {
 				String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 				MenuItem timbroConformitaCustomAllegatoMenuItem = new MenuItem(labelConformitaCustom, "file/copiaConformeCustom.png");
 				timbroConformitaCustomAllegatoMenuItem.setEnabled(lInfoFileRecord != null && lInfoFileRecord.isConvertibile());
@@ -3591,12 +3612,15 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 		List<String> listIdRecordsSel = getIdSelectedRecords();
 		if (getShowFlgParteDispositivo() && getSortByFlgParteDispositivo()) {
 			grid.clearSort();
-			grid.addSort(new SortSpecifier("flgParteDispositivo", SortDirection.DESCENDING));
+			if (getShowFlgParere()) {
+				grid.addSort(new SortSpecifier("flgParteDispositivoParereXOrd", SortDirection.DESCENDING));
+			} else {
+				grid.addSort(new SortSpecifier("flgParteDispositivo", SortDirection.DESCENDING));
+			}
 			if(isAttivaSceltaPosizioneAllegatiUniti()) {
 				grid.addSort(new SortSpecifier("posAllegatiUniti", SortDirection.ASCENDING));							
 			}
 			grid.addSort(new SortSpecifier("numeroProgrAllegatoAfterDrop", SortDirection.ASCENDING));		
-			
 		}
 		grid.deselectAllRecords();
 		int n = 1;
@@ -3749,6 +3773,7 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 		
 	@Override
 	public ListGrid buildGrid() {
+		
 		final ListGrid grid = super.buildGrid();
 //		grid.setStyleName(it.eng.utility.Styles.noBorderItem);
 		grid.setShowAllRecords(true);
@@ -3767,9 +3792,18 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 				refreshNroAllegato();
 			}
 		});
+		
 		// Ordinamenti iniziali
 		if (getShowFlgParteDispositivo() && getSortByFlgParteDispositivo()) {
-			grid.addSort(new SortSpecifier("flgParteDispositivo", SortDirection.DESCENDING));			
+			if (getShowFlgParere()) {
+				grid.addSort(new SortSpecifier("flgParteDispositivoParereXOrd", SortDirection.DESCENDING));
+			} else {
+				grid.addSort(new SortSpecifier("flgParteDispositivo", SortDirection.DESCENDING));
+			}
+			if(isAttivaSceltaPosizioneAllegatiUniti()) {
+				grid.addSort(new SortSpecifier("posAllegatiUniti", SortDirection.ASCENDING));							
+			}
+			grid.addSort(new SortSpecifier("numeroProgrAllegatoAfterDrop", SortDirection.ASCENDING));		
 		}
 		
 		grid.addRecordClickHandler(new RecordClickHandler() {
@@ -3853,10 +3887,13 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 				if(uri != null && !"".equals(uri)) {
 					newRecord.setAttribute("flgParteDispositivo", getFlgParteDispositivoDefaultValue());
 					if (!getFlgParteDispositivoDefaultValue()){
-						newRecord.setAttribute("flgNoPubblAllegato", true);
+						if(getShowFlgNoPubblAllegato()) {
+							newRecord.setAttribute("flgNoPubblAllegato", true);
+						}
 						newRecord.setAttribute("flgPubblicaSeparato", false);
 						newRecord.setAttribute("flgDatiSensibili", false);
 					} else {
+						newRecord.setAttribute("flgNoPubblAllegato", getFlgNoPubblAllegatoDefaultValue());
 						newRecord.setAttribute("flgPubblicaSeparato", getFlgPubblicaSeparatoDefaultValue());
 					}
 				}
@@ -4404,7 +4441,7 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 	
 	public boolean getFlgParteDispositivoDefaultValue() {	
 		boolean flgParteDispositivoDefaultValue = false;
-		if(getShowFlgParteDispositivo() && !isDocumentiIstruttoria()) {
+		if(getShowFlgParteDispositivo() && !isDocumentiIstruttoria() && !isAllegatiProtocollazioneDetailBozze()) {
 			// Controllo se devo settare il valore di default di parte integrante a true
 			// Vale true se ((readOnly && abilitazione all'esclusione vale true) || (!readOnly && FLG_ALLEG_ATTO_PARTE_INT_DEFAULT vale true))
 			boolean flgAllegAttoParteIntDefault = getFlgAllegAttoParteIntDefault();
@@ -4425,6 +4462,13 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 			flgPubblicaSeparatoDefaultValue = getFlgAllegAttoPubblSepDefault();
 		}
 		return flgPubblicaSeparatoDefaultValue;
+	}
+	
+	public boolean getFlgNoPubblAllegatoDefaultValue() {	
+		if(getShowFlgNoPubblAllegato()) {
+			return getFlgAllegAttoNoPubblDefault();
+		}
+		return false;
 	}
 	
 	@Override
@@ -4882,6 +4926,10 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 		return AurigaLayout.getParametroDBAsBoolean("FLG_ALLEG_ATTO_PARTE_INT_DEFAULT");
 	}
 	
+	public boolean getFlgAllegAttoNoPubblDefault() {
+		return AurigaLayout.getParametroDBAsBoolean("FLG_ALLEG_ATTO_ESCLUDI_PUBBL_DEFAULT");
+	}
+	
 	public boolean getFlgAllegAttoPubblSepDefault() {
 		return AurigaLayout.getParametroDBAsBoolean("FLG_ALLEG_ATTO_PUBBL_SEPARATA_DEFAULT");
 	}
@@ -4908,6 +4956,10 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 	
 	public String getTitleFlgParteDispositivo() {
 		return "Parte integrante";
+	}
+	
+	public boolean isAllegatiProtocollazioneDetailBozze() {
+		return false;
 	}
 	
 	public String getTitleFlgNoPubblAllegato() {
@@ -5085,7 +5137,7 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 			InfoFileRecord infoFileAllegato = record.getAttribute("infoFile") != null ? new InfoFileRecord(record.getAttributeAsRecord("infoFile")) : null;
 //			String mimetype = infoFileAllegato != null && infoFileAllegato.getMimetype() != null ? infoFileAllegato.getMimetype() : "";
 			// se sto facendo una nuova registrazione o una variazione di una già esistente, e se il file c'è e non è firmato digitalmente
-			if (flgTipoProv != null && !"".equals(flgTipoProv) && isEditing && 
+			if (/*flgTipoProv != null && !"".equals(flgTipoProv) && */isEditing && 
 				uriFileAllegato != null && !"".equals(uriFileAllegato) && infoFileAllegato != null && !infoFileAllegato.isFirmato() /*&& !mimetype.startsWith("image")*/) {
 				String idDocAllegato = record.getAttribute("idDocAllegato");
 				boolean isChanged = record.getAttributeAsBoolean("isChanged") != null && record.getAttributeAsBoolean("isChanged");
@@ -5220,7 +5272,7 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 			InfoFileRecord infoFileOmissis = record.getAttribute("infoFileOmissis") != null ? new InfoFileRecord(record.getAttributeAsRecord("infoFileOmissis")) : null;			
 //			String mimetypeOmissis = infoFileOmissis != null && infoFileOmissis.getMimetype() != null ? infoFileOmissis.getMimetype() : "";
 			// se sto facendo una nuova registrazione o una variazione di una già esistente, e se il file c'è e non è firmato digitalmente
-			if (flgTipoProv != null && !"".equals(flgTipoProv) && isEditing && 
+			if (/*flgTipoProv != null && !"".equals(flgTipoProv) && */isEditing && 
 					uriFileOmissis != null && !"".equals(uriFileOmissis) && infoFileOmissis != null && !infoFileOmissis.isFirmato() /*&& !mimetypeOmissis.startsWith("image")*/) {
 				String idDocOmissis = record.getAttribute("idDocOmissis");
 				boolean isChangedOmissis = record.getAttributeAsBoolean("isChangedOmissis") != null && record.getAttributeAsBoolean("isChangedOmissis");
@@ -7092,9 +7144,11 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 			if(!info.isFirmaValida() && rifiutoAllegatiConFirmeNonValide != null && !"".equals(rifiutoAllegatiConFirmeNonValide)) {
 				if("solo_allegati_parte_integrante".equalsIgnoreCase(rifiutoAllegatiConFirmeNonValide) && flgParteDispositivo) {
 					flgParteDispositivo = false;
-					record.setAttribute("flgParteDispositivo", false);	
-					flgNoPubblAllegato = true;
-					record.setAttribute("flgNoPubblAllegato", true);	
+					record.setAttribute("flgParteDispositivo", false);
+					if(getShowFlgNoPubblAllegato()) {
+						flgNoPubblAllegato = true;
+						record.setAttribute("flgNoPubblAllegato", true);
+					}	
 //					flgPubblicaSeparato = false;
 					record.setAttribute("flgPubblicaSeparato", false);	
 					flgDatiSensibili = false;
@@ -7817,10 +7871,13 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 		if(uri != null && !"".equals(uri)) {
 			newRecord.setAttribute("flgParteDispositivo", getFlgParteDispositivoDefaultValue());
 			if (!getFlgParteDispositivoDefaultValue()){
-				newRecord.setAttribute("flgNoPubblAllegato", true);
+				if(getShowFlgNoPubblAllegato()) {
+					newRecord.setAttribute("flgNoPubblAllegato", true);
+				}
 				newRecord.setAttribute("flgPubblicaSeparato", false);
 				newRecord.setAttribute("flgDatiSensibili", false);
 			} else {
+				newRecord.setAttribute("flgNoPubblAllegato", getFlgNoPubblAllegatoDefaultValue());
 				newRecord.setAttribute("flgPubblicaSeparato", getFlgPubblicaSeparatoDefaultValue());
 			}
 		}
@@ -7868,10 +7925,13 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 		if(uri != null && !"".equals(uri)) {
 			newRecord.setAttribute("flgParteDispositivo", getFlgParteDispositivoDefaultValue());
 			if (!getFlgParteDispositivoDefaultValue()){
-				newRecord.setAttribute("flgNoPubblAllegato", true);
+				if(getShowFlgNoPubblAllegato()) {
+					newRecord.setAttribute("flgNoPubblAllegato", true);
+				}
 				newRecord.setAttribute("flgPubblicaSeparato", false);
 				newRecord.setAttribute("flgDatiSensibili", false);
 			} else {
+				newRecord.setAttribute("flgNoPubblAllegato", getFlgNoPubblAllegatoDefaultValue());
 				newRecord.setAttribute("flgPubblicaSeparato", getFlgPubblicaSeparatoDefaultValue());
 			}
 		}
@@ -8002,9 +8062,12 @@ public abstract class AllegatiGridItem extends GridItem implements IDatiSensibil
 	}
 	
 	public boolean showOperazioniTimbraturaAllegato(Record listRecord) {
-		Record detailRecord = getDetailRecord();
-		return detailRecord != null && detailRecord.getAttribute("codCategoriaProtocollo")!= null && 
-				("PP".equals(detailRecord.getAttribute("codCategoriaProtocollo")) || "PG".equals(detailRecord.getAttribute("codCategoriaProtocollo")) || "R".equals(detailRecord.getAttribute("codCategoriaProtocollo")));
+		if(AurigaLayout.showOperazioniTimbratura()) {
+			Record detailRecord = getDetailRecord();
+			return detailRecord != null && detailRecord.getAttribute("codCategoriaProtocollo")!= null && 
+					("PP".equals(detailRecord.getAttribute("codCategoriaProtocollo")) || "PG".equals(detailRecord.getAttribute("codCategoriaProtocollo")) || "R".equals(detailRecord.getAttribute("codCategoriaProtocollo")));
+		}
+		return false;
 	}
 	
 	public boolean importConCtrlAllegatiXImportUnitaDoc() {

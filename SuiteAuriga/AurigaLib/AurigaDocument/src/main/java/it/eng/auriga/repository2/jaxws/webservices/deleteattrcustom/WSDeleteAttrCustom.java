@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.deleteattrcustom;
 
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsDelattrcustomBean;
 import it.eng.auriga.database.store.dmpk_ws.store.Delattrcustom;
@@ -7,6 +8,8 @@ import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.auriga.module.business.beans.SpecializzazioneBean;
 import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
+import it.eng.document.function.StoreException;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -17,6 +20,8 @@ import java.util.List;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import it.eng.auriga.repository2.jaxws.webservices.common.JAXWSAbstractAurigaService;
@@ -65,6 +70,7 @@ public class WSDeleteAttrCustom extends JAXWSAbstractAurigaService implements WS
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
 
 
@@ -73,7 +79,8 @@ public class WSDeleteAttrCustom extends JAXWSAbstractAurigaService implements WS
     String outWS = null;
     String errMsg = null;
     String xmlIn = null;
-
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
+    
     try {
     	 aLogger.info("Inizio WSDeleteAttrCustom");
     	
@@ -105,7 +112,12 @@ public class WSDeleteAttrCustom extends JAXWSAbstractAurigaService implements WS
          try {
         	 outWS =  callWS(loginBean,xml);
 	 		}
-	 		catch (Exception e){	 
+	 		catch (Exception e){	
+	 			if (e instanceof StoreException) {
+		    		if(((StoreException) e).getError()!=null){
+		    			errCode = ((StoreException) e).getError().getErrorCode();
+		    		}
+		    	}
 	 			if(e.getMessage()!=null)
 		 			 errMsg = "Errore = " + e.getMessage();
 		 		 else
@@ -119,7 +131,6 @@ public class WSDeleteAttrCustom extends JAXWSAbstractAurigaService implements WS
 	 	 		xmlIn = errMsg;
 	 	}
 
-				
 	 	/**************************************************************************
 		 * Creo XML di risposta del servzio e lo metto in attach alla response
 		 **************************************************************************/
@@ -154,7 +165,7 @@ public class WSDeleteAttrCustom extends JAXWSAbstractAurigaService implements WS
 	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 	 	}
 	 	else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	}
             	
 	     aLogger.info("Fine WSDeleteAttrCustom");
@@ -174,39 +185,35 @@ public class WSDeleteAttrCustom extends JAXWSAbstractAurigaService implements WS
 	}
 
     }
-
         
     private String callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-    	    	
-    	aLogger.debug("Eseguo il WS DmpkWSDeleteAttrCustom.");
+    	aLogger.debug("Eseguo il WS DMPK_WS->DeleteAttrCustom.");
     	
-    	String result = null;    	
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsDelattrcustomBean input = new DmpkWsDelattrcustomBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		
-    		      		  
-    		  // Eseguo il servizio
-    		  Delattrcustom service = new Delattrcustom();
-    		  StoreResultBean<DmpkWsDelattrcustomBean> output = service.execute(loginBean, input);
+    	String result = null;    
+    	
+    	// Inizializzo l'INPUT    		
+    	DmpkWsDelattrcustomBean input = new DmpkWsDelattrcustomBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+	      		  
+    	// Eseguo il servizio
+    	Delattrcustom service = new Delattrcustom();
+    	StoreResultBean<DmpkWsDelattrcustomBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
+    	if (output.isInError()){
+  		  aLogger.debug(output.getDefaultMessage());
+  		  aLogger.debug(output.getErrorContext());
+  		  aLogger.debug(output.getErrorCode());
+  		  throw new StoreException(output);
+  		}	
 
-    		  if (output.getResultBean().getAttrnameout()!=null)
-    			  result = output.getResultBean().getAttrnameout().toString();
-    		  
-    		  if (result== null || result.equalsIgnoreCase(""))
-    			  throw new Exception("La store procedure ha ritornato AttrNameOut nullo");
-    			      		      			 
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+    	if (output.getResultBean().getAttrnameout()!=null)
+		  result = output.getResultBean().getAttrnameout().toString();
+	  
+    	if (result== null || result.equalsIgnoreCase(""))
+		  throw new Exception("La store procedure ha ritornato AttrNameOut nullo");
+		      		      			 
+    	return result;
     }
     
 	/**
@@ -225,7 +232,7 @@ public class WSDeleteAttrCustom extends JAXWSAbstractAurigaService implements WS
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             aLogger.debug("generaXMLToken: token = " + xmlIn);
             aLogger.debug("generaXMLToken: tokenEsc = " + xmlInEsc);

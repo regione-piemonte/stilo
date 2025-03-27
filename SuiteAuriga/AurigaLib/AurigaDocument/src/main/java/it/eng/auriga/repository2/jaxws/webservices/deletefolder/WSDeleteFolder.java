@@ -1,5 +1,7 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.deletefolder;
 
+import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreDelfolderBean;
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsDelfolderBean;
 import it.eng.auriga.database.store.dmpk_ws.store.Delfolder;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
@@ -8,6 +10,7 @@ import it.eng.auriga.module.business.beans.SpecializzazioneBean;
 import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
 import it.eng.document.function.GestioneFascicoli;
+import it.eng.document.function.StoreException;
 import it.eng.document.function.bean.CancellaFascicoloIn;
 import it.eng.document.function.bean.CancellaFascicoloOut;
 import java.io.ByteArrayInputStream;
@@ -20,6 +23,8 @@ import java.util.List;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -70,6 +75,7 @@ public class WSDeleteFolder extends JAXWSAbstractAurigaService implements WSIDel
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
 
 
@@ -78,6 +84,7 @@ public class WSDeleteFolder extends JAXWSAbstractAurigaService implements WSIDel
     String outRispostaWS = null;
     String errMsg = null;
     String xmlIn = null;
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
     
     try {
     	     aLogger.info("Inizio WSDeleteFolder");
@@ -114,6 +121,11 @@ public class WSDeleteFolder extends JAXWSAbstractAurigaService implements WSIDel
         	      outServizio =  eseguiServizio(loginBean,outWS);        	      
 	 		 }
 	 		 catch (Exception e){
+	 			if (e instanceof StoreException) {
+		    		if(((StoreException) e).getError()!=null){
+		    			errCode = ((StoreException) e).getError().getErrorCode();
+		    		}
+		    	}
 	 			if(e.getMessage()!=null)
 		 			 errMsg = "Errore = " + e.getMessage();
 		 		 else
@@ -160,7 +172,7 @@ public class WSDeleteFolder extends JAXWSAbstractAurigaService implements WSIDel
 		 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", "");
 		 	 	}
 		 	 	else{
-		 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+		 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 		 	 	}
 		 		
 	         aLogger.info("Fine WSDeleteFolder");
@@ -181,59 +193,55 @@ public class WSDeleteFolder extends JAXWSAbstractAurigaService implements WSIDel
     }
    
     private WSDeleteFolderBean callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-    	    	
+    	aLogger.debug("Eseguo il WS DMPK_WS->DeleteFolder.");
+    	
     	String idFolder       = null;
     	String flgTipoDel     = null;
     	
-    	aLogger.debug("Eseguo il WS DmpkWSDeleteFolder.");
-    	
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsDelfolderBean input = new DmpkWsDelfolderBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		  
-    		  // Eseguo il servizio
-    		  Delfolder service = new Delfolder();
-    		  StoreResultBean<DmpkWsDelfolderBean> output = service.execute(loginBean, input);
+    	// Inizializzo l'INPUT    		
+    	DmpkWsDelfolderBean input = new DmpkWsDelfolderBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+	  
+    	// Eseguo il servizio
+    	Delfolder service = new Delfolder();
+    	StoreResultBean<DmpkWsDelfolderBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
+    	if (output.isInError()){
+		  aLogger.debug(output.getDefaultMessage());
+    	  aLogger.debug(output.getErrorContext());
+    	  aLogger.debug(output.getErrorCode());
+    	  throw new StoreException(output);
+		}	
 
-    		  // restituisco l'ID FOLDER
-    		  if (output.getResultBean().getIdfolderout() != null){
-    			  idFolder = output.getResultBean().getIdfolderout().toString();  
-    		  }
-    		  if (idFolder== null || idFolder.equalsIgnoreCase(""))
-    			  throw new Exception("La store procedure DelFolder ha ritornato id nullo");
-    			  
-    		  // restituisco il tipo di operazione di cancellazione (F = Fisica, L = Logica)
-    		  flgTipoDel = output.getResultBean().getFlgtipodelout();
-    		  
-    		  // controllo che non sia null
-    	      if (flgTipoDel == null) {
-    	    	    throw new Exception("La store procedure DelFolder ha ritornato una operazione non valida");
-    	      }
-    	      if (!flgTipoDel.equals(K_CANCELLAZIONE_LOGICA)  && !flgTipoDel.equals(K_CANCELLAZIONE_FISICA)) {
-    	        	throw new Exception("La store procedure DelFolder ha ritornato una operazione non valida");
-    	      }
-    	      
-    	      // popolo il bean di out
-    	      WSDeleteFolderBean  result = new WSDeleteFolderBean();
-    	      result.setIdFolder(idFolder);
-    	      result.setFlgTipoDel(flgTipoDel);
-    	        
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+    	// restituisco l'ID FOLDER
+    	if (output.getResultBean().getIdfolderout() != null){
+		  idFolder = output.getResultBean().getIdfolderout().toString();  
+    	}
+    	if (idFolder== null || idFolder.equalsIgnoreCase(""))
+		  throw new Exception("La store procedure DelFolder ha ritornato id nullo");
+		  
+    	// restituisco il tipo di operazione di cancellazione (F = Fisica, L = Logica)
+    	flgTipoDel = output.getResultBean().getFlgtipodelout();
+	  
+    	// controllo che non sia null
+    	if (flgTipoDel == null) {
+    	    throw new Exception("La store procedure DelFolder ha ritornato una operazione non valida");
+    	}
+    	if (!flgTipoDel.equals(K_CANCELLAZIONE_LOGICA)  && !flgTipoDel.equals(K_CANCELLAZIONE_FISICA)) {
+        	throw new Exception("La store procedure DelFolder ha ritornato una operazione non valida");
+    	}
+      
+    	// popolo il bean di out
+    	WSDeleteFolderBean  result = new WSDeleteFolderBean();
+    	result.setIdFolder(idFolder);
+    	result.setFlgTipoDel(flgTipoDel);
+        
+	  return result;
     }
     
-
     private String eseguiServizio(AurigaLoginBean loginBean, WSDeleteFolderBean bean) throws Exception {
-    	aLogger.debug("Eseguo il servizio di AurigaDocument.");
+    	aLogger.debug("Eseguo il servizio DmpkCoreDelfolder.");
     	
     	String ret = null;    	
     	
@@ -250,21 +258,23 @@ public class WSDeleteFolder extends JAXWSAbstractAurigaService implements WSIDel
         	input.setIdFolderIn(new BigDecimal(bean.getIdFolder()));
 		
 		// eseguo il servizio
-		 try {
-	    	    GestioneFascicoli servizio = new GestioneFascicoli();
-	    	    CancellaFascicoloOut servizioOut = new CancellaFascicoloOut();
-	    	    servizioOut = servizio.cancellaFascicolo(loginBean, input);
+		GestioneFascicoli servizio = new GestioneFascicoli();
+	    CancellaFascicoloOut servizioOut = new CancellaFascicoloOut();
+	    servizioOut = servizio.cancellaFascicolo(loginBean, input);
 	    	    
-	    	    // Se il servizio e' andato in errore restituisco il messaggio di errore 	    	    
-	    	    if(StringUtils.isNotBlank(servizioOut.getDefaultMessage())) {
-	    	    	throw new Exception(servizioOut.getDefaultMessage());	
-	    		}
-	    	    // Altrimenti restituisco URI FOLDER
-	    	    ret = (servizioOut.getUriOut()!= null ? (StringUtils.isNotBlank(servizioOut.getUriOut()) ? servizioOut.getUriOut() : null) : null);	
-	 		}
-	 	catch (Exception e){
-	 		throw new Exception(e.getMessage());	
-	 	}
+	    // Se il servizio e' andato in errore restituisco il messaggio di errore 	    	    
+	    if(StringUtils.isNotBlank(servizioOut.getDefaultMessage())) {
+	    	StoreResultBean<DmpkCoreDelfolderBean> output = new StoreResultBean<DmpkCoreDelfolderBean>();
+			output.setDefaultMessage(servizioOut.getDefaultMessage());
+			output.setErrorContext(servizioOut.getErrorContext());
+			output.setErrorCode(servizioOut.getErrorCode());
+			aLogger.debug(output.getDefaultMessage());
+			aLogger.debug(output.getErrorContext());
+			aLogger.debug(output.getErrorCode());
+    	    throw new StoreException(output);	
+	    }
+	    // Altrimenti restituisco URI FOLDER
+	    ret = (servizioOut.getUriOut()!= null ? (StringUtils.isNotBlank(servizioOut.getUriOut()) ? servizioOut.getUriOut() : null) : null);	
 		
 	 	return ret;
     }
@@ -285,7 +295,7 @@ public class WSDeleteFolder extends JAXWSAbstractAurigaService implements WSIDel
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             aLogger.debug("generaXMLToken: token = " + xmlIn);
             aLogger.debug("generaXMLToken: tokenEsc = " + xmlInEsc);

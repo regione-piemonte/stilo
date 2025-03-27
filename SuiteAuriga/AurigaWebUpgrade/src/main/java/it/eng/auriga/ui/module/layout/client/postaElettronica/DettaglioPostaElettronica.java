@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.postaElettronica;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -8620,47 +8621,60 @@ public class DettaglioPostaElettronica extends CustomDetail {
 		} else {
 			if (AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaRepertorioEntrata")) {
 				final String repertorioEntrata = AurigaLayout.getImpostazioniDocumento("repertorioEntrata");
-				if (AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioEntrata")) {
-					String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
-					String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioEntrata");			
-					editaRepertorioWindowFromEmail(lRecord, destinatariEAccount, repertorioEntrata, isThereIdUdMail, recordMail, idTipoDoc, nomeTipoDoc);
-				} else {
-					String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
-					AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioEntrata, new ServiceCallback<Record>() {
-	
-						@Override
-						public void execute(Record lRecordTipoDoc) {
-							String idTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("idTipoDocumento") : null;
-							String nomeTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("descTipoDocumento") : null;
-							editaRepertorioWindowFromEmail(lRecord, destinatariEAccount, repertorioEntrata, isThereIdUdMail, recordMail, idTipoDoc, nomeTipoDoc);					
+				AurigaLayout.getInfoRepertorio(repertorioEntrata, new ServiceCallback<Record>() {
+
+					@Override
+					public void execute(Record info) {
+						boolean isForzaSceltaTipoDoc = info != null && info.getAttribute("flgForzaSceltaTipoDoc") != null && "1".equals(info.getAttribute("flgForzaSceltaTipoDoc"));
+						if (!isForzaSceltaTipoDoc && AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioEntrata")) {
+							String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
+							String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioEntrata");			
+							editaRepertorioWindowFromEmail(lRecord, destinatariEAccount, repertorioEntrata, isThereIdUdMail, recordMail, idTipoDoc, nomeTipoDoc);
+						} else {
+							String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
+							AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioEntrata, new ServiceCallback<Record>() {
+			
+								@Override
+								public void execute(Record lRecordTipoDoc) {
+									String idTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("idTipoDocumento") : null;
+									String nomeTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("descTipoDocumento") : null;
+									editaRepertorioWindowFromEmail(lRecord, destinatariEAccount, repertorioEntrata, isThereIdUdMail, recordMail, idTipoDoc, nomeTipoDoc);					
+								}
+							});
 						}
-					});
-				}
+					}
+				});
 			} else {
 				final String repertorioEntrataDefault = AurigaLayout.getImpostazioniDocumento("repertorioEntrata");	
 				AurigaLayout.apriSceltaRepertorioPopup("E", repertorioEntrataDefault, new ServiceCallback<Record>() {
 	
 					@Override
 					public void execute(Record lRecordRepertorio) {
-	
 						final String repertorioEntrata = lRecordRepertorio != null ? lRecordRepertorio.getAttribute("repertorio") : null;
 						if (repertorioEntrata != null && !"".equals(repertorioEntrata)) {
-							if (AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioEntrata")) {
-								String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
-								String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioEntrata");
-								editaRepertorioWindowFromEmail(lRecord, destinatariEAccount, repertorioEntrata, isThereIdUdMail, recordMail, idTipoDoc, nomeTipoDoc);						
-							} else {
-								String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
-								AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioEntrata, new ServiceCallback<Record>() {
-	
-									@Override
-									public void execute(Record lRecordTipoDoc) {
-										String idTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("idTipoDocumento") : null;
-										String nomeTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("descTipoDocumento") : null;
-										editaRepertorioWindowFromEmail(lRecord, destinatariEAccount, repertorioEntrata, isThereIdUdMail, recordMail, idTipoDoc, nomeTipoDoc);								
+							AurigaLayout.getInfoRepertorio(repertorioEntrata, new ServiceCallback<Record>() {
+
+								@Override
+								public void execute(Record info) {
+									boolean isForzaSceltaTipoDoc = info != null && info.getAttribute("flgForzaSceltaTipoDoc") != null && "1".equals(info.getAttribute("flgForzaSceltaTipoDoc"));
+									if (!isForzaSceltaTipoDoc && AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioEntrata")) {
+										String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
+										String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioEntrata");
+										editaRepertorioWindowFromEmail(lRecord, destinatariEAccount, repertorioEntrata, isThereIdUdMail, recordMail, idTipoDoc, nomeTipoDoc);						
+									} else {
+										String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
+										AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioEntrata, new ServiceCallback<Record>() {
+			
+											@Override
+											public void execute(Record lRecordTipoDoc) {
+												String idTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("idTipoDocumento") : null;
+												String nomeTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("descTipoDocumento") : null;
+												editaRepertorioWindowFromEmail(lRecord, destinatariEAccount, repertorioEntrata, isThereIdUdMail, recordMail, idTipoDoc, nomeTipoDoc);								
+											}
+										});
 									}
-								});
-							}
+								}
+							});
 						}
 					}
 				});

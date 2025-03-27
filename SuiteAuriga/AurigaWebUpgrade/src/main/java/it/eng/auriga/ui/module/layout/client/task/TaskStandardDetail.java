@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.task;
 
 import java.util.Date;
 import java.util.Iterator;
@@ -698,7 +699,8 @@ public class TaskStandardDetail extends TaskDetail {
 				});
 				altreOpMenu.addItem(downloadMenuItem);
 				
-//				if() {     TODO: timbro
+				if(AurigaLayout.showOperazioniTimbratura()) {
+					
 					boolean flgAddSubMenuTimbra = false;
 	
 					MenuItem timbraMenuItem = new MenuItem(I18NUtil.getMessages().protocollazione_detail_timbraMenuItem(), "file/timbra.gif");
@@ -807,6 +809,7 @@ public class TaskStandardDetail extends TaskDetail {
 						altreOpMenu.addItem(apponiSegnaturaRegistrazioneFileAllegatoMenuItem);
 					}
 				
+				}
 				
 					//Copertina con segnatura di registrazione
 					MenuItem copertinaConSegnatureRegistrazioneMenuItem = new MenuItem(AurigaLayout.getParametroDBAsBoolean("TIMBRO_PROFILO_DATI_SPEC_TIPO")
@@ -883,9 +886,8 @@ public class TaskStandardDetail extends TaskDetail {
 						}
 					});
 					altreOpMenu.addItem(copertinaConEtichettaMultiplaMenuItem);
-//				}
 					
-				if (lInfoFileRecord != null && Layout.isPrivilegioAttivo("SCC")) {
+					if (lInfoFileRecord != null && AurigaLayout.showCopiaConformeCustom()) {
 					String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 					MenuItem timbroConformitaCustomMenuItem = new MenuItem(labelConformitaCustom, "file/copiaConformeCustom.png");
 					timbroConformitaCustomMenuItem.setEnabled(lInfoFileRecord != null && lInfoFileRecord.isConvertibile());

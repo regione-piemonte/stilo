@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.scrivania.datasource.bean;
 
 import it.eng.utility.ui.module.core.shared.bean.TreeNodeBean;
 
@@ -32,6 +33,7 @@ public class ScrivaniaTreeNodeBean extends TreeNodeBean {
 	private Boolean abilFolderizzazione;
 	private Boolean abilAssegnazione;
 	private Boolean abilRestituzione;
+	private Boolean abilRilascia;
 	private Boolean abilSmistamento;
 	private Boolean abilSmistamentoCC;
 	private Boolean abilInvioPerConoscenza;
@@ -53,6 +55,7 @@ public class ScrivaniaTreeNodeBean extends TreeNodeBean {
 	private Boolean abilChiudiFascicoloMultiButton;
 	private Boolean abilRiapriFascicoloMultiButton;
 	private Boolean abilSegnaComeVisionatoMultiButton;
+	private Boolean abilSegnaInvioEmailExtraSistemaMultiButton;
 	
 	private Boolean abilRichiesteAccessoAttiInvioInApprovazione;
 	private Boolean abilRichiesteAccessoAttiApprovazione;
@@ -345,6 +348,12 @@ public class ScrivaniaTreeNodeBean extends TreeNodeBean {
 	public void setAbilSegnaComeVisionatoMultiButton(Boolean abilSegnaComeVisionatoMultiButton) {
 		this.abilSegnaComeVisionatoMultiButton = abilSegnaComeVisionatoMultiButton;
 	}
+	public Boolean getAbilSegnaInvioEmailExtraSistemaMultiButton() {
+		return abilSegnaInvioEmailExtraSistemaMultiButton;
+	}
+	public void setAbilSegnaInvioEmailExtraSistemaMultiButton(Boolean abilSegnaInvioEmailExtraSistemaMultiButton) {
+		this.abilSegnaInvioEmailExtraSistemaMultiButton = abilSegnaInvioEmailExtraSistemaMultiButton;
+	}
 	public Boolean getAbilRichiesteAccessoAttiInvioInApprovazione() {
 		return abilRichiesteAccessoAttiInvioInApprovazione;
 	}
@@ -481,5 +490,11 @@ public class ScrivaniaTreeNodeBean extends TreeNodeBean {
 	}
 	public void setAbilEmailApposizioneTagCommenti(Boolean abilEmailApposizioneTagCommenti) {
 		this.abilEmailApposizioneTagCommenti = abilEmailApposizioneTagCommenti;
+	}
+	public Boolean getAbilRilascia() {
+		return abilRilascia;
+	}
+	public void setAbilRilascia(Boolean abilRilascia) {
+		this.abilRilascia = abilRilascia;
 	}
 }

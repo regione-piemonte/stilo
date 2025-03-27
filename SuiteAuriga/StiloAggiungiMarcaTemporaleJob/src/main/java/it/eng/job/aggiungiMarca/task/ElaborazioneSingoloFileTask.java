@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.job.aggiungiMarca.task;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -79,6 +80,16 @@ import it.eng.job.aggiungiMarca.util.WSClientUtils;
 import it.eng.storeutil.AnalyzeResult;
 import it.eng.utility.storageutil.StorageService;
 import it.eng.xml.XmlUtilitySerializer;
+import it.eng.hsm.client.Hsm;
+import it.eng.hsm.client.bean.marca.FileMarcatoResponseBean;
+import it.eng.hsm.client.bean.marca.MarcaRequestBean;
+import it.eng.hsm.client.bean.marca.MarcaResponseBean;
+import it.eng.hsm.client.config.HsmConfig;
+import it.eng.hsm.client.config.HsmType;
+import it.eng.hsm.client.config.UanatacaCSIConfig;
+import it.eng.hsm.client.config.WSConfig;
+import it.eng.hsm.client.impl.HsmImpl;
+import it.eng.job.aggiungiMarca.bean.HsmConfigBean;
 
 public class ElaborazioneSingoloFileTask extends RecursiveTask<HandlerResultBean<Void>> {
 
@@ -235,6 +246,9 @@ public class ElaborazioneSingoloFileTask extends RecursiveTask<HandlerResultBean
 						logger.info("Il file non e' marcato, provo a marcarlo ");
 						
 						MarcaConfigBean marcaConfigBean = SpringHelper.getSpecializedBean(AurigaSpringContext.SPRINGBEAN_MARCA_CONFIG, null, MarcaConfigBean.class);
+						byte[] byteFileMarcato = null;
+						
+						/*
 						String serverMarcaUrl = marcaConfigBean.getMarcaServiceUrl();
 						String serverMarcaUid = marcaConfigBean.getMarcaServiceUid();
 						String serverMarcaPwd = marcaConfigBean.getMarcaServicePwd();
@@ -248,25 +262,122 @@ public class ElaborazioneSingoloFileTask extends RecursiveTask<HandlerResultBean
 							useAuth = true;
 						}
 						logger.info("useAuth " + useAuth);
+						*/
 						
-						TsrGenerator tsrGenerator = new TsrGenerator(
+						logger.info("Flag marca HSM " + marcaConfigBean.getMarcaHsm());
+						if( marcaConfigBean.getMarcaHsm()==null || marcaConfigBean.getMarcaHsm()==false){
+							logger.info("Marca Aruba");
+							
+							String serverMarcaUrl = marcaConfigBean.getMarcaServiceUrl();
+							String serverMarcaUid = marcaConfigBean.getMarcaServiceUid();
+							String serverMarcaPwd = marcaConfigBean.getMarcaServicePwd();
+							logger.info("serverMarcaUrl " + serverMarcaUrl);
+							logger.info("serverMarcaUid " + serverMarcaUid);
+							logger.info("serverMarcaPwd " + serverMarcaPwd);
+							
+							boolean useAuth = false;
+							if(marcaConfigBean!=null && serverMarcaUid!=null && 
+									!serverMarcaUid.equalsIgnoreCase("")){
+								useAuth = true;
+							}
+							logger.info("useAuth " + useAuth);
+						
+							TsrGenerator tsrGenerator = new TsrGenerator(
 								serverMarcaUrl, 
 								serverMarcaUid, 
 								serverMarcaPwd,
 								useAuth);
-						logger.info("tsrGenerator " + tsrGenerator);
-						
+							logger.info("tsrGenerator " + tsrGenerator);
+							
+							logger.info("fileDaMarcare.getTipoFile() " + fileDaMarcare.getTipoFile());
+							
+							try {
+								if( fileDaMarcare.getTipoFile()==null || fileDaMarcare.getTipoFile().equalsIgnoreCase("PADES")){
+									byteFileMarcato = tsrGenerator.addMarcaPdf(fileFirmato);  
+								} else if( fileDaMarcare.getTipoFile()==null || fileDaMarcare.getTipoFile().equalsIgnoreCase("CADES")){
+									byteFileMarcato = tsrGenerator.addMarca(fileFirmato);  
+								} 
+								fileDaMarcare.setTsMarca( formatter.format( new Date() ) );
+							} catch(Throwable e){
+								logger.error("", e);
+								CodaFileDaMarcare bean = new CodaFileDaMarcare();
+								bean.setIdUd( fileDaMarcare.getIdUd());
+								bean.setIdDoc( fileDaMarcare.getIdDoc());
+								bean.setTipoBustaCritt( fileDaMarcare.getTipoFile());
+								bean.setTsFirma( fileDaMarcare.getTsFirma() );
+								bean.setNumTry( fileDaMarcare.getNumTry() );
+								dao.updateErrore(bean, "Errore nella marca " + e.getMessage());
+								result.setSuccessful(false);
+							}
+						} else {
+							logger.info("Marca HSM");
+							
+							HsmConfigBean hsmConfigBean = SpringHelper.getSpecializedBean(AurigaSpringContext.SPRINGBEAN_HSM_CONFIG, null, HsmConfigBean.class);
+							logger.info("Bean HSM - wsAddress: " + hsmConfigBean.getWsAddress() + " - serviceWs: " + hsmConfigBean.getWsServiceNS() + 
+										" - serviceName: " + hsmConfigBean.getWsServiceName());
+							
+							HsmType hsmType = HsmType.UANATACA_CSI;
+							HsmConfig hsmConfig = new HsmConfig();
+							hsmConfig.setHsmType(hsmType);
+							WSConfig wsSignConfig = new WSConfig();
+							wsSignConfig.setWsdlEndpoint( hsmConfigBean.getWsAddress() );
+									//"http://dev-applogic.reteunitaria.piemonte.it/dosignmanager/DosignRemoteService/DosignRemoteServiceBean?wsdl"
+							wsSignConfig.setServiceNS( hsmConfigBean.getWsServiceNS() );
+									//"http://remotev2.dosign.session.business.dosign.dosign.doqui.it/"
+							wsSignConfig.setServiceName( hsmConfigBean.getWsServiceName() );
+									//"DosignRemoteService"
+							UanatacaCSIConfig uanatacaConfig = new UanatacaCSIConfig();
+							uanatacaConfig.setWsSignConfig(wsSignConfig);
+							uanatacaConfig.setEnvironment( hsmConfigBean.getEnvironment() );
+									//"BOX"
+							
+							
+							//“Firma Automatica”  (no otp)
+						  //  Username: 1467596
+//					    Password: f43Nrr;Y
+						    //PIN code: belorado74
+						    
+							hsmConfig.setClientConfig(uanatacaConfig);
+							Hsm hsm = HsmImpl.getNewInstance(hsmConfig);
+							MarcaRequestBean marcaRequestBean = new MarcaRequestBean();
+							
+							if( fileDaMarcare.getTipoFile()==null || fileDaMarcare.getTipoFile().equalsIgnoreCase("PADES")){
+								marcaRequestBean.setTipoFirma("PDF");
+							} else if( fileDaMarcare.getTipoFile()==null || fileDaMarcare.getTipoFile().equalsIgnoreCase("CADES")){
+								marcaRequestBean.setTipoFirma("CADES");
+							} 
+							try {
+								MarcaResponseBean marcaResponse = hsm.aggiungiMarca( fileFirmato,marcaRequestBean);
+								FileMarcatoResponseBean fileMarcatoResponseBean = marcaResponse.getFileMarcatoResponseBean();
+								if(fileMarcatoResponseBean!=null && fileMarcatoResponseBean.getFileMarcato()!=null){
+									byteFileMarcato = fileMarcatoResponseBean.getFileMarcato();
+									fileDaMarcare.setTsMarca( formatter.format( new Date() ) );
+								}
+							} catch(Throwable e){
+								logger.error("", e);
+								CodaFileDaMarcare bean = new CodaFileDaMarcare();
+								bean.setIdUd( fileDaMarcare.getIdUd());
+								bean.setIdDoc( fileDaMarcare.getIdDoc());
+								bean.setTipoBustaCritt( fileDaMarcare.getTipoFile());
+								bean.setTsFirma( fileDaMarcare.getTsFirma() );
+								bean.setNumTry( fileDaMarcare.getNumTry() );
+								dao.updateErrore(bean, "Errore nella marca " + e.getMessage());
+								result.setSuccessful(false);
+							}
+						}
+						/*	
 						try {
 							  
 							byte[] byteFileMarcato = null;
-							logger.info("fileDaMarcare.getTipoFile() " + fileDaMarcare.getTipoFile());
+							
 							if( fileDaMarcare.getTipoFile()==null || fileDaMarcare.getTipoFile().equalsIgnoreCase("PADES")){
 								byteFileMarcato = tsrGenerator.addMarcaPdf(fileFirmato);  
 							} else if( fileDaMarcare.getTipoFile()==null || fileDaMarcare.getTipoFile().equalsIgnoreCase("CADES")){
 								byteFileMarcato = tsrGenerator.addMarca(fileFirmato);  
 							} 
 							fileDaMarcare.setTsMarca( formatter.format( new Date() ) );
-							
+						*/	
+						try {
 							if( byteFileMarcato!=null ){
 								String uriFileMarcato =storageService.storeStream(new ByteArrayInputStream(byteFileMarcato));
 								logger.debug("uriFileMarcato " + uriFileMarcato);
@@ -574,3 +685,4 @@ public class ElaborazioneSingoloFileTask extends RecursiveTask<HandlerResultBean
 			return true;
 	}*/
 }
+

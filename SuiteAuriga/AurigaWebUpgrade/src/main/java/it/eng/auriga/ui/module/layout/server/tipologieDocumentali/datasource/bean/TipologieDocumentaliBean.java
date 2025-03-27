@@ -1,9 +1,9 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.tipologieDocumentali.datasource.bean;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-
 import it.eng.auriga.ui.module.layout.server.defattivitaprocedimenti.datasource.bean.AttrAddXEvtDelTipoBean;
 
 /**
@@ -115,10 +115,22 @@ public class TipologieDocumentaliBean {
 	 * -- 33: (valori 1/0): tipologia associata ad un iter workflow
 	 */
 	private Boolean flgIsAssociataIterWf;
+	
 	/**
-	 * -- 34: (valori P/V/NULL): Richiesta firma digitale per i file della tipologia
+	 * -- 34: (valori 1/0): Obblig. file
 	 */
-	private String flgRichFirmaDigitale;
+	private Boolean flgRichFile;
+	
+	/**
+	 * -- 35: (valori 1/0): Obblig. firma digitale sui file
+	 */
+	private Boolean flgRichFirmaDigitale;
+	
+	/**
+	 * -- 36: (valori 1/0): Obblig. firma valida sui file firmati
+	 */
+	private Boolean flgRichFirmaValida;
+	
 	/**
 	 * Escludi annullati (check-box): FlgInclAnnullatiIO. Se è ceccato passo NULL o 0, se no passo 1
 	 */
@@ -140,8 +152,7 @@ public class TipologieDocumentaliBean {
 	 * -- Indica le UO e i gruppi di privilegi abilitati alla pubblicazione dei documenti della data tipologia
 	 */
 	private List<UoGpPrivAbilitatiPubblicazioneTipologieDocumentaliXmlBean> listaUoGpPrivAbilitatiPubblicazione;
-	
-	
+		
 	/**
 	 * -- Template secondo cui comporre il timbro da apporre sui documenti del dato tipo (le variabili da sostituire sono tra $)
 	 */
@@ -160,7 +171,6 @@ public class TipologieDocumentaliBean {
 	 * -- (valori 1/2/0) Indica se i documenti del dato tipo possono (1) o devono (2) essere degli allegati o possono essere solo primari (0) 
 	 */
 	private String flgAllegato;
-	
 	
 	private String rowid;
 	
@@ -317,12 +327,6 @@ public class TipologieDocumentaliBean {
 	public void setFlgIsAssociataIterWf(Boolean flgIsAssociataIterWf) {
 		this.flgIsAssociataIterWf = flgIsAssociataIterWf;
 	}
-	public String getFlgRichFirmaDigitale() {
-		return flgRichFirmaDigitale;
-	}
-	public void setFlgRichFirmaDigitale(String flgRichFirmaDigitale) {
-		this.flgRichFirmaDigitale = flgRichFirmaDigitale;
-	}
 	public Boolean getFlgInclAnn() {
 		return flgInclAnn;
 	}
@@ -395,5 +399,23 @@ public class TipologieDocumentaliBean {
 	}
 	public void setTipiValori(Map<String, String> tipiValori) {
 		this.tipiValori = tipiValori;
+	}
+	public Boolean getFlgRichFile() {
+		return flgRichFile;
+	}
+	public void setFlgRichFile(Boolean flgRichFile) {
+		this.flgRichFile = flgRichFile;
+	}
+	public Boolean getFlgRichFirmaDigitale() {
+		return flgRichFirmaDigitale;
+	}
+	public void setFlgRichFirmaDigitale(Boolean flgRichFirmaDigitale) {
+		this.flgRichFirmaDigitale = flgRichFirmaDigitale;
+	}
+	public Boolean getFlgRichFirmaValida() {
+		return flgRichFirmaValida;
+	}
+	public void setFlgRichFirmaValida(Boolean flgRichFirmaValida) {
+		this.flgRichFirmaValida = flgRichFirmaValida;
 	}
 }

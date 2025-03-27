@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource;
 
 
 import java.math.BigDecimal;
@@ -77,7 +78,6 @@ public class LoadComboTipoFileAllegatoDataSource extends AbstractFetchDataSource
 				TipoFileAllegatoBean lTipoFileAllegatoBean = new TipoFileAllegatoBean();
 				lTipoFileAllegatoBean.setIdTipoFileAllegato(lRiga.getIdTipoDocumento());
 				lTipoFileAllegatoBean.setDescTipoFileAllegato(lRiga.getDescTipoDocumento());
-				lTipoFileAllegatoBean.setFlgRichiestaFirmaDigitale(lRiga.getFlgRichiestaFirmaDigitale());
 				lPaginatorBean.addRecord(lTipoFileAllegatoBean);
 			}
 			

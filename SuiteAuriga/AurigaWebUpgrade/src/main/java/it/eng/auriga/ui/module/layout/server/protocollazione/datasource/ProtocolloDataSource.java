@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource;
 
 import java.io.File;
 import java.io.StringReader;
@@ -68,6 +69,7 @@ import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.Ass
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.AssegnazioneBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.AttiRichiestiBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.ClassificazioneFascicoloBean;
+import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.ConcessioneBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.ContribuenteBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.ControinteressatoBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DatiProtPGWebXmlBean;
@@ -77,6 +79,7 @@ import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.Des
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DocCollegatoBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DownloadDocsZipBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.FileScaricoZipBean;
+import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.FirmatariIterFirmaBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.FolderCustomBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.MezzoTrasmissioneDestinatarioBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.MittenteProtBean;
@@ -85,6 +88,7 @@ import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.Ope
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.OpzioniTimbroDocBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.PeriziaBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.ProtocollazioneBean;
+import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.RelVsPraticheApplEsterneBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.SoggEsternoProtBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.TipoDocumentoBean;
 import it.eng.auriga.ui.module.layout.server.timbra.OpzioniTimbroBean;
@@ -129,6 +133,7 @@ import it.eng.document.function.bean.AttachAndPosizioneBean;
 import it.eng.document.function.bean.AttachAndPosizioneCollectionBean;
 import it.eng.document.function.bean.AttiRichiestiXMLBean;
 import it.eng.document.function.bean.ClassificheFascicoliDocumentoBean;
+import it.eng.document.function.bean.ConcessioneXmlInBean;
 import it.eng.document.function.bean.ControinteressatiXmlBean;
 import it.eng.document.function.bean.CreaDocWithFileBean;
 import it.eng.document.function.bean.CreaModAttoInBean;
@@ -156,7 +161,9 @@ import it.eng.document.function.bean.RebuildedFile;
 import it.eng.document.function.bean.RecuperaDocumentoInBean;
 import it.eng.document.function.bean.RecuperaDocumentoOutBean;
 import it.eng.document.function.bean.RegistroEmergenza;
+import it.eng.document.function.bean.RelVsPraticheApplEsterneXmlBean;
 import it.eng.document.function.bean.SoggettoEsternoBean;
+import it.eng.document.function.bean.SoggettoInternoBean;
 import it.eng.document.function.bean.TipoAssegnatario;
 import it.eng.document.function.bean.TipoDestinatario;
 import it.eng.document.function.bean.TipoFile;
@@ -1193,7 +1200,15 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 		salvaAltriRiferimenti(bean, lCreaDocumentoInBean);
 		// Salvo la lista delle perizie
 		salvaPerizie(bean, lCreaDocumentoInBean);
-				
+		// Salvo la lista delle concessioni
+		salvaConcessioni(bean, lCreaDocumentoInBean);
+		
+		// Salvo FLG_SEGNA_INVIO_MAIL_EXTRA_SISTEMA_Ud 
+		lCreaDocumentoInBean.setFlgSegnaInvioMailExtraSistema(bean.getFlgSegnaInvioMailExtraSistema() != null && bean.getFlgSegnaInvioMailExtraSistema() ? new Integer(1) : null);
+		
+		// Salvo FLG_INVIATA_MAIL_EXTRA_SISTEMA_Ud
+		lCreaDocumentoInBean.setFlgInviataMailExtraSistema(bean.getFlgInviataMailExtraSistema() != null && bean.getFlgInviataMailExtraSistema() ? new Integer(1) : null);		
+		
 		// Salvo COD STATO DETT
 		lCreaDocumentoInBean.setCodStatoDett(bean.getCodStatoDett());
 		// Salvo COD STATO
@@ -1278,6 +1293,22 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 			}
 			lCreaDocumentoInBean.setFolderCustom(lListFolderCustom);
 		}
+		
+		if (bean.getListaRelVsPraticheApplEsterne() != null && bean.getListaRelVsPraticheApplEsterne().size() > 0) {
+			List<RelVsPraticheApplEsterneXmlBean> lListRelVsPraticheApplEsterne = new ArrayList<RelVsPraticheApplEsterneXmlBean>();
+			for (RelVsPraticheApplEsterneBean lRelVsPraticheApplEsterneBean : bean.getListaRelVsPraticheApplEsterne()) {
+				if(StringUtils.isNotBlank(lRelVsPraticheApplEsterneBean.getIdFolder())) {
+					RelVsPraticheApplEsterneXmlBean lRelVsPraticheApplEsterne = new RelVsPraticheApplEsterneXmlBean();
+					lRelVsPraticheApplEsterne.setIdFolder(lRelVsPraticheApplEsterneBean.getIdFolder());
+					lRelVsPraticheApplEsterne.setCodApplEst(lRelVsPraticheApplEsterneBean.getCodApplEst());
+					lRelVsPraticheApplEsterne.setCodPratica(lRelVsPraticheApplEsterneBean.getCodPratica());
+					lRelVsPraticheApplEsterne.setTsAssociazioneApplEst(lRelVsPraticheApplEsterneBean.getTsAssociazioneApplEst());
+					lRelVsPraticheApplEsterne.setFlgDaAssociareAssociato(lRelVsPraticheApplEsterneBean.getFlgDaAssociareAssociato() != null && lRelVsPraticheApplEsterneBean.getFlgDaAssociareAssociato() ? "1" : "0");
+					lListRelVsPraticheApplEsterne.add(lRelVsPraticheApplEsterne);
+				}
+			}
+			lCreaDocumentoInBean.setRelVsPraticheApplEsterne(lListRelVsPraticheApplEsterne);
+		}	
 
 		// Grado di risercatezza
 		lCreaDocumentoInBean.setLivelloRiservatezza(bean.getLivelloRiservatezza() != null ? bean.getLivelloRiservatezza().intValue() + "" : null);
@@ -1360,6 +1391,7 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 		lCreaDocumentoInBean.setNote(bean.getNote());
 		lCreaDocumentoInBean.setDataStesura(bean.getDataDocumento());
 		lCreaDocumentoInBean.setDataSpedizioneCartaceo(bean.getDataSpedizioneCartaceo());
+		lCreaDocumentoInBean.setBodyEmail(bean.getBodyEmail());
 		
 		// Data di arrivo al protocollo
 		lCreaDocumentoInBean.setDataArrivoProtocollo(bean.getDataArrivoProtocollo());
@@ -1464,6 +1496,7 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 			List<Boolean> flgDatiProtettiTipo4 = new ArrayList<Boolean>();
 			List<Boolean> flgDatiSensibili = new ArrayList<Boolean>();
 			List<Boolean> flgGenAutoDaModello = new ArrayList<Boolean>();
+			List<Boolean> flgTimbraFilePostReg = new ArrayList<Boolean>();
 			List<String> idUdFrom = new ArrayList<String>();
 			List<String> idUdAllegato = new ArrayList<String>();
 			// Vers. con omissis
@@ -1496,15 +1529,39 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 				flgDatiProtettiTipo4.add(allegato.getFlgDatiProtettiTipo4());
 				flgDatiSensibili.add(allegato.getFlgDatiSensibili());
 				flgGenAutoDaModello.add(allegato.getFlgGenAutoDaModello());	
+				flgTimbraFilePostReg.add(allegato.getFlgTimbraFilePostReg());	
 				idUdFrom.add(allegato.getIdUdAppartenenza());
 				idUdAllegato.add(allegato.getIdUdAllegato());
-				if (allegato.getFileAllegato() != null && StringUtils.isNotBlank(bean.getPercorsoFileAllegati())) {
-					// nel caso in cui venga passato il file allegato originale, in caso di registrazione in uscita massiva, l'infoFile verrà lasciato vuoto per poi calcolarlo in un secondo momento
+				if (isRegMultiplaUscita() && allegato.getFileAllegato() != null) {
+					// se arrivo dalla registrazione in uscita massiva, nel caso in cui venga passato il file allegato recuperato dalla cartella il cui percorso è specificato nell'apposito campo a maschera e il cui percorso relativo è specificato nell'xls dei destinatari, l'infoFile verrà lasciato vuoto e verrà poi calcolato in un secondo momento dal job
+					// se invece è uno dei file allegati condivisi da tutte le registrazioni e di cui ho fatto l'upload da maschera, avrò già l'infoFile calcolato quindi passerò quello
 					isNull.add(false);
 					fileAllegati.add(allegato.getFileAllegato());
 					percorsoFileAllegati.add(bean.getPercorsoFileAllegati());
-					percorsoRelFileAllegati.add(allegato.getPercorsoRelFileAllegati());	
-					info.add(new FileInfoBean());
+					percorsoRelFileAllegati.add(allegato.getPercorsoRelFileAllegati());
+					if(allegato.getInfoFile() != null && StringUtils.isNotBlank(allegato.getInfoFile().getImpronta())) {						
+						MimeTypeFirmaBean lMimeTypeFirmaBean = allegato.getInfoFile();
+						FileInfoBean lFileInfoBean = new FileInfoBean();
+						lFileInfoBean.setTipo(TipoFile.ALLEGATO);
+						GenericFile lGenericFile = new GenericFile();
+						setProprietaGenericFile(lGenericFile, lMimeTypeFirmaBean);
+						lGenericFile.setMimetype(lMimeTypeFirmaBean.getMimetype());
+						lGenericFile.setDisplayFilename(allegato.getNomeFileAllegato());
+						lGenericFile.setImpronta(lMimeTypeFirmaBean.getImpronta());
+						lGenericFile.setImprontaFilePreFirma(lMimeTypeFirmaBean.getImprontaFilePreFirma());
+						lGenericFile.setAlgoritmo(lDocumentConfiguration.getAlgoritmo().value());
+						lGenericFile.setEncoding(lDocumentConfiguration.getEncoding().value());
+						if (lMimeTypeFirmaBean.isDaScansione()) {
+							lGenericFile.setDaScansione(Flag.SETTED);
+							lGenericFile.setDataScansione(new Date());
+							lGenericFile.setIdUserScansione(lAurigaLoginBean.getIdUser() + "");
+						}
+						lFileInfoBean.setPosizione(i);
+						lFileInfoBean.setAllegatoRiferimento(lGenericFile);
+						info.add(lFileInfoBean);
+					} else {
+						info.add(new FileInfoBean());
+					}
 				} else if (StringUtils.isNotBlank(allegato.getUriFileAllegato())) {
 					isNull.add(false);
 					File lFile = null;
@@ -1648,7 +1705,8 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 			lAllegatiBean.setFlgDatiProtettiTipo3(flgDatiProtettiTipo3);
 			lAllegatiBean.setFlgDatiProtettiTipo4(flgDatiProtettiTipo4);
 			lAllegatiBean.setFlgDatiSensibili(flgDatiSensibili);
-			lAllegatiBean.setFlgGenAutoDaModello(flgGenAutoDaModello);			
+			lAllegatiBean.setFlgGenAutoDaModello(flgGenAutoDaModello);
+			lAllegatiBean.setFlgTimbraFilePostReg(flgTimbraFilePostReg);
 			lAllegatiBean.setIdUdFrom(idUdFrom);			
 			lAllegatiBean.setIdUdAllegato(idUdAllegato);			
 			lAllegatiBean.setDisplayFilenameOmissis(displayFilenameOmissis);
@@ -1661,7 +1719,8 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 		FilePrimarioBean lFilePrimarioBean = retrieveFilePrimario(bean, lAurigaLoginBean);
 		if (lFilePrimarioBean != null) {			
 			if(lFilePrimarioBean.getFile() != null) {
-				if (StringUtils.isNotBlank(lFilePrimarioBean.getPercorsoFilePrimario())) {
+				if (isRegMultiplaUscita() && StringUtils.isNotBlank(lFilePrimarioBean.getPercorsoFilePrimario())) {
+					// se arrivo dalla registrazione in uscita massiva, nel caso in cui venga passato il file primario recuperato dalla cartella il cui percorso è specificato nell'apposito campo a maschera e il cui nome è specificato nell'xls dei destinatari, l'infoFile verrà lasciato vuoto e verrà poi calcolato in un secondo momento dal job
 					lFilePrimarioBean.setInfo(new FileInfoBean());
 				} else {
 					MimeTypeFirmaBean lMimeTypeFirmaBean = bean.getInfoFile();
@@ -1741,24 +1800,45 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 		lCreaDocumentoInBean.setSezioneCacheAttributiDinamici(sezioneCacheAttributiDinamici);
 //		logProtDS.debug(new XmlUtilitySerializer().bindXml(lCreaDocumentoInBean));  
 		
-		// Richiesta accesso civico
-		lCreaDocumentoInBean.setFlgPresentiControinteressati(bean.getFlgPresentiControinteressati());
-		List<ControinteressatiXmlBean> listaControinteressati = new ArrayList<ControinteressatiXmlBean>();
-		if(bean.getFlgPresentiControinteressati() != null && "SI".equalsIgnoreCase(bean.getFlgPresentiControinteressati())) {
-			if(bean.getListaControinteressati() != null && bean.getListaControinteressati().size() > 0) {
-				for(ControinteressatoBean item : bean.getListaControinteressati()) {
-					ControinteressatiXmlBean controinteressatiXmlBean = new ControinteressatiXmlBean();
-					controinteressatiXmlBean.setTipoSoggetto(item.getTipoSoggetto());
-					controinteressatiXmlBean.setDenominazione(item.getDenominazione());
-					controinteressatiXmlBean.setCodFiscale(item.getCodFiscale());
-					controinteressatiXmlBean.setpIva(item.getpIva());
-					controinteressatiXmlBean.setNote(item.getNote());
-					listaControinteressati.add(controinteressatiXmlBean);
+		// Iter firme e trasmissione
+//		if(isBozza && !isPropostaAtto()) {
+			List<SoggettoInternoBean> listaAltriSoggettiInterni = new ArrayList<SoggettoInternoBean>();
+			if(bean.getListaFirmatariIterFirma() != null) {
+				for(FirmatariIterFirmaBean firmatario : bean.getListaFirmatariIterFirma()) {
+					SoggettoInternoBean soggettoInternoBean = new SoggettoInternoBean();
+					soggettoInternoBean.setNroOrdine(firmatario.getNroOrdine());
+					soggettoInternoBean.setTipoObj("UT");
+					soggettoInternoBean.setIdObj(firmatario.getIdUtente());
+					if(firmatario.getTipoFirma() != null) {
+						if(firmatario.getTipoFirma().equals("D")) {
+							soggettoInternoBean.setTipoFirma("F");
+						} else if(firmatario.getTipoFirma().equals("E")) {
+							soggettoInternoBean.setTipoFirma("AV");
+						} 
+					}
+					soggettoInternoBean.setRuolo(firmatario.getRuolo());
+					listaAltriSoggettiInterni.add(soggettoInternoBean);
 				}
 			}
-		}
-		lCreaDocumentoInBean.setListaControinteressati(listaControinteressati);		
-		
+			if(bean.getListaCoredattoriIterFirma() != null) {
+				for(DestInvioCCBean coredattore : bean.getListaCoredattoriIterFirma()) {
+					SoggettoInternoBean soggettoInternoBean = new SoggettoInternoBean();
+					soggettoInternoBean.setTipoObj(coredattore.getTypeNodo());
+					soggettoInternoBean.setIdObj(coredattore.getIdUo());
+					soggettoInternoBean.setTipoFirma("COREDATT");
+					listaAltriSoggettiInterni.add(soggettoInternoBean);
+				}
+			}
+			lCreaDocumentoInBean.setAltriSoggettiInterni(listaAltriSoggettiInterni);
+			lCreaDocumentoInBean.setIdCasellaMittente(bean.getIdCasellaMittente());
+			lCreaDocumentoInBean.setOpzProtAutoInIterFirma(bean.getOpzProtAutoInIterFirma()); 
+			lCreaDocumentoInBean.setOpzRegAutoInIterFirma(bean.getOpzRegAutoInIterFirma());
+			lCreaDocumentoInBean.setDesRegistroRegAutoInIterFirma(bean.getDesRegistroRegAutoInIterFirma());
+			lCreaDocumentoInBean.setCodCategoriaRegAutoInIterFirma(bean.getCodCategoriaRegAutoInIterFirma());
+			lCreaDocumentoInBean.setIdUoRegPostIterFirma(bean.getListaUoRegPostIterFirma() != null && bean.getListaUoRegPostIterFirma().size() > 0 ? bean.getListaUoRegPostIterFirma().get(0).getIdUo() : null);
+			lCreaDocumentoInBean.setFlgEmailAutoTermineIterFirmaReg(bean.getFlgEmailAutoTermineIterFirmaReg() != null && bean.getFlgEmailAutoTermineIterFirmaReg() ? new Integer(1) : null);		
+//		}
+			
 		lAttachAndPosizioneCollectionBean.setLista(list);
 		
 		CreaDocWithFileBean lCreaDocWithFileBean = new CreaDocWithFileBean();
@@ -1766,6 +1846,11 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 		lCreaDocWithFileBean.setFilePrimario(lFilePrimarioBean);
 		lCreaDocWithFileBean.setAllegati(lAllegatiBean);
 		lCreaDocWithFileBean.setAttachAndPosizioneCollection(lAttachAndPosizioneCollectionBean);
+		
+		// REGISTRAZIONE MULTIPLA IN USCITA - setto il numero della riga dell'excel
+		if (StringUtils.isNotBlank(bean.getNumRigaInTabContFoglio())) {
+			lCreaDocWithFileBean.setNumRigaInTabContFoglio(bean.getNumRigaInTabContFoglio());
+		}
 		
 		return lCreaDocWithFileBean;
 	}
@@ -1858,7 +1943,7 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 	private FilePrimarioBean retrieveFilePrimario(ProtocollazioneBean bean, AurigaLoginBean lAurigaLoginBean) throws StorageException {
 
 		FilePrimarioBean filePrimarioBean = new FilePrimarioBean();
-		if (bean.getFilePrimario() != null && StringUtils.isNotBlank(bean.getPercorsoFilePrimari()) && StringUtils.isNotBlank(bean.getNomeFilePrimario())) {
+		if (isRegMultiplaUscita() && bean.getFilePrimario() != null) {
 			filePrimarioBean.setFile(bean.getFilePrimario()); 			
 			filePrimarioBean.setPercorsoFilePrimario(bean.getPercorsoFilePrimari());
 			filePrimarioBean.setNomeFilePrimario(bean.getNomeFilePrimario());
@@ -2435,7 +2520,15 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 		salvaAltriRiferimenti(bean, lModificaDocumentoInBean);
 		// Salvo la lista delle perizie
 		salvaPerizie(bean, lModificaDocumentoInBean);
-				
+		// Salvo la lista delle concessioni
+		salvaConcessioni(bean, lModificaDocumentoInBean);
+		
+		// Salvo FLG_SEGNA_INVIO_MAIL_EXTRA_SISTEMA_Ud 
+		lModificaDocumentoInBean.setFlgSegnaInvioMailExtraSistema(bean.getFlgSegnaInvioMailExtraSistema() != null && bean.getFlgSegnaInvioMailExtraSistema() ? new Integer(1) : null);
+
+		// Salvo FLG_INVIATA_MAIL_EXTRA_SISTEMA_Ud
+		lModificaDocumentoInBean.setFlgInviataMailExtraSistema(bean.getFlgInviataMailExtraSistema() != null && bean.getFlgInviataMailExtraSistema() ? new Integer(1) : null);		
+		
 		// Salvo COD STATO DETT
 		lModificaDocumentoInBean.setCodStatoDett(bean.getCodStatoDett());
 		// Salvo COD STATO
@@ -2508,6 +2601,22 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 			}
 			lModificaDocumentoInBean.setFolderCustom(lListFolderCustom);
 		}
+		
+		if (bean.getListaRelVsPraticheApplEsterne() != null && bean.getListaRelVsPraticheApplEsterne().size() > 0) {
+			List<RelVsPraticheApplEsterneXmlBean> lListRelVsPraticheApplEsterne = new ArrayList<RelVsPraticheApplEsterneXmlBean>();
+			for (RelVsPraticheApplEsterneBean lRelVsPraticheApplEsterneBean : bean.getListaRelVsPraticheApplEsterne()) {
+				if(StringUtils.isNotBlank(lRelVsPraticheApplEsterneBean.getIdFolder())) {
+					RelVsPraticheApplEsterneXmlBean lRelVsPraticheApplEsterne = new RelVsPraticheApplEsterneXmlBean();
+					lRelVsPraticheApplEsterne.setIdFolder(lRelVsPraticheApplEsterneBean.getIdFolder());
+					lRelVsPraticheApplEsterne.setCodApplEst(lRelVsPraticheApplEsterneBean.getCodApplEst());
+					lRelVsPraticheApplEsterne.setCodPratica(lRelVsPraticheApplEsterneBean.getCodPratica());
+					lRelVsPraticheApplEsterne.setTsAssociazioneApplEst(lRelVsPraticheApplEsterneBean.getTsAssociazioneApplEst());
+					lRelVsPraticheApplEsterne.setFlgDaAssociareAssociato(lRelVsPraticheApplEsterneBean.getFlgDaAssociareAssociato() != null && lRelVsPraticheApplEsterneBean.getFlgDaAssociareAssociato() ? "1" : "0");
+					lListRelVsPraticheApplEsterne.add(lRelVsPraticheApplEsterne);
+				}
+			}
+			lModificaDocumentoInBean.setRelVsPraticheApplEsterne(lListRelVsPraticheApplEsterne);
+		}	
 
 		// Grado di risercatezza
 		lModificaDocumentoInBean.setLivelloRiservatezza(bean.getLivelloRiservatezza() != null ? bean.getLivelloRiservatezza().intValue() + "" : null);
@@ -2596,6 +2705,7 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 		lModificaDocumentoInBean.setNote(bean.getNote());
 		lModificaDocumentoInBean.setDataStesura(bean.getDataDocumento());
 		lModificaDocumentoInBean.setDataSpedizioneCartaceo(bean.getDataSpedizioneCartaceo());
+		lModificaDocumentoInBean.setBodyEmail(bean.getBodyEmail());
 		
 		// Data di arrivo al protocollo
 		lModificaDocumentoInBean.setDataArrivoProtocollo(bean.getDataArrivoProtocollo());
@@ -2703,24 +2813,45 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 		lModificaDocumentoInBean.setSezioneCacheAttributiDinamici(sezioneCacheAttributiDinamici);
 //		logProtDS.debug(new XmlUtilitySerializer().bindXmlCompleta(lModificaDocumentoInBean));  
 		
-		// Richiesta accesso civico
-		lModificaDocumentoInBean.setFlgPresentiControinteressati(bean.getFlgPresentiControinteressati());
-		List<ControinteressatiXmlBean> listaControinteressati = new ArrayList<ControinteressatiXmlBean>();
-		if(bean.getFlgPresentiControinteressati() != null && "SI".equalsIgnoreCase(bean.getFlgPresentiControinteressati())) {
-			if(bean.getListaControinteressati() != null && bean.getListaControinteressati().size() > 0) {
-				for(ControinteressatoBean item : bean.getListaControinteressati()) {
-					ControinteressatiXmlBean controinteressatiXmlBean = new ControinteressatiXmlBean();
-					controinteressatiXmlBean.setTipoSoggetto(item.getTipoSoggetto());
-					controinteressatiXmlBean.setDenominazione(item.getDenominazione());
-					controinteressatiXmlBean.setCodFiscale(item.getCodFiscale());
-					controinteressatiXmlBean.setpIva(item.getpIva());
-					controinteressatiXmlBean.setNote(item.getNote());
-					listaControinteressati.add(controinteressatiXmlBean);
+		// Iter firme e trasmissione
+//		if(isBozza && !isPropostaAtto()) {
+			List<SoggettoInternoBean> listaAltriSoggettiInterni = new ArrayList<SoggettoInternoBean>();
+			if(bean.getListaFirmatariIterFirma() != null) {
+				for(FirmatariIterFirmaBean firmatario : bean.getListaFirmatariIterFirma()) {
+					SoggettoInternoBean soggettoInternoBean = new SoggettoInternoBean();
+					soggettoInternoBean.setNroOrdine(firmatario.getNroOrdine());
+					soggettoInternoBean.setTipoObj("UT");
+					soggettoInternoBean.setIdObj(firmatario.getIdUtente());
+					if(firmatario.getTipoFirma() != null) {
+						if(firmatario.getTipoFirma().equals("D")) {
+							soggettoInternoBean.setTipoFirma("F");
+						} else if(firmatario.getTipoFirma().equals("E")) {
+							soggettoInternoBean.setTipoFirma("AV");
+						} 
+					}
+					soggettoInternoBean.setRuolo(firmatario.getRuolo());
+					listaAltriSoggettiInterni.add(soggettoInternoBean);
 				}
 			}
-		}
-		lModificaDocumentoInBean.setListaControinteressati(listaControinteressati);
-		
+			if(bean.getListaCoredattoriIterFirma() != null) {
+				for(DestInvioCCBean coredattore : bean.getListaCoredattoriIterFirma()) {
+					SoggettoInternoBean soggettoInternoBean = new SoggettoInternoBean();
+					soggettoInternoBean.setTipoObj(coredattore.getTypeNodo());
+					soggettoInternoBean.setIdObj(coredattore.getIdUo());
+					soggettoInternoBean.setTipoFirma("COREDATT");
+					listaAltriSoggettiInterni.add(soggettoInternoBean);
+				}
+			}
+			lModificaDocumentoInBean.setAltriSoggettiInterni(listaAltriSoggettiInterni);
+			lModificaDocumentoInBean.setIdCasellaMittente(bean.getIdCasellaMittente());
+			lModificaDocumentoInBean.setOpzProtAutoInIterFirma(bean.getOpzProtAutoInIterFirma()); 
+			lModificaDocumentoInBean.setOpzRegAutoInIterFirma(bean.getOpzRegAutoInIterFirma());
+			lModificaDocumentoInBean.setDesRegistroRegAutoInIterFirma(bean.getDesRegistroRegAutoInIterFirma());
+			lModificaDocumentoInBean.setCodCategoriaRegAutoInIterFirma(bean.getCodCategoriaRegAutoInIterFirma());
+			lModificaDocumentoInBean.setIdUoRegPostIterFirma(bean.getListaUoRegPostIterFirma() != null && bean.getListaUoRegPostIterFirma().size() > 0 ? bean.getListaUoRegPostIterFirma().get(0).getIdUo() : null);
+			lModificaDocumentoInBean.setFlgEmailAutoTermineIterFirmaReg(bean.getFlgEmailAutoTermineIterFirmaReg() != null && bean.getFlgEmailAutoTermineIterFirmaReg() ? new Integer(1) : null);		
+//		}
+			
 		String lStringXml = null;
 		try {
 			XmlUtilitySerializer lXmlUtilitySerializer = new XmlUtilitySerializer();
@@ -2943,6 +3074,7 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 			List<Boolean> flgOriginaleCartaceo = new ArrayList<Boolean>();
 			List<Boolean> flgCopiaSostitutiva = new ArrayList<Boolean>();
 			List<Boolean> flgGenAutoDaModello = new ArrayList<Boolean>();
+			List<Boolean> flgTimbraFilePostReg = new ArrayList<Boolean>();
 			List<String> idUdFrom = new ArrayList<String>();
 			List<String> idUdAllegato = new ArrayList<String>();
 			// Vers. con omissis
@@ -3020,7 +3152,8 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 				flgSostituisciVerPrec.add(allegato.getFlgSostituisciVerPrec());
 				flgOriginaleCartaceo.add(allegato.getFlgOriginaleCartaceo());
 				flgCopiaSostitutiva.add(allegato.getFlgCopiaSostitutiva());
-				flgGenAutoDaModello.add(allegato.getFlgGenAutoDaModello());					
+				flgGenAutoDaModello.add(allegato.getFlgGenAutoDaModello());	
+				flgTimbraFilePostReg.add(allegato.getFlgTimbraFilePostReg());	
 				idUdFrom.add(allegato.getIdUdAppartenenza());
 				idUdAllegato.add(allegato.getIdUdAllegato());
 				if (lFile != null) {
@@ -3172,7 +3305,8 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 			lAllegatiBean.setFlgSostituisciVerPrec(flgSostituisciVerPrec);
 			lAllegatiBean.setFlgOriginaleCartaceo(flgOriginaleCartaceo);
 			lAllegatiBean.setFlgCopiaSostitutiva(flgCopiaSostitutiva);
-			lAllegatiBean.setFlgGenAutoDaModello(flgGenAutoDaModello);			
+			lAllegatiBean.setFlgGenAutoDaModello(flgGenAutoDaModello);	
+			lAllegatiBean.setFlgTimbraFilePostReg(flgTimbraFilePostReg);
 			lAllegatiBean.setIdUdFrom(idUdFrom);		
 			lAllegatiBean.setIdUdAllegato(idUdAllegato);
 			lAllegatiBean.setIdDocumentoOmissis(idDocumentoOmissis);
@@ -3357,6 +3491,18 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 				listaPerizie.add(periziaBean);
 			}			
 			lCreaModDocumentoInBean.setListaPerizie(listaPerizie);
+		}
+	}
+	
+	private void salvaConcessioni(ProtocollazioneBean bean, CreaModDocumentoInBean lCreaModDocumentoInBean) {
+		List<ConcessioneXmlInBean> listaConcessioni = new ArrayList<ConcessioneXmlInBean>();
+		if (bean.getListaConcessioni() != null) {
+			for (ConcessioneBean concessione : bean.getListaConcessioni()) {				
+				ConcessioneXmlInBean concessioneBean = new ConcessioneXmlInBean();
+				concessioneBean.setCodice(concessione.getConcessione());
+				listaConcessioni.add(concessioneBean);
+			}			
+			lCreaModDocumentoInBean.setListaConcessioni(listaConcessioni);
 		}
 	}
 	
@@ -3741,9 +3887,7 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 					lFogliXlsDestinatari.setIdFoglio(lDestinatarioProtBean.getIdFoglioExcelDestinatari());
 					lFogliXlsDestinatari.setNroDestinatario(String.valueOf(indiceRipetibileDestinatari));
 					lFogliXlsDestinatari.setDisplayFileNameExcel(lDestinatarioProtBean.getDisplayFileNameExcel());
-					
 					lListFogliXlsDestinatari.add(lFogliXlsDestinatari);
-					
 					continue;
 				}
 				if (lDestinatarioProtBean.getTipoDestinatario() != null && lDestinatarioProtBean.getTipoDestinatario().equals("LD")) {
@@ -3758,6 +3902,10 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 						lDistribuzioneBean.setPerConoscenza(Flag.SETTED);
 					} else {
 						lDistribuzioneBean.setPerConoscenza(Flag.NULL);
+					}
+					if (!isAttivoProtocolloWizard(bean) && lDestinatarioProtBean.getMezzoTrasmissioneDestinatario() != null && ParametriDBUtil.getParametroDBAsBoolean(getSession(), "SHOW_DESTINATARI_ESTESI")) {
+						// Salvo il mezzo di trasmissione
+						lDistribuzioneBean.setMezzoTrasmissioneDestinatario(lDestinatarioProtBean.getMezzoTrasmissioneDestinatario().getMezzoTrasmissioneDestinatario());
 					}
 					lListGruppi.add(lDistribuzioneBean);
 				} else if (lDestinatarioProtBean.getTipoDestinatario() != null && lDestinatarioProtBean.getTipoDestinatario().equals("PREF")) {
@@ -3870,6 +4018,7 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 						lDestinatariBean.setZona(lDestinatarioProtBean.getZona());
 						lDestinatariBean.setComplementoIndirizzo(lDestinatarioProtBean.getComplementoIndirizzo());
 						lDestinatariBean.setAppendici(lDestinatarioProtBean.getAppendici());
+						lDestinatariBean.setIndirizzoRubrica(lDestinatarioProtBean.getIndirizzoRubrica());
 					} else if (lDestinatarioProtBean.getMezzoTrasmissioneDestinatario() != null && ParametriDBUtil.getParametroDBAsBoolean(getSession(), "SHOW_DESTINATARI_ESTESI")) {
 						// Salvo il mezzo di trasmissione
 						MezzoTrasmissioneDestinatarioBean lMezzoTrasmissioneDestinatarioBean = new MezzoTrasmissioneDestinatarioBean();
@@ -3918,6 +4067,7 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 								lDestinatariBean.setZona(lDestinatarioProtBean.getZona());
 								lDestinatariBean.setComplementoIndirizzo(lDestinatarioProtBean.getComplementoIndirizzo());
 								lDestinatariBean.setAppendici(lDestinatarioProtBean.getAppendici());
+								lDestinatariBean.setIndirizzoRubrica(lDestinatarioProtBean.getIndirizzoRubrica());
 							} else {						
 								lDestinatariBean.setTipoToponimo(lMezzoTrasmissioneDestinatarioBean.getTipoToponimo());
 								lDestinatariBean.setCodToponimo(lMezzoTrasmissioneDestinatarioBean.getCiToponimo());
@@ -3936,16 +4086,22 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 								lDestinatariBean.setZona(lMezzoTrasmissioneDestinatarioBean.getZona());
 								lDestinatariBean.setComplementoIndirizzo(lMezzoTrasmissioneDestinatarioBean.getComplementoIndirizzo());
 								lDestinatariBean.setAppendici(lMezzoTrasmissioneDestinatarioBean.getAppendici());
+								lDestinatariBean.setIndirizzoRubrica(lMezzoTrasmissioneDestinatarioBean.getIndirizzoRubrica());
 							}
 						}
 					}
 					lListDestinatari.add(lDestinatariBean);
 				}
 				boolean isBozza = getExtraparams().get("isBozza") != null && "true".equals(getExtraparams().get("isBozza"));		
+				boolean isProtocollazioneBozza = false;
+				String tipoNumerazionePrincipale = bean.getTipoProtocollo() != null ? bean.getTipoProtocollo() : "";
+				if (tipoNumerazionePrincipale != null && tipoNumerazionePrincipale.equalsIgnoreCase("NI") && (bean.getFlgTipoProv() != null && ("U".equals(bean.getFlgTipoProv()) || "I".equals(bean.getFlgTipoProv())))) {
+					isProtocollazioneBozza = true;
+				}
 				if(!isBozza) {
 					if (lDestinatarioProtBean.getFlgAssegnaAlDestinatario() != null && lDestinatarioProtBean.getFlgAssegnaAlDestinatario()) {
 						boolean skipAssegnazione = false;
-						if(StringUtils.isNotBlank(lDestinatarioProtBean.getIdAssegnatario())) {
+						if(!isProtocollazioneBozza && StringUtils.isNotBlank(lDestinatarioProtBean.getIdAssegnatario())) {
 							if(StringUtils.isNotBlank(lDestinatarioProtBean.getOrganigrammaDestinatario()) && lDestinatarioProtBean.getIdAssegnatario().equals(lDestinatarioProtBean.getOrganigrammaDestinatario())) {
 								 skipAssegnazione = true;	
 							} else if(StringUtils.isNotBlank(lDestinatarioProtBean.getIdUoSoggetto())&& lDestinatarioProtBean.getIdAssegnatario().equals("UO" + lDestinatarioProtBean.getIdUoSoggetto())) {
@@ -3992,7 +4148,7 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 					}
 					if (lDestinatarioProtBean.getFlgPC() != null && lDestinatarioProtBean.getFlgPC()) {
 						boolean skipInvioCC = false;
-						if(StringUtils.isNotBlank(lDestinatarioProtBean.getIdDestInvioCC())) {
+						if(!isProtocollazioneBozza && StringUtils.isNotBlank(lDestinatarioProtBean.getIdDestInvioCC())) {
 							if(StringUtils.isNotBlank(lDestinatarioProtBean.getOrganigrammaDestinatario()) && lDestinatarioProtBean.getIdDestInvioCC().equals(lDestinatarioProtBean.getOrganigrammaDestinatario())) {
 								 skipInvioCC = true;	
 							} else if(StringUtils.isNotBlank(lDestinatarioProtBean.getIdUoSoggetto())&& lDestinatarioProtBean.getIdDestInvioCC().equals("UO" + lDestinatarioProtBean.getIdUoSoggetto())) {
@@ -4533,7 +4689,13 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 		
 		boolean isCompilazioneModulo = getExtraparams().get("isCompilazioneModulo") != null && "true".equals(getExtraparams().get("isCompilazioneModulo"));
 		boolean isPropostaOrganigramma = getExtraparams().get("isPropostaOrganigramma") != null && "true".equals(getExtraparams().get("isPropostaOrganigramma"));
-		
+		boolean isModificaRegAccessoCivico = getExtraparams().get("isModificaRegAccessoCivico") != null && "true".equals(getExtraparams().get("isModificaRegAccessoCivico"));
+
+		if(isAttivoFlussoRichAccessoAtti(bean) && isModificaRegAccessoCivico) {
+			sezioneCacheAttributiDinamici.getVariabile().add(
+					SezioneCacheAttributiDinamici.createVariabileSemplice("RICH_ACCESSO_CIVICO_PRESENTI_CONTROINTERESSATI_Doc", bean.getFlgPresentiControinteressati()));
+		}
+
 		if(isCompilazioneModulo) {
 			sezioneCacheAttributiDinamici.getVariabile().add(
 					SezioneCacheAttributiDinamici.createVariabileSemplice("FLG_DA_COMP_MODULO_Ud", "1"));
@@ -4632,6 +4794,29 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 	}
 
 	protected void salvaAttributiCustomLista(ProtocollazioneBean bean, SezioneCache sezioneCacheAttributiDinamici) throws Exception {
+	
+		boolean isModificaRegAccessoCivico = getExtraparams().get("isModificaRegAccessoCivico") != null && "true".equals(getExtraparams().get("isModificaRegAccessoCivico"));
+	
+		if(isAttivoFlussoRichAccessoAtti(bean) && isModificaRegAccessoCivico) {
+			List<ControinteressatiXmlBean> listaControinteressati = new ArrayList<ControinteressatiXmlBean>();
+			if(bean.getFlgPresentiControinteressati() != null && "SI".equalsIgnoreCase(bean.getFlgPresentiControinteressati())) {
+				if(bean.getListaControinteressati() != null && bean.getListaControinteressati().size() > 0) {
+					for(ControinteressatoBean item : bean.getListaControinteressati()) {
+						ControinteressatiXmlBean controinteressatiXmlBean = new ControinteressatiXmlBean();
+						controinteressatiXmlBean.setTipoSoggetto(item.getTipoSoggetto());
+						controinteressatiXmlBean.setDenominazione(item.getDenominazione());
+						controinteressatiXmlBean.setCodFiscale(item.getCodFiscale());
+						controinteressatiXmlBean.setpIva(item.getpIva());
+						controinteressatiXmlBean.setNote(item.getNote());
+						listaControinteressati.add(controinteressatiXmlBean);
+					}
+				}
+			}
+			sezioneCacheAttributiDinamici.getVariabile().add(
+					SezioneCacheAttributiDinamici.createVariabileLista("RICH_ACCESSO_CIVICO_DATI_CONTROINTERESSATI_Doc",
+							new XmlUtilitySerializer().createVariabileLista(listaControinteressati)));
+		}
+		
 		if (isAttivoProtocolloWizard(bean) || isAttivoAltreVieSenzaWizard() || isRichiestaAccessoAtti() || isPropostaAtto()) {
 			if (bean.getListaAltreVie() != null) {
 				ArrayList<AltreUbicazioniBean> lListAltreUbicazioni = new ArrayList<AltreUbicazioniBean>();
@@ -5368,8 +5553,9 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 		DmpkCoreFindudBean input = new DmpkCoreFindudBean();
 		input.setCodidconnectiontokenin(token);
 		input.setIduserlavoroin(StringUtils.isNotBlank(idUserLavoro) ? new BigDecimal(idUserLavoro) : null);
-		input.setCodcategoriaregin("PG");
-		input.setAnnoregin(bean.getAnnoProtocollo() != null ? Integer.parseInt(bean.getAnnoProtocollo()) : null);
+		input.setCodcategoriaregin(StringUtils.isNotBlank(bean.getCodCategoriaProtocollo()) ? bean.getCodCategoriaProtocollo() : "PG");
+		input.setSiglaregin(StringUtils.isNotBlank(bean.getSiglaProtocollo()) ? bean.getSiglaProtocollo() : null);
+		input.setAnnoregin(StringUtils.isNotBlank(bean.getAnnoProtocollo()) ? Integer.parseInt(bean.getAnnoProtocollo()) : null);
 		input.setNumregin(bean.getNroProtocollo() != null ? Integer.valueOf(bean.getNroProtocollo().intValue()) : null);
 		
 		DmpkCoreFindud lDmpkCoreFindud = new DmpkCoreFindud();
@@ -5453,6 +5639,10 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 		return returnBean;
 	}
 
+	public boolean isRegMultiplaUscita() {
+		boolean isRegMultiplaUscita = getExtraparams().get("isRegMultiplaUscita") != null && "true".equals(getExtraparams().get("isRegMultiplaUscita"));
+		return isRegMultiplaUscita;
+	}
 
 	public boolean isPropostaAtto() {
 		boolean isPropostaAtto = getExtraparams().get("isPropostaAtto") != null && "true".equals(getExtraparams().get("isPropostaAtto"));
@@ -5920,6 +6110,10 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 			return ParametriDBUtil.getParametroDBAsBoolean(getSession(), "ATTIVA_PROTOCOLLO_WIZARD");
 		}
 		return false;
+	}
+	
+	public boolean isAttivoFlussoRichAccessoAtti(ProtocollazioneBean beanDettaglio) {
+		return ParametriDBUtil.getParametroDBAsBoolean(getSession(), "ATTIVA_FLUSSO_RICH_ACCESSO_ATTI");
 	}
 	
 	public boolean isAttivoEsibente(ProtocollazioneBean beanDettaglio) {	
@@ -7110,7 +7304,10 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 			String xmlLista = lStoreResultBean.getResultBean().getListaxmlout();
 			List<TipoDocumentoBean> lListXml = XmlListaUtility.recuperaLista(xmlLista, TipoDocumentoBean.class);
 			for (TipoDocumentoBean lRiga : lListXml) {
-				mappaTipiDocFlgRichiestaFirmaDigitale.put(lRiga.getIdTipoDocumento(), lRiga.getFlgRichiestaFirmaDigitale());
+				String flgRichiestoFile = lRiga.getFlgRichiestoFile() != null && "1".equals(lRiga.getFlgRichiestoFile()) ? "1" : "0";
+				String flgRichiestoFileConFirma = lRiga.getFlgRichiestoFileConFirma() != null && "1".equals(lRiga.getFlgRichiestoFileConFirma())? "1" : "0";
+				String flgRichiestoFileConFirmaValida = lRiga.getFlgRichiestoFileConFirmaValida() != null && "1".equals(lRiga.getFlgRichiestoFileConFirmaValida()) ? "1" : "0";
+				mappaTipiDocFlgRichiestaFirmaDigitale.put(lRiga.getIdTipoDocumento(), flgRichiestoFile + flgRichiestoFileConFirma + flgRichiestoFileConFirmaValida);
 			}
 		}
 		return mappaTipiDocFlgRichiestaFirmaDigitale;
@@ -7122,17 +7319,13 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 		HashMap<String, String> mappaErroriFile = new HashMap<String, String>();
 		StringBuffer sb = new StringBuffer();
 		HashSet<String> setTipiDocumento = new HashSet<String>();
-		if (StringUtils.isNotBlank(bean.getUriFilePrimario()) && StringUtils.isNotBlank(bean.getNomeFilePrimario())) {
-			if(StringUtils.isNotBlank(bean.getTipoDocumento())) {
-				setTipiDocumento.add(bean.getTipoDocumento());
-			}
+		if(StringUtils.isNotBlank(bean.getTipoDocumento())) {
+			setTipiDocumento.add(bean.getTipoDocumento());
 		}
 		if (bean.getListaAllegati() != null) {
 			for (AllegatoProtocolloBean allegato : bean.getListaAllegati()) {
-				if (StringUtils.isNotBlank(allegato.getUriFileAllegato()) && StringUtils.isNotBlank(allegato.getNomeFileAllegato())) {
-					if(StringUtils.isNotBlank(allegato.getListaTipiFileAllegato())) {
-						setTipiDocumento.add(allegato.getListaTipiFileAllegato());
-					}
+				if(StringUtils.isNotBlank(allegato.getListaTipiFileAllegato())) {
+					setTipiDocumento.add(allegato.getListaTipiFileAllegato());
 				}
 			}
 		}	
@@ -7154,8 +7347,10 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 		sb.append("Alcuni file non hanno superato i controlli previsti sulla presenza e validità di firma digitale:<br/>"); 
 		sb.append("<ul>");
 		if(!isPropostaAtto()) {
-			String flgRichiestaFirmaDigitalePrimario = StringUtils.isNotBlank(bean.getTipoDocumento()) ? mappaTipiDocFlgRichiestaFirmaDigitale.get(bean.getTipoDocumento()) : null;
-			if (StringUtils.isNotBlank(flgRichiestaFirmaDigitalePrimario)) {
+			if(StringUtils.isNotBlank(bean.getTipoDocumento()) && StringUtils.isNotBlank(mappaTipiDocFlgRichiestaFirmaDigitale.get(bean.getTipoDocumento()))) {
+				String flgRichiestoFilePrimario = mappaTipiDocFlgRichiestaFirmaDigitale.get(bean.getTipoDocumento()).substring(0,1);
+				String flgRichiestoFilePrimarioConFirma = mappaTipiDocFlgRichiestaFirmaDigitale.get(bean.getTipoDocumento()).substring(1,2);
+				String flgRichiestoFilePrimarioConFirmaValida = mappaTipiDocFlgRichiestaFirmaDigitale.get(bean.getTipoDocumento()).substring(2,3);
 				if (StringUtils.isNotBlank(bean.getUriFilePrimario()) && StringUtils.isNotBlank(bean.getNomeFilePrimario())) {
 					boolean isChangedTipoDocumento = StringUtils.isBlank(bean.getTipoDocumentoSalvato()) || !bean.getTipoDocumentoSalvato().equals(bean.getTipoDocumento());
 					boolean isNewOrChanged = bean.getIdDocPrimario() == null || (bean.getIsDocPrimarioChanged() != null && bean.getIsDocPrimarioChanged());
@@ -7163,7 +7358,7 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 					// se sono in modifica di un repertorio o protocollo fileOp lo devo chiamare solo se il primario era già stato salvato prima della registrazione (quindi la verifica è stata fatta con una dataRif precedente a quella di registrazione) ed è stato settato/cambiato il tipo
 					// se invece sto registrando un nuovo protocollo/repertorio devo chiamare fileOp solo se il primario era già stato salvato in precedenza e quindi con una dataRif precedente a quella di registrazione (nel caso stia protocollando una bozza)
 					// in entrambi i casi chiamerò fileOp solo se il file primario è firmato e ha una tipologia documentale su cui è richiesta una firma digitale valida alla registrazione
-					if(bean.getInfoFile() != null && bean.getInfoFile().isFirmato() && "V".equals(flgRichiestaFirmaDigitalePrimario) && ((isModificaProtocolloRepertorio && !isNewOrChanged && isChangedTipoDocumento && isFileSalvatoPreRegistrazione) || (!isModificaProtocolloRepertorio && !isNewOrChanged))) {					
+					if(bean.getInfoFile() != null && bean.getInfoFile().isFirmato() && flgRichiestoFilePrimarioConFirmaValida != null && "1".equals(flgRichiestoFilePrimarioConFirmaValida) && ((isModificaProtocolloRepertorio && !isNewOrChanged && isChangedTipoDocumento && isFileSalvatoPreRegistrazione) || (!isModificaProtocolloRepertorio && !isNewOrChanged))) {					
 						File lFile = null;
 						if (bean.getRemoteUriFilePrimario()) {
 							// Il file è esterno
@@ -7178,34 +7373,43 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 						}
 						bean.setInfoFile(new InfoFileUtility().getInfoFromFile(lFile.toURI().toString(), bean.getNomeFilePrimario(), false, isModificaProtocolloRepertorio ? dataRegistrazione : null));
 					}
-					if ("P".equals(flgRichiestaFirmaDigitalePrimario) && bean.getInfoFile() != null && !bean.getInfoFile().isFirmato()) {
-						valid = false;
-						sb.append("<li>Per la tipologia del documento è obbligatorio che il file primario sia firmato digitalmente.</li>");			
-						mappaErroriFile.put("0", "Per la tipologia del documento è obbligatorio che il file sia firmato digitalmente");
-					} else if ("V".equals(flgRichiestaFirmaDigitalePrimario) && bean.getInfoFile() != null && (!bean.getInfoFile().isFirmato() || !bean.getInfoFile().isFirmaValida())) {
-						valid = false;
-						sb.append("<li>Per la tipologia del documento è obbligatorio che il file primario sia firmato digitalmente con firma valida.</li>");
-						mappaErroriFile.put("0", "Per la tipologia del documento è obbligatorio che il file sia firmato digitalmente con firma valida");
-					}
+					// se c'è il file
+					if(bean.getInfoFile() != null && bean.getInfoFile().isFirmato()) {
+						// se il file è firmato
+						if(flgRichiestoFilePrimarioConFirmaValida != null && "1".equals(flgRichiestoFilePrimarioConFirmaValida)) {
+							if(!bean.getInfoFile().isFirmaValida()) {
+								// se il file non ha una firma valida
+								valid = false;
+								sb.append("<li>Per la tipologia del documento è obbligatorio che il file primario, se firmato digitalmente, abbia una firma valida.</li>");
+								mappaErroriFile.put("0", "Per la tipologia del documento è obbligatorio che il file primario, se firmato digitalmente, abbia una firma valida");
+							}
+						}
+					} else {
+						// se il file non è firmato
+						if(flgRichiestoFilePrimarioConFirma != null && "1".equals(flgRichiestoFilePrimarioConFirma)) {
+							valid = false;
+							sb.append("<li>Per la tipologia del documento è obbligatorio che il file primario sia firmato digitalmente.</li>");
+							mappaErroriFile.put("0", "Per la tipologia del documento è obbligatorio che il file primario sia firmato digitalmente");
+						}
+					}		
 				} else {
-					if ("P".equals(flgRichiestaFirmaDigitalePrimario)) {
+					// se non c'è il file
+					if(flgRichiestoFilePrimario != null && "1".equals(flgRichiestoFilePrimario)) {
 						valid = false;
-						sb.append("<li>Per la tipologia del documento è obbligatorio che ci sia un file primario firmato digitalmente.</li>");
-						mappaErroriFile.put("0", "Per la tipologia del documento è obbligatorio che ci sia un file firmato digitalmente");
-					} else if ("V".equals(flgRichiestaFirmaDigitalePrimario)) {
-						valid = false;
-						sb.append("<li>Per la tipologia del documento è obbligatorio che ci sia un file primario firmato digitalmente con firma valida.</li>");
-						mappaErroriFile.put("0", "Per la tipologia del documento è obbligatorio che ci sia un file primario firmato digitalmente con firma valida");
-					}	
+						sb.append("<li>Per la tipologia del documento è obbligatorio che ci sia un file primario.</li>");
+						mappaErroriFile.put("0", "Per la tipologia del documento è obbligatorio che ci sia un file primario");
+					}
 				}
 			}
 		}
 		if (bean.getListaAllegati() != null) {
 			int n = 0;
 			for (AllegatoProtocolloBean allegato : bean.getListaAllegati()) {
-				n++;				
-				String flgRichiestaFirmaDigitaleAllegato = StringUtils.isNotBlank(allegato.getListaTipiFileAllegato()) ? mappaTipiDocFlgRichiestaFirmaDigitale.get(allegato.getListaTipiFileAllegato()) : null;
-				if (StringUtils.isNotBlank(flgRichiestaFirmaDigitaleAllegato)) {
+				n++;
+				if(StringUtils.isNotBlank(allegato.getListaTipiFileAllegato()) && StringUtils.isNotBlank(mappaTipiDocFlgRichiestaFirmaDigitale.get(allegato.getListaTipiFileAllegato()))) {
+					String flgRichiestoFileAllegato = mappaTipiDocFlgRichiestaFirmaDigitale.get(allegato.getListaTipiFileAllegato()).substring(0,1);
+					String flgRichiestoFileAllegatoConFirma = mappaTipiDocFlgRichiestaFirmaDigitale.get(allegato.getListaTipiFileAllegato()).substring(1,2);
+					String flgRichiestoFileAllegatoConFirmaValida = mappaTipiDocFlgRichiestaFirmaDigitale.get(allegato.getListaTipiFileAllegato()).substring(2,3);
 					if (StringUtils.isNotBlank(allegato.getUriFileAllegato()) && StringUtils.isNotBlank(allegato.getNomeFileAllegato())) {
 						boolean isChangedTipoAllegato = StringUtils.isBlank(allegato.getIdTipoFileAllegatoSalvato()) || !allegato.getIdTipoFileAllegatoSalvato().equals(allegato.getListaTipiFileAllegato());
 						boolean isNewOrChanged = allegato.getIdDocAllegato() == null || (allegato.getIsChanged() != null && allegato.getIsChanged());
@@ -7213,7 +7417,7 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 						// se sono in modifica di un repertorio o protocollo fileOp lo devo chiamare solo sugli allegati che erano già stati salvati prima della registrazione (quindi la verifica è stata fatta con una dataRif precedente a quella di registrazione) e su cui è stato settato/cambiato il tipo
 						// se invece sto registrando un nuovo protocollo/repertorio devo chiamare fileOp solo sugli allegati che erano già stati salvati in precedenza e quindi con una dataRif precedente a quella di registrazione (nel caso stia protocollando una bozza)
 						// in entrambi i casi chiamerò fileOp solo sui file allegati firmati e che hanno una tipologia documentale su cui è richiesta una firma digitale valida alla registrazione
-						if(allegato.getInfoFile() != null && allegato.getInfoFile().isFirmato() && "V".equals(flgRichiestaFirmaDigitaleAllegato) && ((isModificaProtocolloRepertorio && !isNewOrChanged && isChangedTipoAllegato && isFileSalvatoPreRegistrazione) || (!isModificaProtocolloRepertorio && !isNewOrChanged))) {					
+						if(allegato.getInfoFile() != null && allegato.getInfoFile().isFirmato() && flgRichiestoFileAllegatoConFirmaValida != null && "1".equals(flgRichiestoFileAllegatoConFirmaValida) && ((isModificaProtocolloRepertorio && !isNewOrChanged && isChangedTipoAllegato && isFileSalvatoPreRegistrazione) || (!isModificaProtocolloRepertorio && !isNewOrChanged))) {					
 							File lFile = null;
 							if (allegato.getRemoteUri()) {
 								// Il file è esterno
@@ -7228,24 +7432,31 @@ public class ProtocolloDataSource extends AbstractDataSource<ProtocollazioneBean
 							}
 							allegato.setInfoFile(new InfoFileUtility().getInfoFromFile(lFile.toURI().toString(), allegato.getNomeFileAllegato(), false, isModificaProtocolloRepertorio ? dataRegistrazione : null));
 						}
-						if ("P".equals(flgRichiestaFirmaDigitaleAllegato) && allegato.getInfoFile() != null && !allegato.getInfoFile().isFirmato()) {
-							valid = false;
-							sb.append("<li>Per la tipologia dell'allegato N. " + n + " è obbligatorio che il file sia firmato digitalmente.</li>");
-							mappaErroriFile.put("" + n, "Per la tipologia dell'allegato è obbligatorio che il file sia firmato digitalmente");
-						} else if ("V".equals(flgRichiestaFirmaDigitaleAllegato) && allegato.getInfoFile() != null && (!allegato.getInfoFile().isFirmato() || !allegato.getInfoFile().isFirmaValida())) {
-							valid = false;
-							sb.append("<li>Per la tipologia dell'allegato N. " + n + " è obbligatorio che il file sia firmato digitalmente con firma valida.</li>");
-							mappaErroriFile.put("" + n, "Per la tipologia dell'allegato è obbligatorio che il file sia firmato digitalmente con firma valida");
+						// se c'è il file
+						if(allegato.getInfoFile() != null && allegato.getInfoFile().isFirmato()) {
+							// se il file è firmato
+							if(flgRichiestoFileAllegatoConFirmaValida != null && "1".equals(flgRichiestoFileAllegatoConFirmaValida)) {
+								if(!allegato.getInfoFile().isFirmaValida()) {
+									// se il file non ha una firma valida
+									valid = false;
+									sb.append("<li>Per la tipologia dell'allegato N. " + n + " è obbligatorio che il file, se firmato digitalmente, abbia una firma valida.</li>");
+									mappaErroriFile.put("" + n, "Per la tipologia dell'allegato è obbligatorio che il file, se firmato digitalmente, abbia una firma valida");
+								}
+							}
+						} else {
+							// se il file non è firmato
+							if(flgRichiestoFileAllegatoConFirma != null && "1".equals(flgRichiestoFileAllegatoConFirma)) {
+								valid = false;
+								sb.append("<li>Per la tipologia dell'allegato N. " + n + " è obbligatorio che il file sia firmato digitalmente.</li>");
+								mappaErroriFile.put("" + n, "Per la tipologia dell'allegato è obbligatorio che il file sia firmato digitalmente");
+							}
 						}
 					} else {
-						if ("P".equals(flgRichiestaFirmaDigitaleAllegato)) {
+						// se non c'è il file
+						if(flgRichiestoFileAllegato != null && "1".equals(flgRichiestoFileAllegato)) {
 							valid = false;
-							sb.append("<li>Per la tipologia dell'allegato N. " + n + " è obbligatorio che ci sia un file firmato digitalmente.</li>");
-							mappaErroriFile.put("" + n, "Per la tipologia dell'allegato è obbligatorio che ci sia un file firmato digitalmente");
-						} else if ("V".equals(flgRichiestaFirmaDigitaleAllegato)) {
-							valid = false;
-							sb.append("<li>Per la tipologia dell'allegato N. " + n + " è obbligatorio che ci sia un file firmato digitalmente con firma valida.</li>");
-							mappaErroriFile.put("" + n, "Per la tipologia dell'allegato è obbligatorio che ci sia un file firmato digitalmente con firma valida");
+							sb.append("<li>Per la tipologia dell'allegato N. " + n + " è obbligatorio che ci sia un file.</li>");
+							mappaErroriFile.put("" + n, "Per la tipologia dell'allegato è obbligatorio che ci sia un file");
 						}
 					}
 				}											

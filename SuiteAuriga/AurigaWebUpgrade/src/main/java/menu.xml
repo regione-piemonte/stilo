@@ -543,7 +543,13 @@ http://www.springframework.org/schema/util http://www.springframework.org/schema
 					<property name="title" value="${foglio_importato_excel.title}" />
 					<property name="prompt" value="${foglio_importato_excel.prompt}" />
 					<property name="icon" value="${foglio_importato_excel.icon}" />
-				</bean>				
+				</bean>		
+				<!--bean id="monitoraggio_registrazioni_multiple_uscita" class="it.eng.utility.ui.module.layout.shared.bean.MenuBean">
+					<property name="nomeEntita" value="monitoraggio_registrazioni_multiple_uscita" />
+					<property name="title" value="${monitoraggio_registrazioni_multiple_uscita.title}" />
+					<property name="prompt" value="${monitoraggio_registrazioni_multiple_uscita.prompt}" />
+					<property name="icon" value="${monitoraggio_registrazioni_multiple_uscita.icon}" />
+				</bean-->		
 			</util:list>
 		</property>
 	</bean>
@@ -1133,6 +1139,19 @@ http://www.springframework.org/schema/util http://www.springframework.org/schema
 					<property name="privilegi">
 						<util:list value-type="java.lang.String">
 							<value>GP/EV;M</value>
+						</util:list>
+					</property>
+				</bean>
+				<bean id="annulla_atti_in_iter_anno_prec" class="it.eng.utility.ui.module.layout.shared.bean.MenuBean">
+					<property name="nomeEntita" value="annulla_atti_in_iter_anno_prec" />
+					<property name="title" value="${annulla_atti_in_iter_anno_prec.title}" />
+					<property name="prompt" value="${annulla_atti_in_iter_anno_prec.prompt}" />
+					<property name="icon" value="${annulla_atti_in_iter_anno_prec.icon}" />
+					<property name="privilegi">
+						<util:list value-type="java.lang.String">
+							<value>ATT/ANM/DCR</value>
+							<value>ATT/ANM/DNR</value>
+							<value>ATT/ANM/RDA</value>
 						</util:list>
 					</property>
 				</bean>

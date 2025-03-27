@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.pratiche.nuovapropostaatto2.datasource.bean;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -267,6 +268,7 @@ public class NuovaPropostaAtto2CompletaBean {
 	private String importoAnticipoCassa;
 	private Date dataDecorrenzaContratto;
 	private String anniDurataContratto;
+	/* Check esclusivi - Inizio */
 	private Boolean flgAffidamento;
 	private Boolean flgDeterminaAContrarreTramiteProceduraGara;
 	private Boolean flgDeterminaAggiudicaProceduraGara;
@@ -279,7 +281,8 @@ public class NuovaPropostaAtto2CompletaBean {
 	private Boolean flgDecretoReggio;
 	private Boolean flgAvvocatura;
 	private Boolean flgDeterminaArchiviazione;
-	private Boolean flgContributi; // il check "contributi" non è esclusivo come gli altri sopra
+	private Boolean flgContributi;
+	/* Check esclusivi - Fine */
 	private String flgSpesa; // valori SI/NO
 	private String flgDatiRilevantiGSA; // valori SI/NO
 	private List<SimpleKeyValueBean> listaUfficiCompetentiRag;
@@ -311,6 +314,7 @@ public class NuovaPropostaAtto2CompletaBean {
 	private String flgFondiPNRRRadio;
 	private Boolean flgFondiPNRR;
 	private Boolean flgFondiPNRRRigen;
+	private Boolean flgLiquidazioneMAASPNC;
 	private Boolean flgFondiPRU;
 	private Boolean flgVistoUtenze;
 	private Boolean flgVistoCapitolatiSottoSoglia;
@@ -338,8 +342,16 @@ public class NuovaPropostaAtto2CompletaBean {
 	private String flgControlloLegittimita;
 	private String motivazioniEsclControlloLegittimita;
 	
-	/* Dati scheda - Dest. vantaggio */
+	/* Dati scheda - Dest. vantaggio / Dettagli vantaggi economici/contributi */
 	private List<DestVantaggioBean> listaDestVantaggio;
+	private String normaAttribuzione;
+	private String desNormaAttribuzione;
+	private String respProcAttribuzione;
+	private String codUoRespProcAttribuzione;
+	private String desRespProcAttribuzione;
+	private String uffRespProcAttribuzione;
+	private String modalitaAttribuzione;
+	private String desModalitaAttribuzione;
 	
 	/* Dati scheda - Ruoli e visti per dati contabili */
 	private Boolean flgAdottanteUnicoRespPEG;	
@@ -437,6 +449,7 @@ public class NuovaPropostaAtto2CompletaBean {
 	 ****************/
 	
 	/* Allegati */
+	private Boolean flgPubblicazioneAllegatiUguale;
 	private Boolean flgPubblicaAllegatiSeparati;	
 	private List<AllegatoProtocolloBean> listaAllegati; // colonne: le stesse degli allegati in Protocollo
 	
@@ -2715,6 +2728,14 @@ public class NuovaPropostaAtto2CompletaBean {
 	public void setFlgFondiPNRRRigen(Boolean flgFondiPNRRRigen) {
 		this.flgFondiPNRRRigen = flgFondiPNRRRigen;
 	}
+	
+	public Boolean getFlgLiquidazioneMAASPNC() {
+		return flgLiquidazioneMAASPNC;
+	}
+
+	public void setFlgLiquidazioneMAASPNC(Boolean flgLiquidazioneMAASPNC) {
+		this.flgLiquidazioneMAASPNC = flgLiquidazioneMAASPNC;
+	}
 
 	public Boolean getFlgFondiPRU() {
 		return flgFondiPRU;
@@ -2922,6 +2943,70 @@ public class NuovaPropostaAtto2CompletaBean {
 
 	public void setListaDestVantaggio(List<DestVantaggioBean> listaDestVantaggio) {
 		this.listaDestVantaggio = listaDestVantaggio;
+	}
+
+	public String getNormaAttribuzione() {
+		return normaAttribuzione;
+	}
+
+	public void setNormaAttribuzione(String normaAttribuzione) {
+		this.normaAttribuzione = normaAttribuzione;
+	}
+
+	public String getDesNormaAttribuzione() {
+		return desNormaAttribuzione;
+	}
+
+	public void setDesNormaAttribuzione(String desNormaAttribuzione) {
+		this.desNormaAttribuzione = desNormaAttribuzione;
+	}
+
+	public String getRespProcAttribuzione() {
+		return respProcAttribuzione;
+	}
+
+	public void setRespProcAttribuzione(String respProcAttribuzione) {
+		this.respProcAttribuzione = respProcAttribuzione;
+	}
+
+	public String getCodUoRespProcAttribuzione() {
+		return codUoRespProcAttribuzione;
+	}
+
+	public void setCodUoRespProcAttribuzione(String codUoRespProcAttribuzione) {
+		this.codUoRespProcAttribuzione = codUoRespProcAttribuzione;
+	}
+
+	public String getDesRespProcAttribuzione() {
+		return desRespProcAttribuzione;
+	}
+
+	public void setDesRespProcAttribuzione(String desRespProcAttribuzione) {
+		this.desRespProcAttribuzione = desRespProcAttribuzione;
+	}
+
+	public String getUffRespProcAttribuzione() {
+		return uffRespProcAttribuzione;
+	}
+
+	public void setUffRespProcAttribuzione(String uffRespProcAttribuzione) {
+		this.uffRespProcAttribuzione = uffRespProcAttribuzione;
+	}
+
+	public String getModalitaAttribuzione() {
+		return modalitaAttribuzione;
+	}
+
+	public void setModalitaAttribuzione(String modalitaAttribuzione) {
+		this.modalitaAttribuzione = modalitaAttribuzione;
+	}
+
+	public String getDesModalitaAttribuzione() {
+		return desModalitaAttribuzione;
+	}
+
+	public void setDesModalitaAttribuzione(String desModalitaAttribuzione) {
+		this.desModalitaAttribuzione = desModalitaAttribuzione;
 	}
 
 	public Boolean getFlgAdottanteUnicoRespPEG() {
@@ -3282,6 +3367,14 @@ public class NuovaPropostaAtto2CompletaBean {
 	
 	public void setDispositivo2File(String dispositivo2File) {
 		this.dispositivo2File = dispositivo2File;
+	}
+
+	public Boolean getFlgPubblicazioneAllegatiUguale() {
+		return flgPubblicazioneAllegatiUguale;
+	}
+
+	public void setFlgPubblicazioneAllegatiUguale(Boolean flgPubblicazioneAllegatiUguale) {
+		this.flgPubblicazioneAllegatiUguale = flgPubblicazioneAllegatiUguale;
 	}
 
 	public Boolean getFlgPubblicaAllegatiSeparati() {

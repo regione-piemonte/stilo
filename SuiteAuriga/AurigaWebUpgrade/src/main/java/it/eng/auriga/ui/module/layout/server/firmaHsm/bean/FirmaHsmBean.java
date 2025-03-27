@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.firmaHsm.bean;
 
 import java.io.Serializable;
 import java.util.List;
@@ -34,7 +35,12 @@ public class FirmaHsmBean implements Serializable {
 	private Boolean parametriHSMFromGui;
 	private String providerHsmFromPreference;
 	private Boolean useExternalWS = false;
-
+	private String authPIN;
+	
+	//parametri per sigillo LambaService
+	private String key;
+	private String secret;
+	
 	private boolean esitoOk;
 	private String errorMessage;
 
@@ -203,6 +209,30 @@ public class FirmaHsmBean implements Serializable {
 
 	public void setUseExternalWS(Boolean useExternalWS) {
 		this.useExternalWS = useExternalWS;
+	}
+
+	public String getAuthPIN() {
+		return authPIN;
+	}
+
+	public void setAuthPIN(String authPIN) {
+		this.authPIN = authPIN;
+	}
+	
+	public String getKey() {
+		return key;
+	}
+
+	public void setKey(String key) {
+		this.key = key;
+	}
+
+	public String getSecret() {
+		return secret;
+	}
+
+	public void setSecret(String secret) {
+		this.secret = secret;
 	}
 
 	public boolean isEsitoOk() {

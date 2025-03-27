@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.organigramma;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -2071,7 +2072,7 @@ public class OrganigrammaDetail extends CustomDetail {
 		flgPuntoRaccoltaDocumenti.setShowIfCondition(new FormItemIfFunction() {
 			@Override
 			public boolean execute(FormItem arg0, Object arg1, DynamicForm arg2) {
-				return !OrganigrammaLayout.isAttivoGestionePuntiProtocollo();
+				return OrganigrammaLayout.isAttiveRestrizioniAssNotDoc();
 			}
 		});
 				

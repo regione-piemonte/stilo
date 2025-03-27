@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.organigramma;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -148,8 +149,6 @@ public class PostazioneDetail extends CustomDetail {
 	private SpacerItem spacer2Item;
 	private SpacerItem spacerFlgRiservatezzaRelUserUoItem;
 	private SpacerItem spacerFlgRiservatezzaRelUserUoNewItem;
-	
-	
 	
 	// HiddenItem
 	private HiddenItem ciRelUserUoItem;
@@ -336,9 +335,9 @@ public class PostazioneDetail extends CustomDetail {
 			public void onChanged(ChangedEvent event) {
 				formUtenteCorrente.setValue("nomePostazione", ""); nomePostazioneItem.setValue("");
 				formUtenteCorrente.setValue("ruolo", "");selezionaRuoloItem.setValue("");
-				// ottavio
-				//updateFlgUtenteCorrente(event.getItem().getValue());
-				updateFlgUtenteCorrente();
+				
+				updateFlgUtenteCorrente_onChangeTipoAssegnazione();
+				
 				formUtenteCorrente.markForRedraw();
 			}
 		});
@@ -378,12 +377,12 @@ public class PostazioneDetail extends CustomDetail {
 		selezionaRuoloItem.setColSpan(15);
 		selezionaRuoloItem.setAllowEmptyValue(true);
 		selezionaRuoloItem.setStartRow(true);
-		selezionaRuoloItem.setShowIfCondition(new FormItemIfFunction() {
-			@Override
-			public boolean execute(FormItem item, Object value, DynamicForm form) {
-				return (!isTipoDiAssegnazioneL());
-			}
-		});
+//		selezionaRuoloItem.setShowIfCondition(new FormItemIfFunction() {
+//			@Override
+//			public boolean execute(FormItem item, Object value, DynamicForm form) {
+//				return (!isTipoDiAssegnazioneL());
+//			}
+//		});
 		
 		// accesso limitato doc. assegnata personalmente
 		flgAccessoDocLimSVItem = new CheckboxItem("flgAccessoDocLimSV", I18NUtil.getMessages().gestioneutenti_uoAssociateUtente_flgAccessoDocLimSVItem_title());
@@ -876,9 +875,9 @@ public class PostazioneDetail extends CustomDetail {
 			@Override
 			public void onChanged(ChangedEvent event) {
 				formUtenteDaSostituireCon.setValue("ruoloNew", "");selezionaRuoloNewItem.setValue("");
-				// ottavio
-				//updateFlgUtenteCorrenteNew(event.getItem().getValue());
-				updateFlgUtenteCorrenteNew();
+				
+				updateFlgUtenteCorrenteNew_onChangeTipoAssegnazione();
+				
 				formUtenteDaSostituireCon.markForRedraw();
 			}
 		});
@@ -1437,9 +1436,7 @@ public class PostazioneDetail extends CustomDetail {
 		if (isSostituzione) {
 			if (tipoDiAssegnazioneNewSelectItem!=null){
 				if (tipoDiAssegnazioneNewSelectItem !=null) {
-					// ottavio
-					//updateFlgUtenteCorrenteNew(tipoDiAssegnazioneNewSelectItem.getValue());
-					updateFlgUtenteCorrenteNew();
+					updateFlgUtenteCorrenteNew_onChangeTipoAssegnazione();
 				}
 			}
 		}
@@ -1460,9 +1457,7 @@ public class PostazioneDetail extends CustomDetail {
 					RecordList data = response.getDataAsRecordList();
 					if (data.getLength() > 0) {
 						Record record = data.get(0);
-						// ottavio
-						//updateFlgUtenteCorrente(record.getAttribute("key"));
-						updateFlgUtenteCorrente();
+						updateFlgUtenteCorrente_onChangeTipoAssegnazione();
 					}
 				}
 			});
@@ -2097,18 +2092,44 @@ public class PostazioneDetail extends CustomDetail {
 	}
 	
 	/*
-	private void updateFlgUtenteCorrenteNew(Object tipoDiAssegnazione){
+	private void updateFlgUtenteCorrenteNew(){
 		
-		if (tipoDiAssegnazione != null && !tipoDiAssegnazione.equals("")){
-			
-			// Se "A" (Appartenenza gerarchica) o "D" (Funzionale/delega)
-			if (tipoDiAssegnazione.equals("A") || tipoDiAssegnazione.equals("D")){
+			// Se il cliente e' A2A
+			if (AurigaLayout.isAttivoClienteA2A()) {
+				// Il check "registrazione in entrata" va preimpostato prendendo il valore dalla UO
+				if (isUoAbilRegistrazioneE()){
+					flgRegistrazioneENewItem.setValue(true);
+					formUtenteDaSostituireCon.setValue("flgRegistrazioneENew", true);
+						
+				}
+				else{
+					flgRegistrazioneENewItem.setValue(false);
+					formUtenteDaSostituireCon.setValue("flgRegistrazioneENew", false);
+				}
 				
+				// Il check "registrazione in uscita" va preimpostato prendendo il valore dalla UO solo se quest'ultimo è 1, 
+				// altrimenti si considera il parametro che indica il default (ovvero se la colonna della UO è 0 ma parametro DEFAULT_REL_UO_USER_REGIU = true il  flag "registrazione in uscita/interna" si spunta comunque)
+				if (isUoAbilRegistrazioneU()){
+					flgRegistrazioneUINewItem.setValue(true);
+					formUtenteDaSostituireCon.setValue("flgRegistrazioneUINew", true);	
+				}
+				else{
+					if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGIU")) {
+						flgRegistrazioneUINewItem.setValue(true);
+						formUtenteDaSostituireCon.setValue("flgRegistrazioneUINew", true);
+					}
+					else{
+						flgRegistrazioneUINewItem.setValue(false);
+						formUtenteDaSostituireCon.setValue("flgRegistrazioneUINew", false);
+					}
+				}
+			}
+			else{
 				// Se il parametro DB DEFAULT_REL_UO_USER_REGE = true
 				if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGE")) {
 					// Il check "registrazione in entrata" va preimpostato a spuntato
 					flgRegistrazioneENewItem.setValue(true);
-					formUtenteDaSostituireCon.setValue("flgRegistrazioneENew",      "true");  
+					formUtenteDaSostituireCon.setValue("flgRegistrazioneENew", true);  
 				}
 				
 				// Se il parametro DB DEFAULT_REL_UO_USER_REGE = true
@@ -2117,44 +2138,311 @@ public class PostazioneDetail extends CustomDetail {
 					flgRegistrazioneUINewItem.setValue(true);
 					formUtenteDaSostituireCon.setValue("flgRegistrazioneUINew", true);
 				}
+			}
 				
-				// Se il parametro DB DEFAULT_REL_UO_USER_GEST_ATTI = true
-				if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_GEST_ATTI")) {
-					// Il check "avvio/gestione atti proposti" va preimpostato a spuntato
-					flgGestAttiNewItem.setValue(true);
-					formUtenteDaSostituireCon.setValue("flgGestAttiNew", true);
 					
-					// setto il flag flgVisPropAttiInIterItem e lo disabilito
-					flgVisPropAttiInIterNewItem.setValue(true);
-					formUtenteDaSostituireCon.setValue("flgVisPropAttiInIterNew", true);
-					
-					flgVisPropAttiInIterItem.setCanEdit(false);
+			// Se il parametro DB DEFAULT_REL_UO_USER_GEST_ATTI = true
+			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_GEST_ATTI")) {
+				// Il check "avvio/gestione atti proposti" va preimpostato a spuntato
+				flgGestAttiNewItem.setValue(true);
+				formUtenteDaSostituireCon.setValue("flgGestAttiNew", true);
+				
+				// in questo caso forzo il flag flgVisPropAttiInIterItem e lo disabilito
+				flgVisPropAttiInIterNewItem.setValue(true);
+				formUtenteDaSostituireCon.setValue("flgVisPropAttiInIterNew", true);
+				
+				flgVisPropAttiInIterNewItem.setCanEdit(false);
+				
+			}
+	
+			
+			if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_ABIL_TIPI_ATTI_IN_REL_USER_UO")) {
+				if(flgGestAttiTuttiItem.getValueAsBoolean() && (flgGestAttiTuttiNewItem.getValueAsBoolean() == null || !flgGestAttiTuttiNewItem.getValueAsBoolean())) {
+					flgGestAttiTuttiNewItem.setValue(true);
+					formUtenteDaSostituireCon.setValue("flgGestAttiTuttiNew", true);
+					listaTipiGestAttiSelezionatiNewItem.clearValue();
+					selezionaTipiGestAttiNewButton.hide();
+				} else if(flgGestAttiTuttiNewItem.getValueAsBoolean() != null && flgGestAttiTuttiNewItem.getValueAsBoolean()) {
+					flgGestAttiTuttiNewItem.setValue(true);
+					formUtenteDaSostituireCon.setValue("flgGestAttiTuttiNew", true);
+					listaTipiGestAttiSelezionatiNewItem.clearValue();
+					selezionaTipiGestAttiNewButton.hide();
+				} else {
+					flgGestAttiTuttiNewItem.setValue(false);
+					formUtenteDaSostituireCon.setValue("flgGestAttiTuttiNew", false);
+					listaTipiGestAttiSelezionatiNewItem.setValue(formUtenteDaSostituireCon.getValueAsString("listaTipiGestAttiSelezionatiNew") != null 
+							&& !"".equals(formUtenteDaSostituireCon.getValueAsString("listaTipiGestAttiSelezionatiNew")) ? formUtenteDaSostituireCon.getValueAsString("listaTipiGestAttiSelezionatiNew") : formUtenteCorrente.getValueAsString("listaTipiGestAttiSelezionati"));
+					formUtenteDaSostituireCon.setValue("listaTipiGestAttiSelezionatiNew", formUtenteDaSostituireCon.getValueAsString("listaTipiGestAttiSelezionatiNew") != null 
+							&& !"".equals(formUtenteDaSostituireCon.getValueAsString("listaTipiGestAttiSelezionatiNew")) ? formUtenteDaSostituireCon.getValueAsString("listaTipiGestAttiSelezionatiNew") : formUtenteCorrente.getValueAsString("listaTipiGestAttiSelezionati"));
 				}
-
-				// Se il parametro DB DEFAULT_REL_UO_USER_GEST_ATTI = true
-				if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_GEST_ATTI")) {
-					// Il check "visualizzazione atti proposti" va preimpostato a spuntato
-					flgVisPropAttiInIterNewItem.setValue(true);
-					formUtenteDaSostituireCon.setValue("flgVisPropAttiInIterNew", true);
+				if(flgVisPropAttiInIterTuttiItem.getValueAsBoolean() && (flgVisPropAttiInIterTuttiNewItem.getValueAsBoolean() == null || !flgVisPropAttiInIterTuttiNewItem.getValueAsBoolean())) {
+					flgVisPropAttiInIterTuttiNewItem.setValue(true);
+					formUtenteDaSostituireCon.setValue("flgVisPropAttiInIterTuttiNew", true);
+					listaTipiVisPropAttiInIterSelezionatiNewItem.clearValue();
+					selezionaTipiVisPropAttiInIterNewButton.hide();
+				} else if (flgVisPropAttiInIterTuttiNewItem.getValueAsBoolean() != null && flgVisPropAttiInIterTuttiNewItem.getValueAsBoolean()) {
+					flgVisPropAttiInIterTuttiNewItem.setValue(true);
+					formUtenteDaSostituireCon.setValue("flgVisPropAttiInIterTuttiNew", true);
+					listaTipiVisPropAttiInIterSelezionatiNewItem.clearValue();
+					selezionaTipiVisPropAttiInIterNewButton.hide();
+				} else {
+					flgVisPropAttiInIterTuttiNewItem.setValue(false);
+					formUtenteDaSostituireCon.setValue("flgVisPropAttiInIterTuttiNew", false);
+					listaTipiVisPropAttiInIterSelezionatiNewItem.setValue(formUtenteDaSostituireCon.getValueAsString("listaTipiVisPropAttiInIterSelezionatiNew") != null 
+							&& !"".equals(formUtenteDaSostituireCon.getValueAsString("listaTipiVisPropAttiInIterSelezionatiNew")) ? formUtenteDaSostituireCon.getValueAsString("listaTipiVisPropAttiInIterSelezionatiNew") : formUtenteCorrente.getValueAsString("listaTipiVisPropAttiInIterSelezionati"));
+					formUtenteDaSostituireCon.setValue("listaTipiVisPropAttiInIterSelezionatiNew", formUtenteDaSostituireCon.getValueAsString("listaTipiVisPropAttiInIterSelezionatiNew") != null 
+							&& !"".equals(formUtenteDaSostituireCon.getValueAsString("listaTipiVisPropAttiInIterSelezionatiNew")) ? formUtenteDaSostituireCon.getValueAsString("listaTipiVisPropAttiInIterSelezionatiNew") : formUtenteCorrente.getValueAsString("listaTipiVisPropAttiInIterSelezionati"));
 				}
 			}
 			
-			// Se "L" (postazione ombra)
-			if (tipoDiAssegnazione.equals("L")){
+			// Se il parametro DB DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS = true
+			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS")) {
+				// Il check "accesso limitato doc. assegnata personalmente" va preimpostato a spuntato
+				flgAccessoDocLimSVNewItem.setValue(true);
+				formUtenteDaSostituireCon.setValue("flgAccessoDocLimSVNew", true);
+			}
+			
+		
+	}
+
+
+	
+	
+	private void updateFlgUtenteCorrente(){
+		
+		
+		
+			// Se il cliente e' A2A
+			if (AurigaLayout.isAttivoClienteA2A()) {
+				// Il check "registrazione in entrata" va preimpostato prendendo il valore dalla UO
+				if (isUoAbilRegistrazioneE()){
+					flgRegistrazioneEItem.setValue(true);
+					formUtenteCorrente.setValue("flgRegistrazioneE", true);
+				}
+				else{
+					flgRegistrazioneEItem.setValue(false);
+					formUtenteCorrente.setValue("flgRegistrazioneE", false);
+				}
+								
+				// Il check "registrazione in uscita" va preimpostato prendendo il valore dalla UO solo se quest'ultimo è 1, 
+				// altrimenti si considera il parametro che indica il default (ovvero se la colonna della UO è 0 ma parametro DEFAULT_REL_UO_USER_REGIU = true il  flag "registrazione in uscita/interna" si spunta comunque)
+				if (isUoAbilRegistrazioneU()){
+					flgRegistrazioneUIItem.setValue(true);
+					formUtenteCorrente.setValue("flgRegistrazioneUI", true);	
+				}
+				else{
+					if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGIU")) {
+						flgRegistrazioneUIItem.setValue(true);
+						formUtenteCorrente.setValue("flgRegistrazioneUI", true);
+					}
+					else{
+						flgRegistrazioneUIItem.setValue(false);
+						formUtenteCorrente.setValue("flgRegistrazioneUI", false);
+					}
+				}
+			}
+			else{
+				// Se il parametro DB DEFAULT_REL_UO_USER_REGE = true
+				if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGE")) {
+					// Il check "registrazione in entrata" va preimpostato a spuntato
+					flgRegistrazioneEItem.setValue(true);
+					formUtenteCorrente.setValue("flgRegistrazioneE",      "true");  
+				}
 				
-				// Se il parametro DB DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS = true
-				if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS")) {
-					// Il check "accesso limitato doc. assegnata personalmente" va preimpostato a spuntato
-					flgAccessoDocLimSVNewItem.setValue(true);
-					formUtenteDaSostituireCon.setValue("flgAccessoDocLimSVNew", true);
+				// Se il parametro DB DEFAULT_REL_UO_USER_REGIU = true
+				if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGIU")) {
+					// Il check "registrazione in uscita/interna" va preimpostato a spuntato
+					flgRegistrazioneUIItem.setValue(true);
+					formUtenteCorrente.setValue("flgRegistrazioneUI", true);
+				}
+			}
+	
+			
+			// Se il parametro DB DEFAULT_REL_UO_USER_GEST_ATTI = true
+			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_GEST_ATTI")) {
+				// Il check "avvio/gestione atti proposti" va preimpostato a spuntato
+				flgGestAttiItem.setValue(true);
+				formUtenteCorrente.setValue("flgGestAtti", true);							
+				
+				// in queesto caso forzo il flag flgVisPropAttiInIterItem e lo disabilito
+				flgVisPropAttiInIterItem.setValue(true);
+				formUtenteCorrente.setValue("flgVisPropAttiInIter", true);
+
+				flgVisPropAttiInIterItem.setCanEdit(false);
+				
+			}
+	
+			if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_ABIL_TIPI_ATTI_IN_REL_USER_UO")) {
+				if(flgGestAttiItem.getValueAsBoolean()) {
+					flgGestAttiTuttiItem.setValue(true);
+					flgGestAttiTuttiItem.show();
+					formUtenteCorrente.setValue("flgGestAttiTutti", true);
+					listaTipiGestAttiSelezionatiItem.clearValue();
+					selezionaTipiGestAttiButton.hide();
+				} else {
+					flgGestAttiTuttiItem.setValue(false);
+					flgGestAttiTuttiItem.hide();
+					formUtenteCorrente.setValue("flgGestAttiTutti", false);
+					listaTipiGestAttiSelezionatiItem.setValue(formUtenteCorrente.getValueAsString("listaTipiGestAttiSelezionati"));
+					formUtenteCorrente.setValue("listaTipiGestAttiSelezionati", formUtenteCorrente.getValueAsString("listaTipiGestAttiSelezionati"));
+				}
+				if(flgVisPropAttiInIterItem.getValueAsBoolean()) {
+					flgVisPropAttiInIterTuttiItem.setValue(true);
+					flgVisPropAttiInIterTuttiItem.show();
+					formUtenteCorrente.setValue("flgVisPropAttiInIterTutti", true);
+					listaTipiVisPropAttiInIterSelezionatiItem.clearValue();
+					selezionaTipiVisPropAttiInIterButton.hide();
+				} else {
+					flgVisPropAttiInIterTuttiItem.setValue(false);
+					flgVisPropAttiInIterTuttiItem.hide();
+					formUtenteCorrente.setValue("flgVisPropAttiInIterTutti", false);
+					listaTipiVisPropAttiInIterSelezionatiItem.setValue(formUtenteCorrente.getValueAsString("listaTipiVisPropAttiInIterSelezionati"));
+					formUtenteCorrente.setValue("listaTipiVisPropAttiInIterSelezionati", formUtenteCorrente.getValueAsString("listaTipiVisPropAttiInIterSelezionati"));
+				}
+			}
+		
+			// Se il parametro DB DEFAULT_REL_UO_USER_VIS_ATTI = true
+			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_VIS_ATTI")) {
+				// Il check "visualizzazione atti proposti" va preimpostato a spuntato
+				flgVisPropAttiInIterItem.setValue(true);
+				formUtenteCorrente.setValue("flgVisPropAttiInIter", true);
+
+				if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_ABIL_TIPI_ATTI_IN_REL_USER_UO")) {
+					if(flgVisPropAttiInIterItem.getValueAsBoolean() != null && flgVisPropAttiInIterItem.getValueAsBoolean()) {
+						flgVisPropAttiInIterTuttiItem.setValue(true);
+						formUtenteCorrente.setValue("flgVisPropAttiInIterTutti", true);
+					}
+				}
+			}
+			
+			// Se il parametro DB DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS = true
+			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS")) {
+				// Il check "accesso limitato doc. assegnata personalmente" va preimpostato a spuntato
+				flgAccessoDocLimSVItem.setValue(true);
+				formUtenteCorrente.setValue("flgAccessoDocLimSV", true);
+			}			
+	}
+	
+	*/	
+	
+	private void updateFlgUtenteCorrente_onChangeTipoAssegnazione(){
+		
+		// Se il cliente e' A2A
+		if (AurigaLayout.isAttivoClienteA2A()) {
+			// Il check "registrazione in entrata" va preimpostato prendendo il valore dalla UO
+			if (isUoAbilRegistrazioneE()){
+				flgRegistrazioneEItem.setValue(true);
+				formUtenteCorrente.setValue("flgRegistrazioneE", true);
+			}
+			else{
+				flgRegistrazioneEItem.setValue(false);
+				formUtenteCorrente.setValue("flgRegistrazioneE", false);
+			}
+							
+			// Il check "registrazione in uscita" va preimpostato prendendo il valore dalla UO solo se quest'ultimo Ã¨ 1, 
+			// altrimenti si considera il parametro che indica il default (ovvero se la colonna della UO Ã¨ 0 ma parametroÂ DEFAULT_REL_UO_USER_REGIU = true ilÂ  flagÂ "registrazione in uscita/interna" si spunta comunque)
+			if (isUoAbilRegistrazioneU()){
+				flgRegistrazioneUIItem.setValue(true);
+				formUtenteCorrente.setValue("flgRegistrazioneUI", true);	
+			}
+			else{
+				if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGIU")) {
+					flgRegistrazioneUIItem.setValue(true);
+					formUtenteCorrente.setValue("flgRegistrazioneUI", true);
+				}
+				else{
+					flgRegistrazioneUIItem.setValue(false);
+					formUtenteCorrente.setValue("flgRegistrazioneUI", false);
+				}
+			}
+		} 
+		else{
+			// Se il parametro DB DEFAULT_REL_UO_USER_REGE = true
+			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGE")) {
+				// Il check "registrazione in entrata" va preimpostato a spuntato
+				flgRegistrazioneEItem.setValue(true);
+				formUtenteCorrente.setValue("flgRegistrazioneE",      "true");  
+			}
+			
+			// Se il parametro DB DEFAULT_REL_UO_USER_REGIU = true
+			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGIU")) {
+				// Il check "registrazione in uscita/interna" va preimpostato a spuntato
+				flgRegistrazioneUIItem.setValue(true);
+				formUtenteCorrente.setValue("flgRegistrazioneUI", true);
+			}
+		}
+		
+		// Se il parametro DB DEFAULT_REL_UO_USER_GEST_ATTI = true
+		if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_GEST_ATTI")) {
+			// Il check "avvio/gestione atti proposti" va preimpostato a spuntato
+			flgGestAttiItem.setValue(true);
+			formUtenteCorrente.setValue("flgGestAtti", true);							
+			
+			// in queesto caso forzo il flag flgVisPropAttiInIterItem e lo disabilito
+			flgVisPropAttiInIterItem.setValue(true);
+			formUtenteCorrente.setValue("flgVisPropAttiInIter", true);
+
+			flgVisPropAttiInIterItem.setCanEdit(false);
+			
+		}
+
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_ABIL_TIPI_ATTI_IN_REL_USER_UO")) {
+			if(flgGestAttiItem.getValueAsBoolean()) {
+				flgGestAttiTuttiItem.setValue(true);
+				flgGestAttiTuttiItem.show();
+				formUtenteCorrente.setValue("flgGestAttiTutti", true);
+				listaTipiGestAttiSelezionatiItem.clearValue();
+				selezionaTipiGestAttiButton.hide();
+			} else {
+				flgGestAttiTuttiItem.setValue(false);
+				flgGestAttiTuttiItem.hide();
+				formUtenteCorrente.setValue("flgGestAttiTutti", false);
+				listaTipiGestAttiSelezionatiItem.setValue(formUtenteCorrente.getValueAsString("listaTipiGestAttiSelezionati"));
+				formUtenteCorrente.setValue("listaTipiGestAttiSelezionati", formUtenteCorrente.getValueAsString("listaTipiGestAttiSelezionati"));
+			}
+			if(flgVisPropAttiInIterItem.getValueAsBoolean()) {
+				flgVisPropAttiInIterTuttiItem.setValue(true);
+				flgVisPropAttiInIterTuttiItem.show();
+				formUtenteCorrente.setValue("flgVisPropAttiInIterTutti", true);
+				listaTipiVisPropAttiInIterSelezionatiItem.clearValue();
+				selezionaTipiVisPropAttiInIterButton.hide();
+			} else {
+				flgVisPropAttiInIterTuttiItem.setValue(false);
+				flgVisPropAttiInIterTuttiItem.hide();
+				formUtenteCorrente.setValue("flgVisPropAttiInIterTutti", false);
+				listaTipiVisPropAttiInIterSelezionatiItem.setValue(formUtenteCorrente.getValueAsString("listaTipiVisPropAttiInIterSelezionati"));
+				formUtenteCorrente.setValue("listaTipiVisPropAttiInIterSelezionati", formUtenteCorrente.getValueAsString("listaTipiVisPropAttiInIterSelezionati"));
+			}
+		}
+	
+		// Se il parametro DB DEFAULT_REL_UO_USER_VIS_ATTI = true
+		if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_VIS_ATTI")) {
+			// Il check "visualizzazione atti proposti" va preimpostato a spuntato
+			flgVisPropAttiInIterItem.setValue(true);
+			formUtenteCorrente.setValue("flgVisPropAttiInIter", true);
+
+			if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_ABIL_TIPI_ATTI_IN_REL_USER_UO")) {
+				if(flgVisPropAttiInIterItem.getValueAsBoolean() != null && flgVisPropAttiInIterItem.getValueAsBoolean()) {
+					flgVisPropAttiInIterTuttiItem.setValue(true);
+					formUtenteCorrente.setValue("flgVisPropAttiInIterTutti", true);
 				}
 			}
 		}
+		
+		// Se il valore selezionato e' "Postazione ombra" (L) allora setto il valore del parametro DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS
+		if(isTipoDiAssegnazioneL()) {
+			// Se il parametro DB DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS = true
+			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS")) {
+				// Il check "accesso limitato doc. assegnata personalmente" va preimpostato a spuntato
+				flgAccessoDocLimSVItem.setValue(true);
+				formUtenteCorrente.setValue("flgAccessoDocLimSV", true);
+			}
+		}
 	}
-	*/
 	
-	// ottavio
-	private void updateFlgUtenteCorrenteNew(){
+	private void updateFlgUtenteCorrenteNew_onChangeTipoAssegnazione(){
+		
+		
 		
 		// Se il cliente e' A2A
 		if (AurigaLayout.isAttivoClienteA2A()) {
@@ -2169,8 +2457,8 @@ public class PostazioneDetail extends CustomDetail {
 				formUtenteDaSostituireCon.setValue("flgRegistrazioneENew", false);
 			}
 			
-			// Il check "registrazione in uscita" va preimpostato prendendo il valore dalla UO solo se quest'ultimo è 1, 
-			// altrimenti si considera il parametro che indica il default (ovvero se la colonna della UO è 0 ma parametro DEFAULT_REL_UO_USER_REGIU = true il  flag "registrazione in uscita/interna" si spunta comunque)
+			// Il check "registrazione in uscita" va preimpostato prendendo il valore dalla UO solo se quest'ultimo Ã¨ 1, 
+			// altrimenti si considera il parametro che indica il default (ovvero se la colonna della UO Ã¨ 0 ma parametroÂ DEFAULT_REL_UO_USER_REGIU = true ilÂ  flagÂ "registrazione in uscita/interna" si spunta comunque)
 			if (isUoAbilRegistrazioneU()){
 				flgRegistrazioneUINewItem.setValue(true);
 				formUtenteDaSostituireCon.setValue("flgRegistrazioneUINew", true);	
@@ -2201,15 +2489,14 @@ public class PostazioneDetail extends CustomDetail {
 				formUtenteDaSostituireCon.setValue("flgRegistrazioneUINew", true);
 			}
 		}
-			
-				
+		
 		// Se il parametro DB DEFAULT_REL_UO_USER_GEST_ATTI = true
 		if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_GEST_ATTI")) {
 			// Il check "avvio/gestione atti proposti" va preimpostato a spuntato
 			flgGestAttiNewItem.setValue(true);
 			formUtenteDaSostituireCon.setValue("flgGestAttiNew", true);
 			
-			// setto il flag flgVisPropAttiInIterItem e lo disabilito
+			// in questo caso forzo il flag flgVisPropAttiInIterItem e lo disabilito
 			flgVisPropAttiInIterNewItem.setValue(true);
 			formUtenteDaSostituireCon.setValue("flgVisPropAttiInIterNew", true);
 			
@@ -2217,21 +2504,7 @@ public class PostazioneDetail extends CustomDetail {
 			
 		}
 
-		// Se il parametro DB DEFAULT_REL_UO_USER_GEST_ATTI = true
-		if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_GEST_ATTI")) {
-			// Il check "visualizzazione atti proposti" va preimpostato a spuntato
-			flgVisPropAttiInIterNewItem.setValue(true);
-			formUtenteDaSostituireCon.setValue("flgVisPropAttiInIterNew", true);
-			
-		}
-	
-		// Se il parametro DB DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS = true
-		if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS")) {
-			// Il check "accesso limitato doc. assegnata personalmente" va preimpostato a spuntato
-			flgAccessoDocLimSVNewItem.setValue(true);
-			formUtenteDaSostituireCon.setValue("flgAccessoDocLimSVNew", true);
-		}
-			
+		
 		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_ABIL_TIPI_ATTI_IN_REL_USER_UO")) {
 			if(flgGestAttiTuttiItem.getValueAsBoolean() && (flgGestAttiTuttiNewItem.getValueAsBoolean() == null || !flgGestAttiTuttiNewItem.getValueAsBoolean())) {
 				flgGestAttiTuttiNewItem.setValue(true);
@@ -2271,172 +2544,17 @@ public class PostazioneDetail extends CustomDetail {
 			}
 		}
 		
-	}
-
-	/*
-	private void updateFlgUtenteCorrente(Object tipoDiAssegnazione){
-	
-		if (tipoDiAssegnazione != null && !tipoDiAssegnazione.equals("")){
+		// Se il valore selezionato e' "Postazione ombra" (L) allora setto il valore del parametro DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS
+		if(isTipoDiAssegnazioneNewL()) {
+			// Se il parametro DB DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS = true
+			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS")) {
+				// Il check "accesso limitato doc. assegnata personalmente" va preimpostato a spuntato
+				flgAccessoDocLimSVNewItem.setValue(true);
+				formUtenteDaSostituireCon.setValue("flgAccessoDocLimSVNew", true);
+			}
+		}
 		
-			// Se "A" (Appartenenza gerarchica) o "D" (Funzionale/delega)
-			if (tipoDiAssegnazione.equals("A") || tipoDiAssegnazione.equals("D")){
-			
-				// Se il parametro DB DEFAULT_REL_UO_USER_REGE = true
-				if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGE")) {
-					// Il check "registrazione in entrata" va preimpostato a spuntato
-					flgRegistrazioneEItem.setValue(true);
-					formUtenteCorrente.setValue("flgRegistrazioneE",      "true");  
-				}
-			
-				// Se il parametro DB DEFAULT_REL_UO_USER_REGIU = true
-				if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGIU")) {
-					// Il check "registrazione in uscita/interna" va preimpostato a spuntato
-					flgRegistrazioneUIItem.setValue(true);
-					formUtenteCorrente.setValue("flgRegistrazioneUI", true);
-				}
 		
-				// Se il parametro DB DEFAULT_REL_UO_USER_GEST_ATTI = true
-				if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_GEST_ATTI")) {
-					// Il check "avvio/gestione atti proposti" va preimpostato a spuntato
-					flgGestAttiItem.setValue(true);
-					formUtenteCorrente.setValue("flgGestAtti", true);
-				
-					// setto il flag flgVisPropAttiInIterItem e lo disabilito
-					flgVisPropAttiInIterItem.setValue(true);
-					formUtenteCorrente.setValue("flgVisPropAttiInIter", true);
-				
-					flgVisPropAttiInIterItem.setCanEdit(false);
-				}
-
-				// Se il parametro DB DEFAULT_REL_UO_USER_GEST_ATTI = true
-				if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_GEST_ATTI")) {
-					// Il check "visualizzazione atti proposti" va preimpostato a spuntato
-					flgVisPropAttiInIterItem.setValue(true);
-					formUtenteCorrente.setValue("flgVisPropAttiInIter", true);
-				}
-			}
-		
-			// Se "L" (postazione ombra)
-			if (tipoDiAssegnazione.equals("L")){
-				
-				// Se il parametro DB DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS = true
-				if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS")) {
-					// Il check "accesso limitato doc. assegnata personalmente" va preimpostato a spuntato
-					flgAccessoDocLimSVItem.setValue(true);
-					formUtenteCorrente.setValue("flgAccessoDocLimSV", true);
-				}
-			}
-		}
-	}
-	
-	*/
-	
-	// ottavio
-	private void updateFlgUtenteCorrente(){
-		
-		// Se il cliente e' A2A
-		if (AurigaLayout.isAttivoClienteA2A()) {
-			// Il check "registrazione in entrata" va preimpostato prendendo il valore dalla UO
-			if (isUoAbilRegistrazioneE()){
-				flgRegistrazioneEItem.setValue(true);
-				formUtenteCorrente.setValue("flgRegistrazioneE", true);
-			}
-			else{
-				flgRegistrazioneEItem.setValue(false);
-				formUtenteCorrente.setValue("flgRegistrazioneE", false);
-			}
-							
-			// Il check "registrazione in uscita" va preimpostato prendendo il valore dalla UO solo se quest'ultimo è 1, 
-			// altrimenti si considera il parametro che indica il default (ovvero se la colonna della UO è 0 ma parametro DEFAULT_REL_UO_USER_REGIU = true il  flag "registrazione in uscita/interna" si spunta comunque)
-			if (isUoAbilRegistrazioneU()){
-				flgRegistrazioneUIItem.setValue(true);
-				formUtenteCorrente.setValue("flgRegistrazioneUI", true);	
-			}
-			else{
-				if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGIU")) {
-					flgRegistrazioneUIItem.setValue(true);
-					formUtenteCorrente.setValue("flgRegistrazioneUI", true);
-				}
-				else{
-					flgRegistrazioneUIItem.setValue(false);
-					formUtenteCorrente.setValue("flgRegistrazioneUI", false);
-				}
-			}
-		}
-		else{
-			// Se il parametro DB DEFAULT_REL_UO_USER_REGE = true
-			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGE")) {
-				// Il check "registrazione in entrata" va preimpostato a spuntato
-				flgRegistrazioneEItem.setValue(true);
-				formUtenteCorrente.setValue("flgRegistrazioneE",      "true");  
-			}
-			
-			// Se il parametro DB DEFAULT_REL_UO_USER_REGIU = true
-			if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_REGIU")) {
-				// Il check "registrazione in uscita/interna" va preimpostato a spuntato
-				flgRegistrazioneUIItem.setValue(true);
-				formUtenteCorrente.setValue("flgRegistrazioneUI", true);
-			}
-		}
-
-		
-		// Se il parametro DB DEFAULT_REL_UO_USER_GEST_ATTI = true
-		if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_GEST_ATTI")) {
-			// Il check "avvio/gestione atti proposti" va preimpostato a spuntato
-			flgGestAttiItem.setValue(true);
-			formUtenteCorrente.setValue("flgGestAtti", true);
-			
-			// setto il flag flgVisPropAttiInIterItem e lo disabilito
-			flgVisPropAttiInIterItem.setValue(true);
-			formUtenteCorrente.setValue("flgVisPropAttiInIter", true);
-			
-			flgVisPropAttiInIterItem.setCanEdit(false);
-			
-		}
-
-		// Se il parametro DB DEFAULT_REL_UO_USER_GEST_ATTI = true
-		if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_REL_UO_USER_GEST_ATTI")) {
-			// Il check "visualizzazione atti proposti" va preimpostato a spuntato
-			flgVisPropAttiInIterItem.setValue(true);
-			formUtenteCorrente.setValue("flgVisPropAttiInIter", true);
-			
-		}
-	
-		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_ABIL_TIPI_ATTI_IN_REL_USER_UO")) {
-			if(flgGestAttiItem.getValueAsBoolean()) {
-				flgGestAttiTuttiItem.setValue(true);
-				flgGestAttiTuttiItem.show();
-				formUtenteCorrente.setValue("flgGestAttiTutti", true);
-				listaTipiGestAttiSelezionatiItem.clearValue();
-				selezionaTipiGestAttiButton.hide();
-			} else {
-				flgGestAttiTuttiItem.setValue(false);
-				flgGestAttiTuttiItem.hide();
-				formUtenteCorrente.setValue("flgGestAttiTutti", false);
-				listaTipiGestAttiSelezionatiItem.setValue(formUtenteCorrente.getValueAsString("listaTipiGestAttiSelezionati"));
-				formUtenteCorrente.setValue("listaTipiGestAttiSelezionati", formUtenteCorrente.getValueAsString("listaTipiGestAttiSelezionati"));
-			}
-			if(flgVisPropAttiInIterItem.getValueAsBoolean()) {
-				flgVisPropAttiInIterTuttiItem.setValue(true);
-				flgVisPropAttiInIterTuttiItem.show();
-				formUtenteCorrente.setValue("flgVisPropAttiInIterTutti", true);
-				listaTipiVisPropAttiInIterSelezionatiItem.clearValue();
-				selezionaTipiVisPropAttiInIterButton.hide();
-			} else {
-				flgVisPropAttiInIterTuttiItem.setValue(false);
-				flgVisPropAttiInIterTuttiItem.hide();
-				formUtenteCorrente.setValue("flgVisPropAttiInIterTutti", false);
-				listaTipiVisPropAttiInIterSelezionatiItem.setValue(formUtenteCorrente.getValueAsString("listaTipiVisPropAttiInIterSelezionati"));
-				formUtenteCorrente.setValue("listaTipiVisPropAttiInIterSelezionati", formUtenteCorrente.getValueAsString("listaTipiVisPropAttiInIterSelezionati"));
-			}
-		}
-	
-		// Se il parametro DB DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS = true
-		if (AurigaLayout.getParametroDBAsBoolean("DEFAULT_POST_OMBRA_ACC_LIM_DOC_ASS_PERS")) {
-			// Il check "accesso limitato doc. assegnata personalmente" va preimpostato a spuntato
-			flgAccessoDocLimSVItem.setValue(true);
-			formUtenteCorrente.setValue("flgAccessoDocLimSV", true);
-		}
 	}
 	
 	@Override
@@ -2503,7 +2621,7 @@ public class PostazioneDetail extends CustomDetail {
 		return valid;
 	}
 	
-	// ottavio
+	
 	private boolean isUoAbilRegistrazioneE() {
 		return (abilitaUoProtEntrataItem.getValue()!=null && abilitaUoProtEntrataItem.getValue().equals("true"));
 	}
@@ -2511,5 +2629,6 @@ public class PostazioneDetail extends CustomDetail {
 	private boolean isUoAbilRegistrazioneU() {
 		return (abilitaUoProtUscitaItem.getValue()!=null && abilitaUoProtUscitaItem.getValue().equals("true"));
 	}
+	
 	
 }

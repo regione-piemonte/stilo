@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.getdatipubblicazioneatto;
 
 
 import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsGetdatipubblicazioneattoBean;
@@ -9,6 +10,7 @@ import it.eng.auriga.module.business.beans.SpecializzazioneBean;
 import it.eng.auriga.module.business.entity.WSTrace;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
 import it.eng.document.function.RecuperoFile;
+import it.eng.document.function.StoreException;
 import it.eng.document.function.bean.FileExtractedOut;
 import it.eng.jaxb.context.SingletonJAXBContext;
 import it.eng.jaxb.variabili.Lista;
@@ -25,6 +27,8 @@ import javax.jws.HandlerChain;
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import javax.xml.ws.soap.MTOM;
+
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
@@ -74,6 +78,7 @@ public class WSGetDatiPubblicazioneAtto extends JAXWSAbstractAurigaService imple
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
     	
     String risposta = null;
@@ -81,6 +86,7 @@ public class WSGetDatiPubblicazioneAtto extends JAXWSAbstractAurigaService imple
     WSGetDatiPubblicazioneAttoBean outServizio = new WSGetDatiPubblicazioneAttoBean();
     String errMsg = null;
     String xmlIn = null;
+    Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
     
     try {
     	
@@ -118,6 +124,11 @@ public class WSGetDatiPubblicazioneAtto extends JAXWSAbstractAurigaService imple
  			 outServizio =  eseguiServizio(loginBean,outWS); 	 		
 	 		}
 	 	catch (Exception e){	 
+	 		if (e instanceof StoreException) {
+	    		if(((StoreException) e).getError()!=null){
+	    			errCode = ((StoreException) e).getError().getErrorCode();
+	    		}
+	    	}
 	 		if(e.getMessage()!=null)
 	 			 errMsg = "Errore = " + e.getMessage();
 	 		 else
@@ -201,7 +212,7 @@ public class WSGetDatiPubblicazioneAtto extends JAXWSAbstractAurigaService imple
 	 		 	risposta = generaXMLRisposta(outRispostaWS);	 	 	
 	 	 }
 	 	 else{
-	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+	 	 		risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 	 	 }
 	 			        	
 	     aLogger.info("Fine WSGetDatiPubblicazioneAtto");
@@ -223,7 +234,7 @@ public class WSGetDatiPubblicazioneAtto extends JAXWSAbstractAurigaService imple
     }
     
     private WSGetDatiPubblicazioneAttoBean eseguiServizio(AurigaLoginBean loginBean, WSGetDatiPubblicazioneAttoBean bean) throws Exception {
-    	aLogger.debug("Eseguo il servizio di AurigaDocument.");
+    	aLogger.debug("Eseguo il servizio RecuperoFile->extractFileByUri.");
     	
     	List<File> extractedFileList = new ArrayList<File>(); 
     	     	
@@ -268,50 +279,48 @@ public class WSGetDatiPubblicazioneAtto extends JAXWSAbstractAurigaService imple
     }
     
     private WSGetDatiPubblicazioneAttoBean callWS(AurigaLoginBean loginBean, String xmlIn) throws Exception {
-    	    	
-    	aLogger.debug("Eseguo il WS DmpkWSGetDatiPubblicazioneAtto.");
+    	aLogger.debug("Eseguo il WS DMPK_WS->GetDatiPubblicazioneAtto.");
     	    	
     	String uriRelatePubbl = null;
     	String xml            = null;    	
-    	try {    		
-    		  // Inizializzo l'INPUT    		
-    		  DmpkWsGetdatipubblicazioneattoBean input = new DmpkWsGetdatipubblicazioneattoBean();
-    		  input.setCodidconnectiontokenin(loginBean.getToken());
-    		  input.setXmlin(xmlIn);
-    		  
-    		  // Eseguo il servizio
-    		  Getdatipubblicazioneatto service = new Getdatipubblicazioneatto();
-    		  StoreResultBean<DmpkWsGetdatipubblicazioneattoBean> output = service.execute(loginBean, input);
+    	    		
+    	// Inizializzo l'INPUT    		
+    	DmpkWsGetdatipubblicazioneattoBean input = new DmpkWsGetdatipubblicazioneattoBean();
+    	input.setCodidconnectiontokenin(loginBean.getToken());
+    	input.setXmlin(xmlIn);
+	  
+    	// Eseguo il servizio
+    	Getdatipubblicazioneatto service = new Getdatipubblicazioneatto();
+    	StoreResultBean<DmpkWsGetdatipubblicazioneattoBean> output = service.execute(loginBean, input);
 
-    		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
-    			}	
-
-    		  // restituisco l'XML
-    		  if(output.getResultBean().getXmlout()!=null){
-    			  xml = output.getResultBean().getXmlout();  
-    		  }
-    		
-    		  // restituisco la lista con i nro versioni
-    	      if (output.getResultBean().getUrirelatepubblout() != null){
-    	    	  uriRelatePubbl = output.getResultBean().getUrirelatepubblout().toString();
-    	      }
-      	      
-      	      // popolo il bean di out
-    		  WSGetDatiPubblicazioneAttoBean result = new WSGetDatiPubblicazioneAttoBean();
-    		  result.setXml(xml);
-    		  
-    		  // leggo la lista dei documenti 
-    		  List<RelatePubblBean> listRelatePubblBean = new ArrayList<RelatePubblBean>();    		  
-    		  listRelatePubblBean =  getListDoc(uriRelatePubbl);
-    		  
-    		  result.setDocumentlist(listRelatePubblBean);
-    			  
-    		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
+    	if (output.isInError()){
+    		aLogger.debug(output.getDefaultMessage());
+    		aLogger.debug(output.getErrorContext());
+    		aLogger.debug(output.getErrorCode());
+    		throw new StoreException(output);
+    	}	
+    	
+    	// restituisco l'XML
+    	if(output.getResultBean().getXmlout()!=null){
+		  xml = output.getResultBean().getXmlout();  
+    	}
+	
+    	// restituisco la lista con i nro versioni
+    	if (output.getResultBean().getUrirelatepubblout() != null){
+    	  uriRelatePubbl = output.getResultBean().getUrirelatepubblout().toString();
+    	}
+      
+    	// popolo il bean di out
+    	WSGetDatiPubblicazioneAttoBean result = new WSGetDatiPubblicazioneAttoBean();
+    	result.setXml(xml);
+	  
+    	// leggo la lista dei documenti 
+    	List<RelatePubblBean> listRelatePubblBean = new ArrayList<RelatePubblBean>();    		  
+    	listRelatePubblBean =  getListDoc(uriRelatePubbl);
+	  
+    	result.setDocumentlist(listRelatePubblBean);
+		  
+    	return result;
     }
     
     
@@ -331,6 +340,7 @@ public class WSGetDatiPubblicazioneAtto extends JAXWSAbstractAurigaService imple
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
+            	//xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
             }
             xml.append(xmlInEsc);

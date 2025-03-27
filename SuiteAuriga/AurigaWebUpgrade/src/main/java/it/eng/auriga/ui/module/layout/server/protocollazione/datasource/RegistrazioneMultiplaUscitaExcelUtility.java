@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -25,8 +26,8 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DestinatariXFileXlsRegMultiplaUscitaBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DestinatariRegistrazioneMultiplaUscitaXmlBean;
+import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DestinatariXFileXlsRegMultiplaUscitaBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DestinatarioRegistrazioneMultiplaUscitaInError;
 import it.eng.utility.module.config.StorageImplementation;
 
@@ -74,6 +75,7 @@ public class RegistrazioneMultiplaUscitaExcelUtility {
 						errorMessages += e.getMessage() + "\n";
 					}
 					destinatario.setUriExcel(uriExcel);
+					destinatario.setNumRigaInTabContFoglio("" + r);
 					listaDestinatari.add(destinatario);
 				}
 			}
@@ -121,7 +123,7 @@ public class RegistrazioneMultiplaUscitaExcelUtility {
 				XSSFRow row = sheet.getRow(r);
 				if (row != null && !isRowEmpty(row)) {
 					try {
-					destinatario = manageCaricamento(r, wb.getCreationHelper().createFormulaEvaluator(), row, null, sheet, null);
+						destinatario = manageCaricamento(r, wb.getCreationHelper().createFormulaEvaluator(), row, null, sheet, null);
 					} catch (Exception e) {
 						elencoDestinatari.setInError(true);
 						DestinatarioRegistrazioneMultiplaUscitaInError error = new DestinatarioRegistrazioneMultiplaUscitaInError ();
@@ -133,6 +135,7 @@ public class RegistrazioneMultiplaUscitaExcelUtility {
 //						elencoDestinatari.setErrorMessage(e.getMessage());
 					}
 					destinatario.setUriExcel(uriExcel);
+					destinatario.setNumRigaInTabContFoglio("" + r);
 					listaDestinatari.add(destinatario);
 				}
 			}
@@ -175,7 +178,15 @@ public class RegistrazioneMultiplaUscitaExcelUtility {
 			valueCellAlmenoUnRecord = getValoreCella(i, formulaEvaluator, row, rowHssf);
 			
 			switch (i) {
-				
+				case ConstantsCampiExcelDestinatariRegistrazioneMultiplaUscita.FLG_STESSA_REG_DEST_PREC:
+					if (StringUtils.isNotBlank(valueCellAlmenoUnRecord)) {
+						if(numRiga == 1 && valueCellAlmenoUnRecord.equals("1")) {
+							throw new ValidatorException("In riga 1 non si può settare a 1 il campo \"Stessa reg. dest. prec.\" essendo il primo destinatario");
+						}
+						result.setFlgStessaRegDestPrec(valueCellAlmenoUnRecord);
+						setMappaIntestazioniColonneValore(result, valueCellAlmenoUnRecord, i, formulaEvaluator, initialColumnRow, initialHssfColumnRow);
+					}
+					break;
 				case ConstantsCampiExcelDestinatariRegistrazioneMultiplaUscita.TIPO:
 					if (StringUtils.isNotBlank(valueCellAlmenoUnRecord)) {
 						result.setTipo(valueCellAlmenoUnRecord);
@@ -291,13 +302,14 @@ public class RegistrazioneMultiplaUscitaExcelUtility {
 					break;
 				case ConstantsCampiExcelDestinatariRegistrazioneMultiplaUscita.INVIA_EMAIL:
 					if (StringUtils.isNotBlank(valueCellAlmenoUnRecord)) {
-						// CONTROLLO CON OBBLIGATORIETA' VALORE EMAIL
-						if (StringUtils.isNotBlank(getValoreCella(ConstantsCampiExcelDestinatariRegistrazioneMultiplaUscita.EMAIL, formulaEvaluator, row, rowHssf))) {
+						// CONTROLLO CON OBBLIGATORIETA' VALORE EMAIL IN CASO DI INVIA_EMAIL DIVERSO DA "NO"
+						String valoreEmail = getValoreCella(ConstantsCampiExcelDestinatariRegistrazioneMultiplaUscita.EMAIL, formulaEvaluator, row, rowHssf);
+						if (!valueCellAlmenoUnRecord.equalsIgnoreCase("NO") && StringUtils.isBlank(valoreEmail)) {
+							throw new ValidatorException("In riga "+ numRiga +" è obbligatorio inserire un valore nel campo \"e-mail\"");
+						} else {
 							result.setInviaEmail(valueCellAlmenoUnRecord);
 							setMappaIntestazioniColonneValore(result, valueCellAlmenoUnRecord, i, formulaEvaluator, initialColumnRow, initialHssfColumnRow);
-						} else {
-							throw new ValidatorException("In riga "+ numRiga +" è obbligatorio inserire un valore nel campo \"e-mail\"");
-						}
+						} 
 					}
 					break;
 				case ConstantsCampiExcelDestinatariRegistrazioneMultiplaUscita.NOME_FILE_PRIMARIO:

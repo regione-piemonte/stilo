@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.gestioneatti;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -342,17 +343,18 @@ public class AttiLayout extends CustomLayout {
 				public void doSomething() {
 					final RecordList listaRecord = new RecordList();
 					for (int i = 0; i < list.getSelectedRecords().length; i++) {
+						Record rec = list.getSelectedRecords()[i];
 						final Record recordAtto = new Record();
 						// questa operazione deve funzionare sia da lista atti completi che in quella vecchia degli atti
 						// quindi passo un record con solo le property unitaDocumentariaId e idProcedimento (che si trovano in entrambi i bean)
-						recordAtto.setAttribute("unitaDocumentariaId", list.getSelectedRecords()[i].getAttribute("unitaDocumentariaId"));
-						recordAtto.setAttribute("idProcedimento", list.getSelectedRecords()[i].getAttribute("idProcedimento"));
-						recordAtto.setAttribute("flgPrevistaNumerazione", list.getSelectedRecords()[i].getAttribute("flgPrevistaNumerazione"));
-						recordAtto.setAttribute("flgGeneraFileUnionePerLibroFirma", list.getSelectedRecords()[i].getAttribute("flgGeneraFileUnionePerLibroFirma"));
-						recordAtto.setAttribute("activityName", list.getSelectedRecords()[i].getAttribute("activityName"));
-						recordAtto.setAttribute("numeroProposta", list.getSelectedRecords()[i].getAttribute("numeroProposta"));
-						recordAtto.setAttribute("prossimoTaskAppongoFirmaVisto", list.getSelectedRecords()[i].getAttribute("prossimoTaskAppongoFirmaVisto"));
-						recordAtto.setAttribute("prossimoTaskRifiutoFirmaVisto", list.getSelectedRecords()[i].getAttribute("prossimoTaskRifiutoFirmaVisto"));
+						recordAtto.setAttribute("unitaDocumentariaId", rec.getAttribute("unitaDocumentariaId"));
+						recordAtto.setAttribute("idProcedimento", rec.getAttribute("idProcedimento"));
+						recordAtto.setAttribute("flgPrevistaNumerazione", rec.getAttribute("flgPrevistaNumerazione"));
+						recordAtto.setAttribute("flgGeneraFileUnionePerLibroFirma",rec.getAttribute("flgGeneraFileUnionePerLibroFirma"));
+						recordAtto.setAttribute("activityName", rec.getAttribute("activityName"));
+						recordAtto.setAttribute("numeroProposta", rec.getAttribute("numeroProposta"));
+						recordAtto.setAttribute("prossimoTaskAppongoFirmaVisto", rec.getAttribute("prossimoTaskAppongoFirmaVisto"));
+						recordAtto.setAttribute("prossimoTaskRifiutoFirmaVisto", rec.getAttribute("prossimoTaskRifiutoFirmaVisto"));
 						listaRecord.add(recordAtto);
 					}						
 					continuaRifiutoVistoMultiButton(listaRecord);					
@@ -786,9 +788,12 @@ public class AttiLayout extends CustomLayout {
 						Layout.hideWaitPopup();
 						Record recordAttributiLibroFirma = response.getData()[0];
 						if (recordAttributiLibroFirma != null && recordAttributiLibroFirma.getAttributeAsRecordList("listaRecord") != null) {
-							RecordList listaAttiDaLavorare = recordAttributiLibroFirma.getAttributeAsRecordList("listaRecord");
-							gestioneInvioLibroFirmaInSequenza(recordAttributiLibroFirma, listaAttiDaLavorare, 0, listaAttiDaLavorare.getLength(), null);
+							controlloInvioALibroFirma(recordAttributiLibroFirma);
 						}
+					} else {
+						// Errore nella chiamata al datasource AzioniLibroFirmaDataSource
+						Layout.hideWaitPopup();
+						Layout.addMessage(new MessageBean("Errore nell'invio a libro firma", "", MessageType.ERROR));
 					}
 				}
 			});
@@ -797,7 +802,30 @@ public class AttiLayout extends CustomLayout {
 		}
 	}
 	
-	private void gestioneInvioLibroFirmaInSequenza(final Record recordAttributiInviaALibroFirma, final RecordList listaAttiDaLavorare, final int posAttoDaLavorare, final int numTotaleRecordDaLavorare, Map errorMessages) {
+	private void controlloInvioALibroFirma(final Record recordAttributiInviaALibroFirma) {
+		Layout.showWaitPopup("Operazione in corso: potrebbe richiedere qualche secondo. Attendere…");
+		GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("AzioniLibroFirmaDataSource");
+		lGwtRestDataSource.executecustom("ctrlInvioALibroFirma", recordAttributiInviaALibroFirma, new DSCallback() {
+			@Override
+			public void execute(DSResponse dsResponse, Object rawData, DSRequest dsRequest) {
+				if (dsResponse.getStatus() == DSResponse.STATUS_SUCCESS) {
+					Layout.hideWaitPopup();
+					Record recordAttributiLibroFirma = dsResponse.getData()[0];
+					if (recordAttributiLibroFirma != null && recordAttributiLibroFirma.getAttributeAsRecordList("listaRecord") != null) {
+						RecordList listaAttiDaLavorare = recordAttributiLibroFirma.getAttributeAsRecordList("listaRecord");
+						Map errorMessages = recordAttributiLibroFirma.getAttributeAsMap("errorMessages");
+						gestioneInvioLibroFirmaInSequenza(listaAttiDaLavorare, 0, listaAttiDaLavorare.getLength(), errorMessages);
+					}
+				} else {
+					// Errore nella chiamata al datasource AzioniLibroFirmaDataSource
+					Layout.hideWaitPopup();
+					Layout.addMessage(new MessageBean("Errore nelle verifiche preliminari all'invio a libro firma", "", MessageType.ERROR));
+				}
+			}
+		});
+	}
+	
+	private void gestioneInvioLibroFirmaInSequenza(final RecordList listaAttiDaLavorare, final int posAttoDaLavorare, final int numTotaleRecordDaLavorare, Map errorMessages) {
 		if (errorMessages == null) {
 			errorMessages = new HashMap<String, String>();
 		}
@@ -820,9 +848,10 @@ public class AttiLayout extends CustomLayout {
 									if (dsResponse2.getStatus() == DSResponse.STATUS_SUCCESS) {
 										Record attoPostGenerazione = dsResponse2.getData()[0];
 										if (attoPostGenerazione.getAttribute("esitoGenerazioniDaModelloOk") != null && attoPostGenerazione.getAttributeAsBoolean("esitoGenerazioniDaModelloOk")) {
-											RecordList listaRecordApposizioneVisto = new RecordList();
-											listaRecordApposizioneVisto.add(attoPostGenerazione);
-											recordAttributiInviaALibroFirma.setAttribute("listaRecord", listaRecordApposizioneVisto);
+											RecordList listaRecordInvioLibroFirma = new RecordList();
+											listaRecordInvioLibroFirma.add(attoPostGenerazione);
+											Record recordAttributiInviaALibroFirma = new Record();
+											recordAttributiInviaALibroFirma.setAttribute("listaRecord", listaRecordInvioLibroFirma);
 											recordAttributiInviaALibroFirma.setAttribute("errorMessages", attoPostGenerazione.getAttributeAsMap("errorMessages"));
 											lGwtRestDataSource.executecustom("mandaALibroFirmaCommon", recordAttributiInviaALibroFirma,  new DSCallback() {
 						
@@ -831,7 +860,7 @@ public class AttiLayout extends CustomLayout {
 													if (dsResponse3.getStatus() == DSResponse.STATUS_SUCCESS) {
 														Record attoPostInvioALibroFirma = dsResponse3.getData()[0];
 														Map nuovoErrorMessages = attoPostInvioALibroFirma.getAttributeAsMap("errorMessages");
-														gestioneInvioLibroFirmaInSequenza(recordAttributiInviaALibroFirma, listaAttiDaLavorare, posAttoDaLavorare + 1, numTotaleRecordDaLavorare, nuovoErrorMessages);
+														gestioneInvioLibroFirmaInSequenza(listaAttiDaLavorare, posAttoDaLavorare + 1, numTotaleRecordDaLavorare, nuovoErrorMessages);
 													} else {
 														// Errore nella chiamata al datasource AzioniLibroFirmaDataSource
 														Layout.hideWaitPopup();
@@ -842,7 +871,7 @@ public class AttiLayout extends CustomLayout {
 										} else {
 											// La generazione dei file da modello non è andata a buon fine, proseguo con il recordo successivo
 											Map nuovoErrorMessages = attoPostGenerazione.getAttributeAsMap("errorMessages");
-											gestioneInvioLibroFirmaInSequenza(recordAttributiInviaALibroFirma, listaAttiDaLavorare, posAttoDaLavorare + 1, numTotaleRecordDaLavorare, nuovoErrorMessages);
+											gestioneInvioLibroFirmaInSequenza(listaAttiDaLavorare, posAttoDaLavorare + 1, numTotaleRecordDaLavorare, nuovoErrorMessages);
 										}
 									} else {
 										// Errore nella chiamata al datasource AzioniLibroFirmaDataSource
@@ -854,7 +883,7 @@ public class AttiLayout extends CustomLayout {
 						} else {
 							// La numerazione non è andata a buon fine, proseguo con il recordo successivo
 							Map nuovoErrorMessages = attoPostNumerazione.getAttributeAsMap("errorMessages");
-							gestioneInvioLibroFirmaInSequenza(recordAttributiInviaALibroFirma, listaAttiDaLavorare, posAttoDaLavorare + 1, numTotaleRecordDaLavorare, nuovoErrorMessages);
+							gestioneInvioLibroFirmaInSequenza(listaAttiDaLavorare, posAttoDaLavorare + 1, numTotaleRecordDaLavorare, nuovoErrorMessages);
 						}
 					} else {
 						// Errore nella chiamata al datasource AzioniLibroFirmaDataSource

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.proposteOrganigramma;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -90,9 +91,7 @@ public class TaskPropostaOrganigrammaDetail extends CustomDetail implements Task
 
 	protected Boolean flgUnioneFile;
 	protected Boolean flgFirmaFile;
-	
-	protected RecordList listaRecordModelli;
-	
+		
 	protected Set<String> esitiTaskOk;	
 	protected HashMap<String, Record> controlliXEsitiTaskDoc;
 	protected HashSet<String> valoriEsito;
@@ -212,8 +211,6 @@ public class TaskPropostaOrganigrammaDetail extends CustomDetail implements Task
 		this.tipiUORevisione = lRecordEvento != null ? lRecordEvento.getAttribute("tipiUORevisione") : null;;
 		
 		this.dettaglioPraticaLayout = dettaglioPraticaLayout;
-
-		this.listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 
 		RecordList listaEsitiTaskOk = lRecordEvento != null ? lRecordEvento.getAttributeAsRecordList("esitiTaskOk") : null;
 		if(listaEsitiTaskOk != null && listaEsitiTaskOk.getLength() > 0) {
@@ -697,6 +694,8 @@ public class TaskPropostaOrganigrammaDetail extends CustomDetail implements Task
 					tipoUo = lRecord.getAttribute("tipoUoRevisioneOrganigramma");
 					level = lRecord.getAttribute("livelloUoRevisioneOrganigramma");			
 					if (isEseguibile() && !isReadOnly()) {
+						// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+						RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 						if(listaRecordModelli != null && listaRecordModelli.getLength() > 0) {
 							RecordList listaAllegati = lRecord.getAttributeAsRecordList("listaAllegati");
 							for (int i = 0; i < listaRecordModelli.getLength(); i++) {
@@ -730,6 +729,8 @@ public class TaskPropostaOrganigrammaDetail extends CustomDetail implements Task
 	public Record getRecordModelloXEsito(String esito) {
 		
 		Record recordModello = null;		
+		// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+		RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 		if (listaRecordModelli != null && listaRecordModelli.getLength() > 0) {			
 			for (int i = 0; i < listaRecordModelli.getLength(); i++) {
 				String listaEsitiXGenModello = listaRecordModelli.get(i).getAttribute("esitiXGenModello");					
@@ -1804,11 +1805,24 @@ public class TaskPropostaOrganigrammaDetail extends CustomDetail implements Task
 	}
 	
 	public void caricaAttributiDinamiciDoc(String nomeFlussoWF, String processNameWF, String activityName, String idTipoDoc, String rowidDoc) {
-		
+		if(attributiAddDocLayouts != null) {
+			for (String key : attributiAddDocLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddDocLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddDocDetails != null) {
+			for (String key : attributiAddDocDetails.keySet()) {
+				try { attributiAddDocDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
 		attributiAddDocLayouts = new HashMap<String, VLayout>();
 		attributiAddDocDetails = new HashMap<String, AttributiDinamiciDetail>();
 		if (attributiAddDocTabs != null && attributiAddDocTabs.size() > 0) {
 			GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");
+			lGwtRestService.addParam("flgSkipAttrSenzaCategoria", "true");
 			lGwtRestService.addParam("nomeFlussoWF", nomeFlussoWF);
 			lGwtRestService.addParam("processNameWF", processNameWF);
 			lGwtRestService.addParam("activityNameWF", activityName);
@@ -2129,5 +2143,26 @@ public class TaskPropostaOrganigrammaDetail extends CustomDetail implements Task
 	public boolean hasDocumento() {
 		return false;
 	}
-
+	
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();		
+		if(attributiAddDocLayouts != null) {
+			for (String key : attributiAddDocLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddDocLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddDocDetails != null) {
+			for (String key : attributiAddDocDetails.keySet()) {
+				try { attributiAddDocDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
+		attributiAddDocTabs = null;
+		attributiAddDocLayouts = null;		
+		attributiAddDocDetails = null;
+	}
+	
 }

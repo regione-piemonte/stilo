@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+/**
  * Modulo che, a partire dall'impronta del pdf generata dopo l'esecuzione del modulo che preleva il certificato, apre il modulo di firma in cui non viene
  * richiesto il pin e le informazioni del firmatario.
  */

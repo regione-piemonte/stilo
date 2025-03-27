@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.database.store.dmpk_utility.store.impl;
 
 import it.eng.auriga.database.store.dmpk_utility.bean.DmpkUtilityGetlistdefprefsBean;
 import it.eng.storeutil.HibernateStoreUtil;
@@ -36,7 +37,7 @@ public class GetlistdefprefsImpl  {
 	    CallableStatement call = null;			
 		try{
 			//Creo il Callbackstatement
-			call = connection.prepareCall("{? = call DMPK_UTILITY.GETLISTDEFPREFS(?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");			
+			call = connection.prepareCall("{? = call DMPK_UTILITY.GETLISTDEFPREFS(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");			
 			SubjectBean subject =  SubjectUtil.subject.get();
 			if (StringUtils.isNotEmpty(subject.getUuidtransaction())){
 				HibernateUtil.addStatement(subject.getUuidtransaction(), call);
@@ -64,6 +65,7 @@ public class GetlistdefprefsImpl  {
 			util.settingParameterOnStore(call,bean,wrapperBean,"listidin",3,Types.VARCHAR,connection); 	
 			util.settingParameterOnStore(call,bean,wrapperBean,"idtreenodein",14,Types.VARCHAR,connection); 	
 			util.settingParameterOnStore(call,bean,wrapperBean,"finalitain",15,Types.VARCHAR,connection); 	
+			util.settingParameterOnStore(call,bean,wrapperBean,"iddominioautin",16,Types.DECIMAL,connection); 	
 			
 			call.execute();
 			if (StringUtils.isNotEmpty(subject.getUuidtransaction())){

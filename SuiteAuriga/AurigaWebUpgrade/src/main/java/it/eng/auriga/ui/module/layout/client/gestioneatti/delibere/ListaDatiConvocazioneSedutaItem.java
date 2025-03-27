@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.gestioneatti.delibere;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1990,7 +1991,11 @@ public class ListaDatiConvocazioneSedutaItem extends GridItem {
 	
 	public void nuovoAttoArgomento() {
 		GWTRestDataSource lGWTRestDataSource = new GWTRestDataSource("LoadComboAttoConFlussoWFDataSource");
-		lGWTRestDataSource.addParam("organoCollegiale", organoCollegiale);
+		if(codCircoscrizione != null && !"".equalsIgnoreCase(codCircoscrizione)) {
+			lGWTRestDataSource.addParam("organoCollegiale", organoCollegiale + "_CIRC");
+		} else {
+			lGWTRestDataSource.addParam("organoCollegiale", organoCollegiale);
+		}
 		lGWTRestDataSource.fetchData(null, new DSCallback() {
 
 			@Override
@@ -1999,7 +2004,7 @@ public class ListaDatiConvocazioneSedutaItem extends GridItem {
 				Record[] data = response.getData();
 				if (data.length > 0) {
 					SelezionaTipoAttoWindow lSelezionaTipoAttoWindow = new SelezionaTipoAttoWindow(getIdSeduta(), organoCollegiale,
-						"CONVOCAZIONE", new BooleanCallback() {
+							"CONVOCAZIONE", codCircoscrizione, new BooleanCallback() {
 
 							@Override
 							public void execute(Boolean value) {

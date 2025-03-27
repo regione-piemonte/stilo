@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.module.foutility.beans;
 
 import java.util.Date;
 import java.util.List;
@@ -163,6 +164,7 @@ public class RapportoVerificaStampaCertificazioneBean {
 		private String statoCertificato;
 		private String numeroCertificato;
 		private String serialNumber;
+		protected String codiceFiscale;
 		private String tipoFirmaQA; 
 		private String[] qcStatements;
 		private String[] keyUsages;
@@ -258,6 +260,12 @@ public class RapportoVerificaStampaCertificazioneBean {
 		public void setSerialNumber(String serialNumber) {
 			this.serialNumber = serialNumber;
 		}
+		public String getCodiceFiscale() {
+			return codiceFiscale;
+		}
+		public void setCodiceFiscale(String codiceFiscale) {
+			this.codiceFiscale = codiceFiscale;
+		}
 		public String[] getQcStatements() {
 			return qcStatements;
 		}
@@ -288,7 +296,5 @@ public class RapportoVerificaStampaCertificazioneBean {
 		public void setTipoFirmaQA(String tipoFirmaQA) {
 			this.tipoFirmaQA = tipoFirmaQA;
 		}
-		
 	}
-
 }

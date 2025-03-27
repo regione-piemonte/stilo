@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.storageutil.impl.sharePoint;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -121,6 +122,9 @@ public class SharePointStorage implements Storage {
 						versionPath = rootPath + libraryName + versionPath.substring(index, versionPath.length());
 					} else if ( versionPath.contains("/URB") ){
 						Integer index =  versionPath.indexOf("/URB");
+						versionPath = rootPath + libraryName + versionPath.substring(index, versionPath.length());
+					} else if ( versionPath.contains("/VEN") ){
+						Integer index =  versionPath.indexOf("/VEN");
 						versionPath = rootPath + libraryName + versionPath.substring(index, versionPath.length());
 					} else {
 						Integer index =  versionPath.indexOf("/ADR");

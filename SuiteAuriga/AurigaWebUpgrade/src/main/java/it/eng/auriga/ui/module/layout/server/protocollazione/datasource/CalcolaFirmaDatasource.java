@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,6 +15,7 @@ import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 
+import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.auriga.ui.module.layout.server.firmaHsm.bean.FirmaHsmBean;
 import it.eng.auriga.ui.module.layout.server.firmaHsm.bean.FirmaHsmBean.FileDaFirmare;
 import it.eng.auriga.ui.module.layout.server.invioMail.datasource.bean.SimpleBean;
@@ -33,6 +35,7 @@ import it.eng.utility.ui.module.layout.shared.bean.FileDaFirmareBean;
 import it.eng.utility.ui.servlet.bean.Firmatari;
 import it.eng.utility.ui.servlet.bean.InfoFirmaMarca;
 import it.eng.utility.ui.servlet.bean.MimeTypeFirmaBean;
+import it.eng.utility.ui.user.AurigaUserUtil;
 import it.eng.utility.ui.user.ParametriDBUtil;
 
 @Datasource(id = "CalcolaFirmaDatasource")
@@ -52,6 +55,11 @@ public class CalcolaFirmaDatasource extends AbstractServiceDataSource<SimpleBean
 		
 		Set<String> idFileSet = mappaFileFirmati.keySet();
 		if (idFileSet != null) {
+			String logAggiornamento = "";
+			AurigaLoginBean loginBean = AurigaUserUtil.getLoginInfo(getSession());
+			if (loginBean != null) {
+				logAggiornamento = "(UtenteLoggato: " + loginBean.getDenominazione() + ", UtenteDelega: " + loginBean.getDelegaDenominazione() + ") Chiamata aggiornaInfoFileFirmati da per i file ";
+			}
 			for (String idFile : idFileSet) {
 				CalcolaFirmaBean fileVerPreFirma = null;
 				for (CalcolaFirmaBean file : listaFileVerPreFirma) {
@@ -154,7 +162,9 @@ public class CalcolaFirmaDatasource extends AbstractServiceDataSource<SimpleBean
 								
 				fileFirmato.setInfoFile(infoFileFirmato);
 				nuovaMappaFileFirmati.put(fileFirmato.getIdFile(), fileFirmato);
+				logAggiornamento += "[File primario omissis " + fileFirmato.getNomeFile() + " " + fileFirmato.getUri() + "]";
 			}
+			log.debug(logAggiornamento);
 		}
 		bean.setFileFirmati(nuovaMappaFileFirmati);
 		return bean;

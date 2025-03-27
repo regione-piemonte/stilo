@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.attributiDinamici;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,7 +18,6 @@ import com.smartgwt.client.types.Overflow;
 import com.smartgwt.client.types.TitleOrientation;
 import com.smartgwt.client.types.VerticalAlignment;
 import com.smartgwt.client.widgets.form.DynamicForm;
-
 import com.smartgwt.client.widgets.form.fields.FormItem;
 import com.smartgwt.client.widgets.form.fields.HeaderItem;
 import com.smartgwt.client.widgets.form.fields.HiddenItem;
@@ -26,7 +26,11 @@ import com.smartgwt.client.widgets.form.fields.events.ChangedEvent;
 import com.smartgwt.client.widgets.form.fields.events.ChangedHandler;
 import com.smartgwt.client.widgets.form.validator.CustomValidator;
 import com.smartgwt.client.widgets.form.validator.RegExpValidator;
+import com.smartgwt.client.widgets.form.validator.RequiredIfFunction;
+import com.smartgwt.client.widgets.form.validator.RequiredIfValidator;
 import com.smartgwt.client.widgets.form.validator.Validator;
+import com.smartgwt.client.widgets.grid.ListGrid;
+import com.smartgwt.client.widgets.grid.ListGridField;
 import com.smartgwt.client.widgets.layout.VLayout;
 
 import it.eng.auriga.ui.module.layout.client.AurigaLayout;
@@ -43,6 +47,7 @@ import it.eng.utility.ui.module.layout.client.common.items.ExtendedDateTimeItem;
 import it.eng.utility.ui.module.layout.client.common.items.ExtendedNumericItem;
 import it.eng.utility.ui.module.layout.client.common.items.ExtendedTextAreaItem;
 import it.eng.utility.ui.module.layout.client.common.items.ExtendedTextItem;
+import it.eng.utility.ui.module.layout.client.common.items.FilteredSelectItem;
 import it.eng.utility.ui.module.layout.client.common.items.ImgButtonItem;
 import it.eng.utility.ui.module.layout.client.common.items.SelectItem;
 import it.eng.utility.ui.module.layout.client.common.items.StaticTextItem;
@@ -203,6 +208,7 @@ public class AttributoListaCanvas extends ReplicableCanvas {
 					Record dett = mappaColonne.get(nroColonna);
 
 					FormItem item = null;
+					List<Validator> validators = new ArrayList<Validator>();
 					if ("DATE".equals(dett.getAttribute("tipo"))) {
 						item = buildDateItem(dett);
 					} else if ("DATETIME".equals(dett.getAttribute("tipo"))) {
@@ -222,11 +228,17 @@ public class AttributoListaCanvas extends ReplicableCanvas {
 					} else if ("INTEGER".equals(dett.getAttribute("tipo"))) {
 						item = buildIntegerItem(dett);
 					} else if ("EURO".equals(dett.getAttribute("tipo"))) {
-						item = buildEuroItem(dett);
+						item = buildEuroItem(dett, validators);
 					} else if ("DECIMAL".equals(dett.getAttribute("tipo"))) {
-						item = buildDecimalItem(dett);
+						item = buildDecimalItem(dett, validators);
 					} else if ("COMBO-BOX".equals(dett.getAttribute("tipo"))) {
-						item = buildComboBoxItem(dett);
+						if (dett.getAttribute("sottotipo") != null && "CON_FILTRO_OPZ".equals(dett.getAttribute("sottotipo"))) {
+							item = buildFilteredComboBoxItem(dett, false);
+						} else if (dett.getAttribute("sottotipo") != null && "CON_FILTRO_OBBL".equals(dett.getAttribute("sottotipo"))) {
+							item = buildFilteredComboBoxItem(dett, true);
+						} else {
+							item = buildComboBoxItem(dett);
+						}
 					} else if ("RADIO".equals(dett.getAttribute("tipo"))) {
 						item = buildRadioItem(dett);
 					} else if ("DOCUMENT".equals(dett.getAttribute("tipo"))) {
@@ -243,9 +255,19 @@ public class AttributoListaCanvas extends ReplicableCanvas {
 
 						if (dett.getAttribute("obbligatorio") != null && "1".equals(dett.getAttribute("obbligatorio"))) {
 							if(item instanceof CheckboxItem) {
-								item.setValidators(buildRequiredCheckValidator());									
+								validators.add(buildRequiredCheckValidator());									
 							} else {
-								item.setRequired(true);
+								if(((AttributoListaItem)canvas.getItem()).getNotReplicable() != null && ((AttributoListaItem)canvas.getItem()).getNotReplicable() && !((AttributoListaItem)canvas.getItem()).isObbligatorio()) {
+									validators.add(0, new RequiredIfValidator(new RequiredIfFunction() {
+
+										@Override
+										public boolean execute(FormItem formItem, Object value) {
+											return hasValue();
+										}
+									}));
+								} else {
+									item.setRequired(true);
+								}
 							}
 							item.setAttribute("obbligatorio", true);
 							if(item instanceof ExtendedTextItem) {
@@ -316,9 +338,13 @@ public class AttributoListaCanvas extends ReplicableCanvas {
 						}
 
 						if (dett.getAttribute("regularExpr") != null && !"".equals(dett.getAttribute("regularExpr"))) {
-							// ATTENZIONE: questo sovrascrive tutti gli eventuali altri validatori dell'item							
+							// ATTENZIONE: questo sovrascrive tutti gli eventuali altri validatori dell'item
 							RegExpValidator regExpValidator = buildRegExpValidator(dett.getAttribute("regularExpr"));
-							item.setValidators(regExpValidator);
+							validators.add(regExpValidator);
+						}
+						
+						if(validators != null && validators.size() > 0) {
+							item.setValidators(validators.toArray(new Validator[validators.size()]));
 						}
 
 						boolean showTitle = true;
@@ -549,7 +575,7 @@ public class AttributoListaCanvas extends ReplicableCanvas {
 		return lengthValidator;
 	}
 
-	protected ExtendedNumericItem buildEuroItem(final Record dett) {
+	protected ExtendedNumericItem buildEuroItem(final Record dett, List<Validator> validators) {
 		final ExtendedNumericItem item = new ExtendedNumericItem(dett.getAttribute("nome"), dett.getAttribute("label"));
 		item.setColSpan(1);
 		item.setKeyPressFilter("[0-9.]");
@@ -569,7 +595,8 @@ public class AttributoListaCanvas extends ReplicableCanvas {
 		Integer numMaxCaratteri = (dett.getAttribute("numMaxCaratteri") != null && !"".equals(dett.getAttribute("numMaxCaratteri"))) ? new Integer(
 				dett.getAttribute("numMaxCaratteri")) : 0;
 		Validator lengthValidator = buildFloatLengthValidator(numMaxCaratteri);
-		item.setValidators(precisionValidator, lengthValidator);		
+		validators.add(precisionValidator);		
+		validators.add(lengthValidator);		
 		return item;
 	}
 	
@@ -593,7 +620,7 @@ public class AttributoListaCanvas extends ReplicableCanvas {
 		return value;		
 	}
 
-	protected ExtendedNumericItem buildDecimalItem(final Record dett) {
+	protected ExtendedNumericItem buildDecimalItem(final Record dett, List<Validator> validators) {
 		final ExtendedNumericItem item = new ExtendedNumericItem(dett.getAttribute("nome"), dett.getAttribute("label"));
 		item.setColSpan(1);
 		item.setKeyPressFilter("[0-9.]");
@@ -613,7 +640,8 @@ public class AttributoListaCanvas extends ReplicableCanvas {
 		Integer numMaxCaratteri = (dett.getAttribute("numMaxCaratteri") != null && !"".equals(dett.getAttribute("numMaxCaratteri"))) ? new Integer(
 				dett.getAttribute("numMaxCaratteri")) : 0;
 		Validator lengthValidator = buildFloatLengthValidator(numMaxCaratteri);
-		item.setValidators(precisionValidator, lengthValidator);		
+		validators.add(precisionValidator);		
+		validators.add(lengthValidator);		
 		return item;
 	}
 	
@@ -636,6 +664,45 @@ public class AttributoListaCanvas extends ReplicableCanvas {
 		}
 		return value;		
 	}
+	
+	protected FilteredSelectItem buildFilteredComboBoxItem(Record dett, boolean isFiltroObbligatorio) {
+		final FilteredSelectItem item = new FilteredSelectItem(dett.getAttribute("nome"), dett.getAttribute("label")) {
+			
+			@Override
+			protected ListGrid builPickListProperties() {
+				ListGrid pickListProperties = super.builPickListProperties();	
+				pickListProperties.setShowHeader(false);
+//				pickListProperties.addFetchDataHandler(new FetchDataHandler() {
+//
+//					@Override
+//					public void onFilterData(FetchDataEvent event) {
+//						GWTRestDataSource loadComboDS = (GWTRestDataSource) item.getOptionDataSource();								
+//						item.setOptionDataSource(loadComboDS);
+//						item.invalidateDisplayValueCache();
+//					}
+//				});
+				return pickListProperties;
+			}
+		};
+		GWTRestDataSource loadComboDS = new GWTRestDataSource("LoadComboAttributoDinamicoDataSource", "key", FieldType.TEXT, true);
+		loadComboDS.addParam("nomeCombo", dett.getAttribute("nome"));
+		if(isFiltroObbligatorio) {
+			loadComboDS.addParam("isFiltroObbligatorio", "true");
+			item.setEmptyPickListMessage("Nessun record trovato o filtro obbligatorio da compilare");
+		} else {
+			item.setEmptyPickListMessage("Nessun record trovato");
+		}
+		item.setOptionDataSource(loadComboDS);
+		item.setValueField("key");
+		item.setDisplayField("value");
+		ListGridField valueField = new ListGridField("value", "Descrizione");
+		valueField.setWidth("*");
+		valueField.setCanFilter(true);		
+		item.setPickListFields(valueField);
+		item.setClearable(true);		
+		item.setColSpan(1);
+		return item;
+	}
 
 	protected SelectItem buildComboBoxItem(Record dett) {
 		SelectItem item = new SelectItem(dett.getAttribute("nome"), dett.getAttribute("label"));
@@ -643,8 +710,9 @@ public class AttributoListaCanvas extends ReplicableCanvas {
 		GWTRestDataSource loadComboDS = new GWTRestDataSource("LoadComboAttributoDinamicoDataSource", "key", FieldType.TEXT);
 		loadComboDS.addParam("nomeCombo", dett.getAttribute("nome"));
 		item.setOptionDataSource(loadComboDS);
-		item.setDisplayField("value");
+		item.setEmptyPickListMessage("Nessun record trovato");
 		item.setValueField("key");
+		item.setDisplayField("value");
 		item.setColSpan(1);
 		return item;
 	}
@@ -838,6 +906,15 @@ public class AttributoListaCanvas extends ReplicableCanvas {
 			}
 		}
 		return record;
+	}
+	
+	public boolean hasValue() {
+		for (DynamicForm form : getForm()) {
+			if(form.hasValue()) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	@Override

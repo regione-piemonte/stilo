@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.iterAtti;
 
 import com.smartgwt.client.data.DSCallback;
 import com.smartgwt.client.data.DSRequest;
@@ -35,11 +36,11 @@ public class SelezionaTipoAttoWindow extends ModalWindow {
 	private BooleanCallback afterAvvioCallBack;
 	
 	public SelezionaTipoAttoWindow() {
-		this(null,null,null,null);
+		this(null,null,null,null,null);
 	}
 	
 	public SelezionaTipoAttoWindow(String idSeduta, String organoCollegiale, String finalitaOrgColl,
-			final BooleanCallback afterAvvioCallBack) {
+			String codCircoscrizione, final BooleanCallback afterAvvioCallBack) {
 		super("seleziona_tipo_atto", true);
 		
 		instance = this;
@@ -70,7 +71,7 @@ public class SelezionaTipoAttoWindow extends ModalWindow {
 		setShowMaximizeButton(false);
 		setShowMinimizeButton(false);
 		
-		detail = new SelezionaTipoAttoDetail(instance, organoCollegiale);
+		detail = new SelezionaTipoAttoDetail(instance, organoCollegiale, codCircoscrizione);
 		detail.setHeight100();
 		detail.setAlign(Alignment.CENTER);	
 		

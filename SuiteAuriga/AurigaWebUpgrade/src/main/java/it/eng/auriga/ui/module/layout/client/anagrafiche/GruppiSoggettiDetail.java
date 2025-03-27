@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.anagrafiche;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -290,7 +291,6 @@ public class GruppiSoggettiDetail extends CustomDetail {
 
 	
 	public void caricaAttributiDinamici(final String rowid) {
-		
 		Record lRecordLoad = new Record();
 		lRecordLoad.setAttribute("nomeTabella", "DMT_GRUPPI_SOGG_EST");
 		new GWTRestService<Record, Record>("LoadComboGruppiAttrCustomTabellaDataSource").call(lRecordLoad, new ServiceCallback<Record>() {
@@ -298,11 +298,25 @@ public class GruppiSoggettiDetail extends CustomDetail {
 			@Override
 			public void execute(Record object) {
 				final boolean isReload = (attributiAddTabs != null && attributiAddTabs.size() > 0);
+				if(attributiAddLayouts != null) {
+					for (String key : attributiAddLayouts.keySet()) {
+						// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+						if(key != null && !key.startsWith("HEADER_")) {
+							try { attributiAddLayouts.get(key).destroy(); } catch(Exception e) {}
+						}
+					}
+				}
+				if(attributiAddDetails != null) {
+					for (String key : attributiAddDetails.keySet()) {
+						try { attributiAddDetails.get(key).destroy(); } catch(Exception e) {}				
+					}
+				}
 				attributiAddTabs = (LinkedHashMap<String, String>) object.getAttributeAsMap("gruppiAttributiCustomTabella");
 				attributiAddLayouts = new HashMap<String, VLayout>();
 				attributiAddDetails = new HashMap<String, AttributiDinamiciDetail>();
 				if (attributiAddTabs != null && attributiAddTabs.size() > 0) {
-					GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");					
+					GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");	
+					lGwtRestService.addParam("flgSkipAttrSenzaCategoria", "true");
 					Record lAttributiDinamiciRecord = new Record();
 					lAttributiDinamiciRecord.setAttribute("nomeTabella", "DMT_GRUPPI_SOGG_EST");
 					lAttributiDinamiciRecord.setAttribute("rowId", rowid);
@@ -456,7 +470,29 @@ public class GruppiSoggettiDetail extends CustomDetail {
 		return tipiAttributiDinamici;
 	}
 	
-	private void reloadComboFromRecord(Record record) {	
+	private void reloadComboFromRecord(Record record) {
+		
+	}
+	
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();		
+		if(attributiAddLayouts != null) {
+			for (String key : attributiAddLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddDetails != null) {
+			for (String key : attributiAddDetails.keySet()) {
+				try { attributiAddDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
+		attributiAddTabs = null;
+		attributiAddLayouts = null;		
+		attributiAddDetails = null;
 	}
 	
 }

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.HashSet;
 
@@ -266,6 +267,11 @@ public abstract class GestSepAllegatiUDPopup extends ModalWindow {
 			@Override
 			public boolean getFlgAllegAttoParteIntDefault() {
 				return AurigaLayout.getParametroDBAsBoolean("FLG_ALLEG_ATTO_PARTE_INT_DEFAULT");
+			}
+			
+			@Override
+			public boolean getFlgAllegAttoNoPubblDefault() {
+				return AurigaLayout.getParametroDBAsBoolean("FLG_ALLEG_ATTO_ESCLUDI_PUBBL_DEFAULT");
 			}
 			
 			@Override

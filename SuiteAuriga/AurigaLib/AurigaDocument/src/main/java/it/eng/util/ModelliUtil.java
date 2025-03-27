@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -445,12 +446,44 @@ public class ModelliUtil {
 
 		if (lGetdatixgendamodelloOutput.isInError()) {
 			logger.error("Errore durante il recupero della sezione cahce da inniettare nel modello");
+			logger.error(lGetdatixgendamodelloOutput.getResultBean().getErrmsgout());
+			logger.error(lGetdatixgendamodelloOutput.getResultBean().getErrcodeout());
+			logger.error(lGetdatixgendamodelloOutput.getResultBean().getErrcontextout());
 			throw new StoreException("Errore durante il recupero della sezione cahce da inniettare nel modello");
 		}		
 
 		String sezionCacheModello = lGetdatixgendamodelloOutput.getResultBean().getDatixmodelloxmlout();
 		return sezionCacheModello;		
 		
+	}
+	
+	public static String getSezioneCacheModelloXFatture(AurigaLoginBean logInBean, String idUd, String idDoc, String finalita, String nomeModello, String contenutoFile) throws Exception, StoreException {
+		logger.debug("Recupero i dati da inniettare nel modello");
+		logger.debug("contenutoFile : " + contenutoFile);
+		DmpkModelliDocGetdatixgendamodelloBean lGetdatixgendamodelloInput = new DmpkModelliDocGetdatixgendamodelloBean();
+		lGetdatixgendamodelloInput.setCodidconnectiontokenin(logInBean.getToken());
+		lGetdatixgendamodelloInput.setIdobjrifin(StringUtils.isNotBlank(idUd) ? idUd : "");
+		lGetdatixgendamodelloInput.setFlgtpobjrifin("U");
+		lGetdatixgendamodelloInput.setNomemodelloin(nomeModello);
+		
+		lGetdatixgendamodelloInput.setAttributiaddin(contenutoFile);
+//		lGetdatixgendamodelloInput.setAttributiaddin(new XmlUtilitySerializer().bindXml(contenutoFile, true));
+
+		Getdatixgendamodello lGetdatixgendamodello = new Getdatixgendamodello();
+		StoreResultBean<DmpkModelliDocGetdatixgendamodelloBean> lGetdatixgendamodelloOutput = lGetdatixgendamodello
+				.execute(logInBean, lGetdatixgendamodelloInput);
+
+		if (lGetdatixgendamodelloOutput.isInError()) {
+			logger.error("Errore durante il recupero della sezione cahce da inniettare nel modello");
+			logger.error(lGetdatixgendamodelloOutput.getResultBean().getErrmsgout());
+			logger.error(lGetdatixgendamodelloOutput.getResultBean().getErrcodeout());
+			logger.error(lGetdatixgendamodelloOutput.getResultBean().getErrcontextout());
+			throw new StoreException("Errore durante il recupero della sezione cahce da inniettare nel modello");
+		}		
+
+		String sezionCacheModello = lGetdatixgendamodelloOutput.getResultBean().getDatixmodelloxmlout();
+		logger.debug("sezionCacheModello : " + lGetdatixgendamodelloOutput.getResultBean().getDatixmodelloxmlout());
+		return sezionCacheModello;		
 	}
 
 	private static File convertToPdf(File modelloWithValues, String nomeModello) throws Exception {

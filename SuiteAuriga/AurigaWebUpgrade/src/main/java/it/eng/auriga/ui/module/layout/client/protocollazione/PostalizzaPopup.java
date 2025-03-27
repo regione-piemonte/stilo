@@ -1,9 +1,7 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.Map;
 
 import com.smartgwt.client.data.AdvancedCriteria;
 import com.smartgwt.client.data.Criteria;
@@ -24,17 +22,15 @@ import com.smartgwt.client.widgets.form.ValuesManager;
 import com.smartgwt.client.widgets.form.fields.ButtonItem;
 import com.smartgwt.client.widgets.form.fields.FormItemCriteriaFunction;
 import com.smartgwt.client.widgets.form.fields.FormItemFunctionContext;
-import com.smartgwt.client.widgets.form.fields.SelectItem;
-import com.smartgwt.client.widgets.form.fields.SpacerItem;
-import com.smartgwt.client.widgets.form.fields.TextItem;
+
+import com.smartgwt.client.widgets.form.fields.events.ChangedEvent;
+import com.smartgwt.client.widgets.form.fields.events.ChangedHandler;
 import com.smartgwt.client.widgets.form.validator.CustomValidator;
 import com.smartgwt.client.widgets.grid.ListGridField;
 import com.smartgwt.client.widgets.layout.HStack;
 import com.smartgwt.client.widgets.layout.VLayout;
 import com.smartgwt.client.widgets.toolbar.ToolStrip;
-import com.sun.xml.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
 
-import it.eng.auriga.ui.module.layout.client.AurigaLayout;
 import it.eng.auriga.ui.module.layout.client.i18n.I18NUtil;
 import it.eng.utility.ui.module.core.client.datasource.GWTRestDataSource;
 import it.eng.utility.ui.module.core.shared.message.MessageBean;
@@ -44,6 +40,8 @@ import it.eng.utility.ui.module.layout.client.common.DetailSection;
 import it.eng.utility.ui.module.layout.client.common.items.ComboBoxItem;
 import it.eng.utility.ui.module.layout.client.common.items.ExtendedTextItem;
 import it.eng.utility.ui.module.layout.client.common.items.FilteredSelectItem;
+import it.eng.utility.ui.module.layout.client.common.items.SelectItem;
+import it.eng.utility.ui.module.layout.client.common.items.TextItem;
 import it.eng.utility.ui.module.layout.client.portal.ModalWindow;
 
 public class PostalizzaPopup extends ModalWindow{
@@ -54,6 +52,7 @@ public class PostalizzaPopup extends ModalWindow{
 
 	protected ValuesManager vm;
 	protected Record recordProtocollazione;
+	protected String modalitaInvio;
 
 	protected DetailSection detailSectionMittentiPostel;
 	protected DetailSection detailSectionDestinatariPostel;
@@ -63,22 +62,17 @@ public class PostalizzaPopup extends ModalWindow{
 	protected DynamicForm mittentePostelForm3;
 	protected DynamicForm allegatiPostelForm;
 	
-	
 	protected ToolStrip mainToolStrip;
-
 	protected ButtonItem confermaButton;
 	protected ButtonItem annullaButton;
 
-	protected TextItem gruppoProtocollantePostelItem;
-
+	protected SelectItem gruppoProtocollantePostelItem;
 	protected SelectItem tipoToponimoMittentePostelItem;
 	protected ExtendedTextItem toponimoMittentePostelItem;
 	protected ExtendedTextItem civicoMittentePostelItem;
 	protected FilteredSelectItem comuneMittentePostelItem;
 	protected TextItem provinciaMittentePostelItem;
 	protected ComboBoxItem capMittentePostelItem;
-	
-
 	
 	public PostalizzaPopup(Record record, ProtocollazioneDetail instance){
 		this(record, null, instance);
@@ -95,6 +89,8 @@ public class PostalizzaPopup extends ModalWindow{
 		this.vm = new ValuesManager();
 
 		this.recordProtocollazione = record;
+		
+		modalitaInvio = record.getAttribute("modalitaInvio");
 
 		setTitle("Dati per la postalizzazione");
 		setShowTitle(true);		
@@ -110,33 +106,31 @@ public class PostalizzaPopup extends ModalWindow{
 
 		settingsMenu.removeItem(separatorMenuItem);
 		settingsMenu.removeItem(autoSearchMenuItem);
-
-
-
-		
 		
 		Button confermaButton = new Button("Ok");   
 		confermaButton.setIcon("ok.png");
 		confermaButton.setIconSize(16); 
 		confermaButton.setAutoFit(false);
-		confermaButton.addClickHandler(new com.smartgwt.client.widgets.events.ClickHandler() {			
+		confermaButton.addClickHandler(new com.smartgwt.client.widgets.events.ClickHandler() {	
+			
 			@Override
 			public void onClick(com.smartgwt.client.widgets.events.ClickEvent event) {
 				if(mittentePostelForm.validate() && mittentePostelForm2.validate() && mittentePostelForm3.validate()) {
 					if (gruppoProtocollantePostelItem.getValueAsString().length()>44) 
 						Layout.addMessage(new MessageBean("La lunghezza del nominativo supera i 44 caratteri, si provvederà a troncarlo", "", MessageType.WARNING));
 					
-					recordProtocollazione.setAttribute("gruppoProtocollantePostelMittente", gruppoProtocollantePostelItem.getValue());
-					recordProtocollazione.setAttribute("tipoToponimoMittentePostel", tipoToponimoMittentePostelItem.getValue());
-					recordProtocollazione.setAttribute("toponimoMittentePostel", toponimoMittentePostelItem.getValue());
-					recordProtocollazione.setAttribute("civicoMittentePostel", civicoMittentePostelItem.getValue());
-					recordProtocollazione.setAttribute("comuneMittentePostel", comuneMittentePostelItem.getDisplayValue());
-					recordProtocollazione.setAttribute("provinciaMittentePostel", provinciaMittentePostelItem.getValue());
-					recordProtocollazione.setAttribute("capMittentePostel", capMittentePostelItem.getValue());
-					recordProtocollazione.setAttribute("listaAllegati", allegatiPostelForm.getRecordList().get(0).getAttributeAsRecordList("attach"));
-					recordProtocollazione.setAttribute("listaDestinatari", destinatariPostelForm.getRecordList().get(0).getAttributeAsRecordList("listaDestinatari"));
-					protInstance.clickInviaPostel(recordProtocollazione);
-					_window.markForDestroy();
+						recordProtocollazione.setAttribute("gruppoProtocollantePostelMittente", gruppoProtocollantePostelItem.getValue());
+						recordProtocollazione.setAttribute("tipoToponimoMittentePostel", tipoToponimoMittentePostelItem.getValue());
+						recordProtocollazione.setAttribute("toponimoMittentePostel", toponimoMittentePostelItem.getValue());
+						recordProtocollazione.setAttribute("civicoMittentePostel", civicoMittentePostelItem.getValue());
+						recordProtocollazione.setAttribute("comuneMittentePostel", comuneMittentePostelItem.getDisplayValue());
+						recordProtocollazione.setAttribute("provinciaMittentePostel", provinciaMittentePostelItem.getValue());
+						recordProtocollazione.setAttribute("capMittentePostel", capMittentePostelItem.getValue());
+						recordProtocollazione.setAttribute("listaAllegati", allegatiPostelForm.getRecordList().get(0).getAttributeAsRecordList("attach"));
+						recordProtocollazione.setAttribute("listaDestinatari", destinatariPostelForm.getRecordList().get(0).getAttributeAsRecordList("listaDestinatari"));
+						protInstance.clickInviaPostel(recordProtocollazione);
+						
+						_window.markForDestroy();
 					}					
 				}
 			});
@@ -160,12 +154,8 @@ public class PostalizzaPopup extends ModalWindow{
 
 		setAlign(Alignment.CENTER);
 		setTop(50);
-		
 
-
-		//		################################################### LAYOUT ###################################################
-
-
+		//################################################### LAYOUT ###################################################
 
 		VLayout layout = new VLayout();
 		layout.setHeight100();
@@ -178,7 +168,6 @@ public class PostalizzaPopup extends ModalWindow{
 		portletLayout.setWidth100();
 		portletLayout.setOverflow(Overflow.VISIBLE);
 
-
 		layout.addMember(createDetailSectionMittentePostalizzazione());
 		VLayout lspacerLayout = new VLayout();
 		lspacerLayout.setHeight100();
@@ -187,7 +176,6 @@ public class PostalizzaPopup extends ModalWindow{
 		layout.addMember(createDynamicFormAllegati());
 		layout.setHeight100();
 		layout.setWidth100();
-
 
 		portletLayout.addMember(layout);
 		portletLayout.addMember(_buttons);
@@ -202,22 +190,16 @@ public class PostalizzaPopup extends ModalWindow{
 		vm = new ValuesManager();
 		setValuesManager(vm);
 	}
-	
-	
-	
-	
-	
+
 	/** DESTINATARI **/
-	
-	
 	protected DetailSection createDetailSectionDestinatariPostalizzazione() {
 		
 		detailSectionDestinatariPostel = new DetailSection("Destinatari postalizzazione", true, true, true, createDestinatariForm()){
+			
 			@Override
 			public boolean showFirstCanvasWhenEmptyAfterOpen() {return true;}
 
 		};
-		
 		return detailSectionDestinatariPostel;
 	}
 	
@@ -227,33 +209,42 @@ public class PostalizzaPopup extends ModalWindow{
 		destinatariPostelForm.setMargin(10);
 		return destinatariPostelForm; 
 	}
-	
-	
-	
+
 	/** MITTENTE **/
-	
-	
 	protected DetailSection createDetailSectionMittentePostalizzazione() {
 		
-		String uoLavoro = AurigaLayout.getUoLavoro();
-		if(uoLavoro != null) {
-			uoLavoro = uoLavoro.substring(2);
-		}
-		String[] uoMittenti = AurigaLayout.getParametroDB("UO_MITTENTI_POSTALIZZAZIONE").split(",");
-		ArrayList<String> listaUoMittenti = new ArrayList<>(Arrays.asList(uoMittenti));
-		if(uoLavoro != null && !listaUoMittenti.contains(uoLavoro)) {
-			uoLavoro = "DEFAULT";
-		}
+//		String uoLavoro = AurigaLayout.getUoLavoro();
+//		if(uoLavoro != null) {
+//			uoLavoro = uoLavoro.substring(2);
+//		}
+//		String[] uoMittenti = AurigaLayout.getParametroDB("UO_MITTENTI_POSTALIZZAZIONE").split(",");
+//		ArrayList<String> listaUoMittenti = new ArrayList<>(Arrays.asList(uoMittenti));
+//		if(uoLavoro != null && !listaUoMittenti.contains(uoLavoro)) {
+//			uoLavoro = "DEFAULT";
+//		}
+//		
+//		String mittentePostalizzazione = AurigaLayout.getParametroDB("MITTENTE_POSTALIZZAZIONE_" + uoLavoro);
+//		String[] sezioniMittente = mittentePostalizzazione.split("\\|");
 		
-		String mittentePostalizzazione = AurigaLayout.getParametroDB("MITTENTE_POSTALIZZAZIONE_" + uoLavoro);
-		String[] sezioniMittente = mittentePostalizzazione.split("\\|");
-		
-		
-
-		gruppoProtocollantePostelItem = new TextItem("gruppoProtocollantePostelMittente", "Mittente");
-		gruppoProtocollantePostelItem.setWidth(200);
+		final GWTRestDataSource indirizziPostelDS = new GWTRestDataSource("LoadComboValoriDizionarioPostelDataSource", "key", FieldType.TEXT);
+		gruppoProtocollantePostelItem = new SelectItem("gruppoProtocollantePostelMittente", "Mittente") {
+			
+			@Override
+			public void onOptionClick(Record record) {
+				
+				String[] postalizzatore = record.getAttribute("indirizzo").split("\\|");
+				toponimoMittentePostelItem.setValue(postalizzatore[0]);
+				civicoMittentePostelItem.setValue(postalizzatore[1]);
+				capMittentePostelItem.setValue(postalizzatore[2]);
+				comuneMittentePostelItem.setValue(postalizzatore[3]);
+				provinciaMittentePostelItem.setValue(postalizzatore[4]);
+			}
+		};
+		gruppoProtocollantePostelItem.setWidth(420);
+		gruppoProtocollantePostelItem.setValueField("key");
+		gruppoProtocollantePostelItem.setDisplayField("value");
 		gruppoProtocollantePostelItem.setShowTitle(true);
-		gruppoProtocollantePostelItem.setValue(sezioniMittente[0]);
+		gruppoProtocollantePostelItem.setOptionDataSource(indirizziPostelDS);
 		gruppoProtocollantePostelItem.setCanEdit(true);
 		CustomValidator lRequiredValidator = new CustomValidator() {
 
@@ -265,6 +256,13 @@ public class PostalizzaPopup extends ModalWindow{
 		};
 		lRequiredValidator.setErrorMessage("Campo obbligatorio");		
 		gruppoProtocollantePostelItem.setValidators(lRequiredValidator);
+		gruppoProtocollantePostelItem.addChangedHandler(new ChangedHandler() {
+
+			@Override
+			public void onChanged(ChangedEvent event) {
+				markForRedraw();
+			}
+		});
 
 		tipoToponimoMittentePostelItem = new FilteredSelectItem("tipoToponimoMittentePostel");
 		tipoToponimoMittentePostelItem.setValueField("key");
@@ -284,19 +282,19 @@ public class PostalizzaPopup extends ModalWindow{
 		tipoToponimoValueMap.put("VIA", "VIA");
 		tipoToponimoMittentePostelItem.setValueMap(tipoToponimoValueMap);
 		tipoToponimoMittentePostelItem.setValidators(lRequiredValidator);
+		tipoToponimoMittentePostelItem.setCanEdit(false);
 
 		toponimoMittentePostelItem = new ExtendedTextItem("toponimoMittentePostel");
 		toponimoMittentePostelItem.setShowTitle(false);
-		toponimoMittentePostelItem.setValue(sezioniMittente[1]);
-		toponimoMittentePostelItem.setCanEdit(true);
+		//toponimoMittentePostelItem.setValue(sezioniMittente[1]);
+		toponimoMittentePostelItem.setCanEdit(false);
 		toponimoMittentePostelItem.setWidth(200);
 		toponimoMittentePostelItem.setLength(30);
 		toponimoMittentePostelItem.setValidators(lRequiredValidator);
 
-
 		civicoMittentePostelItem = new ExtendedTextItem("civicoMittentePostel", I18NUtil.getMessages().soggetti_detail_indirizzi_civicoItem_title());
-		civicoMittentePostelItem.setValue(sezioniMittente[2]);
-		civicoMittentePostelItem.setCanEdit(true);
+		//civicoMittentePostelItem.setValue(sezioniMittente[2]);
+		civicoMittentePostelItem.setCanEdit(false);
 		civicoMittentePostelItem.setWidth(50);
 		civicoMittentePostelItem.setLength(5);
 		civicoMittentePostelItem.setValidators(lRequiredValidator);
@@ -382,14 +380,13 @@ public class PostalizzaPopup extends ModalWindow{
 		comuneMittentePostelItem.setAutoFetchData(false);		
 		comuneMittentePostelItem.setAlwaysFetchMissingValues(true);
 		comuneMittentePostelItem.setFetchMissingValues(true);
-		comuneMittentePostelItem.setValue(sezioniMittente[4]);
-		comuneMittentePostelItem.setCanEdit(true);
+		//comuneMittentePostelItem.setValue(sezioniMittente[4]);
+		comuneMittentePostelItem.setCanEdit(false);
 		comuneMittentePostelItem.setValidators(lRequiredValidator);
-
 
 		provinciaMittentePostelItem = new TextItem("provinciaMittentePostel", I18NUtil.getMessages().soggetti_detail_indirizzi_provinciaItem_title());
 		provinciaMittentePostelItem.setWidth(50);
-		provinciaMittentePostelItem.setValue(sezioniMittente[5]);
+		//provinciaMittentePostelItem.setValue(sezioniMittente[5]);
 		provinciaMittentePostelItem.setCanEdit(false);
 		provinciaMittentePostelItem.setLength(2);
 		provinciaMittentePostelItem.setKeyPressFilter("[a-z]");
@@ -411,8 +408,8 @@ public class PostalizzaPopup extends ModalWindow{
 		capMittentePostelItem.setFetchMissingValues(true);
 		capMittentePostelItem.setAddUnknownValues(true);
 		capMittentePostelItem.setCompleteOnTab(false);
-		capMittentePostelItem.setValue(sezioniMittente[3]);
-		capMittentePostelItem.setCanEdit(true);
+		//capMittentePostelItem.setValue(sezioniMittente[3]);
+		capMittentePostelItem.setCanEdit(false);
 		capMittentePostelItem.setPickListFilterCriteriaFunction(new FormItemCriteriaFunction() {
 
 			@Override
@@ -434,10 +431,9 @@ public class PostalizzaPopup extends ModalWindow{
 		});
 		capMittentePostelItem.setValidators(lRequiredValidator);
 
-
-
-
-		detailSectionMittentiPostel = new DetailSection("Mittente postalizzazione", true, true, true, createDynamicFormGruppoProtocollante(), createDynamicFormIndirizzoParte1(), createDynamicFormIndirizzoParte2()){
+		String testoMittenteSectionPostel = modalitaInvio != null && "raccomandata".equalsIgnoreCase(modalitaInvio) ? "Indirizzo ritorno ricevuta" : "Mittente postalizzazione";
+		detailSectionMittentiPostel = new DetailSection(testoMittenteSectionPostel, true, true, true, createDynamicFormGruppoProtocollante(), createDynamicFormIndirizzoParte1(), createDynamicFormIndirizzoParte2()){
+			
 			@Override
 			public boolean showFirstCanvasWhenEmptyAfterOpen() {return true;}
 
@@ -448,7 +444,6 @@ public class PostalizzaPopup extends ModalWindow{
 		return detailSectionMittentiPostel;
 	}
 	
-	
 	protected DynamicForm createDynamicFormGruppoProtocollante() {
 		
 		mittentePostelForm = new DynamicForm();
@@ -458,7 +453,6 @@ public class PostalizzaPopup extends ModalWindow{
 		mittentePostelForm.setNumCols(6);
 		mittentePostelForm.setColWidths(10, 10 ,10 ,10 ,10 ,10);
 		mittentePostelForm.setFields(gruppoProtocollantePostelItem);
-		
 		return mittentePostelForm;
 	}
 	
@@ -482,22 +476,13 @@ public class PostalizzaPopup extends ModalWindow{
 		mittentePostelForm3.setColWidths(10, 10 ,10 ,10 ,10 ,10);
 		mittentePostelForm3.setFields(comuneMittentePostelItem, provinciaMittentePostelItem, capMittentePostelItem);
 		return mittentePostelForm3;
-		
 	}
 	
-	
 	/** ALLEGATI **/
-	
-	
 	protected DynamicForm createDynamicFormAllegati() {
 		
 		allegatiPostelForm = new PostelAttachmentForm(recordProtocollazione);
 		allegatiPostelForm.setMargin(10);
 		return allegatiPostelForm;
 	}
-
-
-	
 }
-
-

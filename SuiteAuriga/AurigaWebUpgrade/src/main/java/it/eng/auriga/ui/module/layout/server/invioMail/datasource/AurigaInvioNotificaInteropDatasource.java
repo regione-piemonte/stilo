@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.invioMail.datasource;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -86,7 +87,11 @@ public class AurigaInvioNotificaInteropDatasource extends AbstractServiceDataSou
 				int count = 0;
 				for (File lFile : lEmailAttachsBean.getFiles()) {
 					if (lEmailAttachsBean.getMailAttachments().get(count).getFilename().equalsIgnoreCase("segnatura.xml")) {
-						segnaturaXml = IOUtils.toString(new FileInputStream(lFile));
+						/**
+						 * RIMOZIONE CARATTERI DI CONTROLLO E Replacement Character
+						 */
+						String ioUtils = IOUtils.toString(new FileInputStream(lFile));
+						segnaturaXml = ioUtils.replaceAll("\\p{C}", "").replaceAll((char)0xfffd+"", "");
 					}
 					count++;
 				}

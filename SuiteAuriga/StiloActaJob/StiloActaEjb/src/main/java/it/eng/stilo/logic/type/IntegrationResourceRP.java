@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.stilo.logic.type;
 
 import java.text.DateFormat;
 
@@ -81,7 +82,7 @@ public class IntegrationResourceRP implements  EIntegrationResource{
 		if( tipo!=null && tipo.equalsIgnoreCase("RPUBBL"))
 			return EIntegrationResourceRP.REGISTRO_PUBBLICAZIONI.getCode();
 		
-		if( tipo!=null && tipo.equalsIgnoreCase("REG")){
+		if( tipo!=null && tipo.startsWith("REG")){
 			if( dynamicAttributesMap!=null && dynamicAttributesMap.containsKey("tipoAtto") && dynamicAttributesMap.get("tipoAtto")!=null ){
 				String tipoAtto = dynamicAttributesMap.get("tipoAtto");
 				if( tipoAtto!=null && tipoAtto.equalsIgnoreCase("determina")){
@@ -146,7 +147,7 @@ public class IntegrationResourceRP implements  EIntegrationResource{
 		if( tipo!=null && tipo.equalsIgnoreCase("RPUBBL"))
 			return EIntegrationResourceRP.REGISTRO_PUBBLICAZIONI.getVolumeDescrPattern();
 		
-		if( tipo!=null && tipo.equalsIgnoreCase("REG")){
+		if( tipo!=null && tipo.startsWith("REG")){
 			if( dynamicAttributesMap!=null && dynamicAttributesMap.containsKey("tipoAtto") && dynamicAttributesMap.get("tipoAtto")!=null ){
 				String tipoAtto = dynamicAttributesMap.get("tipoAtto");
 				if( tipoAtto!=null && tipoAtto.equalsIgnoreCase("determina")){
@@ -208,7 +209,7 @@ public class IntegrationResourceRP implements  EIntegrationResource{
 		if( tipo!=null && tipo.equalsIgnoreCase("RPUBBL"))
 			return EIntegrationResourceRP.REGISTRO_PUBBLICAZIONI.getVolumeCurrRetention();
 		
-		if( tipo!=null && tipo.equalsIgnoreCase("REG")){
+		if( tipo!=null && tipo.startsWith("REG")){
 			if( dynamicAttributesMap!=null && dynamicAttributesMap.containsKey("tipoAtto") && dynamicAttributesMap.get("tipoAtto")!=null ){
 				String tipoAtto = dynamicAttributesMap.get("tipoAtto");
 				if( tipoAtto!=null && tipoAtto.equalsIgnoreCase("determina")){
@@ -271,7 +272,7 @@ public class IntegrationResourceRP implements  EIntegrationResource{
 		if( tipo!=null && tipo.equalsIgnoreCase("RPUBBL"))
 			return EIntegrationResourceRP.REGISTRO_PUBBLICAZIONI.getVolumeGenRetention();
 		
-		if( tipo!=null && tipo.equalsIgnoreCase("REG")){
+		if( tipo!=null && tipo.startsWith("REG")){
 			if( dynamicAttributesMap!=null && dynamicAttributesMap.containsKey("tipoAtto") && dynamicAttributesMap.get("tipoAtto")!=null ){
 				String tipoAtto = dynamicAttributesMap.get("tipoAtto");
 				if( tipoAtto!=null && tipoAtto.equalsIgnoreCase("determina")){
@@ -334,7 +335,7 @@ public class IntegrationResourceRP implements  EIntegrationResource{
 		if( tipo!=null && tipo.equalsIgnoreCase("RPUBBL"))
 			return EIntegrationResourceRP.REGISTRO_PUBBLICAZIONI.getDocumentFormat();
 		
-		if( tipo!=null && tipo.equalsIgnoreCase("REG")){
+		if( tipo!=null && tipo.startsWith("REG")){ 
 			if( dynamicAttributesMap!=null && dynamicAttributesMap.containsKey("tipoAtto") && dynamicAttributesMap.get("tipoAtto")!=null ){
 				String tipoAtto = dynamicAttributesMap.get("tipoAtto");
 				if( tipoAtto!=null && tipoAtto.equalsIgnoreCase("determina")){
@@ -397,7 +398,7 @@ public class IntegrationResourceRP implements  EIntegrationResource{
 		if( tipo!=null && tipo.equalsIgnoreCase("RPUBBL"))
 			return EIntegrationResourceRP.REGISTRO_PUBBLICAZIONI.getEfficacy();
 		
-		if( tipo!=null && tipo.equalsIgnoreCase("REG")){
+		if( tipo!=null && tipo.startsWith("REG")){
 			if( dynamicAttributesMap!=null && dynamicAttributesMap.containsKey("tipoAtto") && dynamicAttributesMap.get("tipoAtto")!=null ){
 				String tipoAtto = dynamicAttributesMap.get("tipoAtto");
 				if( tipoAtto!=null && tipoAtto.equalsIgnoreCase("determina")){
@@ -460,7 +461,7 @@ public class IntegrationResourceRP implements  EIntegrationResource{
 		if( tipo!=null && tipo.equalsIgnoreCase("RPUBBL"))
 			return EIntegrationResourceRP.REGISTRO_PUBBLICAZIONI.getValidityMonths();
 		
-		if( tipo!=null && tipo.equalsIgnoreCase("REG")){
+		if( tipo!=null && tipo.startsWith("REG")){
 			if( dynamicAttributesMap!=null && dynamicAttributesMap.containsKey("tipoAtto") && dynamicAttributesMap.get("tipoAtto")!=null ){
 				String tipoAtto = dynamicAttributesMap.get("tipoAtto");
 				if( tipoAtto!=null && tipoAtto.equalsIgnoreCase("determina")){

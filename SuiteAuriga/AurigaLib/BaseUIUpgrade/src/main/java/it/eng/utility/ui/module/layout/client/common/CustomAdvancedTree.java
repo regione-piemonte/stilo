@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common;
 
 import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.core.client.Scheduler.ScheduledCommand;
@@ -404,7 +405,7 @@ public class CustomAdvancedTree extends TreeGrid {
 		if (isFirstLoad) {
 			((GWTRestDataSource) instance.getDataSource()).addParam("isFirstLoad", null);
 			if (!skipPercorsoIniziale/* || isFirstLoadAndEsplora */) {
-				layout.setPercorsoIniziale();
+				layout.setPercorsoInizialeAfterCaricaPreference();
 			}
 		}
 

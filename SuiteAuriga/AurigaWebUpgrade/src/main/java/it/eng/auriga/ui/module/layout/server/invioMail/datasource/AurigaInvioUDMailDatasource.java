@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.invioMail.datasource;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -8,6 +9,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -46,6 +48,7 @@ import it.eng.auriga.database.store.dmpk_utility.bean.DmpkUtilityGetestremiregnu
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
 import it.eng.auriga.exception.StoreException;
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
+import it.eng.auriga.ui.module.layout.client.TipologiaAllegatiInvioMailCostants;
 import it.eng.auriga.ui.module.layout.server.archivio.datasource.bean.filePerBustaTimbro.InfoFilePerBustaTimbro;
 import it.eng.auriga.ui.module.layout.server.common.LoginDataSource;
 import it.eng.auriga.ui.module.layout.server.firmaXades.bean.FirmaXadesBean;
@@ -128,6 +131,7 @@ public class AurigaInvioUDMailDatasource extends AbstractServiceDataSource<Proto
 
 		String finalita = getExtraparams().get("finalita");
 		Integer flgInvioPecIn = null;
+		String tipologiaAllegati = StringUtils.isNotBlank(getExtraparams().get("tipologiaAllegati")) ? getExtraparams().get("tipologiaAllegati") : "";
 		String tipoMail = getExtraparams().get("tipoMail");
 		String pecMulti = getExtraparams().get("PEC_MULTI") != null ? getExtraparams().get("PEC_MULTI") : "";
 		if(tipoMail.equals("PEO")) {
@@ -190,17 +194,23 @@ public class AurigaInvioUDMailDatasource extends AbstractServiceDataSource<Proto
 
 		List<AttachmentUDBean> lListAttachments = new ArrayList<AttachmentUDBean>();
 		List<String> fileDaTimbrareNonConvertiti = new ArrayList<String>();
-		for (InvioUDMailOutAttachmentBean lInvioMailUDattachmentBean : lInvioMailUDoutBean.getAttachments()) {
-			if (lInvioMailUDattachmentBean.getDaTimbrare() != null)
-				mLogger.debug("Attachment da timbrare: name = " + lInvioMailUDattachmentBean.getDaTimbrare().name() + " dbValue = "
-						+ lInvioMailUDattachmentBean.getDaTimbrare().getDbValue());
-			if (lInvioMailUDattachmentBean.getDaTimbrare() == Flag.SETTED) {
-				mLogger.debug("L'attachment " + lInvioMailUDattachmentBean.getNomeFile() + " è da timbrare");
-				generaFileTimbrato(lInvioMailUDattachmentBean, lListAttachments, fileDaTimbrareNonConvertiti, String.valueOf(pInBean.getIdUd().intValue()));
-			} else {
-				AttachmentUDBean lAttachmentUDBean = getAttachmentOriginale(lInvioMailUDattachmentBean);
-				lListAttachments.add(lAttachmentUDBean);
-			}
+		
+		switch (tipologiaAllegati) {
+
+		case TipologiaAllegatiInvioMailCostants.FILE_PRINCIPALE:
+			settaPrincipaleEAllegatiMail(pInBean, lInvioMailUDoutBean, lListAttachments, fileDaTimbrareNonConvertiti);
+			break;
+		case TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI:
+			settaBustaPrincipaleEAllegati(pInBean, lInvioMailUDoutBean, lListAttachments, fileDaTimbrareNonConvertiti);
+			break;
+		case TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI_ESTERNI:
+			settaBustaPrincipaleConAllegatiEsterni(pInBean, lInvioMailUDoutBean, lListAttachments, fileDaTimbrareNonConvertiti);
+			break;
+		default:
+			/*
+			 * Qui vengono settati i file come veniva fatto prima dell introduzione delle buste, viene eseguito questo metodo se ATTIVA_OPZ_AVANZATE_INVIO_EMAIL_UD = false
+			 */
+			settaAllegatiDefaultMail(pInBean, lInvioMailUDoutBean, lListAttachments, fileDaTimbrareNonConvertiti);
 		}
 
 		lInvioUDMailBean.setMittente(lInvioMailUDoutBean.getCasellaMittente());
@@ -221,7 +231,7 @@ public class AurigaInvioUDMailDatasource extends AbstractServiceDataSource<Proto
 
 		if (fileDaTimbrareNonConvertiti != null && fileDaTimbrareNonConvertiti.size() > 0) {
 			boolean first = true;
-			StringBuffer lStringBuffer = new StringBuffer("Il formato del/i file ");
+			StringBuffer lStringBuffer = new StringBuffer("Per i seguenti file: ");
 			if (first)
 				first = false;
 			else
@@ -229,13 +239,259 @@ public class AurigaInvioUDMailDatasource extends AbstractServiceDataSource<Proto
 			for (String lString : fileDaTimbrareNonConvertiti) {
 				lStringBuffer.append(lString);
 			}
-			lStringBuffer.append(" non consente di apporvi il timbro con la segnatura");
+			lStringBuffer.append(" non è stato possibile apporre il timbro");
 			addMessage(lStringBuffer.toString(), lStringBuffer.toString(), MessageType.WARNING);
 		}
 
 		lInvioUDMailBean.setIdMailPartenza(pInBean.getIdEmailArrivo());
 
 		return lInvioUDMailBean;
+	}
+
+
+	private void settaBustaPrincipaleConAllegatiEsterni(ProtocollazioneBean pInBean,
+			InvioUDMailOutBean lInvioMailUDoutBean, List<AttachmentUDBean> lListAttachments,
+			List<String> fileDaTimbrareNonConvertiti) {
+		
+		File fileEstratto = null;
+		for (InvioUDMailOutAttachmentBean lInvioMailUDattachmentBean : lInvioMailUDoutBean.getAttachments()) {		
+			if (StringUtils.isBlank(lInvioMailUDattachmentBean.getNroAllegato()) && StringUtils.isNotBlank(lInvioMailUDattachmentBean.getUri())) {		
+				/*se è un file primario, cioè se ha nroAttach nullo o vuoto*/
+				OpzioniTimbroAttachEmail lOpzioniTimbroAttachEmail = null;
+				boolean generaPdfA = false;
+				try {
+					mLogger.debug("Recupero il file");
+					// Se è da convertire
+					RecuperoFile lRecuperoFile = new RecuperoFile();
+					AurigaLoginBean lAurigaLoginBean = AurigaUserUtil.getLoginInfo(getSession());
+					FileExtractedIn lFileExtractedIn = new FileExtractedIn();
+					lFileExtractedIn.setUri(lInvioMailUDattachmentBean.getUri());
+					FileExtractedOut out = lRecuperoFile.extractfile(UserUtil.getLocale(getSession()),
+							lAurigaLoginBean, lFileExtractedIn);
+					fileEstratto = out.getExtracted();
+
+					lOpzioniTimbroAttachEmail = (OpzioniTimbroAttachEmail) SpringAppContext.getContext().getBean("OpzioniTimbroAttachEmail");
+					TestoTimbro lTestoTimbro = new TestoTimbro();
+					lTestoTimbro.setTesto(lInvioMailUDattachmentBean.getTestoVicinoAlTimbro());
+					lOpzioniTimbroAttachEmail.setIntestazioneTimbro(lTestoTimbro);
+					lOpzioniTimbroAttachEmail.setTestoTimbro(lTestoTimbro);
+
+					generaPdfA = ParametriDBUtil.getParametroDBAsBoolean(getSession(), "TIMBRATURA_ABILITA_PDFA");
+
+					InfoFilePerBustaTimbro fileTimbrato = new InfoFilePerBustaTimbro();
+					fileTimbrato.setFile(fileEstratto);
+					fileTimbrato.setNomeFile(lInvioMailUDattachmentBean.getNomeFile());
+					
+					List<InfoFilePerBustaTimbro> listaFileDaAggiungereAllaBusta = new ArrayList<InfoFilePerBustaTimbro>();
+					listaFileDaAggiungereAllaBusta.add(fileTimbrato);
+					
+					TimbraResultBean timbraResultBean = TimbraUtility.creaTimbraturaPerFileFirmato(getSession(), getLocale(), generaPdfA, lOpzioniTimbroAttachEmail, String.valueOf(pInBean.getIdUd()), lInvioMailUDattachmentBean.getIdDoc(), null, listaFileDaAggiungereAllaBusta);
+					
+					lFileExtractedIn.setUri(timbraResultBean.getUri());
+					FileExtractedOut out2 = lRecuperoFile.extractfile(UserUtil.getLocale(getSession()), lAurigaLoginBean, lFileExtractedIn);
+					File fileBusta = out2.getExtracted();
+					FileInputStream bustaPdf = new FileInputStream(fileBusta);	
+					AttachmentUDBean lAttachmentUDBeanTimbrato = getAttachmentTimbrato(lInvioMailUDattachmentBean, bustaPdf);
+					lListAttachments.add(lAttachmentUDBeanTimbrato);
+				} catch (Exception e) {
+					String message = e.getMessage();
+					if(message.contains("BUSTA_ACCOMPAGNAMENTO_CON_TIMBRO_REGISTRAZIONE")) {
+						message = "Per problema di configurazione impossibile allegare la versione del file con busta timbrata: manca il modello della busta timbrata";
+					}
+					addMessage(message, "", MessageType.WARNING);
+					AttachmentUDBean lAttachmentUDBean = getAttachmentOriginale(lInvioMailUDattachmentBean);
+					lListAttachments.add(lAttachmentUDBean);
+				}
+				
+				if (StringUtils.isNotBlank(ParametriDBUtil.getParametroDB(getSession(), "AGGIUNGI_ATTACH_FILE_TIMBRATO_X_STAMPA"))
+						&& "true".equalsIgnoreCase(ParametriDBUtil.getParametroDB(getSession(), "AGGIUNGI_ATTACH_FILE_TIMBRATO_X_STAMPA"))) {
+					try {
+						mLogger.debug("AGGIUNGI_ATTACH_FILE_TIMBRATO_X_STAMPA vale true, provo a timbrarlo");
+
+						TimbraUtil lTimbraUtil = new TimbraUtil();
+						String nomeFileDaTimbrare = lInvioMailUDattachmentBean.getNomeFile();
+						if (lInvioMailUDattachmentBean.getPdf() == Flag.SETTED || lInvioMailUDattachmentBean.getConvertibile() == Flag.SETTED) {
+
+							InputStream timbrato = lTimbraUtil.timbra(fileEstratto, nomeFileDaTimbrare, lOpzioniTimbroAttachEmail, generaPdfA);
+							mLogger.debug("File timbrato: Aggiungo l'attachment timbrato oltre a quello originale");
+							AttachmentUDBean attachmentUDBeanTimbrato = getAttachmentTimbrato(lInvioMailUDattachmentBean, timbrato);
+							setFileNameFirmatoTimbrato(attachmentUDBeanTimbrato, lInvioMailUDattachmentBean.getNomeFile(), "firmatoPerStampa");
+							lListAttachments.add(attachmentUDBeanTimbrato);
+						}
+					} catch (Exception e) {
+						mLogger.error("Non sono riuscito a timbrarlo per " + e.getMessage() + ", lo aggiungo alla lista dei non timbrati ", e);
+					}
+				}
+			} else {
+				AttachmentUDBean lAttachmentUDBean = getAttachmentOriginale(lInvioMailUDattachmentBean);
+				lListAttachments.add(lAttachmentUDBean);
+			}
+			
+		}		
+	}
+
+	private void settaBustaPrincipaleEAllegati(ProtocollazioneBean pInBean, InvioUDMailOutBean lInvioMailUDoutBean,
+			List<AttachmentUDBean> lListAttachments, List<String> fileDaTimbrareNonConvertiti) {
+
+		File fileEstratto = null;
+		OpzioniTimbroAttachEmail lOpzioniTimbroAttachEmail = null;
+		boolean generaPdfA = false;
+
+		RecuperoFile lRecuperoFile = new RecuperoFile();
+		AurigaLoginBean lAurigaLoginBean = AurigaUserUtil.getLoginInfo(getSession());
+		FileExtractedIn lFileExtractedIn = new FileExtractedIn();
+		String nomeFilePrimario = "";
+		List<InfoFilePerBustaTimbro> listaFileDaAggiungereAllaBusta = new ArrayList<InfoFilePerBustaTimbro>();
+		try {
+
+			for (InvioUDMailOutAttachmentBean lInvioMailUDattachmentBean : lInvioMailUDoutBean.getAttachments()) {
+				if(StringUtils.isNotBlank(lInvioMailUDattachmentBean.getUri())) {
+					mLogger.debug("Recupero il file");
+					lFileExtractedIn.setUri(lInvioMailUDattachmentBean.getUri());
+					FileExtractedOut out = lRecuperoFile.extractfile(UserUtil.getLocale(getSession()), lAurigaLoginBean,
+							lFileExtractedIn);
+					fileEstratto = out.getExtracted();
+	
+					InfoFilePerBustaTimbro fileTimbrato = new InfoFilePerBustaTimbro();
+					fileTimbrato.setFile(fileEstratto);
+					fileTimbrato.setNomeFile(lInvioMailUDattachmentBean.getNomeFile());
+	
+					listaFileDaAggiungereAllaBusta.add(fileTimbrato);
+	
+					if (StringUtils.isBlank(lInvioMailUDattachmentBean.getNroAllegato())) {
+	
+						nomeFilePrimario = lInvioMailUDattachmentBean.getNomeFile();
+	
+						if (StringUtils.isNotBlank(ParametriDBUtil.getParametroDB(getSession(), "AGGIUNGI_ATTACH_FILE_TIMBRATO_X_STAMPA"))
+								&& "true".equalsIgnoreCase(ParametriDBUtil.getParametroDB(getSession(), "AGGIUNGI_ATTACH_FILE_TIMBRATO_X_STAMPA"))) {
+							try {
+								mLogger.debug("AGGIUNGI_ATTACH_FILE_TIMBRATO_X_STAMPA vale true, provo a timbrarlo");
+	
+								TimbraUtil lTimbraUtil = new TimbraUtil();
+								String nomeFileDaTimbrare = lInvioMailUDattachmentBean.getNomeFile();
+								if (lInvioMailUDattachmentBean.getPdf() == Flag.SETTED || lInvioMailUDattachmentBean.getConvertibile() == Flag.SETTED) {
+									
+									lOpzioniTimbroAttachEmail = (OpzioniTimbroAttachEmail) SpringAppContext.getContext().getBean("OpzioniTimbroAttachEmail");
+									TestoTimbro lTestoTimbro = new TestoTimbro();
+									lTestoTimbro.setTesto(lInvioMailUDattachmentBean.getTestoVicinoAlTimbro());
+									lOpzioniTimbroAttachEmail.setIntestazioneTimbro(lTestoTimbro);
+									lOpzioniTimbroAttachEmail.setTestoTimbro(lTestoTimbro);
+	
+									generaPdfA = ParametriDBUtil.getParametroDBAsBoolean(getSession(), "TIMBRATURA_ABILITA_PDFA");
+	
+									InputStream timbrato = lTimbraUtil.timbra(fileEstratto, nomeFileDaTimbrare, lOpzioniTimbroAttachEmail, generaPdfA);
+									mLogger.debug("File timbrato: Aggiungo l'attachment timbrato oltre a quello originale");
+									AttachmentUDBean attachmentUDBeanTimbrato = getAttachmentTimbrato(lInvioMailUDattachmentBean, timbrato);
+									setFileNameFirmatoTimbrato(attachmentUDBeanTimbrato, lInvioMailUDattachmentBean.getNomeFile(), "firmatoPerStampa");
+									lListAttachments.add(attachmentUDBeanTimbrato);
+								}
+							} catch (Exception e) {
+								mLogger.error("Non sono riuscito a timbrarlo per " + e.getMessage() + ", lo aggiungo alla lista dei non timbrati ", e);
+							}
+						}
+					}
+				}
+			}
+
+			generaPdfA = ParametriDBUtil.getParametroDBAsBoolean(getSession(), "TIMBRATURA_ABILITA_PDFA");
+
+			TimbraResultBean timbraResultBean = TimbraUtility.creaTimbraturaPerFileFirmato(getSession(), getLocale(), generaPdfA, null, String.valueOf(pInBean.getIdUd()), 
+					String.valueOf(pInBean.getIdDocPrimario()), null, listaFileDaAggiungereAllaBusta);
+
+			lFileExtractedIn.setUri(timbraResultBean.getUri());
+			FileExtractedOut out2 = lRecuperoFile.extractfile(UserUtil.getLocale(getSession()), lAurigaLoginBean, lFileExtractedIn);
+			File fileBusta = out2.getExtracted();
+			FileInputStream bustaPdf = new FileInputStream(fileBusta);
+			String lStrUri = StorageImplementation.getStorage().storeStream(bustaPdf);
+			String fileName;
+			if (nomeFilePrimario.toLowerCase().endsWith(".p7m") || nomeFilePrimario.toLowerCase().endsWith(".tsd")) {
+				String fileNameSbustato = nomeFilePrimario.substring(0, nomeFilePrimario.length() - 4);
+				fileName = FilenameUtils.getBaseName(fileNameSbustato) + "_timbrato.pdf";
+			} else {
+				fileName = FilenameUtils.getBaseName(nomeFilePrimario) + "_timbrato.pdf";
+			}
+			AttachmentUDBean lAttachmentUDBean = new AttachmentUDBean();
+			lAttachmentUDBean.setFileNameAttach(fileName);
+			lAttachmentUDBean.setNroAttach(null);
+			lAttachmentUDBean.setUriAttach(lStrUri);
+			lAttachmentUDBean.setRemoteUri(false);
+			lAttachmentUDBean.setMimetype("application/pdf");
+			lAttachmentUDBean.setFirmato(false);
+			lListAttachments.add(lAttachmentUDBean);
+		} catch (Exception e) {
+			String message = "Errore durante la creazione della busta pdf: " + e.getMessage();
+			if (message.contains("BUSTA_ACCOMPAGNAMENTO_CON_TIMBRO_REGISTRAZIONE")) {
+				message = "Per problema di configurazione impossibile allegare la versione del file con busta timbrata: manca il modello della busta timbrata";
+			}
+			addMessage(message, "", MessageType.ERROR);
+		}
+
+	}
+
+	private void settaPrincipaleEAllegatiMail(ProtocollazioneBean pInBean, InvioUDMailOutBean lInvioMailUDoutBean,
+			List<AttachmentUDBean> lListAttachments, List<String> fileDaTimbrareNonConvertiti) {
+		for (InvioUDMailOutAttachmentBean lInvioMailUDattachmentBean : lInvioMailUDoutBean.getAttachments()) {
+			/*se è un file primario, cioè se ha nroAttach nullo o vuoto*/
+			if (StringUtils.isBlank(lInvioMailUDattachmentBean.getNroAllegato()) && StringUtils.isNotBlank(lInvioMailUDattachmentBean.getUri())) {
+				if (StringUtils.isNotBlank(ParametriDBUtil.getParametroDB(getSession(), "AGGIUNGI_ATTACH_FILE_TIMBRATO_X_STAMPA"))
+						&& "true".equalsIgnoreCase(ParametriDBUtil.getParametroDB(getSession(), "AGGIUNGI_ATTACH_FILE_TIMBRATO_X_STAMPA"))) {
+					try {
+						mLogger.debug("AGGIUNGI_ATTACH_FILE_TIMBRATO_X_STAMPA vale true, provo a timbrarlo");
+
+						TimbraUtil lTimbraUtil = new TimbraUtil();
+						File fileDaTimbrare;
+						String nomeFileDaTimbrare = lInvioMailUDattachmentBean.getNomeFile();
+						if (lInvioMailUDattachmentBean.getPdf() == Flag.SETTED || lInvioMailUDattachmentBean.getConvertibile() == Flag.SETTED) {
+							mLogger.debug("Recupero il file");
+							// Se è da convertire
+							RecuperoFile lRecuperoFile = new RecuperoFile();
+							AurigaLoginBean lAurigaLoginBean = AurigaUserUtil.getLoginInfo(getSession());
+							FileExtractedIn lFileExtractedIn = new FileExtractedIn();
+							lFileExtractedIn.setUri(lInvioMailUDattachmentBean.getUri());
+							FileExtractedOut out = lRecuperoFile.extractfile(UserUtil.getLocale(getSession()),
+									lAurigaLoginBean, lFileExtractedIn);
+							fileDaTimbrare = out.getExtracted();
+
+							OpzioniTimbroAttachEmail lOpzioniTimbroAttachEmail = (OpzioniTimbroAttachEmail) SpringAppContext.getContext().getBean("OpzioniTimbroAttachEmail");
+							TestoTimbro lTestoTimbro = new TestoTimbro();
+							lTestoTimbro.setTesto(lInvioMailUDattachmentBean.getTestoVicinoAlTimbro());
+							lOpzioniTimbroAttachEmail.setIntestazioneTimbro(lTestoTimbro);
+							lOpzioniTimbroAttachEmail.setTestoTimbro(lTestoTimbro);
+
+							boolean generaPdfA = ParametriDBUtil.getParametroDBAsBoolean(getSession(), "TIMBRATURA_ABILITA_PDFA");
+
+							InputStream timbrato = lTimbraUtil.timbra(fileDaTimbrare, nomeFileDaTimbrare, lOpzioniTimbroAttachEmail, generaPdfA);
+							mLogger.debug("File timbrato: Aggiungo l'attachment timbrato oltre a quello originale");
+							AttachmentUDBean attachmentUDBeanTimbrato = getAttachmentTimbrato(lInvioMailUDattachmentBean, timbrato);
+							setFileNameFirmatoTimbrato(attachmentUDBeanTimbrato, lInvioMailUDattachmentBean.getNomeFile(), "firmatoPerStampa");
+							lListAttachments.add(attachmentUDBeanTimbrato);
+						}
+					} catch (Exception e) {
+						mLogger.error("Non sono riuscito a timbrarlo per " + e.getMessage()
+								+ ", lo aggiungo alla lista dei non timbrati ", e);
+						fileDaTimbrareNonConvertiti.add(lInvioMailUDattachmentBean.getNomeFile());
+					}
+				}
+			}
+			AttachmentUDBean lAttachmentUDBean = getAttachmentOriginale(lInvioMailUDattachmentBean);
+			lListAttachments.add(lAttachmentUDBean);
+		}
+	}
+
+	public void settaAllegatiDefaultMail(ProtocollazioneBean pInBean, InvioUDMailOutBean lInvioMailUDoutBean,
+			List<AttachmentUDBean> lListAttachments, List<String> fileDaTimbrareNonConvertiti) throws Exception {
+		for (InvioUDMailOutAttachmentBean lInvioMailUDattachmentBean : lInvioMailUDoutBean.getAttachments()) {
+			if (lInvioMailUDattachmentBean.getDaTimbrare() != null)
+				mLogger.debug("Attachment da timbrare: name = " + lInvioMailUDattachmentBean.getDaTimbrare().name() + " dbValue = "
+						+ lInvioMailUDattachmentBean.getDaTimbrare().getDbValue());
+			if (lInvioMailUDattachmentBean.getDaTimbrare() == Flag.SETTED) {
+				mLogger.debug("L'attachment " + lInvioMailUDattachmentBean.getNomeFile() + " è da timbrare");
+				generaFileTimbrato(lInvioMailUDattachmentBean, lListAttachments, fileDaTimbrareNonConvertiti, String.valueOf(pInBean.getIdUd().intValue()));
+			} else {
+				AttachmentUDBean lAttachmentUDBean = getAttachmentOriginale(lInvioMailUDattachmentBean);
+				lListAttachments.add(lAttachmentUDBean);
+			}
+		}
 	}
 	
 	public InvioUDMailBean preparaEmailAttiDaLista(NuovaPropostaAtto2CompletaBean pInBean) throws Exception {
@@ -782,7 +1038,7 @@ public class AurigaInvioUDMailDatasource extends AbstractServiceDataSource<Proto
 		if (lInvioMailUDattachmentBean.getNomeFile().toLowerCase().endsWith(".p7m") || lInvioMailUDattachmentBean.getNomeFile().toLowerCase().endsWith(".tsd")) {
 			String fileNameSbustato = lInvioMailUDattachmentBean.getNomeFile().substring(0, lInvioMailUDattachmentBean.getNomeFile().length() - 4) ;
 			fileName = FilenameUtils.getBaseName(fileNameSbustato) + "_timbrato.pdf";
-		}else {
+		} else {
 		 fileName = FilenameUtils.getBaseName(lInvioMailUDattachmentBean.getNomeFile()) + "_timbrato.pdf";
 		}
 		AttachmentUDBean lAttachmentUDBean = new AttachmentUDBean();
@@ -880,7 +1136,9 @@ public class AurigaInvioUDMailDatasource extends AbstractServiceDataSource<Proto
 				// Se il nodo Allegati nella segnatura non esiste lo creo
 				if (segnaturaAllegatiNode == null) {
 					Node segnaturaDescrizioneNode = ((segnaturaDocument.getElementsByTagName("Descrizione") != null) && (segnaturaDocument.getElementsByTagName("Descrizione").getLength() > 0)) ? segnaturaDocument.getElementsByTagName("Descrizione").item(0) : null;
-					segnaturaAllegatiNode = creaSegnaturaAllegatiDescrizioneElement(segnaturaDocument, segnaturaDescrizioneNode);
+					if(segnaturaDescrizioneNode != null) {
+						segnaturaAllegatiNode = creaSegnaturaAllegatiDescrizioneElement(segnaturaDocument, segnaturaDescrizioneNode);
+					}
 				}
 				// Aggiungo gli allegati mancanti al nodo allegati della segnatura
 				aggiungiAllegatiInSegnatura(segnaturaAllegatiNode, segnaturaListaAllegatiDaAggiungere);
@@ -1063,16 +1321,11 @@ public class AurigaInvioUDMailDatasource extends AbstractServiceDataSource<Proto
 				byte[] attachSigilloByte = null;
 				
 				if (ParametriDBUtil.getParametroDBAsBoolean(getSession(), "ATTIVA_INTEROP_VER_2022")) {
-					
-					FirmaXadesBean lFirmaXadesBean = getFirmaXadesBean();
-
-					FirmaXadesBean firmaXadesBean = new FirmaXadesBean();
-					firmaXadesBean.setAlias(lFirmaXadesBean.getAlias());
-					firmaXadesBean.setPin(lFirmaXadesBean.getPin());
-					firmaXadesBean.setOtp(lFirmaXadesBean.getOtp());
-					firmaXadesBean.setEndpoint(lFirmaXadesBean.getEndpoint());
-					
-					attachSigilloByte = new HsmXadesUtility().sigilloXades(attachByte, firmaXadesBean);
+					FirmaXadesBean lFirmaXadesBean = getFirmaXadesBean();					
+					attachSigilloByte = new HsmXadesUtility().sigilloXades(attachByte, lFirmaXadesBean, getSession());
+					String strAttachSigilloByte = new String(attachSigilloByte, StandardCharsets.UTF_8);
+					strAttachSigilloByte = strAttachSigilloByte.replace("\n", "\r\n"); 
+					attachSigilloByte = strAttachSigilloByte.getBytes(StandardCharsets.UTF_8);
 					isSigilloXades = true;
 				}
 				
@@ -1087,12 +1340,17 @@ public class AurigaInvioUDMailDatasource extends AbstractServiceDataSource<Proto
 				RecuperoFile lRecuperoFile = new RecuperoFile();
 				FileExtractedIn lFileExtractedIn = new FileExtractedIn();
 				lFileExtractedIn.setUri(uri);
-				FileExtractedOut out = lRecuperoFile.extractfile(getLocale(), lAurigaLoginBean, lFileExtractedIn);			
+				FileExtractedOut out = lRecuperoFile.extractfile(getLocale(), lAurigaLoginBean, lFileExtractedIn);	
 				atta.setFile(out.getExtracted());
 				atta.setFilename(lAttachmentUDBean.getFileNameAttach());
-				atta.setFirmato(false);
+				if (ParametriDBUtil.getParametroDBAsBoolean(getSession(), "ATTIVA_INTEROP_VER_2022")) {
+					atta.setFirmato(true);
+				} else {
+					atta.setFirmato(false);
+				}
 				atta.setMimetype("application/xml");
 				atta.setOriginalName(lAttachmentUDBean.getFileNameAttach());
+				atta.setDimensione(new BigDecimal(out.getExtracted().length()));
 				lista.add(atta);
 			} else {
 				SenderAttachmentsBean atta = new SenderAttachmentsBean();
@@ -1105,11 +1363,11 @@ public class AurigaInvioUDMailDatasource extends AbstractServiceDataSource<Proto
 				} else {
 					atta.setFile(StorageImplementation.getStorage().extractFile(lAttachmentUDBean.getUriAttach()));
 				}
-				atta.setFilename(lAttachmentUDBean.getFileNameAttach());
-				lista.add(atta);
+				atta.setFilename(lAttachmentUDBean.getFileNameAttach());	
 				atta.setFirmato(lAttachmentUDBean.getFirmato());
 				atta.setMimetype(lAttachmentUDBean.getMimetype());
 				atta.setOriginalName(lAttachmentUDBean.getFileNameAttach());
+				lista.add(atta);
 			}
 
 		}
@@ -1190,6 +1448,8 @@ public class AurigaInvioUDMailDatasource extends AbstractServiceDataSource<Proto
 			Integer anno = result.getResultBean().getAnnoregout();
 			Integer numero = result.getResultBean().getNumregout().intValue();
 			Date data = result.getResultBean().getTsregout();
+			String siglaReg = result.getResultBean().getSiglaregio();
+			String categoria = result.getResultBean().getCodcategoriaregio();
 	
 			MailProcessorService lMailProcessorService = new MailProcessorService();
 			for (String lStrIdEmail : lEmailSentReferenceBean.getIdEmails()) {
@@ -1203,27 +1463,15 @@ public class AurigaInvioUDMailDatasource extends AbstractServiceDataSource<Proto
 				lRegistrazioneProtocolloBean.setLoginBean(lMailLoginBean);
 				RegistrazioneProtocollo lRegistrazioneProtocollo = new RegistrazioneProtocollo();
 				lRegistrazioneProtocollo.setIdProvReg(pInvioUDMailBean.getIdUD());
-				// BOZZA
-				if (StringUtils.isBlank(pInvioUDMailBean.getFlgTipoProv())) {
-					lRegistrazioneProtocollo.setSiglaRegistro("N.I.");
-					lRegistrazioneProtocollo.setCategoriaReg("I");
-				}
-				// Registrazione ENTRATA o USCITA
-				else if (pInvioUDMailBean.getFlgTipoProv().equalsIgnoreCase("E") || pInvioUDMailBean.getFlgTipoProv().equalsIgnoreCase("U")) {
-					lRegistrazioneProtocollo.setSiglaRegistro(null);
-					lRegistrazioneProtocollo.setCategoriaReg("PG");
-				}
-				// Registrazione INTERNA/TRA UFFICI
-				else {
-					lRegistrazioneProtocollo.setSiglaRegistro("P.I.");
-					lRegistrazioneProtocollo.setCategoriaReg("I");
-				}
+				lRegistrazioneProtocollo.setSiglaRegistro(siglaReg);
+				lRegistrazioneProtocollo.setCategoriaReg(categoria);
 				lRegistrazioneProtocollo.setAnnoReg(anno.shortValue());
 				lRegistrazioneProtocollo.setNumReg(numero != null ? new BigDecimal(numero) : null);
 				Calendar lGregorianCalendar = GregorianCalendar.getInstance();
 				lGregorianCalendar.setTime(data);
 				lRegistrazioneProtocollo.setDataRegistrazione(lGregorianCalendar);
 				lRegistrazioneProtocolloBean.setRegistrazione(lRegistrazioneProtocollo);
+				
 				List<ProtocolloAttachmentBean> attachmentsProtocollati = new ArrayList<ProtocolloAttachmentBean>();
 				lRegistrazioneProtocolloBean.setAttachmentsProtocollati(attachmentsProtocollati);
 				ResultBean<InfoRelazioneProtocolloBean> lCreaRelazioneProtocolloResult = lMailProcessorService.crearelazioneprotocollo(getLocale(),
@@ -1254,7 +1502,7 @@ public class AurigaInvioUDMailDatasource extends AbstractServiceDataSource<Proto
 				mLogger.error("Invio conferma automatica " + lStrIdEmail + " " + (end - start));
 				start = end;
 			}
-		}else{
+		} else {
 			throw new StoreException(invioSeparatoMessage);
 		}
 		return new InvioMailResultBean();
@@ -1286,16 +1534,11 @@ public class AurigaInvioUDMailDatasource extends AbstractServiceDataSource<Proto
 		boolean isSigilloXades = false;
 		byte[] attachSigilloByte = null;
 		if (ParametriDBUtil.getParametroDBAsBoolean(getSession(), "ATTIVA_INTEROP_VER_2022")) {
-			
 			FirmaXadesBean lFirmaXadesBean = getFirmaXadesBean();
-
-			FirmaXadesBean firmaXadesBean = new FirmaXadesBean();
-			firmaXadesBean.setAlias(lFirmaXadesBean.getAlias());
-			firmaXadesBean.setPin(lFirmaXadesBean.getPin());
-			firmaXadesBean.setOtp(lFirmaXadesBean.getOtp());
-			firmaXadesBean.setEndpoint(lFirmaXadesBean.getEndpoint());
-			
-			attachSigilloByte = new HsmXadesUtility().sigilloXades(IOUtils.toByteArray(lInputStream), firmaXadesBean);
+			attachSigilloByte = new HsmXadesUtility().sigilloXades(IOUtils.toByteArray(lInputStream), lFirmaXadesBean, getSession());
+			String strAttachSigilloByte = new String(attachSigilloByte, StandardCharsets.UTF_8);
+			strAttachSigilloByte = strAttachSigilloByte.replace("\n", "\r\n"); 
+			attachSigilloByte = strAttachSigilloByte.getBytes(StandardCharsets.UTF_8);
 			isSigilloXades = true;
 		}
 		
@@ -1779,18 +2022,7 @@ public class AurigaInvioUDMailDatasource extends AbstractServiceDataSource<Proto
 		List<AttachmentUDBean> lListAttachments = new ArrayList<AttachmentUDBean>();
 		List<String> fileDaTimbrareNonConvertiti = new ArrayList<String>();
 		if (lInvioMailUDoutBean.getAttachments() != null) {
-			for (InvioUDMailOutAttachmentBean lInvioMailUDattachmentBean : lInvioMailUDoutBean.getAttachments()) {
-				if (lInvioMailUDattachmentBean.getDaTimbrare() != null)
-					mLogger.debug("Attachment da timbrare: name = " + lInvioMailUDattachmentBean.getDaTimbrare().name() + " dbValue = "
-							+ lInvioMailUDattachmentBean.getDaTimbrare().getDbValue());
-				if (lInvioMailUDattachmentBean.getDaTimbrare() == Flag.SETTED) {
-					mLogger.debug("L'attachment " + lInvioMailUDattachmentBean.getNomeFile() + " è da timbrare");
-					generaFileTimbrato(lInvioMailUDattachmentBean, lListAttachments, fileDaTimbrareNonConvertiti, String.valueOf(pInBean.getIdUd().intValue()));
-				} else {
-					AttachmentUDBean lAttachmentUDBean = getAttachmentOriginale(lInvioMailUDattachmentBean);
-					lListAttachments.add(lAttachmentUDBean);
-				}
-			}
+			settaAllegatiDefaultMail(pInBean, lInvioMailUDoutBean, lListAttachments, fileDaTimbrareNonConvertiti);
 		}
 
 		lInvioUDMailBean.setMittente(lInvioMailUDoutBean.getCasellaMittente());

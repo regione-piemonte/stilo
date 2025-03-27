@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.archivio;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -202,9 +203,11 @@ public class ArchivioList extends CustomList {
 	private ReloadListCallback mReloadListCallback;
 	
 	private ListGridField dtEsecutivita;
+	private ListGridField dtAdozione; 
 	private ListGridField flgImmediatamenteEseg;
 	
 	private ListGridField perizie;
+	private ListGridField concessioni;
 	
 	
 	private boolean isActiveModal;
@@ -1139,6 +1142,13 @@ public class ArchivioList extends CustomList {
 		
 		dtEsecutivita = new ListGridField("dtEsecutivita", I18NUtil.getMessages().archivio_list_dtEsecutivitaField_title());
 		dtEsecutivita.setType(ListGridFieldType.DATE);
+		dtEsecutivita.setDateFormatter(DateDisplayFormat.TOEUROPEANSHORTDATE);
+		dtEsecutivita.setWrap(false);
+				
+		dtAdozione = new ListGridField("dtAdozione", I18NUtil.getMessages().archivio_list_dtAdozioneField_title());
+		dtAdozione.setType(ListGridFieldType.DATE);
+		dtAdozione.setDateFormatter(DateDisplayFormat.TOEUROPEANSHORTDATE);
+		dtAdozione.setWrap(false);
 		
 		flgImmediatamenteEseg = new ListGridField("flgImmediatamenteEseg", I18NUtil.getMessages().archivio_list_flgImmediatamenteEsegField());
 		flgImmediatamenteEseg.setType(ListGridFieldType.ICON);
@@ -1150,6 +1160,7 @@ public class ArchivioList extends CustomList {
 		flgImmediatamenteEseg.setValueIcons(flgImmediatamenteEsegValueIcons);
 	
 		perizie = new ListGridField("perizie", I18NUtil.getMessages().archivio_list_perizie_title());
+		concessioni = new ListGridField("concessioni", I18NUtil.getMessages().archivio_list_concessioni_title());
 		
 		centroDiCosto = new ListGridField("centroDiCosto", I18NUtil.getMessages().archivio_list_centroDiCosto_title());		
 		if(!AurigaLayout.isAttivoClienteCOTO()) {
@@ -1488,7 +1499,7 @@ public class ArchivioList extends CustomList {
 				// ottavio - AURIGA-520 : Se sono in D.BOZZE.DAPROT vanno rinominate le colonne:
 				// Inviato il -> Data di invio al protocollo 
 				// Assegnatario/i -> Protocollo assegnatario 
-				if (idNode!= null && (idNode.equals("D.BOZZE.DAPROT"))) {
+				if (idNode != null && (idNode.equals("D.BOZZE.DAPROT"))) {
 					tsInvio.setTitle("Data di invio al protocollo");
 					assegnatari.setTitle("Protocollo assegnatario");
 				}
@@ -1554,6 +1565,7 @@ public class ArchivioList extends CustomList {
 				
 				if (AurigaLayout.isAttivoClienteADSP()) {
 					fieldsToSet.addAll(Arrays.asList(perizie));
+					fieldsToSet.addAll(Arrays.asList(concessioni));
 				}
 				fieldsToSet.addAll(Arrays.asList(centroDiCosto, dataScadenza, flgSottopostoControlloRegAmm, nrLiquidazioneContestuale, idProcessoControlloRegAmm));
 				
@@ -1676,7 +1688,6 @@ public class ArchivioList extends CustomList {
 													 flgSelXFinalita, 
 													 segnatura, 
 													 statoTrasmissioneMail, 
-													 dtEsecutivita, 
 													 flgImmediatamenteEseg, 
 													 flgSottopostoControlloRegAmm, 
 													 nrLiquidazioneContestuale, 
@@ -1723,7 +1734,6 @@ public class ArchivioList extends CustomList {
 													 percorsoFolderApp, 
 													 flgSelXFinalita, 
 													 segnatura, 
-													 dtEsecutivita, 
 													 flgImmediatamenteEseg, 
 													 flgSottopostoControlloRegAmm, 
 													 nrLiquidazioneContestuale, 
@@ -1785,13 +1795,13 @@ public class ArchivioList extends CustomList {
 													 flgSelXFinalita, 
 													 segnatura, 
 													 statoTrasmissioneMail, 
-													 dtEsecutivita, 
 													 flgImmediatamenteEseg, 
 													 societa,
 													 inConoscenzaA)
 							);
 					if (AurigaLayout.isAttivoClienteADSP()) {
 						fieldsToSet.addAll(Arrays.asList(perizie));
+						fieldsToSet.addAll(Arrays.asList(concessioni));
 					}
 					fieldsToSet.addAll(Arrays.asList(centroDiCosto, dataScadenza, annotazioniApposte, flgSottopostoControlloRegAmm, nrLiquidazioneContestuale, idProcessoControlloRegAmm));
 					
@@ -1837,7 +1847,6 @@ public class ArchivioList extends CustomList {
 													 percorsoFolderApp, 
 													 flgSelXFinalita, 
 													 segnatura, 
-													 dtEsecutivita, 
 													 flgImmediatamenteEseg, 
 													 centroDiCosto, 
 													 dataScadenza, 
@@ -1850,6 +1859,13 @@ public class ArchivioList extends CustomList {
 							);
 				}
 			}
+			
+			// Sia la colonna "Data adozione" che la colonna "Data esecutività" 
+			// devono essere visibili SOLO se almeno uno dei parametri DB ATTIVATO_MODULO_ATTI e ATTIVA_ALBO = true
+			if (AurigaLayout.isAttivoModuloAtti() || AurigaLayout.isAttivoAlbo() ) {
+				fieldsToSet.addAll(Arrays.asList(dtEsecutivita, dtAdozione));
+			}
+			
 		}
 		
 		if (AurigaLayout.isAttivoClienteCMTO()) {
@@ -1860,11 +1876,12 @@ public class ArchivioList extends CustomList {
 			fieldsToSet.addAll(Arrays.asList(programmazioneAcquisti, codiceCIG, cui));
 		}
 		
+		/*
 		// ottavio - AURIGA-357 : la colonna "Dati completi per protocollazione"  deve apparire nella sezione con ci_nodo che inizia con D.2A.DAFIRM
 		if (fromScrivania && idNode!= null &&  idNode.startsWith("D.2A.DAFIRM")) {
 			fieldsToSet.addAll(Arrays.asList(flgDatiCompletiPerProtocollazione));			
-		}
-		
+		}		
+		*/
 		
 		// Solo per il nodo "Immagini non associate ai protocolli"
 		if (fromScrivania && idNode!= null && idNode.equals("D.SCANNOASS")) {
@@ -2153,6 +2170,7 @@ public class ArchivioList extends CustomList {
 					
 			}
 			
+			// Se sto cercando nella sezione Stampe ed esportazioni su file;
 			if (fromScrivania && idNode != null && idNode.equals("D.23")) {
 				if (!"tsRegistrazione".equals(fieldName) && !"segnaturaXOrd".equals(fieldName) && !"oggetto".equals(fieldName) && !"tipo".equals(fieldName)) {
 					field.setHidden(true);
@@ -2184,15 +2202,7 @@ public class ArchivioList extends CustomList {
 			// Se sto cercando tra gli INVIATI
 			if ("tsInvio".equals(fieldName)){
 				if (!fromScrivania || idFolder == null || !idFolder.equals("-9999") && !idFolder.equals("-99991")) {
-						field.setHidden(true);
-				}
-				
-				if (idNode != null) {
-					if (idNode.equalsIgnoreCase("D.BOZZE.DAPROT")){
-						  field.setHidden(false);	   // mostro la colonna
-					}else{ 
-						  field.setHidden(true);       // nascondo la colonna
-					}
+					field.setHidden(true);
 				}
 			}			
 			
@@ -2237,25 +2247,6 @@ public class ArchivioList extends CustomList {
 					 }
 			    }
 			}
-			
-			
-			// ottavio - AURIGA-357 : la colonna "Dati completi per protocollazione"  deve apparire nella sezione con ci_nodo che inizia con D.2A.DAFIRM
-			if ("flgDatiCompletiPerProtocollazione".equals(fieldName)) {
-				if (!fromScrivania  || idNode == null ) {
-					field.setHidden(true);					
-				} 
-				else{
-					if (idNode != null) {
-						if (idNode.equalsIgnoreCase("D.2A.DAFIRM")){
-							  field.setHidden(false);	   // mostro la colonna
-						}else{ 
-							  field.setHidden(true);       // nascondo la colonna
-						}
-					}
-				}
-			}
-			
-			
 			
 			// ottavio - AURIGA-357 : l'icona "Presa in carico" deve apparire in tutte e solo le sezioni con ci_nodo che inizia con D.2A o F.2A o DF.2A AND che NON contiene la stringa ".DP"
 			if ("flgPresaInCarico".equals(fieldName)) {
@@ -2336,23 +2327,14 @@ public class ArchivioList extends CustomList {
 			}
 			
 			
-			// ottavio - AURIGA-517 : la colonna "Presente documentazione contratti" deve apparire in tutte e solo le sezioni con ci_nodo = D.2A.DP.R
+			// ottavio - AURIGA-517 : la colonna "Presente documentazione contratti" deve apparire solo nella sezione D.2A.DP.R
 			if ("flgPresenzaContratti".equals(fieldName)) {
-				if (!fromScrivania  || idNode == null ) {
+				if (!fromScrivania  || idNode == null || !idNode.equalsIgnoreCase("D.2A.DP.R")) {
 					field.setHidden(true);					
 				} 
-				else{
-					if (idNode != null) {
-						if (idNode.equalsIgnoreCase("D.2A.DP.R")){
-							  field.setHidden(false);	   // mostro la colonna
-						}else{ 
-							  field.setHidden(true);       // nascondo la colonna
-						}
-					}
-				}
-			}
-						
-						
+			}									
+			
+			
 			// Se e' stato selezionato il nodo "Immagini non associate ai protocolli", mostro solo le colonne :  "Anno",  "N° immagine", "Data e ora ricezione" , "Data e ora scansione", "Dati barcode", "Sede scansione", "Timbro prot. riconosciuto", "N° prot. riconosciuto" , "Motivo scarto"
 			if (fromScrivania && idNode != null && idNode.equals("D.SCANNOASS")) {
 				if (!"anno".equals(fieldName)                   &&
@@ -2371,58 +2353,60 @@ public class ArchivioList extends CustomList {
 			}
 			
 			
-			// ottavio - AURIGA-520 : le seguenti colonne devono apparire in tutte e solo le sezioni con ci_nodo = D.BOZZE.DAPROT o D.BOZZE o D.2A.DAPROT :
-			// "Verso"                                 (flgTipoProv)
-			// "Segnatura"                             (segnatura)
-			// "Grado di riservatezza"                 (livelloRiservatezza)
-			// "N.ro"                                  (numero)
-			// "Anno"                                  (anno)
-			// "Data"                                  (tsRegistrazione)
-			// "Oggetto"                               (oggetto)
-			// "Priorità"                              (priorita)
-			// "Tipologia documentale"                 (tipo)
-			// "Data documento"                        (tsDocumento)
-			// "Fascicolo/i appartenenza"              (fascicoliApp)
-			// "Mittente/i"                            (mittenti)
-			// "Destinatario/i"                        (destinatari)
-			// "Punteggio ricerca"                     (score)
-			// "Dati completi per la protocollazione"  (flgDatiCompletiPerProtocollazione)
-			// "Data di invio al protocollo"           (tsInvio) 
-			// "Altre operazioni"                      (altreOpButtonField)
-						
-			
-			if ("flgTipoProv".equals(fieldName) || 
-				"segnatura".equals(fieldName) ||
-				"livelloRiservatezza".equals(fieldName) ||
-				"numero".equals(fieldName) ||
-				"anno".equals(fieldName) ||
-				"tsRegistrazione".equals(fieldName) ||
-				"oggetto".equals(fieldName) ||
-				"priorita".equals(fieldName) ||
-				"tipo".equals(fieldName) ||
-				"tsDocumento".equals(fieldName) ||
-				"fascicoliApp".equals(fieldName) ||
-				"mittenti".equals(fieldName) ||
-				"destinatari".equals(fieldName) ||
-				"score".equals(fieldName) ||
-				"flgDatiCompletiPerProtocollazione".equals(fieldName) ||
-				"tsInvio".equals(fieldName)
-					) {
-				if (!fromScrivania  || idNode == null ) {
-					field.setHidden(true);					
-				} 
-				else{
-					if (idNode != null) {
-						if (idNode.equalsIgnoreCase("D.BOZZE.DAPROT")  ||  idNode.equalsIgnoreCase("D.BOZZE")  || idNode.equalsIgnoreCase("D.2A.DAPROT")){
-							  field.setHidden(false);	   // mostro la colonna
-						}else{ 
-							  field.setHidden(true);       // nascondo la colonna
-						}
-					}
+			// ottavio - AURIGA-520 : Se e' stato selezionato il nodo D.BOZZE.DAPROT o D.BOZZE o D.2A.DAPROT, mostro solo le colonne:
+			// "Verso"                                 		(flgTipoProv)
+			// "Segnatura"                             		(segnatura)
+			// "Grado di riservatezza"                 		(livelloRiservatezza)
+			// "N.ro"                                  		(numero)
+			// "Anno"                                 		(anno)
+			// "Data"                                  		(tsRegistrazione)
+			// "Oggetto"                               		(oggetto)
+			// "Stato"								   		(stato) 									==> solo in D.BOZZE e D.2A.DAPROT (da togliere in D.BOZZE.DAPROT)
+			// "Priorità"                              		(priorita)
+			// "Tipologia documentale"                 		(tipo)
+			// "Data documento"                        		(tsDocumento)
+			// "Fascicolo/i appartenenza"              		(fascicoliApp)
+			// "Assegnatario/i"/"Protocollo assegnatario"   (assegnatari) 
+			// "Mittente/i"                            		(mittenti)
+			// "Destinatario/i"                        		(destinatari)
+			// "Punteggio ricerca"                     		(score)
+			// "Dati completi per la protocollazione"  		(iconaFlgDatiCompletiPerProtocollazione)
+			// "Data di invio al protocollo"           		(tsInvio) 									==> solo in D.BOZZE.DAPROT (da togliere in D.BOZZE e D.2A.DAPROT)
+			// "Altre operazioni"                      		(altreOpButtonField)
+			if (fromScrivania && idNode != null && ( idNode.equals("D.BOZZE.DAPROT") || idNode.equals("D.BOZZE") || idNode.equals("D.2A.DAPROT")) ) {
+				if (
+					!"flgTipoProv".equals(fieldName)                       		&&
+					!"segnaturaXOrd".equals(fieldName)                     		&&
+					!"livelloRiservatezza".equals(fieldName)               		&&
+					!"numero".equals(fieldName)                            		&&
+					!"anno".equals(fieldName)                              		&&
+					!"tsRegistrazione".equals(fieldName)                   		&&
+					!"oggetto".equals(fieldName)                           		&&
+					!"stato".equals(fieldName) 					   		   		&&
+					!"priorita".equals(fieldName)                         		&&
+					!"tipo".equals(fieldName)                              		&&
+					!"tsDocumento".equals(fieldName)                       		&&
+					!"fascicoliApp".equals(fieldName)                      		&&
+					!"assegnatari".equals(fieldName) 					   		&&
+					!"mittenti".equals(fieldName)                          		&&
+					!"destinatari".equals(fieldName)                       		&&
+					!"score".equals(fieldName)                             		&&
+					!"iconaFlgDatiCompletiPerProtocollazione".equals(fieldName) &&
+					!"tsInvio".equals(fieldName)						   		&&
+					!"altreOpButton".equals(fieldName)
+				   )
+				{
+					field.setHidden(true);
 				}
+				if("stato".equals(fieldName) && idNode.equals("D.BOZZE.DAPROT")) {
+					field.setHidden(true);
+				}
+				if("tsInvio".equals(fieldName) && !idNode.equals("D.BOZZE.DAPROT")) {
+					field.setHidden(true);
+				}			
+				
 			}
 			
-		
 		}
 		
 		
@@ -2564,6 +2548,7 @@ public class ArchivioList extends CustomList {
                                                                                                                           "equals", new String[] { "D.2A.DP.R" }
 			                          																					 );
 			
+			
 			// ottavio - AURIGA-520 : Se e' stato selezionato il nodo D.BOZZE.DAPROT, aggiungo la colonna : tsInvio
 			ShowInMenuFunctionFromScrivania lShowInMenuFunctionTS_INVIO = new ShowInMenuFunctionFromScrivania(scrivaniaLayout, 
                                                                                                               new ListGridField[] {  tsInvio }, 
@@ -2634,55 +2619,55 @@ public class ArchivioList extends CustomList {
 																															 );
 	
 			// ottavio - AURIGA-520 : Se e' stato selezionato il nodo D.BOZZE.DAPROT o D.2A.DAPROT
-						if (idNode!= null && (idNode.equals("D.BOZZE.DAPROT") || idNode.equals("D.2A.DAPROT"))) {
-							return new ShowInMenuFunction[] { 	lShowInMenuFunctionDOCUMENTI, 
-																lShowInMenuFunctionESCLUDI_FASCICOLI_E_DOC,  
-										                        lShowInMenuFunctionESCLUDI_BOZZE,
-										                        lShowInMenuFunctionFOLDER, 
-										                        lShowInMenuFunctionALTRE_OP, 
-										                        lShowInMenuFunction_ESCLUDI_NEWS,
-										                        lShowInMenuFunctionELIMINATI, 
-										                        lShowInMenuFunctionDESTINATARI_INVIO,
-										                        lShowInMenuFunctionESCLUDI_FLG_ASSEGNATO_A_ME, 
-										                        lShowInMenuFunctionFLG_PRESA_IN_CARICO, 
-										                        lShowInMenuFunctionESCLUDI_FLG_NOTIFICATO_A_ME, 
-										                        lShowInMenuFunctionANNULLAMENTI , 
-										                        lShowInMenuFunctionDATA_PRESA_IN_CARICO,
-										                        lShowInMenuFunctionPRIORITA,
-										                        lShowInMenuFunctionPRESENTEDOCCONTRATTI,
-										                        lShowInMenuFunctionDATI_COMPLETI_PROT,
-										                        lShowInMenuFunctionTS_INVIO,
-										                        lShowInMenuFunction_ESCLUDI_STATO							                        
-															};
-						}
-						else{
-							return new ShowInMenuFunction[] { 	lShowInMenuFunctionDOCUMENTI, 
-										                        lShowInMenuFunctionFASCICOLI_E_DOC, 
-										                        lShowInMenuFunction_BOZZE,
-										                        lShowInMenuFunctionFOLDER, 
-										                        lShowInMenuFunctionALTRE_OP, 
-										                        lShowInMenuFunctionNEWS, 
-										                        lShowInMenuFunctionELIMINATI, 
-										                        lShowInMenuFunctionDESTINATARI_INVIO,
-										                        lShowInMenuFunctionFLG_ASSEGNATO_A_ME, 
-										                        lShowInMenuFunctionFLG_PRESA_IN_CARICO, 
-										                        lShowInMenuFunctionFLG_NOTIFICATO_A_ME, 
-										                        lShowInMenuFunctionANNULLAMENTI , 
-										                        lShowInMenuFunctionDATA_PRESA_IN_CARICO,
-										                        lShowInMenuFunctionPRIORITA,
-										                        lShowInMenuFunctionPRESENTEDOCCONTRATTI,
-										                        lShowInMenuFunctionDATI_COMPLETI_PROT,
-										                        lShowInMenuFunction_ESCLUDI_STATO,
-										                        lShowInMenuFunctionINVIATI
-															};
-						}
-					}
-					return new ShowInMenuFunction[] { lShowInMenuFunctionNEWS, 
-			                lShowInMenuFunctionELIMINATI, 
-			                lShowInMenuFunctionINVIATI,
-			                lShowInMenuFunctionDESTINATARI_INVIO,
-			                lShowInMenuFunctionFLG_NOTIFICATO_A_ME };
-				}
+			if (idNode!= null && (idNode.equals("D.BOZZE.DAPROT") || idNode.equals("D.2A.DAPROT"))) {
+				return new ShowInMenuFunction[] { 	lShowInMenuFunctionDOCUMENTI, 
+													lShowInMenuFunctionESCLUDI_FASCICOLI_E_DOC,  
+							                        lShowInMenuFunctionESCLUDI_BOZZE,
+							                        lShowInMenuFunctionFOLDER, 
+							                        lShowInMenuFunctionALTRE_OP, 
+							                        lShowInMenuFunction_ESCLUDI_NEWS,
+							                        lShowInMenuFunctionELIMINATI, 
+							                        lShowInMenuFunctionDESTINATARI_INVIO,
+							                        lShowInMenuFunctionESCLUDI_FLG_ASSEGNATO_A_ME, 
+							                        lShowInMenuFunctionFLG_PRESA_IN_CARICO, 
+							                        lShowInMenuFunctionESCLUDI_FLG_NOTIFICATO_A_ME, 
+							                        lShowInMenuFunctionANNULLAMENTI , 
+							                        lShowInMenuFunctionDATA_PRESA_IN_CARICO,
+							                        lShowInMenuFunctionPRIORITA,
+							                        lShowInMenuFunctionPRESENTEDOCCONTRATTI,
+							                        lShowInMenuFunctionDATI_COMPLETI_PROT,
+							                        lShowInMenuFunctionTS_INVIO,
+							                        lShowInMenuFunction_ESCLUDI_STATO							                        
+												};
+			}
+			else{
+				return new ShowInMenuFunction[] { 	lShowInMenuFunctionDOCUMENTI, 
+							                        lShowInMenuFunctionFASCICOLI_E_DOC, 
+							                        lShowInMenuFunction_BOZZE,
+							                        lShowInMenuFunctionFOLDER, 
+							                        lShowInMenuFunctionALTRE_OP, 
+							                        lShowInMenuFunctionNEWS, 
+							                        lShowInMenuFunctionELIMINATI, 
+							                        lShowInMenuFunctionDESTINATARI_INVIO,
+							                        lShowInMenuFunctionFLG_ASSEGNATO_A_ME, 
+							                        lShowInMenuFunctionFLG_PRESA_IN_CARICO, 
+							                        lShowInMenuFunctionFLG_NOTIFICATO_A_ME, 
+							                        lShowInMenuFunctionANNULLAMENTI , 
+							                        lShowInMenuFunctionDATA_PRESA_IN_CARICO,
+							                        lShowInMenuFunctionPRIORITA,
+							                        lShowInMenuFunctionPRESENTEDOCCONTRATTI,
+							                        lShowInMenuFunctionDATI_COMPLETI_PROT,
+							                        lShowInMenuFunction_ESCLUDI_STATO,
+							                        lShowInMenuFunctionINVIATI
+												};
+			}
+		}
+		return new ShowInMenuFunction[] { lShowInMenuFunctionNEWS, 
+                lShowInMenuFunctionELIMINATI, 
+                lShowInMenuFunctionINVIATI,
+                lShowInMenuFunctionDESTINATARI_INVIO,
+                lShowInMenuFunctionFLG_NOTIFICATO_A_ME };
+	}
 
 	protected MenuItem[] getHeaderContextMenuItems(Integer fieldNum) {
 		if (fromScrivania && idNode != null && (idNode.equals("D.23"))   ) {
@@ -3429,7 +3414,7 @@ public class ArchivioList extends CustomList {
 			});
 			docZipSubMenu.addItem(scaricaFileSbustatiMenuItem);
 			
-			if(Layout.isPrivilegioAttivo("SCC")) {
+			if(AurigaLayout.showCopiaConformeCustom()) {
 				String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 				MenuItem scaricaFileConformitaCustomMenuItem = new MenuItem("File " + labelConformitaCustom, "buttons/download_zip.png");
 				scaricaFileConformitaCustomMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
@@ -3812,7 +3797,6 @@ public class ArchivioList extends CustomList {
 							new DettaglioRispostaProtWindow(record);							
 						}
 						else if("I".equals(listRecord.getAttribute("flgTipoProv"))) {
-							
 							//controllo se il protocollo interno è abilitato alla risposta
 							if (detailRecord.getAttributeAsBoolean("abilRispondiUscita")) {
 								SC.ask("Sono presenti destinatari esterni nella risposta?", new BooleanCallback() {
@@ -3828,7 +3812,7 @@ public class ArchivioList extends CustomList {
 										new DettaglioRispostaProtWindow(record);
 									}
 								});
-							}else {
+							} else {
 								record.setAttribute("tipoProt", "I");
 								new DettaglioRispostaProtWindow(record);
 							}
@@ -3843,6 +3827,7 @@ public class ArchivioList extends CustomList {
 					if(detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione").getLength() == 1 ) {
 						
 						final String idUo = detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione").get(0).getAttributeAsString("idUo");
+						final String tipoProtocollante = detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione").get(0).getAttributeAsString("tipo");
 						
 						MenuItem invioAlProtocolloItem = new MenuItem("Invio al protocollo", "archivio/invio_al_protocollo.png");					
 						final Menu scelteRapide = new Menu();
@@ -3851,7 +3836,7 @@ public class ArchivioList extends CustomList {
 							
 							@Override
 							public void onClick(MenuItemClickEvent event) {								
-								clickInvioAlProtocolloRapido(listRecord, idUo, "U", null, null);
+								clickInvioAlProtocolloRapido(listRecord, idUo, "U", tipoProtocollante, null, null);
 							}
 						});
 						MenuItem invioAlProtocolloConMessaggioItem = new MenuItem("Con messaggio");
@@ -3866,7 +3851,7 @@ public class ArchivioList extends CustomList {
 									public void onClickOkButton(Record record, DSCallback callback) {
 										String messaggioInvio = record != null && record.getAttributeAsString("messaggioInvio") != null
 												? record.getAttributeAsString("messaggioInvio") : null;
-										clickInvioAlProtocolloConMessaggio(listRecord, idUo, "U", messaggioInvio, callback);
+										clickInvioAlProtocolloConMessaggio(listRecord, idUo, "U", tipoProtocollante, messaggioInvio, callback);
 									};
 								};
 								destUOProtocollazioneWindow.show();
@@ -3885,6 +3870,7 @@ public class ArchivioList extends CustomList {
 						for(int i=0; i < detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione").getLength(); i++) {
 							Record currentRecord = detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione").get(i);
 							final String idUo = currentRecord.getAttributeAsString("idUo");
+							final String tipoProtocollante = currentRecord.getAttributeAsString("tipo");
 							MenuItem item = new MenuItem(currentRecord.getAttributeAsString("descrizione"));
 							final Menu scelteRapide = new Menu();
 							MenuItem invioAlProtocolloRapidoItem = new MenuItem("Rapido");
@@ -3892,7 +3878,7 @@ public class ArchivioList extends CustomList {
 								
 								@Override
 								public void onClick(MenuItemClickEvent event) {
-									clickInvioAlProtocolloRapido(listRecord, idUo, "U", null, null);				
+									clickInvioAlProtocolloRapido(listRecord, idUo, "U", tipoProtocollante, null, null);				
 								}
 							});
 							
@@ -3908,7 +3894,7 @@ public class ArchivioList extends CustomList {
 										public void onClickOkButton(Record record, DSCallback callback) {
 											String messaggioInvio = record != null && record.getAttributeAsString("messaggioInvio") != null
 													? record.getAttributeAsString("messaggioInvio") : null;
-											clickInvioAlProtocolloConMessaggio(listRecord, idUo, "U", messaggioInvio, callback);
+											clickInvioAlProtocolloConMessaggio(listRecord, idUo, "U", tipoProtocollante, messaggioInvio, callback);
 										};
 									};
 									destUOProtocollazioneWindow.show();
@@ -4623,7 +4609,7 @@ public class ArchivioList extends CustomList {
 								
 								if(flgInvioPECMulti) {
 									object.setAttribute("tipoMail", "PEO");
-									InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", new DSCallback() {
+									InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", detailRecord.getAttribute("idUd"), new DSCallback() {
 										
 										@Override
 										public void execute(DSResponse response, Object rawData, DSRequest request) {
@@ -4635,7 +4621,7 @@ public class ArchivioList extends CustomList {
 									
 								} else {
 								
-									InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEC", new DSCallback() {
+									InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEC", detailRecord.getAttribute("idUd"), new DSCallback() {
 										
 										@Override
 										public void execute(DSResponse response, Object rawData, DSRequest request) {
@@ -4666,7 +4652,7 @@ public class ArchivioList extends CustomList {
 
 							@Override
 							public void execute(Record object) {
-								InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", new DSCallback() {
+								InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", detailRecord.getAttribute("idUd"), new DSCallback() {
 									
 									@Override
 									public void execute(DSResponse response, Object rawData, DSRequest request) {
@@ -4779,20 +4765,20 @@ public class ArchivioList extends CustomList {
 												if(callback != null){
 													callback.execute(response, rawData, request);
 												}
-												if(listRecord.getAttribute("flgUdFolder") != null &&
-														"U".equalsIgnoreCase(listRecord.getAttribute("flgUdFolder"))){
-												Record lRecordToLoad = new Record();
-												lRecordToLoad.setAttribute("idUd", listRecord.getAttribute("idUdFolder"));
-												getProtocolloDataSource().getData(lRecordToLoad, new DSCallback() {
-
-													@Override
-													public void execute(DSResponse response, Object rawData, DSRequest request) {
-														if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
-															manageStampaEtichettaPostAssegnazione(listRecord, response.getData()[0]);
-														}
-													}
-												});
-											}
+												if(listRecord.getAttribute("flgUdFolder") != null && "U".equalsIgnoreCase(listRecord.getAttribute("flgUdFolder"))){
+													String idUd = listRecord != null && listRecord.getAttribute("idUdFolder") != null ?  listRecord.getAttribute("idUdFolder") : null;
+													String idDocPrimario = detailRecord != null && detailRecord.getAttribute("idDocPrimario") != null ?  detailRecord.getAttribute("idDocPrimario") : null;
+													String codSupportoOrig = detailRecord != null && detailRecord.getAttributeAsString("codSupportoOrig") != null ?  detailRecord.getAttributeAsString("codSupportoOrig") : null;
+													String segnaturaXOrd = listRecord != null && listRecord.getAttributeAsString("segnaturaXOrd") != null ?  listRecord.getAttributeAsString("segnaturaXOrd") : null;
+													Record recordToPrint = new Record();
+													recordToPrint.setAttribute("idUd", idUd);
+													recordToPrint.setAttribute("idDocPrimario", idDocPrimario);
+													recordToPrint.setAttribute("flgUdFolder", "U");
+													recordToPrint.setAttribute("codSupportoOrig", codSupportoOrig);
+													recordToPrint.setAttribute("segnaturaXOrd", segnaturaXOrd);
+													recordToPrint.setAttribute("listaAllegati", detailRecord.getAttributeAsRecordList("listaAllegati"));
+													manageStampaEtichettaPostAssegnazione(recordToPrint);
+												}
 											}
 										});
 									}
@@ -4947,9 +4933,9 @@ public class ArchivioList extends CustomList {
 				});
 				altreOpMenu.addItem(eliminaRichAnnullamentoRegItem);
 			}
-			// Vai iter
+			
 			if (detailRecord.getAttributeAsString("idProcess") != null && !detailRecord.getAttributeAsString("idProcess").equals("")) {
-				MenuItem vaiIterMenuItem = new MenuItem("Vai all’iter/processo collegato", "buttons/gear.png");
+				MenuItem vaiIterMenuItem = new MenuItem("Vai all'iter/processo collegato", "buttons/gear.png");
 				vaiIterMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
 
 					@Override
@@ -4966,6 +4952,26 @@ public class ArchivioList extends CustomList {
 				altreOpMenu.addItem(vaiIterMenuItem);
 			}
 
+			if (detailRecord.getAttributeAsBoolean("abilAvviaIterFirme")) {
+				MenuItem avviaIterFirmeMenuItem = new MenuItem("Avvia raccolta firme", "file/mini_sign.png");
+				avviaIterFirmeMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+					@Override
+					public void onClick(MenuItemClickEvent event) {
+						Layout.showWaitPopup("Avvio raccolta firme in corso: potrebbe richiedere qualche secondo. Attendere…");
+						new GWTRestService<Record, Record>("AvviaIterFirmeDataSource").call(detailRecord, new ServiceCallback<Record>() {
+							@Override
+							public void execute(Record object) {
+								Layout.hideWaitPopup();
+								AurigaLayout.addMessage(new MessageBean("Avvio raccolta firme effettuato con successo", "", MessageType.INFO));
+								layout.reloadListAndSetCurrentRecord(listRecord);
+							}
+						});				
+					}
+				});
+				altreOpMenu.addItem(avviaIterFirmeMenuItem);
+			}
+			
 			if (detailRecord.getAttributeAsBoolean("abilAnnullamentoReg")) {
 				MenuItem annullamentoRegItem = new MenuItem("Annulla registrazione", "protocollazione/annullata.png");
 				annullamentoRegItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
@@ -5221,9 +5227,7 @@ public class ArchivioList extends CustomList {
 			
 			// STAMPA ETICHETTA
 			if (detailRecord.getAttributeAsBoolean("abilStampaEtichetta")) {
-				MenuItem stampaEtichettaMenuItem = new MenuItem(
-						AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") ? "Timbra" : "Stampa etichetta",
-						"protocollazione/stampaEtichetta.png");
+				MenuItem stampaEtichettaMenuItem = new MenuItem(getTitleStampaEtichetta(), "protocollazione/stampaEtichetta.png");
 				stampaEtichettaMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
 					@Override
 					public void onClick(MenuItemClickEvent event) {
@@ -6612,20 +6616,20 @@ public class ArchivioList extends CustomList {
 											if(callback != null){
 												callback.execute(response, rawData, request);
 											}
-											if(listRecord.getAttribute("flgUdFolder") != null &&
-													"U".equalsIgnoreCase(listRecord.getAttribute("flgUdFolder"))){												
-											Record lRecordToLoad = new Record();
-											lRecordToLoad.setAttribute("idUd", listRecord.getAttribute("idUdFolder"));
-											getProtocolloDataSource().getData(lRecordToLoad, new DSCallback() {
-
-												@Override
-												public void execute(DSResponse response, Object rawData, DSRequest request) {
-													if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
-														manageStampaEtichettaPostAssegnazione(listRecord, response.getData()[0]);
-													}
-												}
-											});
-										}
+											if(listRecord.getAttribute("flgUdFolder") != null && "U".equalsIgnoreCase(listRecord.getAttribute("flgUdFolder"))){		
+												String idUd = listRecord != null && listRecord.getAttribute("idUdFolder") != null ?  listRecord.getAttribute("idUdFolder") : null;
+												String idDocPrimario = detailRecord != null && detailRecord.getAttribute("idDocPrimario") != null ?  detailRecord.getAttribute("idDocPrimario") : null;
+												String codSupportoOrig = detailRecord != null && detailRecord.getAttributeAsString("codSupportoOrig") != null ?  detailRecord.getAttributeAsString("codSupportoOrig") : null;
+												String segnaturaXOrd = listRecord != null && listRecord.getAttributeAsString("segnaturaXOrd") != null ?  listRecord.getAttributeAsString("segnaturaXOrd") : null;
+												Record recordToPrint = new Record();
+												recordToPrint.setAttribute("idUd", idUd);
+												recordToPrint.setAttribute("idDocPrimario", idDocPrimario);
+												recordToPrint.setAttribute("flgUdFolder", "U");
+												recordToPrint.setAttribute("codSupportoOrig", codSupportoOrig);
+												recordToPrint.setAttribute("segnaturaXOrd", segnaturaXOrd);
+												recordToPrint.setAttribute("listaAllegati", detailRecord.getAttributeAsRecordList("listaAllegati"));
+												manageStampaEtichettaPostAssegnazione(recordToPrint);
+											}
 										}
 									});
 								}
@@ -6904,6 +6908,8 @@ public class ArchivioList extends CustomList {
 		GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("LoadComboUoDestNotificheDataSource", "key", FieldType.TEXT);		
 		lGwtRestDataSource.addParam("flgUdFolder", listRecord.getAttribute("flgUdFolder"));
 		lGwtRestDataSource.addParam("idUdFolder", listRecord.getAttribute("idUdFolder"));
+		final String idNodo = ((ScrivaniaLayout) layout).getIdNode();
+		lGwtRestDataSource.addParam("altriParametriIn", "TIPO_AZIONE|*|V|*|CI_NODO_SCRIVANIA|*|" + idNodo);
 		lGwtRestDataSource.fetchData(null, new DSCallback() {
 
 			@Override
@@ -7319,24 +7325,22 @@ public class ArchivioList extends CustomList {
 		new OsservazioniNotificheWindow(record.getAttribute("idUdFolder"), record.getAttribute("flgUdFolder"), title);
 	}
 	
-	public void manageFirma(ListGridRecord listRecord, boolean apposizioneForzata) {
+	public void manageFirma(ListGridRecord listRecord, boolean flgApposizione) {
 		
 		final RecordList listaUd = new RecordList();
 		listaUd.add(listRecord);
-		manageFirmaMassiva(listaUd, apposizioneForzata, null);
+		manageFirmaMassiva(listaUd, flgApposizione, null);
 	}
 	
-	public void manageFirmaMassiva(final RecordList listRecord, boolean apposizioneForzata, String prefTipoFirma) {
+	public void manageFirmaMassiva(final RecordList listRecord, boolean flgApposizione, String prefTipoFirma) {
 
 		/*
 		 * listRecord è un recordList contenente tutti gli ud che sono stati selezionati 
 		 * nella lista.
 		 */
 		if(listRecord != null){
-			
-			//Apro il popup per scegliere l'azione di apposizione 
-			AzioneApposizionePopup popup = new AzioneApposizionePopup(listRecord, null, TipologiaApposizione.FIRMA, true,
-					apposizioneForzata, prefTipoFirma, new ServiceCallback<Record>() {
+			// Se l'azione è di apposizione in AzioneApposizionePopup viene fatta una redirect ad un'altra popup, quindi non faccio qua lo show
+			AzioneApposizionePopup popup = new AzioneApposizionePopup(listRecord, null, TipologiaApposizione.FIRMA, true, flgApposizione, prefTipoFirma, new ServiceCallback<Record>() {
 				
 				@Override
 				public void execute(Record response) {
@@ -7351,7 +7355,7 @@ public class ArchivioList extends CustomList {
 				}
 			});
 			//Devo visualizzare il popup per inserire la motivazione nel caso in cui si rifiuti l'apposizione
-			if(!apposizioneForzata){
+			if(!flgApposizione){
 				popup.show();
 			}
 		}
@@ -7360,7 +7364,7 @@ public class ArchivioList extends CustomList {
 	public void manageProtocollaTimbraEFirma(ListGridRecord listRecord, boolean apposizioneForzata) {
 		
 		final RecordList listaRecordSelezionati = new RecordList();
-		listRecord.setAttribute("flgDatiCompletiPerProtocollazione", "1");
+//		listRecord.setAttribute("flgDatiCompletiPerProtocollazione", "1");
 		listaRecordSelezionati.add(listRecord);
 		manageProtocollaTimbraEFirmaMassivi(listaRecordSelezionati, apposizioneForzata, null);
 	}
@@ -7371,14 +7375,19 @@ public class ArchivioList extends CustomList {
 		Map<String, String> mappaErrori = new HashMap<String, String>();
 		// Lista dei record effettivamente da lavorare
 		RecordList listaRecordDaLavorare = new RecordList();
-		// Tolgo le bozze che non hanno i dati completi per la protocollazione
+		// Tolgo i documenti che non hanno i dati completi per la protocollazione
 		for (int i = 0; i < listaRecordSelezionati.getLength(); i++) {
 			Record lRecord = listaRecordSelezionati.get(i);
-			String flgDatiCompletiPerProtocollazione = lRecord.getAttribute("flgDatiCompletiPerProtocollazione");
-			if (flgDatiCompletiPerProtocollazione != null && "1".equalsIgnoreCase(flgDatiCompletiPerProtocollazione)) {
-				listaRecordDaLavorare.add(lRecord);
+			boolean isBozza = lRecord.getAttribute("segnaturaXOrd") != null && lRecord.getAttribute("segnaturaXOrd").startsWith("7-");
+			if(!isBozza) {
+				// se il documento non è una bozza e ha già una numerazione ufficiale non devo protocollarlo, ma solo timbrarlo e firmarlo
+				lRecord.setAttribute("skipProtBeforeFirma", true);
+			}
+			boolean isDatiCompletiXProt = lRecord.getAttribute("flgDatiCompletiPerProtocollazione") != null && "1".equalsIgnoreCase(lRecord.getAttribute("flgDatiCompletiPerProtocollazione"));
+			if(!isDatiCompletiXProt) {
+				mappaErrori.put(lRecord.getAttribute("idUdFolder"), "Dati non completi per la protocollazione: operazione di firma con segnatura di protocollo non consentita");
 			} else {
-				mappaErrori.put(lRecord.getAttribute("idUdFolder"), "Dati non completi per la protocollazione: operazione di firma e protocollazione contestuale non consentita");
+				listaRecordDaLavorare.add(lRecord);
 			}
 		}
 		
@@ -7406,16 +7415,37 @@ public class ArchivioList extends CustomList {
 		}
 	}
 	
-	private void manageProtocollaTimbraEFirmaMassiviCallback(RecordList listaRecordSelezionati, DSResponse response) {
-
+	private void manageProtocollaTimbraEFirmaMassiviCallback(final RecordList listaRecordSelezionati, DSResponse response) {
+		final DSCallback azioneFirmaSuccessivaCallback = new DSCallback() {
+			
+			@Override
+			public void execute(DSResponse response, Object rawData, DSRequest request) {
+				// Apro il popup che permette di scegliere l'azione successiva
+				if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_ITER_FIRME_BOZZE")) {
+					// Apro il popup che permette di scegliere l'azione successiva per l'iter di firma Bozze
+					AzioneSuccessivaIterFirmaBozzePopup popup = new AzioneSuccessivaIterFirmaBozzePopup(listaRecordSelezionati, true, TipologiaApposizione.FIRMA_PROTOCOLLA, null);
+					popup.show();
+				}else {
+					// Apro il popup che permette di scegliere l'azione successiva
+					AzioneSuccessivaPopup popup = new AzioneSuccessivaPopup(listaRecordSelezionati, true, TipologiaApposizione.FIRMA_PROTOCOLLA, null);
+					popup.show();
+				}
+			}
+		};
 		if (layout instanceof ScrivaniaLayout) {
 			((ScrivaniaLayout) layout).massiveOperationCallback(response, listaRecordSelezionati, "idUdFolder", "segnatura",
 					"Firma con segnatura di protocollo effettuata con successo", "Tutti i record selezionati per la firma con segnatura di protocollo sono andati in errore!",
-					"Alcuni dei record selezionati per la firma con segnatura di protocollo sono andati in errore!", null);
+					"Alcuni dei record selezionati per la firma con segnatura di protocollo sono andati in errore!", azioneFirmaSuccessivaCallback);
+//			((ScrivaniaLayout) layout).massiveOperationCallback(response, listaRecordSelezionati, "idUdFolder", "segnatura",
+//					"Firma con segnatura di protocollo effettuata con successo", "Tutti i record selezionati per la firma con segnatura di protocollo sono andati in errore!",
+//					"Alcuni dei record selezionati per la firma con segnatura di protocollo sono andati in errore!", null);
 		} else if (layout instanceof ArchivioLayout) {
 			((ArchivioLayout) layout).massiveOperationCallback(response, listaRecordSelezionati, "idUdFolder", "segnatura",
 					"Firma con segnatura di protocollo effettuata con successo", "Tutti i record selezionati per la firma con segnatura di protocollo sono andati in errore!",
-					"Alcuni dei record selezionati per la firma con segnatura di protocollo sono andati in errore!", null);
+					"Alcuni dei record selezionati per la firma con segnatura di protocollo sono andati in errore!", azioneFirmaSuccessivaCallback);
+//			((ArchivioLayout) layout).massiveOperationCallback(response, listaRecordSelezionati, "idUdFolder", "segnatura",
+//					"Firma con segnatura di protocollo effettuata con successo", "Tutti i record selezionati per la firma con segnatura di protocollo sono andati in errore!",
+//					"Alcuni dei record selezionati per la firma con segnatura di protocollo sono andati in errore!", null);
 		}
 	}
 	
@@ -7840,14 +7870,14 @@ public class ArchivioList extends CustomList {
 	 * nella toolstrip ma anche quando si clicca con il destro su un record
 	 * @param listRecord
 	 */
-	public void manageApponiVisto(RecordList listRecord, boolean apposizioneForzata) {
+	public void manageApponiVisto(RecordList listRecord, boolean flgApposizione) {
 		/*
 		 * listRecord è un recordList contenente tutti gli ud che sono stati selezionati 
 		 * nella lista.
 		 */
 		if(listRecord != null){
-			AzioneApposizionePopup popup = new AzioneApposizionePopup(listRecord, null, TipologiaApposizione.VISTO, true, apposizioneForzata,
-					null, new ServiceCallback<Record>() {
+			// Se l'azione è di apposizione in AzioneApposizionePopup viene fatta una redirect ad un'altra popup, quindi non faccio qua lo show
+			AzioneApposizionePopup popup = new AzioneApposizionePopup(listRecord, null, TipologiaApposizione.VISTO, true, flgApposizione, null, new ServiceCallback<Record>() {
 				
 				@Override
 				public void execute(Record response) {
@@ -7867,7 +7897,7 @@ public class ArchivioList extends CustomList {
 				}
 			});
 			//Devo visualizzare il popup per inserire la motivazione nel caso in cui si rifiuti l'apposizione
-			if(!apposizioneForzata){
+			if(!flgApposizione){
 				popup.show();
 			}
 		}
@@ -7923,13 +7953,65 @@ public class ArchivioList extends CustomList {
 	/**
 	 * Metodo per la stampa delle etichette in fase di post-assegnazione UD
 	 */
+	private void manageStampaEtichettaPostAssegnazione(Record detailRecord) {
+		
+		String codSupportoOrig = detailRecord != null && detailRecord.getAttributeAsString("codSupportoOrig") != null ? 
+				detailRecord.getAttributeAsString("codSupportoOrig") : null;
+		String segnaturaXOrd = detailRecord != null && detailRecord.getAttributeAsString("segnaturaXOrd") != null ? 
+				detailRecord.getAttributeAsString("segnaturaXOrd") : null;
+		
+		if( (codSupportoOrig != null && "C".equals(codSupportoOrig)) &&
+			(segnaturaXOrd != null && (segnaturaXOrd.startsWith("1-") || segnaturaXOrd.startsWith("2-"))) &&
+			AurigaLayout.getParametroDBAsBoolean("ATTIVA_STAMPA_AUTO_ETICH_POST_ASS") &&
+			AurigaLayout.getImpostazioneStampaAsBoolean("stampaEtichettaAutoReg") ){
+				
+			final Record recordToPrint = new Record();
+			recordToPrint.setAttribute("idUd", detailRecord.getAttribute("idUd"));
+			recordToPrint.setAttribute("listaAllegati", detailRecord.getAttributeAsRecordList("listaAllegati"));
+			recordToPrint.setAttribute("idDoc", detailRecord.getAttribute("idDocPrimario"));
+			if(AurigaLayout.getImpostazioneStampaAsBoolean("skipSceltaOpzStampa")){
+								
+				/**
+				 * Viene verificato che sia stata selezionata una stampante in precedenza
+				 */
+				if(AurigaLayout.getImpostazioneStampa("stampanteEtichette") != null && 
+						!"".equals(AurigaLayout.getImpostazioneStampa("stampanteEtichette"))){
+					buildStampaEtichettaAutoPostAss(recordToPrint, null);
+				} else {
+					PrinterScannerUtility.printerScanner("", new PrinterScannerCallback() {
+
+						@Override
+						public void execute(String nomeStampante) {
+							recordToPrint.setAttribute("nomeStampante", nomeStampante);
+							buildStampaEtichettaAutoPostAss(recordToPrint,nomeStampante);
+						}
+					}, new PrinterScannerCallback() {
+						
+						@Override
+						public void execute(String nomeStampante) {
+							Layout.addMessage(new MessageBean(I18NUtil.getMessages().protocollazione_detail_stampaEtichettaPostRegSenzaOpzStampa_errorMessage(),
+									"", MessageType.ERROR));
+						}
+					});
+				}	
+			} else {
+				recordToPrint.setAttribute("flgHideBarcode", true);
+				StampaEtichettaPopup stampaEtichettaPopup = new StampaEtichettaPopup(recordToPrint);
+				stampaEtichettaPopup.show();
+			}
+		}
+	}
+	
+	/**
+	 * Metodo per la stampa delle etichette in fase di post-assegnazione UD
+	 */
 	private void manageStampaEtichettaPostAssegnazione(Record listRecord, Record detailRecord) {
 		
 		String codSupportoOrig = detailRecord != null && detailRecord.getAttributeAsString("codSupportoOrig") != null ? 
 				detailRecord.getAttributeAsString("codSupportoOrig") : null;
 		String segnaturaXOrd = listRecord != null && listRecord.getAttributeAsString("segnaturaXOrd") != null ? 
 				listRecord.getAttributeAsString("segnaturaXOrd") : null;
-		
+				
 		if( (codSupportoOrig != null && "C".equals(codSupportoOrig)) &&
 			(segnaturaXOrd != null && (segnaturaXOrd.startsWith("1-") || segnaturaXOrd.startsWith("2-"))) &&
 			AurigaLayout.getParametroDBAsBoolean("ATTIVA_STAMPA_AUTO_ETICH_POST_ASS") &&
@@ -8190,16 +8272,12 @@ public class ArchivioList extends CustomList {
 			});
 		}
 		operazioniFilePrimarioSubmenu.addItem(scaricaFilePrimarioMenuItem);
-
-//		if(listRecord != null && listRecord.getAttributeAsString("segnaturaXOrd") != null && !"".equalsIgnoreCase(listRecord.getAttributeAsString("segnaturaXOrd"))
-//				&& ("PG".equalsIgnoreCase(listRecord.getAttributeAsString("segnaturaXOrd")) ||
-//					"R".equalsIgnoreCase(listRecord.getAttributeAsString("segnaturaXOrd")) ||
-//					"PP".equalsIgnoreCase(listRecord.getAttributeAsString("segnaturaXOrd")))) {
-			if(showOperazioniTimbratura(detailRecord)) {
-				buildTimbraButtons(listRecord, detailRecord, lInfoFileRecord, operazioniFilePrimarioSubmenu, fileIntegrale);
-		}	
+		
+		if(showOperazioniTimbratura(detailRecord)) {
+			buildTimbraButtons(listRecord, detailRecord, lInfoFileRecord, operazioniFilePrimarioSubmenu, fileIntegrale);
+		}
 			
-		if (lInfoFileRecord != null && Layout.isPrivilegioAttivo("SCC")) {
+		if (lInfoFileRecord != null && AurigaLayout.showCopiaConformeCustom()) {
 				String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 				MenuItem timbroConformitaCustomAllegatoMenuItem = new MenuItem(labelConformitaCustom, "file/copiaConformeCustom.png");
 				timbroConformitaCustomAllegatoMenuItem.setEnabled(lInfoFileRecord != null && lInfoFileRecord.isConvertibile());
@@ -8214,51 +8292,52 @@ public class ArchivioList extends CustomList {
 
 				operazioniFilePrimarioSubmenu.addItem(timbroConformitaCustomAllegatoMenuItem);
 
-			}	
-
-		// Attestato conformità all’originale
-		MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(
-				I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(), "file/attestato.png");
-		attestatoConformitaOriginaleMenuItem
-				.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
-
-					@Override
-					public void onClick(MenuItemClickEvent event) {
-						final InfoFileRecord file;
-						final String uri;
-						final String idDoc;
-						final String idUd = detailRecord.getAttributeAsString("idUd");
-
-						if (fileIntegrale) {
-							file = InfoFileRecord
-									.buildInfoFileRecord(detailRecord.getAttributeAsObject("infoFile"));
-							uri = detailRecord.getAttributeAsString("uriFilePrimario");
-							idDoc = detailRecord.getAttributeAsString("idDocPrimario");
-						} else {
-							final Record filePrimarioOmissis = detailRecord.getAttributeAsRecord("filePrimarioOmissis");
-							file = InfoFileRecord
-									.buildInfoFileRecord(filePrimarioOmissis.getAttributeAsObject("infoFile"));
-							uri = filePrimarioOmissis.getAttributeAsString("uriFile");
-							idDoc = filePrimarioOmissis.getAttributeAsString("idDoc");
-						}
-						SC.ask("Vuoi firmare digitalmente l'attestato?", new BooleanCallback() {
-
-							@Override
-							public void execute(Boolean value) {
-								if (value) {
-									creaAttestato(idUd, idDoc, listRecord, file, uri, true);
-								} else {
-									creaAttestato(idUd, idDoc, listRecord, file, uri, false);
-								}
+			}
+		if(AurigaLayout.showAttestatoConformitaOriginale()) {
+			// Attestato conformità all'originale
+			MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(
+					I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(), "file/attestato.png");
+			attestatoConformitaOriginaleMenuItem
+					.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+						
+						@Override
+						public void onClick(MenuItemClickEvent event) {
+							final InfoFileRecord file;
+							final String uri;
+							final String idDoc;
+							final String idUd = detailRecord.getAttributeAsString("idUd");
+							
+							if (fileIntegrale) {
+								file = InfoFileRecord
+										.buildInfoFileRecord(detailRecord.getAttributeAsObject("infoFile"));
+								uri = detailRecord.getAttributeAsString("uriFilePrimario");
+								idDoc = detailRecord.getAttributeAsString("idDocPrimario");
+							} else {
+								final Record filePrimarioOmissis = detailRecord.getAttributeAsRecord("filePrimarioOmissis");
+								file = InfoFileRecord
+										.buildInfoFileRecord(filePrimarioOmissis.getAttributeAsObject("infoFile"));
+								uri = filePrimarioOmissis.getAttributeAsString("uriFile");
+								idDoc = filePrimarioOmissis.getAttributeAsString("idDoc");
 							}
-						});
-
-					}
-				});
-		attestatoConformitaOriginaleMenuItem
+							SC.ask("Vuoi firmare digitalmente l'attestato?", new BooleanCallback() {
+								
+								@Override
+								public void execute(Boolean value) {
+									if (value) {
+										creaAttestato(idUd, idDoc, listRecord, file, uri, true);
+									} else {
+										creaAttestato(idUd, idDoc, listRecord, file, uri, false);
+									}
+								}
+							});
+							
+						}
+					});
+			attestatoConformitaOriginaleMenuItem
 				.setEnabled(lInfoFileRecord != null);
-		operazioniFilePrimarioSubmenu.addItem(attestatoConformitaOriginaleMenuItem);
-
+			operazioniFilePrimarioSubmenu.addItem(attestatoConformitaOriginaleMenuItem);
+		}
+		
 		filePrimarioMenuItem.setSubmenu(operazioniFilePrimarioSubmenu);
 	}
 		
@@ -8452,7 +8531,7 @@ public class ArchivioList extends CustomList {
 			buildTimbraAllegato(listRecord, detailRecord, nroAllegato, operazioniFileAllegatoSubmenu, lInfoFileRecord, allegatoIntegrale);
 		}
 		
-		if (lInfoFileRecord != null && Layout.isPrivilegioAttivo("SCC")) {
+		if (lInfoFileRecord != null && AurigaLayout.showCopiaConformeCustom()) {
 			String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 			MenuItem timbroConformitaCustomAllegatoMenuItem = new MenuItem(labelConformitaCustom, "file/copiaConformeCustom.png");
 			timbroConformitaCustomAllegatoMenuItem.setEnabled(lInfoFileRecord != null && lInfoFileRecord.isConvertibile());
@@ -8468,51 +8547,53 @@ public class ArchivioList extends CustomList {
 			operazioniFileAllegatoSubmenu.addItem(timbroConformitaCustomAllegatoMenuItem);
 
 		}
-
-		// Attestato conformità all’originale
-		MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(
-				I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(),
-				"file/attestato.png");
-		attestatoConformitaOriginaleMenuItem
+		
+		if(AurigaLayout.showAttestatoConformitaOriginale()) {
+			// Attestato conformità all'originale
+			MenuItem attestatoConformitaOriginaleMenuItem = new MenuItem(
+					I18NUtil.getMessages().protocollazione_detail_attestatoConformitaMenuItem(),
+					"file/attestato.png");
+			attestatoConformitaOriginaleMenuItem
 				.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
-
-					@Override
-					public void onClick(MenuItemClickEvent event) {
-						final InfoFileRecord fileAllegato;
-						final String uri;
-						final String idUd = detailRecord.getAttributeAsString("idUd");;
-						final String idDoc;
-						
-						//se è un allegato integrale
-						if(allegatoIntegrale) {
-						
-						fileAllegato = InfoFileRecord
-								.buildInfoFileRecord(allegatoRecord.getAttributeAsObject("infoFile"));
-						uri = allegatoRecord.getAttributeAsString("uriFileAllegato");
-							idDoc = allegatoRecord.getAttributeAsString("idDocAllegato");
-						}
-						//versione con omissis
-						else {
-							fileAllegato = InfoFileRecord
-									.buildInfoFileRecord(allegatoRecord.getAttributeAsObject("infoFileOmissis"));
-							uri = allegatoRecord.getAttributeAsString("uriFileOmissis");
-							idDoc = allegatoRecord.getAttributeAsString("idDocOmissis");
-						}
-						SC.ask("Vuoi firmare digitalmente l'attestato?", new BooleanCallback() {
-
-							@Override
-							public void execute(Boolean value) {
-								if (value) {
-									creaAttestato(idUd, idDoc, listRecord, fileAllegato, uri, true);
-								} else {
-									creaAttestato(idUd, idDoc, listRecord, fileAllegato, uri, false);
-								}
+					
+						@Override
+						public void onClick(MenuItemClickEvent event) {
+							final InfoFileRecord fileAllegato;
+							final String uri;
+							final String idUd = detailRecord.getAttributeAsString("idUd");;
+							final String idDoc;
+							
+							//se è un allegato integrale
+							if(allegatoIntegrale) {
+								
+								fileAllegato = InfoFileRecord
+										.buildInfoFileRecord(allegatoRecord.getAttributeAsObject("infoFile"));
+								uri = allegatoRecord.getAttributeAsString("uriFileAllegato");
+								idDoc = allegatoRecord.getAttributeAsString("idDocAllegato");
 							}
-						});
-					}
-				});
-		attestatoConformitaOriginaleMenuItem.setEnabled(lInfoFileRecord != null);
-		operazioniFileAllegatoSubmenu.addItem(attestatoConformitaOriginaleMenuItem);
+							//versione con omissis
+							else {
+								fileAllegato = InfoFileRecord
+										.buildInfoFileRecord(allegatoRecord.getAttributeAsObject("infoFileOmissis"));
+								uri = allegatoRecord.getAttributeAsString("uriFileOmissis");
+								idDoc = allegatoRecord.getAttributeAsString("idDocOmissis");
+							}
+							SC.ask("Vuoi firmare digitalmente l'attestato?", new BooleanCallback() {
+								
+								@Override
+								public void execute(Boolean value) {
+									if (value) {
+										creaAttestato(idUd, idDoc, listRecord, fileAllegato, uri, true);
+									} else {
+										creaAttestato(idUd, idDoc, listRecord, fileAllegato, uri, false);
+									}
+								}
+							});
+						}
+					});
+			attestatoConformitaOriginaleMenuItem.setEnabled(lInfoFileRecord != null);
+			operazioniFileAllegatoSubmenu.addItem(attestatoConformitaOriginaleMenuItem);
+		}
 		fileAllegatoMenuItem.setSubmenu(operazioniFileAllegatoSubmenu);
 	}
 	
@@ -8583,7 +8664,7 @@ public class ArchivioList extends CustomList {
 	}
 	
 	private void clickInvioAlProtocolloRapido(final Record listRecord, final String idUo,
-			final String flgUdFolder, final String messaggioInvio, final DSCallback callback) {
+			final String flgUdFolder, final String typeNodo, final String messaggioInvio, final DSCallback callback) {
 	
 		final RecordList listaUdFolder = new RecordList();
 		
@@ -8596,7 +8677,7 @@ public class ArchivioList extends CustomList {
 		RecordList listaAssegnazioni = new RecordList();
 		Record recordAssegnazioni = new Record();
 		recordAssegnazioni.setAttribute("idUo", idUo);
-		recordAssegnazioni.setAttribute("typeNodo","UO");
+		recordAssegnazioni.setAttribute("typeNodo", typeNodo);
 		listaAssegnazioni.add(recordAssegnazioni);
 		
 		final Record record = new Record();
@@ -8635,7 +8716,7 @@ public class ArchivioList extends CustomList {
 	}
 	
 	private void clickInvioAlProtocolloConMessaggio(final Record listRecord, final String idUo, 
-			final String flgUdFolder, final String messaggioInvio, final DSCallback callback) {
+			final String flgUdFolder, final String typeNodo, final String messaggioInvio, final DSCallback callback) {
 	
 		final RecordList listaUdFolder = new RecordList();
 		
@@ -8648,7 +8729,7 @@ public class ArchivioList extends CustomList {
 		RecordList listaAssegnazioni = new RecordList();
 		Record recordAssegnazioni = new Record();
 		recordAssegnazioni.setAttribute("idUo", idUo);
-		recordAssegnazioni.setAttribute("typeNodo","UO");
+		recordAssegnazioni.setAttribute("typeNodo",typeNodo);
 		listaAssegnazioni.add(recordAssegnazioni);
 		 
 		final Record record = new Record();
@@ -8964,9 +9045,21 @@ public class ArchivioList extends CustomList {
 	}
 	
 	private boolean showOperazioniTimbratura(Record detailRecord) {
-		return detailRecord != null && detailRecord.getAttribute("codCategoriaProtocollo") != null && !"".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo"))
-				&& ("PG".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")) ||
-						"R".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")) ||
-						"PP".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")));
+		if(AurigaLayout.showOperazioniTimbratura()) {
+			return detailRecord != null && detailRecord.getAttribute("codCategoriaProtocollo") != null && !"".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo"))
+					&& ("PG".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")) ||
+							"R".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")) ||
+							"PP".equalsIgnoreCase(detailRecord.getAttribute("codCategoriaProtocollo")));
+		}
+		return false;
+	}
+	
+	private String getTitleStampaEtichetta() {
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") &&
+		   (AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg") == null || "a".equalsIgnoreCase(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg")))) {
+			return "Timbra";
+		} else {
+			return "Stampa etichetta";
+		}
 	}
 }

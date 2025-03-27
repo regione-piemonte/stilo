@@ -1,10 +1,9 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.jaxws.webservices.addunitadoc;
 
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
@@ -13,15 +12,13 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import javax.activation.DataHandler;
 import javax.jws.HandlerChain;
@@ -33,7 +30,7 @@ import javax.xml.ws.soap.MTOM;
 
 import org.apache.commons.beanutils.BeanUtilsBean2;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.exolab.castor.xml.Unmarshaller;
@@ -60,6 +57,7 @@ import it.eng.auriga.database.store.dmpk_ws.bean.DmpkWsAddudBean;
 import it.eng.auriga.database.store.dmpk_ws.store.Addud;
 import it.eng.auriga.database.store.dmpk_ws.store.impl.AddudImpl;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
+import it.eng.auriga.function.WSFileUtils;
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
 import it.eng.auriga.module.business.beans.SpecializzazioneBean;
 import it.eng.auriga.module.business.entity.WSTrace;
@@ -70,7 +68,6 @@ import it.eng.auriga.repository2.jaxws.webservices.addunitadoc.visure.SueFileSto
 import it.eng.auriga.repository2.jaxws.webservices.common.JAXWSAbstractAurigaService;
 import it.eng.auriga.repository2.jaxws.webservices.util.WSAttachBean;
 import it.eng.auriga.repository2.jaxws.webservices.util.castor.outputud.Output_UD;
-import it.eng.auriga.repository2.jaxws.webservices.util.castor.outputud.VersioneElettronicaNonCaricata;
 import it.eng.auriga.repository2.util.DBHelperSavePoint;
 import it.eng.auriga.repository2.util.InputStreamDataSource;
 import it.eng.core.business.HibernateUtil;
@@ -79,8 +76,11 @@ import it.eng.core.business.subject.SubjectUtil;
 import it.eng.dm.engine.manage.bean.ActivitiProcess;
 import it.eng.document.configuration.OperazioniAurigaProtocollazioneAsyncConfigBean;
 import it.eng.document.function.GestioneDocumenti;
+import it.eng.document.function.StoreException;
 import it.eng.document.function.bean.AllegatiBean;
+import it.eng.document.function.bean.AttachWSBean;
 import it.eng.document.function.bean.CreaModDocumentoOutBean;
+import it.eng.document.function.bean.DocumentoXmlOutBean;
 import it.eng.document.function.bean.RebuildedFile;
 import it.eng.document.function.bean.RebuildedFileStored;
 import it.eng.document.function.bean.VersionaDocumentoOutBean;
@@ -90,7 +90,7 @@ import it.eng.jaxb.variabili.Lista.Riga;
 import it.eng.jaxb.variabili.Lista.Riga.Colonna;
 import it.eng.spring.utility.SpringAppContext;
 import it.eng.storeutil.AnalyzeResult;
-import it.eng.util.FileNameUtils;
+import it.eng.util.FattureUtil;
 import it.eng.xml.XmlUtilitySerializer;
 
 /**
@@ -152,12 +152,13 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 					      final String idDominio,
 					      final String desDominio,
 					      final String tipoDominio,
+					      final String parametriconfigout,
 					      final WSTrace wsTraceBean) throws Exception {
     	
     	wsAddUdConfig = (WSAddUdConfig) SpringAppContext.getContext().getBean(_SPRING_BEAN_WSADDUDCONFIG);
     	
     	if(!(StringUtils.isNotBlank(wsAddUdConfig.getFlgNuovaGestione()) && wsAddUdConfig.getFlgNuovaGestione().equalsIgnoreCase("true"))) {
-    		return vecchiaGestione(user, token, codiceApplicazione, istanzaAppl, conn, xml, schemaDb, idDominio, tipoDominio);
+    		return vecchiaGestione(user, token, codiceApplicazione, istanzaAppl, conn, xml, schemaDb, idDominio, tipoDominio, parametriconfigout);
     	}else {
     		
     		String risposta = null;
@@ -172,11 +173,19 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
     		String pathFileFtp = "";
     		
     		List<File> listaAttach = new ArrayList<>();
-     		
-    		try {
 
-//    			listTempFileToDelete = new ArrayList<File>();
-    			
+    		Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;
+    		String nomeCartellaAttachAsync = null;
+		    String xmlSenzaAttach = null;
+		    
+		    List<AttachWSAddUdBean> listaAttachWithInfo = new ArrayList<>();
+		    List<AttachWSAddUdBean> listaAttachWithInfoFattura = new ArrayList<>();
+    		
+//		    String attivaCalcoloAsyncAttach = getParametroDB("ATTIVA_CALCOLO_ASYNC_ATTACH_WS_PROT");
+//		    boolean flgAttivaCalcoloAsyncAttach = StringUtils.isNotBlank(attivaCalcoloAsyncAttach) && "true".equalsIgnoreCase(attivaCalcoloAsyncAttach) ? true : false;
+		    boolean flgAttivaCalcoloAsyncAttach = checkApplicazioneCalcoloAsyncAttach(codiceApplicazione, parametriconfigout);
+    		
+    		try {
     			aLogger.info("Inizio WSAddUd");
 
     			// setto il savepoint
@@ -188,6 +197,7 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
     			loginBean.setCodApplicazione(codiceApplicazione);
     			loginBean.setIdApplicazione(istanzaAppl);
     			loginBean.setSchema(schemaDb);
+//    			loginBean.setUserid(user);
 
     			SpecializzazioneBean lspecializzazioneBean = new SpecializzazioneBean();
     			lspecializzazioneBean.setCodIdConnectionToken(token);
@@ -223,17 +233,25 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
     		    					.getBean(_SPRING_BEAN_PROTASYNC_CONFIG);
     		 				pathFileFtp = protocollazioneAsyncConfigBean.getPathFtp() + attachOnFtp;
     		 				xmlRequest = AddUdUtils.cancellaTagFileFtp(xmlRequest);
+    		 				
+    		 				listaAttach = recuperaFileImpresaInUnGiorno(pathFileFtp);   		 				
     		 			}
     		 			
-    		 		}		 		
-    				
-    		 		//Se ho il nome dell attach nel tag <NomeArchivioFileInviatiSeparati> del xml in input, il file zip lo devo prendere come reference dall ftp e non dagli attach del servizio
-		 			String attachOnFtp = AddUdUtils.checkAttachOnFtp(xmlRequest);		 			
-		 			if(StringUtils.isNotBlank(attachOnFtp)) {
-		 				listaAttach = getAttachment(flgImpresaInUnGiorno, pathFileFtp);
-		 			}
-    		 		
-		 			
+    		 		}else {
+    		 			/* Questa funzionalità e' stata introdotta per gestire in modo asincrono il calcolo delle info degli attach
+    			 		 * 
+    			 		 * viene creata una cartella su fileSystem contenente tutti gli allegati che verranno elaborati successivamente dal Job "ProtocollaAllegatiSeparatiJob" e aggiunti al protocollo
+    			 		 * */
+    		 			if(flgAttivaCalcoloAsyncAttach) {
+    		 				UUID uuid = UUID.randomUUID();
+    			 			nomeCartellaAttachAsync = uuid.toString();
+    			 			gestioneAsincronaAttach(xmlRequest, nomeCartellaAttachAsync, true);
+//    			 			xmlSenzaAttach = eliminaTagFile(xmlRequest);
+    			 		}else {
+    			 			listaAttach = getFileFromAttachment(loginBean); 
+    			 		}    		 			
+    		 		}   		 		 		 		
+
     		 		for(File fileAttach : listaAttach){
 			 			if(fileAttach!= null && fileAttach.exists() ){
 			 				aLogger.debug("fileAttach.getName " + fileAttach.getName());
@@ -255,9 +273,13 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 			 		}
     		 		
     		 		if( !protocolloGiaInviato ){
-	    				List<AttachWSBean> listaAttachWithInfo = getAttachmentWithInfo(loginBean, flgImpresaInUnGiorno, listaAttach, pathFileFtp, xmlRequest);
-	    				
-	    				
+//	    				List<AttachWSAddUdBean> listaAttachWithInfo = getAttachmentWithInfo(loginBean, flgImpresaInUnGiorno, listaAttach, pathFileFtp, StringUtils.isNotBlank(xmlSenzaAttach) ? xmlSenzaAttach : xmlRequest);
+    		 			if(!flgAttivaCalcoloAsyncAttach){
+    		 				listaAttachWithInfo = getAttachmentWithInfo(loginBean, flgImpresaInUnGiorno, getMessageDataHandlers(), 
+    	    								pathFileFtp, 
+    	    								StringUtils.isNotBlank(xmlSenzaAttach) ? xmlSenzaAttach : xmlRequest);
+    		 			}
+    		 				    				
 	    				// Creo la transazione
 	    				SubjectBean subject = SubjectUtil.subject.get();
 	    				subject.setIdDominio(loginBean.getSchema());
@@ -265,15 +287,94 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 	
 	    				// Chiamo il WS
 	    				outWS = callStoreAddUd(loginBean, xmlRequest, listaAttachWithInfo, flagSportelloImpresaInUnGiorno);
+		 	
+	    				// AURIGA-869 gestione fuori tarnsazione di eventuale fattura
+						if (!flgAttivaCalcoloAsyncAttach) {
+							Transaction lTransaction = null;
+							try {
+								session = HibernateUtil.begin();
+								lTransaction = session.beginTransaction();
+								aLogger.debug("Controllo se e' una fattura");
+								FattureUtil fattureUtil = new FattureUtil();
+								String nomeDocType = fattureUtil.isFattura(user, xml, session);
+								boolean isFattura = (nomeDocType != null && !"".equals(nomeDocType)) ? true : false;
+								aLogger.debug("E' una fattura: " + isFattura);
+								// fattura
+								if (isFattura) {
+
+									String idUdStr = null;
+									if (outWS.getXml() == null || outWS.getXml().equalsIgnoreCase("")) {
+										throw new Exception("La store procedure ha ritornato XmlOut nullo");
+									} else {
+										try {
+											idUdStr = getIdUdFromResponse(outWS.getXml());
+											if (StringUtils.isBlank(idUdStr)) {
+												throw new Exception("idUd nullo");
+											}
+										} catch (Exception e) {
+											aLogger.error("Errore nel parsing dell'xml di response della store: "
+													+ e.getMessage(), e);
+											throw new Exception(
+													"Errore nel parsing dell'xml di response della store" + e.getMessage(),
+													e);
+										}
+									}
+
+									// carico idDoc e uri del primario
+									DocumentoXmlOutBean documentoXmlOutBean = fattureUtil.loadDoc(loginBean, idUdStr);
+									String idDocStr = documentoXmlOutBean.getIdDocPrimario();
+									String tipoProvenienza = AddUdUtils.getTagTipoProvenienza(xml);
+									if (tipoProvenienza == null || "".equals(tipoProvenienza)) {
+										tipoProvenienza = "I";
+									}
+									String uri = documentoXmlOutBean.getFilePrimario().getUri();
+									String firmato = documentoXmlOutBean.getFilePrimario().getFlgFirmato().getDbValue();
+
+									aLogger.debug("Controllo se e' una fattura; nel caso salvo i metadata");
+
+									WSFileUtils lWSFileUtils = new WSFileUtils();
+									File fileToExtract = lWSFileUtils.extract(null, uri);
+
+									fattureUtil.gestisciSeFattura(xml, loginBean, idDocStr, firmato, fileToExtract,
+											nomeDocType, tipoProvenienza, session);
+
+									if (session != null) {
+										session.flush();
+									}
+
+									if (lTransaction != null) {
+										lTransaction.commit();
+									}
+								} else {
+									throw new Exception("Non e' una fattura");
+								}
+							} catch (Exception e) {
+								aLogger.warn("Fattura non gestita per errore o warning");
+								if (lTransaction != null)
+									lTransaction.rollback();
+							}
+						}
+						// FINE AURIGA-869	
+	    				if(flgAttivaCalcoloAsyncAttach) {
+				    		rinominaCartellaAttachAsync(outWS, nomeCartellaAttachAsync);
+				    	}    				
 	    				
-    				
     		 		}
 
     			} catch (Exception e) {
+    				if (e instanceof StoreException) {
+    		    		if(((StoreException) e).getError()!=null){
+    		    			errCode = ((StoreException) e).getError().getErrorCode();
+    		    		}
+    		    	}    				
     				if (e.getMessage() != null)
     					errMsg = "Errore = " + e.getMessage();
     				else
     					errMsg = "Errore imprevisto.";
+    				
+    				if(flgAttivaCalcoloAsyncAttach) {
+    			    	cancellaCartellaAttachAsync(nomeCartellaAttachAsync);
+    		    	}
     			} finally {
     				if (session != null)
     					HibernateUtil.release(session);
@@ -308,8 +409,10 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
     				attachListInputStream(lListInputStreams);
 
     			} catch (Exception e) {
-    				return generaXMLRisposta(JAXWSAbstractAurigaService.FALLIMENTO,
-    						JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO, e.getMessage(), "", "");
+    	 			if(e.getMessage()!=null)
+   		 			 	errMsg = "Errore = " + e.getMessage();
+   		 		 	else
+   		 		 		errMsg = "Errore imprevisto.";	
     			}
 
     			/*************************************************************
@@ -319,8 +422,7 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
     				risposta = generaXMLRisposta(JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO,
     						"Tutto OK", "", warnRegIn);
     			} else {
-    				risposta = generaXMLRisposta(JAXWSAbstractAurigaService.FALLIMENTO,
-    						JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO, errMsg, "", "");
+    				risposta = generaXMLRisposta(JAXWSAbstractAurigaService.FALLIMENTO,errCode, errMsg, "", "");
     			}
     			aLogger.info("Fine WSAddUd");
     			return risposta;
@@ -342,13 +444,14 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 
 	private String vecchiaGestione(final String user, final String token, final String codiceApplicazione,
 			final String istanzaAppl, final Connection conn, final String xml, final String schemaDb,
-			final String idDominio, final String tipoDominio) {
+			final String idDominio, final String tipoDominio, final String parametriconfigout) {
 		String risposta        = null;    
 		String outRispostaWS   = null;
 		String warnRegIn         = "";
 		String docStoreFallita = "";
 		String errMsg = null;
 		String xmlIn = null;
+		Integer errCode = JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO;		
 		try {
 
 			 aLogger.info("Inizio WSAddUd");
@@ -388,6 +491,13 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 		     String errori = "";
 		     Session session = null;
 		     boolean protocolloGiaInviato = false;
+		     
+		     String nomeCartellaAttachAsync = null;
+		     String xmlSenzaAttach = null;
+		     
+//		     String attivaCalcoloAsyncAttach = getParametroDB("ATTIVA_CALCOLO_ASYNC_ATTACH_WS_PROT");
+//		     boolean flgAttivaCalcoloAsyncAttach = StringUtils.isNotBlank(attivaCalcoloAsyncAttach) && "true".equalsIgnoreCase(attivaCalcoloAsyncAttach) ? true : false;
+		     boolean flgAttivaCalcoloAsyncAttach = checkApplicazioneCalcoloAsyncAttach(codiceApplicazione, parametriconfigout);
 		 		
 		     try {
 		    	 
@@ -398,7 +508,6 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 				 
 		      	String instanceProcessId = null;
 		 		if( flagSportelloImpresaInUnGiorno!=null && flagSportelloImpresaInUnGiorno.equalsIgnoreCase("1")) {
-		 			//WSAttachBean WSAttachBeanOut = new WSAttachBean();
 
 		 			DataHandler[] attachments = getAttachmentImpresaInUnGiorno(loginBean, xml, wsAddUdConfig.getPathAttach());
 		 			
@@ -409,7 +518,7 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 		 			}
 		 			
 		 			List<File> filesArchivio = decomprimi_fileImpresaInUnGiorno(loginBean, attachments);
-		 			aLogger.debug("Cerco il file evento-suap.xml e verifico se il protocollo è stato già registrato");
+		 			aLogger.debug("Cerco il file evento-suap.xml e verifico se il protocollo e' stato già registrato");
 			 		for(File fileArchivio : filesArchivio){
 			 			aLogger.debug("fileArchivio.getName " + fileArchivio.getName());
 			 			if(fileArchivio!= null && fileArchivio.exists() ){
@@ -467,7 +576,19 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 				 		}
 			 		}
 			 	} else {
-			 		wsAttach = getAttachment(loginBean);
+			 		
+			 		/* Questa funzionalità e' stata introdotta per gestire in modo asincrono il calcolo delle info degli attach
+			 		 * 
+			 		 * viene creata una cartella su fileSystem contenente tutti gli allegati che verranno elaborati successivamente dal Job "ProtocollaAllegatiSeparatiJob" e aggiunti al protocollo
+			 		 * */
+			 		if(flgAttivaCalcoloAsyncAttach) {
+			 			UUID uuid = UUID.randomUUID();
+			 			nomeCartellaAttachAsync = uuid.toString();
+			 			gestioneAsincronaAttach(xml, nomeCartellaAttachAsync, true);
+//			 			xmlSenzaAttach = eliminaTagFile(xml);
+			 		}else {
+				 		wsAttach = getAttachment(loginBean);
+			 		}
 			 	}	 		
 		 		
 		 		if( !protocolloGiaInviato ){
@@ -477,6 +598,7 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 				 	
 				 	// se ho trovato errori ritorno errore
 			    	if (!errori.equals("")) {
+			    		errCode = 11;
 			    		aLogger.error("Rilevati i seguenti errori: " + errori);
 			    		throw new Exception(errori);	        		
 			    	}
@@ -490,30 +612,119 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 			    	
 			    	
 			    	// Chiamo il WS
-			    	outWS =  callWS(loginBean,xml, session);
+			    	outWS =  callWS(loginBean,/*StringUtils.isNotBlank(xmlSenzaAttach) ? xmlSenzaAttach :*/ xml, session);
+			    	
+			    	if(flgAttivaCalcoloAsyncAttach) {
+			    		rinominaCartellaAttachAsync(outWS, nomeCartellaAttachAsync);
+			    	}
 			    	
 				 	// Chiamo il servizio di AurigaDocument
-				 	outServizio =  eseguiServizio(loginBean, conn, outWS, wsAttach, flagSportelloImpresaInUnGiorno, session, instanceProcessId, wsAddUdConfig.getVisureBPMProcessDefName());
-				 	
-				 	String errService = outServizio.getWarnRegOut();
-				 	
-				 	// Se i file non sono stati salvati restituisco errore
-			        if (errService!=null && !errService.equalsIgnoreCase("")){
-			        	throw new Exception("Protocollazione con allegati KO! Errore nel salvataggio degli allegati : " + errService);
-			        }
-			        
-				 	if( session!=null )
-				 		session.flush();
-				 	
-				 	if( lTransaction!=null)
-				 		lTransaction.commit();
+			    	if(!flgAttivaCalcoloAsyncAttach){
+				    	outServizio =  eseguiServizio(loginBean, conn, outWS, wsAttach, flagSportelloImpresaInUnGiorno, session, instanceProcessId, wsAddUdConfig.getVisureBPMProcessDefName());
+					 	
+					 	String errService = outServizio.getWarnRegOut();
+					 	errCode = outServizio.getErrorCodeStore();
+					 	
+					 	// Se i file non sono stati salvati restituisco errore
+				        if (errService!=null && !errService.equalsIgnoreCase("")){
+				        	throw new Exception(errService);
+				        }
+			 		}else {
+			 			outServizio.setXmlRegOut(outWS.getXml());
+			 		}
+			    	
+					if (session != null)
+						session.flush();
+
+					if (lTransaction != null)
+						lTransaction.commit();
+
+					// AURIGA-869 gestione fuori tarnsazione di eventuale fattura
+					if (!flgAttivaCalcoloAsyncAttach) {
+
+						try {
+							session = HibernateUtil.begin();
+							lTransaction = session.beginTransaction();
+							aLogger.debug("Controllo se e' una fattura");
+							FattureUtil fattureUtil = new FattureUtil();
+							String nomeDocType = fattureUtil.isFattura(user, xml, session);
+							boolean isFattura = (nomeDocType != null && !"".equals(nomeDocType)) ? true : false;
+							aLogger.debug("E' una fattura: " + isFattura);
+							// fattura
+							if (isFattura) {
+
+								String idUdStr = null;
+								if (outWS.getXml() == null || outWS.getXml().equalsIgnoreCase("")) {
+									throw new Exception("La store procedure ha ritornato XmlOut nullo");
+								} else {
+									try {
+										idUdStr = getIdUdFromResponse(outWS.getXml());
+										if (StringUtils.isBlank(idUdStr)) {
+											throw new Exception("idUd nullo");
+										}
+									} catch (Exception e) {
+										aLogger.error("Errore nel parsing dell'xml di response della store: "
+												+ e.getMessage(), e);
+										throw new Exception(
+												"Errore nel parsing dell'xml di response della store" + e.getMessage(),
+												e);
+									}
+								}
+
+								// carico idDoc e uri del primario
+								DocumentoXmlOutBean documentoXmlOutBean = fattureUtil.loadDoc(loginBean, idUdStr);
+								String idDocStr = documentoXmlOutBean.getIdDocPrimario();
+								String tipoProvenienza = AddUdUtils.getTagTipoProvenienza(xml);
+								if (tipoProvenienza == null || "".equals(tipoProvenienza)) {
+									tipoProvenienza = "I";
+								}
+								String uri = documentoXmlOutBean.getFilePrimario().getUri();
+								String firmato = documentoXmlOutBean.getFilePrimario().getFlgFirmato().getDbValue();
+
+								WSFileUtils lWSFileUtils = new WSFileUtils();
+								File fileToExtract = lWSFileUtils.extract(null, uri);
+
+								fattureUtil.gestisciSeFattura(xml, loginBean, idDocStr, firmato, fileToExtract,
+										nomeDocType, tipoProvenienza, session);
+
+								if (session != null) {
+									session.flush();
+								}
+
+								if (lTransaction != null) {
+									lTransaction.commit();
+								}
+							} else {
+								throw new Exception("Documento non e' indicato come potenziale fattura");
+							}
+						} catch (Exception e) {
+							aLogger.warn("Fattura non gestita per errore o warning");
+//							outServizio.setWarnRegOut("Fattura non gestita: " + e.getMessage());
+							if (lTransaction != null)
+								lTransaction.rollback();
+						}
+					}
+					// FINE AURIGA-869			 	
+			    	callStoreRispostaWSAddUpd(outServizio, null, loginBean);
+
 		 		}
 				
-		 	} catch (Exception e){	
-		 		 if(e.getMessage()!=null)
-		 			 errMsg = "Errore = " + e.getMessage();
-		 		 else
-		 			errMsg = "Errore imprevisto."; 
+		 	}
+		    catch (Exception e){
+		    	e.printStackTrace();
+		    	if (e instanceof StoreException) {
+		    		if(((StoreException) e).getError()!=null){
+		    			errCode = ((StoreException) e).getError().getErrorCode();
+		    		}
+		    	}
+		    	if(e.getMessage() != null)
+			 		 errMsg = "Errore = " + e.getMessage();
+			 	else
+			 		errMsg = "Errore imprevisto.";	
+		    	
+		    	if(flgAttivaCalcoloAsyncAttach) {
+			    	cancellaCartellaAttachAsync(nomeCartellaAttachAsync);
+		    	}
 		 	}
 		    finally {
 				if( session!=null )
@@ -547,11 +758,12 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 
 				// Salvo gli ATTACH alla response
 				attachListInputStream(lListInputStreams);
-
 			}
 			catch (Exception e) {
-				return generaXMLRisposta(JAXWSAbstractAurigaService.FALLIMENTO,
-						JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO, e.getMessage(), "", "");
+	 			if(e.getMessage()!=null)
+		 			 errMsg = e.getMessage();
+		 		 else
+		 			errMsg = "Errore imprevisto.";	
 			}   
 		    	
 		     /*************************************************************
@@ -561,7 +773,7 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 			 	 risposta = generaXMLRisposta( JAXWSAbstractAurigaService.SUCCESSO, JAXWSAbstractAurigaService.SUCCESSO, "Tutto OK", "", warnRegIn);
 			 }
 			 else{
-			 	 risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, JAXWSAbstractAurigaService.ERR_ERRORE_APPLICATIVO,  errMsg, "", "");
+			 	 risposta = generaXMLRisposta( JAXWSAbstractAurigaService.FALLIMENTO, errCode,  errMsg, "", "");
 			 }	 
 		     aLogger.info("Fine WSAddUd");
 		     return risposta;
@@ -576,9 +788,44 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 		    aLogger.info("Fine WSAddUd serviceImplementation");
 		}
 	}
+	
+	private void cancellaCartellaAttachAsync(String nomeCartellaAttachAsync) {
+		String rootFolderAttach = getParametroDB("ROOT_PATH_ATTACH_ASYNC_WS_ADD_UPD_UD");
 
-    
-    
+		File folderAttachAsync = new File(rootFolderAttach + File.separator + nomeCartellaAttachAsync);
+
+		try {
+			FileUtils.deleteDirectory(folderAttachAsync);
+		} catch (IOException e) {
+			aLogger.error("Non e' stato possibile cancellare la cartella: " + folderAttachAsync.getAbsolutePath(), e);
+		}
+
+	}
+
+	private void rinominaCartellaAttachAsync(WSAddUdBean outWS, String nomeCartellaAttachAsync) throws Exception {
+		String rootFolderAttach = getParametroDB("ROOT_PATH_ATTACH_ASYNC_WS_ADD_UPD_UD");
+		
+		try {
+			String xmlOut = outWS.getXml();
+			StringReader  srXmlOut = new StringReader(xmlOut);
+	
+			Output_UD outputUd = (Output_UD) Unmarshaller.unmarshal(Output_UD.class, srXmlOut);
+			String idUd = String.valueOf(outputUd.getIdUD());
+	
+			Path oldFolderPath = Paths.get(rootFolderAttach + File.separator + nomeCartellaAttachAsync);
+			Path newFolderPath = Paths.get(rootFolderAttach + File.separator + idUd);
+		
+			if(oldFolderPath.toFile().exists()) {
+				Files.move(oldFolderPath, newFolderPath, StandardCopyOption.REPLACE_EXISTING);
+			}
+		} catch (IOException e) {
+			String errorMessage = "Errore durante la gestione del salvataggio dei file su fileSystem: " + e.getMessage();
+			aLogger.error(errorMessage, e);
+			throw new Exception(errorMessage, e);
+		}
+	}
+
+
    private String verificaProtocollazioneSUE(AurigaLoginBean loginBean, String xmlFile) throws Exception{
 	   String xmlOut = null; 
 	   aLogger.debug("Verifico la protocollazione SUE");
@@ -605,11 +852,7 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 		
 		return xmlOut;
    }
-    
-    
-    
-    
-	
+
     
    /****************************************************************************************************************
 	* Prende le info dall'xml e versiona i file elettronici ( primario + allegati ).
@@ -657,6 +900,7 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
     		if ( lsDocAttXmlOut != null && lsDocAttXmlOut.getRiga().size() > 0) {
         	
         		String errori = "";
+        		StoreResultBean storeResultBean = new StoreResultBean();
         		        		
         		// Prendo gli attach
         		DataHandler[] attachments =  wsAttachEinfo.getAttachments();
@@ -684,28 +928,12 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
             	if( flagSportelloImpresaInUnGiorno!=null && flagSportelloImpresaInUnGiorno.equalsIgnoreCase("1")) {
             		errori = salvaAllegatiImpresaUnGiorno(loginBean, conn, listRebuildedFile, attachments, lsDocAttXmlOut, listaFileElettroniciNonSalvatiOut, flagSportelloImpresaInUnGiorno, session, visureBPMProcessDefName, instanceProcessId );
             	} else {
-            		errori = salvaAllegati(loginBean, conn, listRebuildedFile, attachments, lsDocAttXmlOut, listaFileElettroniciNonSalvatiOut, session);
+            		storeResultBean = salvaAllegati(loginBean, conn, listRebuildedFile, attachments, lsDocAttXmlOut, listaFileElettroniciNonSalvatiOut, session);
             	}
             	
-            	// Se il salvataggio e' fallito restituisco l'elenco dei file non salvati
-                if (errori!= null && !errori.trim().equalsIgnoreCase("")){
-                	if (listaFileElettroniciNonSalvatiOut != null) {
-                		StringBuffer lStringBuffer = new StringBuffer();
-                		if (listaFileElettroniciNonSalvatiOut.getVersioneElettronicaNonCaricata()!=null && listaFileElettroniciNonSalvatiOut.getVersioneElettronicaNonCaricata().length >0){
-                			for (int i = 0; i < listaFileElettroniciNonSalvatiOut.getVersioneElettronicaNonCaricata().length; i++) {
-                				String lStrFileInError  = listaFileElettroniciNonSalvatiOut.getVersioneElettronicaNonCaricata(i).getNomeFile();
-                				lStringBuffer.append(lStrFileInError + "; ");	
-                			}
-                			String warnRegOut  = lStringBuffer.toString();
-                			ret.setWarnRegOut(warnRegOut);
-                			aLogger.debug(warnRegOut);
-                		}
-                		else{
-                    		ret.setWarnRegOut(errori);
-                			aLogger.debug(errori);
-                    	}
-             	   }
-                }
+            	ret.setWarnRegOut(storeResultBean.getDefaultMessage());
+            	ret.setErrorCodeStore(storeResultBean.getErrorCode());
+            	
            }
     	   // Restituisco l'xml
     	   ret.setXmlRegOut(xmlOut);
@@ -750,7 +978,6 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
     	String docAttachXML = null;
     	String regNumDaRichASistEst =  null;
     	
-    	try {    		
     		  // Inizializzo l'INPUT    		
     		  DmpkWsAddudBean input = new DmpkWsAddudBean();
     		  input.setCodidconnectiontokenin(loginBean.getToken());
@@ -779,7 +1006,7 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
     		  }
     		  
     		  if (output.isInError()){
-    			  throw new Exception(output.getDefaultMessage());	
+    			  throw new StoreException(output);	
     			}	
 
     		  // leggo  XmlOut
@@ -802,10 +1029,6 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
     		  result.setXml(xml);
     			  
     		  return result;
- 			}
- 		catch (Exception e){
- 			throw new Exception(e.getMessage()); 			
- 		}
     }
     
 
@@ -826,7 +1049,7 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             
             //xmlInEsc = xmlIn;
@@ -847,9 +1070,12 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
     
       
     // Salvo gli allegati
-    private String salvaAllegati(AurigaLoginBean loginBean , Connection conn, List<RebuildedFile> listRebuildedFile , DataHandler[] attachments,  Lista lsDocAttXmlOut, Output_UD listaFileElettroniciNonSalvatiOut, Session session) throws Exception {
+    private StoreResultBean salvaAllegati(AurigaLoginBean loginBean , Connection conn, List<RebuildedFile> listRebuildedFile , DataHandler[] attachments,  Lista lsDocAttXmlOut, Output_UD listaFileElettroniciNonSalvatiOut, Session session) throws Exception {
     	
+    	StoreResultBean storeResultBean = new StoreResultBean<>();
     	String returnMess ="";
+    	Integer errorCode = 100;
+    	
     	try {
     			AllegatiBean lAllegatiBean = new AllegatiBean();
     		    		
@@ -1034,36 +1260,9 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
         	        		// Se il servizio e' andato in errore restituisco il messaggio di errore 	    	    
         	        	    if(StringUtils.isNotBlank(servizioOut.getDefaultMessage())) {
         	        	    	returnMess += (unaStepGiaFallita)?", "+ servizioOut.getDefaultMessage() : " " + servizioOut.getDefaultMessage();
+        	        	    	errorCode = servizioOut.getErrorCode();
+        	        	    	break;
         	        		}
-        	        	    
-        	        	    //popolo un oggetto VersioneElettronicaNonCaricata per tener conto del fallimento
-        	    			VersioneElettronicaNonCaricata venc = new VersioneElettronicaNonCaricata();
-        	    			
-        	        	    // Se la gestione dei file e' andata in errore restituisco il messaggio di errore 
-        	        	    StringBuffer lStringBuffer = new StringBuffer();
-        	        	    
-        	        	    int key = 0;
-        	        	    if (servizioOut.getFileInErrors()!=null && servizioOut.getFileInErrors().size()>0){
-        	            			for (String lStrFileInError : servizioOut.getFileInErrors().values()){
-        	            				 
-        	            				lStringBuffer.append("; " + lStrFileInError);			
-        	            				
-        	            				//setto l'indice
-        	            				String sIndex = servizioOut.getFileInErrors().get(key);
-        	            				if (sIndex != null && !sIndex.equalsIgnoreCase(""))
-        	            					venc.setNroAttachmentAssociato(new Integer(sIndex));
-
-        	                			//setto il nome file
-        	                			venc.setNomeFile(lStrFileInError);
-
-        	                			//aggiungo alla lista dei fallimenti
-        	                			versioniNonCaricate.add(venc);
-        	                			
-        	                			key++;
-        	            			}
-        	        	    }        	        	    
-        	        	    if (lStringBuffer != null && lStringBuffer.length()>0 && !lStringBuffer.toString().equalsIgnoreCase("")) 
-        	        	    	returnMess += (unaStepGiaFallita)?", "+ lStringBuffer : " " + lStringBuffer;        	    
         	        	}        				
         	        	catch (Exception ve) {    			
         	    			String mess = "------> Fallita la stepVersion per il doc " + idDocFile;    			
@@ -1072,34 +1271,7 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
         	    			aLogger.debug(mess + " - " + ve.getMessage(), ve);        	    			
         	    		}
     				}					
-        		}
-        	
-    			/*************************************************************
-    			 * Gestisco gli eventuali messaggi di warning
-    			 ************************************************************/        
-
-    			// preparo la stringa per xml di risposta
-    			if (!returnMess.equals("")) {
-    				returnMess="Fallito il caricamento per i file:" + returnMess;
-    			}
-
-    			// se vi sono versioni non caricate
-    			if (versioniNonCaricate.size() > 0) {
-    				//trasferisco la lista in un array per effettuare il set nell'XMLOUT 
-    				VersioneElettronicaNonCaricata vencArray[] =  new VersioneElettronicaNonCaricata[versioniNonCaricate.size()];
-    				// scorro la lista e trasferisco
-    				Iterator iter = versioniNonCaricate.iterator();
-    				//contatore per popolare l'array
-    				int i = 0;
-    				//popolo l'array
-    				while (iter.hasNext()) {
-    					vencArray[i] = (VersioneElettronicaNonCaricata)iter.next();
-    					aLogger.debug("NON inserita versione #" + i);
-    					i++;
-    				}
-    				// effettuo il set sull'output_UD
-    				listaFileElettroniciNonSalvatiOut.setVersioneElettronicaNonCaricata(vencArray);        	
-    			}    		
+        		}   		
     		}
     		catch (Throwable ee) { 
     			returnMess += "Errore nella funzione nella salvaAllegati() - " + ee.getMessage() + "\n";
@@ -1107,7 +1279,10 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
     			throw new Exception(returnMess);	 
     		}
     	
-    	return returnMess;    	
+    	storeResultBean.setDefaultMessage(returnMess);
+    	storeResultBean.setErrorCode(errorCode);
+    	
+    	return storeResultBean;    	
     }   
     
     private String salvaAllegatiImpresaUnGiorno(AurigaLoginBean loginBean , Connection conn, List<RebuildedFile> listRebuildedFile , DataHandler[] attachments, Lista lsDocAttXmlOut, Output_UD listaFileElettroniciNonSalvatiOut, String flagSportelloImpresaInUnGiorno, Session session, String visureBPMProcessDefName, String instanceProcessId) throws Exception {
@@ -1397,9 +1572,6 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 				BeanUtilsBean2.getInstance().copyProperties(lVersionaDocumentoOutBean, lAddverdocStoreResultBean);
 				return lVersionaDocumentoOutBean;
 			}
-
-			
-
 		} catch (Throwable e) {
 
 			if (StringUtils.isNotBlank(e.getMessage())) {
@@ -1419,14 +1591,14 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 		return new Locale("it", "IT");
 	}
 	
-	private void avviaVisure(WSAddUdConfig wsAddUdConfig, List<AttachWSBean> listaAttachWithInfo) throws Exception {
+	private void avviaVisure(WSAddUdConfig wsAddUdConfig, List<AttachWSAddUdBean> listaAttachWithInfo) throws Exception {
 		String instanceProcessId;
 		boolean isVisura = false;
 
 		String visuraTipoProcesso = wsAddUdConfig.getVisureTipoProcesso();
 		aLogger.debug("visuraTipoProcesso : " + visuraTipoProcesso);
 
-		for (AttachWSBean attachWSBean : listaAttachWithInfo) {
+		for (AttachWSAddUdBean attachWSBean : listaAttachWithInfo) {
 			if (StringUtils.isNotBlank(attachWSBean.getMimetype())&& attachWSBean.getMimetype().equalsIgnoreCase("application/xml")) {
 				List<String> listaValori = AddUdUtils.getCodiceVisura(attachWSBean.getFile());// getValoreTipoProcedimento(file);
 				aLogger.info("listaValori :" + listaValori);
@@ -1437,7 +1609,6 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 					break;
 				}
 			}
-
 		}
 
 		aLogger.info("isVisura " + isVisura);
@@ -1448,8 +1619,6 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 		}
 	}
 
-    
-	
         
     /****************************************************************************************************************
 	* Funzione per aggiornare un'unita' documentaria.
@@ -1476,11 +1645,8 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 	*   c) XmlOut : XML con dati di output specifici del WS, restituito solo in caso di successo, conforme a schema Output_UD.xsd
 	*   
 	**************************************************************************************************************/   
- 
-	private WSAddUdBean callStoreAddUd(AurigaLoginBean loginBean, String xmlIn, List<AttachWSBean> listaAttach, String flagSportelloImpresaInUnGiorno)
-			throws Exception {
-
-		aLogger.debug("Eseguo il WS DmpkWsAddUd.");
+	private WSAddUdBean callStoreAddUd(AurigaLoginBean loginBean, String xmlIn, List<AttachWSAddUdBean> listaAttach, String flagSportelloImpresaInUnGiorno) throws Exception {
+		aLogger.debug("Eseguo il WS DMPK_WS->AddUd.");
 
 		String xml = null;
 		String regNumDaRichASistEst = null;
@@ -1489,7 +1655,7 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 		Session session = null;
 		try {
 
-			if (!listaAttach.isEmpty()) {
+			if (listaAttach!=null && !listaAttach.isEmpty()) {
 				XmlUtilitySerializer lXmlUtilitySerializer = new XmlUtilitySerializer();
 				listaAttachXml = lXmlUtilitySerializer.bindXmlList(listaAttach);
 			}
@@ -1517,12 +1683,11 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 			AnalyzeResult.analyze(input, output);
 			output.setResultBean(input);
 
-			// Eseguo il servizio
-			// Addud service = new Addud();
-			// StoreResultBean<DmpkWsAddudBean> output = service.execute(loginBean, input);
-
 			if (output.isInError()) {
-				throw new Exception(output.getDefaultMessage());
+				aLogger.debug(output.getDefaultMessage());
+				aLogger.debug(output.getErrorContext());
+				aLogger.debug(output.getErrorCode());
+				throw new StoreException(output);
 			}
 
 			// leggo XmlOut
@@ -1546,7 +1711,7 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 			if( flagSportelloImpresaInUnGiorno!=null && flagSportelloImpresaInUnGiorno.equalsIgnoreCase("1")) {
 				salvaXmlImpresaInUnGiorno(loginBean, listaAttach, session, idUd);
 			}
-
+			
 			if (session != null)
 				session.flush();
 
@@ -1571,9 +1736,9 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 		}
 	}
 
-	private void salvaXmlImpresaInUnGiorno(AurigaLoginBean loginBean, List<AttachWSBean> listaAttach, Session session, String idUd)
+	private void salvaXmlImpresaInUnGiorno(AurigaLoginBean loginBean, List<AttachWSAddUdBean> listaAttach, Session session, String idUd)
 			throws IOException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, Exception {
-		for (AttachWSBean attachBean : listaAttach) {
+		for (AttachWSAddUdBean attachBean : listaAttach) {
 
 			if (attachBean.getDisplayFilename().toUpperCase().endsWith("XML")) {
 				aLogger.info("Chiamo la DmpkRegistrazionedocSavefileasclob con file ");
@@ -1614,7 +1779,7 @@ public class WSAddUd extends JAXWSAbstractAurigaService implements WSIAddUd{
 		}
 	}
 
-private String getIdUdFromResponse(String xml) throws Exception{
+	private String getIdUdFromResponse(String xml) throws Exception{
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		DocumentBuilder builder = factory.newDocumentBuilder();
 		InputSource is = new InputSource(new StringReader(xml));
@@ -1652,7 +1817,7 @@ private String getIdUdFromResponse(String xml) throws Exception{
         	// ...se il token non e' null
             if (xmlIn != null) {
             	// effettuo l'escape di tutti i caratteri
-            	xmlInEsc = eng.util.XMLUtil.xmlEscape(xmlIn);
+            	xmlInEsc = StringEscapeUtils.escapeXml(xmlIn);
             }
             
             //xmlInEsc = xmlIn;
@@ -1667,58 +1832,205 @@ private String getIdUdFromResponse(String xml) throws Exception{
     }
     
     
-    public List<File> getAttachment(boolean flgImpresaInUnGiorno, String pathFileFtp) throws Exception {
+    public List<File> getFileFromAttachment(AurigaLoginBean loginBean) throws Exception {
 
 		List<File> listaAttach = new ArrayList<File>();
 		
 		// Leggo gli attach
 		DataHandler[] attachments = getMessageDataHandlers();
 		
-		if(flgImpresaInUnGiorno) {
-			listaAttach = recuperaFileImpresaInUnGiorno(attachments, pathFileFtp);
-		}else {
-			listaAttach = getFileFromDataHandler(attachments);
-		}
+		listaAttach = getFileFromDataHandler(attachments, loginBean);		
 		
 		return listaAttach;
     }
-    
-    public List<AttachWSBean> getAttachmentWithInfo(AurigaLoginBean loginBean, boolean flgImpresaInUnGiorno, 
-    		List<File> listaAttach, String pathFileFtp, String xml) throws Exception {
-
-		List<AttachWSBean> listaAttachWithInfo = new ArrayList<AttachWSBean>();
+     
+	public List<AttachWSAddUdBean> getAttachmentWithInfo(AurigaLoginBean loginBean, boolean flgImpresaInUnGiorno, 
+    		DataHandler[] attchments, String pathFileFtp, String xml) throws Exception {
+    	
+    	List<AttachWSBean> listaAttachWithInfo = new ArrayList<AttachWSBean>();		
+    	List<AttachWSAddUdBean> resultlistaAttachWithInfo = new ArrayList<AttachWSAddUdBean>();		
+		List<AttachWSBean> listaAttachWithInfoOut = new ArrayList<AttachWSBean>();
 		
-		// Leggo le info degli attach
-		
-		if(listaAttach!=null && listaAttach.size()>0) {
-			//Controllo se attivare le chiamate multi thread a file operation per il calcolo delle info dei file
-			if(!(StringUtils.isNotBlank(wsAddUdConfig.getFlgCallFileOpMultiThread()) && wsAddUdConfig.getFlgCallFileOpMultiThread().equalsIgnoreCase("true"))) {
-				long t0 = System.currentTimeMillis(); 
-				listaAttachWithInfo = calcola_info_file(loginBean, listaAttach, flgImpresaInUnGiorno, xml);
-				long t1 = System.currentTimeMillis();
-				long tempoImpiegato =  (t1 - t0) / 1000;
+		try {
+		   DataHandler[] attachments = getMessageDataHandlers();
+		   
+		   Document sourceDocument = parseXMLString(xml); 
+       
+           // Estrai informazioni sui file dall'XML di origine.
+           NodeList fileList = sourceDocument.getElementsByTagName("VersioneElettronica");
+           if(fileList!=null && fileList.getLength()>0) {    	   
+        	   
+        	   for (int i = 0; i < fileList.getLength(); i++) {
+					Element fileElement = (Element) fileList.item(i);
+					String displayFilename = fileElement.getElementsByTagName("NomeFile").item(0).getTextContent();
+					String indexFile = fileElement.getElementsByTagName("NroAttachmentAssociato").item(0).getTextContent();
+					File tempFile =null;
+					long dimensione;
+					
+					DataHandler attach = null;
+					try {
+						attach = attachments[Integer.valueOf(indexFile)-1];
+					} catch (Exception e1) {
+						throw new Exception("Non e' stato trovato un file in input alla posizione: " + i);
+					}
+					try (InputStream inputStream = attach.getInputStream()) {
+		   
+						WSFileUtils lWSFileUtils = new WSFileUtils();
+						tempFile = lWSFileUtils.saveInputStreamToStorageTmp(loginBean.getSpecializzazioneBean().getIdDominio(),
+								inputStream);
+						
+						dimensione = tempFile.length();
+												
+					    
+					} catch (ArrayIndexOutOfBoundsException e) {
+						throw new Exception("Errore durante la scrittura del file: " + e.getMessage(), e);
+					}
+					
+					boolean flgFilePrimario = false;
+					if(!fileElement.getParentNode().getNodeName().contains("AllegatoUD")) {													
+						flgFilePrimario = true;	
+					}
+					
+					AttachWSBean attachWBean = new AttachWSBean();
+					attachWBean.setDisplayFilename(displayFilename);
+					attachWBean.setNumeroAttach(indexFile);
+					attachWBean.setDimensione(new BigDecimal(dimensione));
+					attachWBean.setFlgFilePrimario(flgFilePrimario ? "1" : "0");
+					attachWBean.setFile(tempFile);
+					
+					listaAttachWithInfo.add(attachWBean);
 				
-				aLogger.debug("Tempo impiegato per l'esecuzione delle chiamate a file op: " + tempoImpiegato + " secondi");
-			}else {
-				long t0 = System.currentTimeMillis(); 
-				listaAttachWithInfo = calcola_info_file_multiThreaded(loginBean, listaAttach, flgImpresaInUnGiorno, xml, wsAddUdConfig.getMaxSizePoolThread());
-				long t1 = System.currentTimeMillis();
-				long tempoImpiegato =  (t1 - t0) / 1000;
-				
-				aLogger.debug("Tempo impiegato per l'esecuzione delle chiamate a file op: " + tempoImpiegato + " secondi");
-			}
-		}
-		
-		
-		return listaAttachWithInfo;
+				}
+        	   
+        	 //Controllo se attivare le chiamate multi thread a file operation per il calcolo delle info dei file
+	    		if(!(StringUtils.isNotBlank(wsAddUdConfig.getFlgCallFileOpMultiThread()) && wsAddUdConfig.getFlgCallFileOpMultiThread().equalsIgnoreCase("true"))) {
+	    			long t0 = System.currentTimeMillis(); 
+	    			listaAttachWithInfoOut  = calcola_info_file(loginBean, listaAttachWithInfo, flgImpresaInUnGiorno, xml);
+	    			long t1 = System.currentTimeMillis();
+	    			long tempoImpiegato =  (t1 - t0) / 1000;
+	    			
+	    			aLogger.debug("Tempo impiegato per l'esecuzione delle chiamate a file op: " + tempoImpiegato + " secondi");
+	    		}else {
+	    			long t0 = System.currentTimeMillis(); 
+	    			listaAttachWithInfoOut = calcola_info_file_multiThreaded(loginBean, listaAttachWithInfo, flgImpresaInUnGiorno, xml, wsAddUdConfig.getMaxSizePoolThread());
+	    			long t1 = System.currentTimeMillis();
+	    			long tempoImpiegato =  (t1 - t0) / 1000;
+	    			
+	    			aLogger.debug("Tempo impiegato per l'esecuzione delle chiamate a file op: " + tempoImpiegato + " secondi");
+	    		}
+	    		
+	    		// Copio i dati dal bean AttachWSBean al bean AttachWSAddUdBean
+	    		if (listaAttachWithInfoOut !=null && listaAttachWithInfoOut.size()>0){
+	    			for (int i = 0; i<listaAttachWithInfoOut.size(); i++) {
+	    				AttachWSBean attachWSBean = listaAttachWithInfoOut.get(i);
+	    				
+	    				AttachWSAddUdBean attachWSAddUdBean = new AttachWSAddUdBean();
+	    				
+	    				//-- 1: DisplayName del file
+	    				attachWSAddUdBean.setDisplayFilename(attachWSBean.getDisplayFilename());
+	    				
+	    				//-- 2: URI del file salvato su archivio definitivo in notazione storageUtil		
+	    				attachWSAddUdBean.setUri(attachWSBean.getUri());
+	    				
+	    				//-- 3: Nro di attachment con cui il file appare nella request secondo schema NEWUD.xsd
+	    				attachWSAddUdBean.setNumeroAttach(attachWSBean.getNumeroAttach());
+	    				
+	    				//-- 4: Nome della tipologia documentale dell'allegato
+	    				attachWSAddUdBean.setNomeTipologia(attachWSBean.getNomeTipologia());
+	    				
+	    				//-- 5: Descrizione dell'allegato
+	    				attachWSAddUdBean.setDescrizione(attachWSBean.getDescrizione());
+	    				
+	    				//-- 6: dimensione
+	    				attachWSAddUdBean.setDimensione(attachWSBean.getDimensione());
+	    				
+	    				//-- 7: impronta
+	    				attachWSAddUdBean.setImpronta(attachWSBean.getImpronta());
+	    				
+	    				//-- 8: algoritmo calcolo impronta
+	    				attachWSAddUdBean.setAlgoritmo(attachWSBean.getAlgoritmo());
+	    				
+	    				//-- 9: encoding di calcolo impronta: colonna
+	    				attachWSAddUdBean.setEncodingImpronta(attachWSBean.getEncodingImpronta());
+	    				
+	    				//-- 10: Flg file firmato (valori 1/0)
+	    				attachWSAddUdBean.setFlgFirmato(attachWSBean.getFlgFirmato());
+	    				
+	    				//-- 11: Mimetype
+	    				attachWSAddUdBean.setMimetype(attachWSBean.getMimetype());
+	    				
+	    				//-- 12: Firmatari
+	    				attachWSAddUdBean.setFirmatari(attachWSBean.getFirmatari());
+	    				
+	    				//-- 13: Indicazione del tipo di firma (CAdES o PAdES)
+	    				attachWSAddUdBean.setTipoFirma(attachWSBean.getTipoFirma());
+	    				
+	    				//-- 14: Info di verifica della firma
+	    				attachWSAddUdBean.setInfoVerificaFirma(attachWSBean.getInfoVerificaFirma());
+	    				
+	    				//-- 15: Data e ora delle marca se presente marca temporale valida (nel formato DD/MM/RRR HH24:MI:SS)
+	    				attachWSAddUdBean.setDataOraMarca(attachWSBean.getDataOraMarca());
+	    				
+	    				//-- 16: Tipo di marca temporale se presente
+	    				attachWSAddUdBean.setTipoMarca(attachWSBean.getTipoMarca());
+	    				
+	    				//-- 17: Informazioni di verifica della marca temporale se presente
+	    				attachWSAddUdBean.setInfoVerificaMarca(attachWSBean.getInfoVerificaMarca());
+	    				
+	    				//-- 21: ID dell'allegato nel sistema di provenienza (UUID dell'allegato nel json)
+	    				attachWSAddUdBean.setIdSistemaProvenienza(attachWSBean.getIdSistemaProvenienza());
+	    				
+	    				//-- 22: Data e ora della firma digitale della busta crittografica piu' esterna, se presente (nel formato DD/MM/RRR HH24:MI:SS)
+	    				attachWSAddUdBean.setDataFirmaBustaCrittografica(attachWSBean.getDataFirmaBustaCrittografica());
+	    				
+	    				//-- 23: Flag di firma non valida alla data (valori 1/0/NULL) (la firma della busta crittografica piu' esterna)
+	    				attachWSAddUdBean.setFlgFirmaCrittograficaNonValida(attachWSBean.getFlgFirmaCrittograficaNonValida());
+	    				
+	    				//-- 24: Flag di manca temporale non valida alla data (valori 1/0/NULL)
+	    				attachWSAddUdBean.setFlgMarcaTemporaleNonValida(attachWSBean.getFlgMarcaTemporaleNonValida());
+	    				
+	    				//-- 25: Data emissione certificato firmatario (se piu' di uno separati da ";")
+	    				attachWSAddUdBean.setDataOraEmissioneCertificatoFirma(attachWSBean.getDataOraEmissioneCertificatoFirma());
+	    				
+	    				//-- 26: Data scadenza certificato firmatario (se piu' di uno separati da ";")
+	    				attachWSAddUdBean.setDataOraScadenzaCertificatoFirma(attachWSBean.getDataOraScadenzaCertificatoFirma());
+	    				
+	    				//-- 27: Indica se firma Qualifica (=Q) o Avanzata (=A) (se piu' di uno separati da ";")
+	    				attachWSAddUdBean.setTipoFirmaQA(attachWSBean.getTipoFirmaQA());
+	    				
+	    				//-- 28: Cod. fiscali dei firmatari (se piu' di uno separati da ";")
+	    				attachWSAddUdBean.setCfFirmatario(attachWSBean.getCfFirmatario());
+	    				
+	    				//-- 29: Impronta file pre firma calcolata da file op
+	    				attachWSAddUdBean.setImprontaPreFirmaDaFileOp(attachWSBean.getImprontaPreFirmaDaFileOp());
+	    				
+	    				//-- 30: Flg file primario 1= file primaio, 0 = allegato
+	    				attachWSAddUdBean.setFlgFilePrimario(attachWSBean.getFlgFilePrimario());
+	    				
+	    				// Puntamento al file
+	    				attachWSAddUdBean.setFile(attachWSBean.getFile());
+	    				
+	    				resultlistaAttachWithInfo.add(attachWSAddUdBean);
+	    			}
+	    		}     	   
+        	   
+           }
 
-	}
+		} catch (Exception e) {
+			aLogger.error(e.getMessage(), e);
+			throw new Exception(e.getMessage(), e);
+		}		
+		
+    	return resultlistaAttachWithInfo;
+    }
 	
 
-	private List<File> recuperaFileImpresaInUnGiorno(DataHandler[] attachments, String pathFileFtp) throws Exception {
+	private List<File> recuperaFileImpresaInUnGiorno(String pathFileFtp) throws Exception {
 		
 		List<File> listaAttach = new ArrayList<File>();
 		InputStream isFileZip = null;
+		
+		DataHandler[] attachments = getMessageDataHandlers();
 
 		if (StringUtils.isNotBlank(pathFileFtp)) {
 			//Recupero il file zip di impresa in un giorno come riferimento e non dagli attach passati al servizio
@@ -1734,7 +2046,6 @@ private String getIdUdFromResponse(String xml) throws Exception{
 		}
 		
 		File zipSueTemp = File.createTempFile("tmp", "");
-//		listTempFileToDelete.add(zipSueTemp);
 		
 		FileUtils.copyInputStreamToFile(isFileZip, zipSueTemp);
 		
@@ -1743,14 +2054,12 @@ private String getIdUdFromResponse(String xml) throws Exception{
 		zipSueTemp.delete();
 
 		return listaAttach;
-
 	}
-
 
 	public WSAttachBean getAttachmentFromFtp(AurigaLoginBean loginBean, String pathAttach, String nomeFile) throws Exception {
 		WSAttachBean WSAttachBeanOut = new WSAttachBean();
 
-		//Recupero il file zip contenente gli allegati, che è stato caricato sull ftp montata (pathAttach)
+		//Recupero il file zip contenente gli allegati, che e' stato caricato sull ftp montata (pathAttach)
 		File allegatiZip = new File(pathAttach+nomeFile);
 		
 		// Setto gli attach
@@ -1767,6 +2076,6 @@ private String getIdUdFromResponse(String xml) throws Exception{
 		WSAttachBeanOut.setListRebuildedFile(listRebuildedFile);
 
 		return WSAttachBeanOut;
-	}
-	
+	}	
+
 }

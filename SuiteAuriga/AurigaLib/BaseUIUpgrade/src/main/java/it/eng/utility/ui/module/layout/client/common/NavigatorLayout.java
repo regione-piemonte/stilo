@@ -1,11 +1,17 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
+import com.smartgwt.client.data.AdvancedCriteria;
+import com.smartgwt.client.data.Criterion;
 import com.smartgwt.client.data.Record;
 import com.smartgwt.client.data.RecordList;
 import com.smartgwt.client.types.Alignment;
 import com.smartgwt.client.types.JSONDateFormat;
+import com.smartgwt.client.types.OperatorId;
 import com.smartgwt.client.types.Overflow;
 import com.smartgwt.client.util.JSONEncoder;
 import com.smartgwt.client.widgets.Canvas;
@@ -162,9 +168,23 @@ public class NavigatorLayout extends HLayout {
 		encoder.setDateFormat(JSONDateFormat.DATE_CONSTRUCTOR);
 		// String criteriaStr = layout.searchCriteria != null ? JSON.encode(layout.searchCriteria.getJsObj(), encoder) : "";
 		// System.out.println("CACHE LEVEL " + getCurrentNode().getIdNode() + ": " + criteriaStr);
-		// cacheLevel.setCriteria(layout.searchCriteria);
 		if (layout.getFilter().isVisible()) {
-			cacheLevel.setCriteria(layout.getFilter().getCriteria(true));
+			// Devo salvare il valore dei filtri che non sono sui criteri del filtro ma nel layout
+			AdvancedCriteria criteriaToFilter = layout.getFilter().getCriteria(true);
+			List<Criterion> criterionListToSave = new ArrayList<Criterion>();
+			for (Criterion crit : criteriaToFilter.getCriteria()) {
+				criterionListToSave.add(crit);
+			}
+			if (layout.showRicercaRicorsivaItem()) {
+				criterionListToSave.add(new Criterion("flgRicercaRicorsiva", OperatorId.EQUALS, layout.getFlgRicercaRicorsiva() + ""));
+			}
+			Criterion[] criterias = new Criterion[criterionListToSave.size()];
+			for (int i = 0; i < criterionListToSave.size(); i++) {
+				criterias[i] = criterionListToSave.get(i);
+			}
+			AdvancedCriteria criteriaToSave = new AdvancedCriteria(OperatorId.AND, criterias);
+			
+			cacheLevel.setCriteria(criteriaToSave);
 		} else {
 			cacheLevel.setCriteria(null);
 		}

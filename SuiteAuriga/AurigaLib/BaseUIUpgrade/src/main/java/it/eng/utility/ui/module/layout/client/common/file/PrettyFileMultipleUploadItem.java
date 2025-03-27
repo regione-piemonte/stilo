@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.layout.client.common.file;
 
 import it.eng.utility.ui.module.core.client.callback.UploadMultipleItemCallBackHandler;
 import it.eng.utility.ui.module.core.client.i18n.I18NUtil;
@@ -189,7 +190,7 @@ public class PrettyFileMultipleUploadItem extends CanvasItem {
 				@Override
 				public void onKeyDown(KeyDownEvent event) {
 					if (EventHandler.getKey().equalsIgnoreCase("Enter") || EventHandler.getKey().equalsIgnoreCase("Space")){
-						lPrettyFileMultipleUploadInput.focusOnInputFile(lPrettyFileMultipleUploadInput.getIndiceTab());
+						lPrettyFileMultipleUploadInput.focusOnInputFileBySmartId(lPrettyFileMultipleUploadInput.getSmartId());
 					}
 				}
 			});

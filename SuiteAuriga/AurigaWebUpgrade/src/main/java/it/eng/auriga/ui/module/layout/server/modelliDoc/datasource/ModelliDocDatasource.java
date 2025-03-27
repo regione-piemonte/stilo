@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.modelliDoc.datasource;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -610,7 +611,7 @@ public class ModelliDocDatasource extends AbstractFetchDataSource<ModelliDocBean
 		List<AttributoBean> attributiAdd = new ArrayList<AttributoBean>();
 		HashMap<String, List<DettColonnaAttributoListaBean>> mappaDettAttrLista = new HashMap<String, List<DettColonnaAttributoListaBean>>();
 		
-		if (StringUtils.isNotBlank(bean.getNomeTabella()) || StringUtils.isNotBlank(bean.getIdEntitaAssociata())) {
+		if (StringUtils.isNotBlank(bean.getTipoEntitaAssociata()) && (StringUtils.isNotBlank(bean.getNomeTabella()) || StringUtils.isNotBlank(bean.getIdEntitaAssociata()))) {
 			// Recupero gli attributi custom associati
 			AttributiDinamiciInputBean input = new AttributiDinamiciInputBean();
 			input.setNomeTabella(bean.getNomeTabella());
@@ -1374,12 +1375,6 @@ public class ModelliDocDatasource extends AbstractFetchDataSource<ModelliDocBean
 		update(lModelliDocBean, null);		
 	}
 	
-//	public FileDaFirmareBean generaDocDaModello(ModelliDocBean bean) throws Exception {			
-//		return generaDocDaModello(bean, null);		
-//	}
-	
-//	public FileDaFirmareBean generaDocDaModello(ModelliDocBean modello, Map<String, Object> mapToFillTemplate) throws Exception {			
-	
 	public FileDaFirmareBean generaDocDaModello(ModelliDocBean modello) throws Exception {
 		// Queste variabili mi servono per i log, potrebbero essere sovrascritte in seguito
 		Boolean profilaturaCompletaPerlog = modello.getFlgProfCompleta();
@@ -1431,18 +1426,6 @@ public class ModelliDocDatasource extends AbstractFetchDataSource<ModelliDocBean
 			modello.setColonneListe(mappaColonneListe);
 			
 			TemplateWithValuesBean lTemplateWithValuesBean = FreeMarkerModelliUtil.createTemplateWithValues(templateOdt, modello, getSession());
-//
-//			addMessage PERCHè MODELLIDOCDATASOURCE VIENE CHIAMATO DA ALTRI DATASOURCE E NON è COLLEGATO AL LAYOUT
-//
-//			if (lTemplateWithValuesBean.isInError()) {
-//				if (StringUtils.isNotBlank(lTemplateWithValuesBean.getErrorMessage())) {
-//					addMessage(lTemplateWithValuesBean.getErrorMessage(), "", MessageType.WARNING);
-//				} else {
-//					addMessage("Il contenuto dei campi testo è tale che non è possibile generare il pdf dell'atto "
-//							+ "in una forma fedele all'originale. Riverifica i testi, in particolare le tabelle con celle unite.", "", MessageType.WARNING);
-//				}
-//			}
-			
 			
 			File templateWithValues = lTemplateWithValuesBean.getFileGenerato();
 			File templateOdtWithValues = lTemplateWithValuesBean.getFileOdtGenerato();
@@ -1543,8 +1526,6 @@ public class ModelliDocDatasource extends AbstractFetchDataSource<ModelliDocBean
 	}
 
 	public AttributiDinamiciOutputBean caricaAttributiCustom(ModelliDocBean bean) throws Exception {	
-		
-		
 		AttributiDinamiciOutputBean output = new AttributiDinamiciOutputBean();
 		output.setAttributiAdd(new ArrayList<AttributoBean>());
 		output.setAttributiXRicerca(new ArrayList<AttributoXRicercaBean>());
@@ -1923,16 +1904,6 @@ public class ModelliDocDatasource extends AbstractFetchDataSource<ModelliDocBean
 		return inputList != null && inputList.size() > 0 ? inputList : null;
 	}
 	
-//	private ImpostazioniBarcodeBean getImpostazioniImmagineBarCode(String tipoBarcode) {
-//		
-//		if (StringUtils.isBlank(tipoBarcode)) {
-//			tipoBarcode = "CODE128";
-//		}
-//		
-//		ImpostazioniBarcodeBean impostazioniBarcodeBean = new ImpostazioniBarcodeBean();
-//		impostazioniBarcodeBean.setBarcodeEncoding(tipoBarcode);
-//		return impostazioniBarcodeBean;
-//	}
 	
 	public AurigaLoginBean getLoginBean() {
 		if (loginBean == null && getSession() != null) {

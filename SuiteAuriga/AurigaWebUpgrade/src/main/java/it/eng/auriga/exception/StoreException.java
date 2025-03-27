@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.exception;
 
 import org.apache.log4j.Logger;
 
@@ -7,6 +8,7 @@ import it.eng.auriga.exception.manager.AurigaStoreExceptionManager;
 import it.eng.document.function.bean.CreaModDocumentoOutBean;
 import it.eng.document.function.bean.EseguiTaskOutBean;
 import it.eng.document.function.bean.GestioneAllegatiPraticaOutBean;
+import it.eng.document.function.bean.GestioneInserimentoRichXRegMultiplaUscitaOutBean;
 import it.eng.document.function.bean.LoadFascicoloOut;
 import it.eng.document.function.bean.ModificaFascicoloOut;
 import it.eng.document.function.bean.RecuperaDocumentoOutBean;
@@ -85,6 +87,12 @@ public class StoreException extends Exception {
 		mLogger.error(completeMessage, this);
 	}
 	
+	public StoreException(GestioneInserimentoRichXRegMultiplaUscitaOutBean pBean) {
+		super(pBean.getDefaultMessage());
+		setCompleteMessage(pBean.getDefaultMessage() + "; code: " + pBean.getErrorCode() + "; context: " + pBean.getErrorContext());
+		mLogger.error(completeMessage, this);
+	}
+
 	public String getCompleteMessage() {
 		return completeMessage;
 	}

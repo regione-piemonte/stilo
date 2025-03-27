@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.stampaRegProt;
 
 import it.eng.utility.ui.module.core.client.datasource.SelectGWTRestDataSource;
 import it.eng.utility.ui.module.layout.client.common.filter.item.AnnoItem;

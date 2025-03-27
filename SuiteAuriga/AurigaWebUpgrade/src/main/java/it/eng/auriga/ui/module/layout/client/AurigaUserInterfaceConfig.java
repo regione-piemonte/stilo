@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -60,6 +61,7 @@ import it.eng.auriga.ui.module.layout.client.gestioneProcedimenti.procedimentiPe
 import it.eng.auriga.ui.module.layout.client.gestioneTSO.TSOInIterLayout;
 import it.eng.auriga.ui.module.layout.client.gestioneTSO.TSOPersonaliLayout;
 import it.eng.auriga.ui.module.layout.client.gestioneUtenti.GestioneUtentiLayout;
+import it.eng.auriga.ui.module.layout.client.gestioneatti.annulla_atti_in_iter_anno_prec.AnnullaAttiInIterAnnoPrecWindow;
 import it.eng.auriga.ui.module.layout.client.gestioneatti.attiinlavorazione.AttiCompletiInLavorazioneLayout;
 import it.eng.auriga.ui.module.layout.client.gestioneatti.attiinlavorazione.AttiInLavorazioneLayout;
 import it.eng.auriga.ui.module.layout.client.gestioneatti.delibere.ConvocazioneSedutaDetail;
@@ -77,6 +79,7 @@ import it.eng.auriga.ui.module.layout.client.librofirmamassiva.LibroFirmaMassiva
 import it.eng.auriga.ui.module.layout.client.logOperazioni.LogOperazioniLayout;
 import it.eng.auriga.ui.module.layout.client.monitoraggioOperazioniBatch.MonitoraggioOperazioniBatchLayout;
 import it.eng.auriga.ui.module.layout.client.monitoraggioPdV.MonitoraggioPdVLayout;
+import it.eng.auriga.ui.module.layout.client.monitoraggioRegistrazioniMultipleUscita.MonitoraggioRegistrazioniMultipleUscitaLayout;
 import it.eng.auriga.ui.module.layout.client.oggettario.OggettarioLayout;
 import it.eng.auriga.ui.module.layout.client.organigramma.OrganigrammaLayout;
 import it.eng.auriga.ui.module.layout.client.passwordScaduta.CambioPasswordWindow;
@@ -953,6 +956,10 @@ public class AurigaUserInterfaceConfig implements UserInterfaceConfig {
 			return new AttiCompletiInLavorazioneLayout("atti_completi_in_lavorazione");
 		} else if ("atti_completi_personali".equals(nomeEntita)) {
 			return new AttiCompletiPersonaliLayout("atti_completi_personali");
+		}else if ("annulla_atti_in_iter_anno_prec".equals(nomeEntita)) {
+				AnnullaAttiInIterAnnoPrecWindow lAnnullaAttiInIterAnnoPrecWindow = new AnnullaAttiInIterAnnoPrecWindow();
+				lAnnullaAttiInIterAnnoPrecWindow.show();
+				return null;
 		} else if ("libro_firma".equals(nomeEntita)) {
 			LibroFirmaMassivaWindow lLibroFirmaMassivaWindow = new LibroFirmaMassivaWindow();
 			lLibroFirmaMassivaWindow.show();
@@ -1791,6 +1798,10 @@ public class AurigaUserInterfaceConfig implements UserInterfaceConfig {
 		else if ("regole_protocollazione_automatica_caselle_pec_peo".equals(nomeEntita)) {
 			return new RegoleProtocollazioneAutomaticaCaselleLayout();
 		}
+		
+		else if ("monitoraggio_registrazioni_multiple_uscita".equals(nomeEntita)) {
+			return new MonitoraggioRegistrazioniMultipleUscitaLayout();
+		}
 
 		/*
 		 * else if ("istanze_ced".equals(nomeEntita)) { Record lRecordToLoad = new
@@ -1840,47 +1851,60 @@ public class AurigaUserInterfaceConfig implements UserInterfaceConfig {
 		if("E".equalsIgnoreCase(flgTipoProv)) {
 			if (AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaRepertorioEntrata")) {
 				final String repertorioEntrata = AurigaLayout.getImpostazioniDocumento("repertorioEntrata");
-				if (AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioEntrata")) {
-					String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
-					String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioEntrata");
-					apriRepertorioDetail(nomeEntita, repertorioEntrata, idTipoDoc, nomeTipoDoc);
-				} else {
-					String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
-					AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioEntrata, new ServiceCallback<Record>() {
+				AurigaLayout.getInfoRepertorio(repertorioEntrata, new ServiceCallback<Record>() {
 
-						@Override
-						public void execute(Record lRecordTipoDoc) {
-							String idTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("idTipoDocumento") : null;
-							String nomeTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("descTipoDocumento") : null;
+					@Override
+					public void execute(Record info) {
+						boolean isForzaSceltaTipoDoc = info != null && info.getAttribute("flgForzaSceltaTipoDoc") != null && "1".equals(info.getAttribute("flgForzaSceltaTipoDoc"));
+						if (!isForzaSceltaTipoDoc && AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioEntrata")) {
+							String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
+							String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioEntrata");
 							apriRepertorioDetail(nomeEntita, repertorioEntrata, idTipoDoc, nomeTipoDoc);
+						} else {
+							String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
+							AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioEntrata, new ServiceCallback<Record>() {
+
+								@Override
+								public void execute(Record lRecordTipoDoc) {
+									String idTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("idTipoDocumento") : null;
+									String nomeTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("descTipoDocumento") : null;
+									apriRepertorioDetail(nomeEntita, repertorioEntrata, idTipoDoc, nomeTipoDoc);
+								}
+							});
 						}
-					});
-				}
+					}
+				});
 			} else {
 				final String repertorioEntrataDefault = AurigaLayout.getImpostazioniDocumento("repertorioEntrata");				
 				AurigaLayout.apriSceltaRepertorioPopup("E", repertorioEntrataDefault, new ServiceCallback<Record>() {
 
 					@Override
 					public void execute(Record lRecordRepertorio) {
-
 						final String repertorioEntrata = lRecordRepertorio != null ? lRecordRepertorio.getAttribute("repertorio") : null;
 						if (repertorioEntrata != null && !"".equals(repertorioEntrata)) {
-							if (AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioEntrata")) {
-								String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
-								String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioEntrata");
-								apriRepertorioDetail(nomeEntita, repertorioEntrata, idTipoDoc, nomeTipoDoc);
-							} else {
-								String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
-								AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioEntrata, new ServiceCallback<Record>() {
+							AurigaLayout.getInfoRepertorio(repertorioEntrata, new ServiceCallback<Record>() {
 
-									@Override
-									public void execute(Record lRecordTipoDoc) {
-										String idTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("idTipoDocumento") : null;
-										String nomeTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("descTipoDocumento") : null;
+								@Override
+								public void execute(Record info) {
+									boolean isForzaSceltaTipoDoc = info != null && info.getAttribute("flgForzaSceltaTipoDoc") != null && "1".equals(info.getAttribute("flgForzaSceltaTipoDoc"));
+									if (!isForzaSceltaTipoDoc && AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioEntrata")) {
+										String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
+										String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioEntrata");
 										apriRepertorioDetail(nomeEntita, repertorioEntrata, idTipoDoc, nomeTipoDoc);
+									} else {
+										String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioEntrata");
+										AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioEntrata, new ServiceCallback<Record>() {
+
+											@Override
+											public void execute(Record lRecordTipoDoc) {
+												String idTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("idTipoDocumento") : null;
+												String nomeTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("descTipoDocumento") : null;
+												apriRepertorioDetail(nomeEntita, repertorioEntrata, idTipoDoc, nomeTipoDoc);
+											}
+										});
 									}
-								});
-							}
+								}
+							});
 						}
 					}
 				});
@@ -1888,14 +1912,18 @@ public class AurigaUserInterfaceConfig implements UserInterfaceConfig {
 		} else if("I".equalsIgnoreCase(flgTipoProv)) {
 			if (AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaRepertorioInterno")) {
 				final String repertorioInterno = AurigaLayout.getImpostazioniDocumento("repertorioInterno");
-				if (AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioInterno")) {
-					String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioInterno");
-					String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioInterno");
-					apriRepertorioDetail(nomeEntita, repertorioInterno, idTipoDoc, nomeTipoDoc);
-				} else {
-					String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioInterno");
-					AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioInterno,
-							new ServiceCallback<Record>() {
+				AurigaLayout.getInfoRepertorio(repertorioInterno, new ServiceCallback<Record>() {
+
+					@Override
+					public void execute(Record info) {
+						boolean isForzaSceltaTipoDoc = info != null && info.getAttribute("flgForzaSceltaTipoDoc") != null && "1".equals(info.getAttribute("flgForzaSceltaTipoDoc"));
+						if (!isForzaSceltaTipoDoc && AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioInterno")) {
+							String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioInterno");
+							String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioInterno");
+							apriRepertorioDetail(nomeEntita, repertorioInterno, idTipoDoc, nomeTipoDoc);
+						} else {
+							String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioInterno");
+							AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioInterno, new ServiceCallback<Record>() {
 
 								@Override
 								public void execute(Record lRecordTipoDoc) {
@@ -1904,32 +1932,40 @@ public class AurigaUserInterfaceConfig implements UserInterfaceConfig {
 									apriRepertorioDetail(nomeEntita, repertorioInterno, idTipoDoc, nomeTipoDoc);
 								}
 							});
-				}
+						}
+					}
+				});
 			} else {
 				final String repertorioInternoDefault = AurigaLayout.getImpostazioniDocumento("repertorioInterno");			
 				AurigaLayout.apriSceltaRepertorioPopup("I", repertorioInternoDefault, new ServiceCallback<Record>() {
 
 					@Override
 					public void execute(Record lRecordRepertorio) {	
-						
 						final String repertorioInterno = lRecordRepertorio != null ? lRecordRepertorio.getAttribute("repertorio") : null;
 						if (repertorioInterno != null && !"".equals(repertorioInterno)) {
-							if (AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioInterno")) {
-								String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioInterno");
-								String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioInterno");
-								apriRepertorioDetail(nomeEntita, repertorioInterno, idTipoDoc, nomeTipoDoc);
-							} else {
-								String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioInterno");
-								AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioInterno, new ServiceCallback<Record>() {
+							AurigaLayout.getInfoRepertorio(repertorioInterno, new ServiceCallback<Record>() {
 
-									@Override
-									public void execute(Record lRecordTipoDoc) {
-										String idTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("idTipoDocumento") : null;
-										String nomeTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("descTipoDocumento") : null;
+								@Override
+								public void execute(Record info) {
+									boolean isForzaSceltaTipoDoc = info != null && info.getAttribute("flgForzaSceltaTipoDoc") != null && "1".equals(info.getAttribute("flgForzaSceltaTipoDoc"));
+									if (!isForzaSceltaTipoDoc && AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioInterno")) {
+										String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioInterno");
+										String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioInterno");
 										apriRepertorioDetail(nomeEntita, repertorioInterno, idTipoDoc, nomeTipoDoc);
+									} else {
+										String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioInterno");
+										AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioInterno, new ServiceCallback<Record>() {
+
+											@Override
+											public void execute(Record lRecordTipoDoc) {
+												String idTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("idTipoDocumento") : null;
+												String nomeTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("descTipoDocumento") : null;
+												apriRepertorioDetail(nomeEntita, repertorioInterno, idTipoDoc, nomeTipoDoc);
+											}
+										});
 									}
-								});
-							}
+								}
+							});
 						}
 					}
 				});
@@ -1937,47 +1973,60 @@ public class AurigaUserInterfaceConfig implements UserInterfaceConfig {
 		} else if("U".equalsIgnoreCase(flgTipoProv)) {
 			if (AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaRepertorioUscita")) {
 				final String repertorioUscita = AurigaLayout.getImpostazioniDocumento("repertorioUscita");
-				if (AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioUscita")) {
-					String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioUscita");
-					String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioUscita");
-					apriRepertorioDetail(nomeEntita, repertorioUscita, idTipoDoc, nomeTipoDoc);
-				} else {
-					String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioUscita");
-					AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioUscita, new ServiceCallback<Record>() {
+				AurigaLayout.getInfoRepertorio(repertorioUscita, new ServiceCallback<Record>() {
 
-						@Override
-						public void execute(Record lRecordTipoDoc) {
-							String idTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("idTipoDocumento") : null;
-							String nomeTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("descTipoDocumento") : null;
+					@Override
+					public void execute(Record info) {
+						boolean isForzaSceltaTipoDoc = info != null && info.getAttribute("flgForzaSceltaTipoDoc") != null && "1".equals(info.getAttribute("flgForzaSceltaTipoDoc"));
+						if (!isForzaSceltaTipoDoc && AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioUscita")) {
+							String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioUscita");
+							String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioUscita");
 							apriRepertorioDetail(nomeEntita, repertorioUscita, idTipoDoc, nomeTipoDoc);
+						} else {
+							String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioUscita");
+							AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioUscita, new ServiceCallback<Record>() {
+
+								@Override
+								public void execute(Record lRecordTipoDoc) {
+									String idTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("idTipoDocumento") : null;
+									String nomeTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("descTipoDocumento") : null;
+									apriRepertorioDetail(nomeEntita, repertorioUscita, idTipoDoc, nomeTipoDoc);
+								}
+							});
 						}
-					});
-				}
+					}
+				});
 			} else {
 				final String repertorioUscitaDefault = AurigaLayout.getImpostazioniDocumento("repertorioUscita");		
 				AurigaLayout.apriSceltaRepertorioPopup("U", repertorioUscitaDefault, new ServiceCallback<Record>() {
 
 					@Override
 					public void execute(Record lRecordRepertorio) {
-
 						final String repertorioUscita = lRecordRepertorio != null ? lRecordRepertorio.getAttribute("repertorio") : null;
 						if (repertorioUscita != null && !"".equals(repertorioUscita)) {
-							if (AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioUscita")) {
-								String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioUscita");
-								String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioUscita");
-								apriRepertorioDetail(nomeEntita, repertorioUscita, idTipoDoc, nomeTipoDoc);
-							} else {
-								String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioUscita");
-								AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioUscita, new ServiceCallback<Record>() {
+							AurigaLayout.getInfoRepertorio(repertorioUscita, new ServiceCallback<Record>() {
 
-									@Override
-									public void execute(Record lRecordTipoDoc) {
-										String idTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("idTipoDocumento") : null;
-										String nomeTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("descTipoDocumento") : null;
+								@Override
+								public void execute(Record info) {
+									boolean isForzaSceltaTipoDoc = info != null && info.getAttribute("flgForzaSceltaTipoDoc") != null && "1".equals(info.getAttribute("flgForzaSceltaTipoDoc"));
+									if (!isForzaSceltaTipoDoc && AurigaLayout.getImpostazioniDocumentoAsBoolean("skipSceltaTipologiaRepertorioUscita")) {
+										String idTipoDoc = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioUscita");
+										String nomeTipoDoc = AurigaLayout.getImpostazioniDocumento("descTipoDocumentoRepertorioUscita");
 										apriRepertorioDetail(nomeEntita, repertorioUscita, idTipoDoc, nomeTipoDoc);
+									} else {
+										String idTipoDocDefault = AurigaLayout.getImpostazioniDocumento("idTipoDocumentoRepertorioUscita");
+										AurigaLayout.apriSceltaTipoDocPopup(false, idTipoDocDefault, "R", repertorioUscita, new ServiceCallback<Record>() {
+
+											@Override
+											public void execute(Record lRecordTipoDoc) {
+												String idTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("idTipoDocumento") : null;
+												String nomeTipoDoc = lRecordTipoDoc != null ? lRecordTipoDoc.getAttribute("descTipoDocumento") : null;
+												apriRepertorioDetail(nomeEntita, repertorioUscita, idTipoDoc, nomeTipoDoc);
+											}
+										});
 									}
-								});
-							}
+								}
+							});
 						}
 					}
 				});

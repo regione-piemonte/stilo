@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.storageutil.impl.alfresco;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -131,21 +132,22 @@ public class AlfrescoStorage implements Storage {
 	public File retrieveFile(String id) throws StorageException {
 		logger.debug("Start retrieve File Stream");
 		logger.info("Cerco il documento con id " + id);
+		String path = null;
+		String tokenBasicAuth = null;
 		
 		try {
 			
 			Client client = Client.create(new DefaultClientConfig());
 			client.setReadTimeout(serviceTimeout);
 			
-			String path = serviceEndpoint + "/alfresco/service/api/node/content/" + storeType + "/" + storeId + "/" + id;
+			path = serviceEndpoint + "/alfresco/service/api/node/content/" + storeType + "/" + storeId + "/" + id;
 			webResource = client.resource(path);
 
-			String tokenBasicAuth = username + ":" + password;
+			tokenBasicAuth = username + ":" + password;
 			tokenBasicAuth = Base64.encodeBase64String(tokenBasicAuth.getBytes());
 			String autorization = "Basic " + tokenBasicAuth;
 
-			ClientResponse response = webResource
-					.header(AUTHORIZATION, autorization).get(ClientResponse.class);
+			ClientResponse response = webResource.header(AUTHORIZATION, autorization).get(ClientResponse.class);
 			
 			if (response != null && response.getStatus() == 200) {
 				InputStream contentStream = response.getEntityInputStream();
@@ -166,6 +168,8 @@ public class AlfrescoStorage implements Storage {
 			}
 			
 		} catch (Exception e) {
+			logger.error("URL invocato: " + path);
+			logger.error("Username: " + username + ", Password: " + password + ", TokenBasicAuth: " + tokenBasicAuth);
 			logger.error(e);
 			throw new StorageException(e);
 		} 

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovapropostaatto2;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,6 +26,7 @@ import com.smartgwt.client.data.Record;
 import com.smartgwt.client.data.RecordList;
 import com.smartgwt.client.types.Alignment;
 import com.smartgwt.client.types.BackgroundRepeat;
+import com.smartgwt.client.types.Cursor;
 import com.smartgwt.client.types.DateDisplayFormat;
 import com.smartgwt.client.types.FieldType;
 import com.smartgwt.client.types.ListGridFieldType;
@@ -49,6 +51,7 @@ import com.smartgwt.client.widgets.form.FormItemIfFunction;
 import com.smartgwt.client.widgets.form.FormItemInputTransformer;
 import com.smartgwt.client.widgets.form.fields.CanvasItem;
 import com.smartgwt.client.widgets.form.fields.FormItem;
+import com.smartgwt.client.widgets.form.fields.FormItemIcon;
 import com.smartgwt.client.widgets.form.fields.HiddenItem;
 import com.smartgwt.client.widgets.form.fields.RadioGroupItem;
 import com.smartgwt.client.widgets.form.fields.SpacerItem;
@@ -155,6 +158,7 @@ import it.eng.auriga.ui.module.layout.shared.util.IndirizziEmailSplitter;
 import it.eng.utility.ui.module.core.client.callback.ServiceCallback;
 import it.eng.utility.ui.module.core.client.datasource.GWTRestDataSource;
 import it.eng.utility.ui.module.core.client.datasource.GWTRestService;
+import it.eng.utility.ui.module.core.client.datasource.SelectGWTRestDataSource;
 import it.eng.utility.ui.module.core.shared.message.MessageBean;
 import it.eng.utility.ui.module.core.shared.message.MessageType;
 import it.eng.utility.ui.module.layout.client.Layout;
@@ -179,6 +183,7 @@ import it.eng.utility.ui.module.layout.client.common.items.ExtendedNumericItem;
 import it.eng.utility.ui.module.layout.client.common.items.ExtendedTextAreaItem;
 import it.eng.utility.ui.module.layout.client.common.items.ExtendedTextItem;
 import it.eng.utility.ui.module.layout.client.common.items.FilteredSelectItem;
+import it.eng.utility.ui.module.layout.client.common.items.FilteredSelectItemWithDisplay;
 import it.eng.utility.ui.module.layout.client.common.items.ImgButtonItem;
 import it.eng.utility.ui.module.layout.client.common.items.ImgItem;
 import it.eng.utility.ui.module.layout.client.common.items.NumericItem;
@@ -536,13 +541,6 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 	protected NuovaPropostaAtto2CompletaDetailSection detailSectionAttoRiferimento;
 	protected DynamicForm attoRiferimentoForm;
 	protected AttiRiferimentoItem listaAttiRiferimentoItem;
-//	protected RadioGroupItem flgAttoRifASistemaItem;
-//	protected HiddenItem idUdAttoDeterminaAContrarreItem;
-//	protected SelectItem categoriaRegAttoDeterminaAContrarreItem;
-//	protected ExtendedTextItem siglaAttoDeterminaAContrarreItem;
-//	protected ExtendedNumericItem numeroAttoDeterminaAContrarreItem;
-//	protected AnnoItem annoAttoDeterminaAContrarreItem;		
-//	protected ImgButtonItem lookupArchivioAttoDeterminaAContrarreButton;
 	
 	/* Dati scheda - Specificità del provvedimento */
 	protected NuovaPropostaAtto2CompletaDetailSection detailSectionCaratteristicheProvvedimento;
@@ -555,6 +553,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 	protected ExtendedNumericItem importoAnticipoCassaItem;
 	protected DateItem dataDecorrenzaContrattoItem; 
 	protected NumericItem anniDurataContrattoItem;
+	/* Check esclusivi - Inizio */
 	protected CheckboxItem flgAffidamentoItem;
 	protected CheckboxItem flgDeterminaAContrarreTramiteProceduraGaraItem;
 	protected CheckboxItem flgDeterminaAggiudicaProceduraGaraItem;
@@ -567,7 +566,8 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 	protected CheckboxItem flgDecretoReggioItem;
 	protected CheckboxItem flgAvvocaturaItem;
 	protected CheckboxItem flgDeterminaArchiviazioneItem;
-	protected CheckboxItem flgContributiItem; // il check "contributi" non è esclusivo come gli altri sopra
+	protected CheckboxItem flgContributiItem;
+	/* Check esclusivi - Fine */
 	protected RadioGroupItem flgSpesaItem;
 	protected RadioGroupItem flgDatiRilevantiGSAItem;
 	protected ImgButtonItem infoDatiRilevantiGSAButton;
@@ -594,6 +594,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 	protected RadioGroupItem flgFondiPNRRRadioItem;	
 	protected CheckboxItem flgFondiPNRRItem;
 	protected CheckboxItem flgFondiPNRRRigenItem;
+	protected CheckboxItem flgLiquidazioneMAASPNCItem;
 	protected CheckboxItem flgFondiPRUItem;
 	protected CheckboxItem flgVistoUtenzeItem;
 	protected CheckboxItem flgVistoCapitolatiSottoSogliaItem;
@@ -621,11 +622,16 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 	protected RadioGroupItem flgControlloLegittimitaItem;
 	protected TextAreaItem motivazioniEsclControlloLegittimitaItem;
 	
-	/* Dati scheda - Dest. vantaggio */
+	/* Dati scheda - Dest. vantaggio / Dettagli vantaggi economici/contributi */
 	
 	protected NuovaPropostaAtto2CompletaDetailSection detailSectionDestVantaggio;
 	protected DynamicForm destVantaggioForm;
 	protected DestVantaggioItem listaDestVantaggioItem;	
+	protected DynamicForm dettVantaggiContributiForm;
+	protected SelectItem normaAttribuzioneItem;
+	protected FilteredSelectItemWithDisplay respProcAttribuzioneItem;
+	protected TextItem uffRespProcAttribuzioneItem;
+	protected SelectItem modalitaAttribuzioneItem;
 		
 	/* Dati scheda - Ruoli e visti per dati contabili */
 	protected NuovaPropostaAtto2CompletaDetailSection detailSectionRuoliEVistiXDatiContabili;
@@ -681,7 +687,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 	
 	protected NuovaPropostaAtto2CompletaDetailSection detailSectionClassFasc;
 	protected DynamicForm classFascForm;
-	protected ClassificaFascicoloItem listaClassFascItem;;
+	protected ClassificaFascicoloItem listaClassFascItem;
 	
 	/************************
 	 * TAB DATI DISPOSITIVO *
@@ -1875,6 +1881,11 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		
 		createDetailSectionClassFasc();
 		layoutDatiScheda.addMember(detailSectionClassFasc);
+		
+		if(!showTabPubblicazioneNotifiche()) {
+			createVisibPubblicaPostAdozioneFormInTabPrincipale();
+			layoutDatiScheda.addMember(visibPubblicaPostAdozioneForm);
+		}
 		
 		return layoutDatiScheda;
 	}
@@ -5148,7 +5159,11 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 					if(response.getStatus() == DSResponse.STATUS_SUCCESS) {
 						Record recordOpzUOCompetente = response.getData()[0];
 						if(ruoliForm != null) {
-							ruoliForm.setValue("opzUOCompetente", recordOpzUOCompetente);
+							if(recordOpzUOCompetente != null) {
+								ruoliForm.setValue("opzUOCompetente", recordOpzUOCompetente);
+							} else {
+								ruoliForm.clearValue("opzUOCompetente");
+							}
 						}
 						redrawVistiAfterChangedOpzioniUoCompetente(recordOpzUOCompetente);
 					}
@@ -5416,6 +5431,11 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 			return label;
 		}
 		return "Adottanti di concerto";	
+	}
+	
+	public boolean isNotReplicableDirigentiConcertoItem() {
+		Integer maxNumValori = getMaxNumValoriAttributoCustomCablato("ID_SV_RESP_DI_CONCERTO");
+		return maxNumValori != null && maxNumValori.intValue() == 1;
 	}
 
 	public String getAltriParamLoadComboDirigentiConcertoItem() {
@@ -5923,6 +5943,11 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		return "Altri dirigenti proponenti";		
 	}
 	
+	public boolean isNotReplicableAltriDirigentiProponentiItem() {
+		Integer maxNumValori = getMaxNumValoriAttributoCustomCablato("ID_SV_ALTRI_DIR_PROPONENTI");
+		return maxNumValori != null && maxNumValori.intValue() == 1;
+	}
+	
 	public String getAltriParamLoadComboAltriDirigentiProponentiItem() {
 		return getAltriParametriLoadComboAttributoCustomCablato("ID_SV_ALTRI_DIR_PROPONENTI");
 	}
@@ -6211,6 +6236,11 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 	
 	public String getAltriParamLoadComboRespVisAltBilancioItem() {
 		return getAltriParametriLoadComboAttributoCustomCablato("ID_SV_RESP_VISTO_ALTERNATIVO_BILANCIO");
+	}
+	
+	public boolean isNotReplicableRespVisAltBilancioItem() {
+		Integer maxNumValori = getMaxNumValoriAttributoCustomCablato("ID_SV_RESP_VISTO_ALTERNATIVO_BILANCIO");
+		return maxNumValori != null && maxNumValori.intValue() == 1;
 	}
 	
 	public boolean showTipoVistoBilancioItem() {
@@ -7890,6 +7920,9 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		listaDirigentiConcertoItem.setStartRow(true);
 		listaDirigentiConcertoItem.setShowTitle(false);
 		listaDirigentiConcertoItem.setColSpan(20);	
+		if(isNotReplicableDirigentiConcertoItem()) {
+			listaDirigentiConcertoItem.setNotReplicable(true);
+		}
 		if(isRequiredDirigentiConcertoItem()) {
 			listaDirigentiConcertoItem.setAttribute("obbligatorio", true);	
 		}
@@ -9081,6 +9114,9 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		listaAltriDirigentiProponentiItem.setStartRow(true);
 		listaAltriDirigentiProponentiItem.setShowTitle(false);
 		listaAltriDirigentiProponentiItem.setColSpan(20);
+		if(isNotReplicableAltriDirigentiProponentiItem()) {
+			listaAltriDirigentiProponentiItem.setNotReplicable(true);
+		}
 		if(isRequiredAltriDirigentiProponentiItem()) {
 			listaAltriDirigentiProponentiItem.setAttribute("obbligatorio", true);	
 		}
@@ -9554,7 +9590,9 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		listaRespVisAltBilancioItem.setName("listaRespVisAltBilancio");
 		listaRespVisAltBilancioItem.setShowTitle(false);
 		listaRespVisAltBilancioItem.setColSpan(20);
-		listaRespVisAltBilancioItem.setNotReplicable(true);
+		if(isNotReplicableRespVisAltBilancioItem()) {
+			listaRespVisAltBilancioItem.setNotReplicable(true);
+		}
 //		if(getFlgObbligatorioAttributoCustomCablato("ID_SV_RESP_VISTO_ALTERNATIVO_BILANCIO")) {
 //			listaRespVisAltBilancioItem.setAttribute("obbligatorio", true);
 //		}
@@ -11071,6 +11109,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 			   showFlgFondiPNRRRadioItem() ||
 			   showFlgFondiPNRRItem() ||
 			   showFlgFondiPNRRRigenItem() ||
+			   showFlgLiquidazioneMAASPNCItem() ||
 			   showFlgFondiPRUItem() ||
 			   showFlgVistoUtenzeItem() ||
 			   showFlgVistoCapitolatiSottoSogliaItem() ||
@@ -11992,6 +12031,22 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		return getValoreFissoAsBooleanAttributoCustomCablato("TASK_RESULT_2_FONDI_PNRR_RIGEN");
 	}
 	
+	public boolean showFlgLiquidazioneMAASPNCItem() {
+		return showAttributoCustomCablato("TASK_RESULT_2_MAAS_PNC");
+	}
+		
+	public String getTitleFlgLiquidazioneMAASPNCItem() {
+		String label = getLabelAttributoCustomCablato("TASK_RESULT_2_MAAS_PNC");
+		if(label != null && !"".equals(label)) {
+			return label;
+		}
+		return "liquidazione MAAS PNC";
+	}	
+	
+	public boolean getDefaultValueAsBooleanFlgLiquidazioneMAASPNCItem() {
+		return getValoreFissoAsBooleanAttributoCustomCablato("TASK_RESULT_2_MAAS_PNC");
+	}
+	
 	public boolean showFlgFondiPRUItem() {
 		return showAttributoCustomCablato("TASK_RESULT_2_FONDI_PRU");
 	}
@@ -12835,6 +12890,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 					flgDecretoReggioItem.setValue(false);	
 					flgAvvocaturaItem.setValue(false);
 					flgDeterminaArchiviazioneItem.setValue(false);
+					flgContributiItem.setValue(false);
 					if(showFlgSpesaItem() && !isDeterminaConSpesa()) {
 						flgSpesaItem.setValue(_FLG_SI);
 						flgSpesaItem.fireEvent(new ChangedEvent(flgSpesaItem.getJsObj()));
@@ -12902,6 +12958,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 					flgDecretoReggioItem.setValue(false);	
 					flgAvvocaturaItem.setValue(false);		
 					flgDeterminaArchiviazioneItem.setValue(false);
+					flgContributiItem.setValue(false);
 					if(showFlgSpesaItem() && !isDeterminaConSpesa()) {
 						flgSpesaItem.setValue(_FLG_SI);
 						flgSpesaItem.fireEvent(new ChangedEvent(flgSpesaItem.getJsObj()));
@@ -12969,6 +13026,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 					flgDecretoReggioItem.setValue(false);	
 					flgAvvocaturaItem.setValue(false);	
 					flgDeterminaArchiviazioneItem.setValue(false);
+					flgContributiItem.setValue(false);
 //					if(showFlgSpesaItem()) {
 //						flgSpesaItem.clearValue();
 //						flgSpesaItem.fireEvent(new ChangedEvent(flgSpesaItem.getJsObj()));
@@ -13036,6 +13094,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 					flgDecretoReggioItem.setValue(false);	
 					flgAvvocaturaItem.setValue(false);	
 					flgDeterminaArchiviazioneItem.setValue(false);
+					flgContributiItem.setValue(false);
 					if(showFlgSpesaItem() && !isDeterminaConSpesa()) {
 						flgSpesaItem.setValue(_FLG_SI);
 						flgSpesaItem.fireEvent(new ChangedEvent(flgSpesaItem.getJsObj()));
@@ -13099,6 +13158,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 					flgDecretoReggioItem.setValue(false);	
 					flgAvvocaturaItem.setValue(false);
 					flgDeterminaArchiviazioneItem.setValue(false);
+					flgContributiItem.setValue(false);
 					if(showFlgSpesaItem() && !isDeterminaConSpesa()) {
 						flgSpesaItem.setValue(_FLG_SI);
 						flgSpesaItem.fireEvent(new ChangedEvent(flgSpesaItem.getJsObj()));
@@ -13164,6 +13224,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 					flgDecretoReggioItem.setValue(false);	
 					flgAvvocaturaItem.setValue(false);	
 					flgDeterminaArchiviazioneItem.setValue(false);
+					flgContributiItem.setValue(false);
 					if(showFlgSpesaItem()) {
 //						flgSpesaItem.clearValue();
 //						flgSpesaItem.fireEvent(new ChangedEvent(flgSpesaItem.getJsObj()));
@@ -13238,6 +13299,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 					flgDecretoReggioItem.setValue(false);	
 					flgAvvocaturaItem.setValue(false);
 					flgDeterminaArchiviazioneItem.setValue(false);
+					flgContributiItem.setValue(false);
 					if(showFlgSpesaItem() && !isDeterminaConSpesa()) {
 						flgSpesaItem.setValue(_FLG_SI);
 						flgSpesaItem.fireEvent(new ChangedEvent(flgSpesaItem.getJsObj()));
@@ -13305,6 +13367,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 					flgDecretoReggioItem.setValue(false);	
 					flgAvvocaturaItem.setValue(false);
 					flgDeterminaArchiviazioneItem.setValue(false);
+					flgContributiItem.setValue(false);
 					if(showFlgSpesaItem()) {
 						if(hasValoreFlgSpesaSiSenzaVldRilImp() && !isDeterminaConSpesaSenzaImpegni()) {
 							flgSpesaItem.setValue(getFLG_SI_SENZA_VLD_RIL_IMP());						
@@ -13377,6 +13440,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 					flgDecretoReggioItem.setValue(false);	
 					flgAvvocaturaItem.setValue(false);
 					flgDeterminaArchiviazioneItem.setValue(false);
+					flgContributiItem.setValue(false);
 					if(showFlgSpesaItem() && !isDeterminaSenzaSpesa() && !AurigaLayout.getParametroDBAsBoolean("VANTAGGI_ECONOMICI_CON_RIL_CONT")) {
 						flgSpesaItem.setValue(_FLG_NO);
 						flgSpesaItem.fireEvent(new ChangedEvent(flgSpesaItem.getJsObj()));
@@ -13444,6 +13508,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 					flgVantaggiEconomiciItem.setValue(false);	
 					flgAvvocaturaItem.setValue(false);	
 					flgDeterminaArchiviazioneItem.setValue(false);
+					flgContributiItem.setValue(false);
 					if(showFlgSpesaItem() && !isDeterminaConSpesa()) {
 						flgSpesaItem.setValue(_FLG_SI);
 						flgSpesaItem.fireEvent(new ChangedEvent(flgSpesaItem.getJsObj()));
@@ -13511,6 +13576,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 					flgVantaggiEconomiciItem.setValue(false);	
 					flgDecretoReggioItem.setValue(false);
 					flgDeterminaArchiviazioneItem.setValue(false);
+					flgContributiItem.setValue(false);
 					if(showFlgSpesaItem() && !isDeterminaSenzaSpesa()) {
 						flgSpesaItem.setValue(_FLG_NO);
 						flgSpesaItem.fireEvent(new ChangedEvent(flgSpesaItem.getJsObj()));
@@ -13578,6 +13644,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 					flgVantaggiEconomiciItem.setValue(false);	
 					flgDecretoReggioItem.setValue(false);
 					flgAvvocaturaItem.setValue(false);
+					flgContributiItem.setValue(false);
 					if(showFlgSpesaItem() && !isDeterminaSenzaSpesa()) {
 						flgSpesaItem.setValue(_FLG_NO);
 						flgSpesaItem.fireEvent(new ChangedEvent(flgSpesaItem.getJsObj()));
@@ -13600,8 +13667,6 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 			}
 		});
 		
-		// il check "contributi" non è esclusivo come gli altri sopra
-		
 		SpacerItem spacerFlgContributiItem = new SpacerItem();
 		spacerFlgContributiItem.setColSpan(1);
 		spacerFlgContributiItem.setStartRow(true);
@@ -13617,6 +13682,51 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		flgContributiItem.setDefaultValue(getDefaultValueAsBooleanFlgContributiItem());
 		flgContributiItem.setColSpan(18);
 		flgContributiItem.setWidth("*");	
+//		flgContributiItem.addChangeHandler(new ChangeHandler() {
+//
+//			@Override
+//			public void onChange(final ChangeEvent event) {
+//				if(!isAvvioPropostaAtto()) {
+//					if (event.getValue() != null && (Boolean) event.getValue()) {					
+//						if(isDeterminaPersonale()) {
+//							toSaveAndReloadTask = true;							
+//						}
+//					}
+//				}
+//			}
+//			
+//		});
+		flgContributiItem.addChangedHandler(new ChangedHandler() {
+			
+			@Override
+			public void onChanged(ChangedEvent event) {
+				if (event.getValue() != null && (Boolean) event.getValue()) {
+					flgAffidamentoItem.setValue(false);	
+					flgDeterminaAContrarreTramiteProceduraGaraItem.setValue(false);	
+					flgDeterminaAggiudicaProceduraGaraItem.setValue(false);
+					flgDeterminaRimodulazioneSpesaGaraAggiudicataItem.setValue(false);
+					flgDeterminaAssunzioneAumentoRiduzioneOrarioLavoroItem.setValue(false);
+					flgDeterminaRiaccertamentoItem.setValue(false);				
+					flgDeterminaAccertRadiazItem.setValue(false);	
+					flgDeterminaVariazBilItem.setValue(false);	
+					flgVantaggiEconomiciItem.setValue(false);	
+					flgDecretoReggioItem.setValue(false);
+					flgAvvocaturaItem.setValue(false);
+					flgDeterminaArchiviazioneItem.setValue(false);
+					if(showFlgSpesaItem() && !isDeterminaSenzaSpesa()) {
+						flgSpesaItem.setValue(_FLG_NO);
+						flgSpesaItem.fireEvent(new ChangedEvent(flgSpesaItem.getJsObj()));
+					}
+				}
+				redrawTabForms(_TAB_DATI_SCHEDA_ID);				
+				enableDisableTabs();
+				showHideSections();
+//				if(toSaveAndReloadTask) {
+//					toSaveAndReloadTask = false;
+//					saveAndReloadTask();
+//				}
+			}
+		});
 		flgContributiItem.setShowIfCondition(new FormItemIfFunction() {
 			
 			@Override
@@ -13791,8 +13901,20 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 				return showFlgDatiRilevantiGSAItem();
 			}
 		});
+			
+		final String uriPdfInfoDatiRilevantiGSA = AurigaLayout.getParametroDB("URI_PDF_INFO_GSA");
 		
-		infoDatiRilevantiGSAButton = new ImgButtonItem("infoDatiRilevantiGSAButton", "about.png", "Info");
+		infoDatiRilevantiGSAButton = new ImgButtonItem("infoDatiRilevantiGSAButton", "about.png", uriPdfInfoDatiRilevantiGSA != null && !"".equals(uriPdfInfoDatiRilevantiGSA) ? "Informazioni sul radio " + getTitleFlgDatiRilevantiGSAItem() : "Indica la presenza di movimenti contabili economico-patrimoniali in ambito Sanità") {
+			
+			// questo è per modificare il cursore nel caso in cui URI_PDF_INFO_GSA non sia valorizzato e quindi l'immagine non sia cliccabile 
+			@Override
+			public void setIcons(FormItemIcon... icons) {
+				if(icons != null && icons.length == 1) {
+					icons[0].setCursor(uriPdfInfoDatiRilevantiGSA != null && !"".equals(uriPdfInfoDatiRilevantiGSA) ? Cursor.POINTER : Cursor.ARROW);
+				}
+		        super.setIcons(icons);
+		    }
+		};
 		infoDatiRilevantiGSAButton.setAlwaysEnabled(true);
 		infoDatiRilevantiGSAButton.setColSpan(5);
 		infoDatiRilevantiGSAButton.setIconWidth(16);
@@ -13804,7 +13926,6 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 
 			@Override
 			public void onIconClick(IconClickEvent event) {
-				final String uriPdfInfoDatiRilevantiGSA = AurigaLayout.getParametroDB("URI_PDF_INFO_GSA");
 				if(uriPdfInfoDatiRilevantiGSA != null && !"".equals(uriPdfInfoDatiRilevantiGSA)) {
 					Record infoFilePdf = new Record();
 					infoFilePdf.setAttribute("correctFileName", "Info_Dati_Rilevanti_GSA.pdf");
@@ -13819,17 +13940,14 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 							return isEnablePreviewModal();
 						}								
 					};
-				} else {
-					AurigaLayout.addMessage(new MessageBean("Nessun file di informazione disponibile", "", MessageType.ERROR));
-				}
+				};
 			}
 		});
 		infoDatiRilevantiGSAButton.setShowIfCondition(new FormItemIfFunction() {
 			
 			@Override
 			public boolean execute(FormItem item, Object value, DynamicForm form) {
-				String uriPdfInfoDatiRilevantiGSA = AurigaLayout.getParametroDB("URI_PDF_INFO_GSA");
-				return showFlgDatiRilevantiGSAItem() && uriPdfInfoDatiRilevantiGSA != null && !"".equals(uriPdfInfoDatiRilevantiGSA);
+				return showFlgDatiRilevantiGSAItem();
 			}
 		});
 		
@@ -13991,17 +14109,19 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		flgLiqContestualeImpegnoItem = new CheckboxItem("flgLiqContestualeImpegno", getTitleFlgLiqContestualeImpegnoItem());
 		flgLiqContestualeImpegnoItem.setDefaultValue(getDefaultValueAsBooleanFlgLiqContestualeImpegnoItem());
 		flgLiqContestualeImpegnoItem.setColSpan(18);
-		flgLiqContestualeImpegnoItem.setWidth("*");	
-		flgLiqContestualeImpegnoItem.addChangedHandler(new ChangedHandler() {
+		flgLiqContestualeImpegnoItem.setWidth("*");
+//		if(!AurigaLayout.isAttivoClienteCMTO()) {
+			flgLiqContestualeImpegnoItem.addChangedHandler(new ChangedHandler() {
 			
-			@Override
-			public void onChanged(ChangedEvent event) {
-				if (event.getValue() != null && (Boolean) event.getValue()) {
-					flgLiqContestualeAltriAspettiRilContItem.setValue(false);	
-					flgDetConLiquidazioneItem.setValue(false);
-				} 
-			}
-		});
+				@Override
+				public void onChanged(ChangedEvent event) {
+					if (event.getValue() != null && (Boolean) event.getValue()) {
+						flgLiqContestualeAltriAspettiRilContItem.setValue(false);	
+						flgDetConLiquidazioneItem.setValue(false);
+					} 
+				}
+			});
+//		}
 		flgLiqContestualeImpegnoItem.setShowIfCondition(new FormItemIfFunction() {
 			
 			@Override
@@ -14025,16 +14145,18 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		flgLiqContestualeAltriAspettiRilContItem.setDefaultValue(getDefaultValueAsBooleanFlgLiqContestualeAltriAspettiRilContItem());
 		flgLiqContestualeAltriAspettiRilContItem.setColSpan(18);
 		flgLiqContestualeAltriAspettiRilContItem.setWidth("*");	
-		flgLiqContestualeAltriAspettiRilContItem.addChangedHandler(new ChangedHandler() {
-			
-			@Override
-			public void onChanged(ChangedEvent event) {
-				if (event.getValue() != null && (Boolean) event.getValue()) {
-					flgLiqContestualeImpegnoItem.setValue(false);		
-					flgDetConLiquidazioneItem.setValue(false);
-				} 
-			}
-		});
+//		if(!AurigaLayout.isAttivoClienteCMTO()) {
+			flgLiqContestualeAltriAspettiRilContItem.addChangedHandler(new ChangedHandler() {
+				
+				@Override
+				public void onChanged(ChangedEvent event) {
+					if (event.getValue() != null && (Boolean) event.getValue()) {
+						flgLiqContestualeImpegnoItem.setValue(false);		
+						flgDetConLiquidazioneItem.setValue(false);
+					} 
+				}
+			});
+//		}
 		flgLiqContestualeAltriAspettiRilContItem.setShowIfCondition(new FormItemIfFunction() {
 			
 			@Override
@@ -14057,17 +14179,19 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		flgDetConLiquidazioneItem = new CheckboxItem("flgDetConLiquidazione", getTitleFlgDetConLiquidazioneItem());
 		flgDetConLiquidazioneItem.setDefaultValue(getDefaultValueAsBooleanFlgDetConLiquidazioneItem());
 		flgDetConLiquidazioneItem.setColSpan(18);
-		flgDetConLiquidazioneItem.setWidth("*");	
-		flgDetConLiquidazioneItem.addChangedHandler(new ChangedHandler() {
-			
-			@Override
-			public void onChanged(ChangedEvent event) {
-				if (event.getValue() != null && (Boolean) event.getValue()) {
-					flgLiqContestualeImpegnoItem.setValue(false);		
-					flgLiqContestualeAltriAspettiRilContItem.setValue(false);
-				} 
-			}
-		});
+		flgDetConLiquidazioneItem.setWidth("*");
+//		if(!AurigaLayout.isAttivoClienteCMTO()) {
+			flgDetConLiquidazioneItem.addChangedHandler(new ChangedHandler() {
+				
+				@Override
+				public void onChanged(ChangedEvent event) {
+					if (event.getValue() != null && (Boolean) event.getValue()) {
+						flgLiqContestualeImpegnoItem.setValue(false);		
+						flgLiqContestualeAltriAspettiRilContItem.setValue(false);
+					} 
+				}
+			});
+//		}
 		flgDetConLiquidazioneItem.setShowIfCondition(new FormItemIfFunction() {
 			
 			@Override
@@ -14577,7 +14701,8 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 			public void onChanged(ChangedEvent event) {
 				if (event.getValue() != null && (Boolean) event.getValue()) {
 					flgFondiPNRRItem.setValue(false);	
-					flgFondiPNRRRigenItem.setValue(false);					
+					flgFondiPNRRRigenItem.setValue(false);
+					flgLiquidazioneMAASPNCItem.setValue(false);
 				}
 			}
 		});
@@ -14646,7 +14771,8 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 			public void onChanged(ChangedEvent event) {
 				if (event.getValue() != null && (Boolean) event.getValue()) {
 					flgFondiEuropeiPONItem.setValue(false);	
-					flgFondiPNRRRigenItem.setValue(false);					
+					flgFondiPNRRRigenItem.setValue(false);
+					flgLiquidazioneMAASPNCItem.setValue(false);
 				}
 			}
 		});
@@ -14679,7 +14805,8 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 			public void onChanged(ChangedEvent event) {
 				if (event.getValue() != null && (Boolean) event.getValue()) {
 					flgFondiEuropeiPONItem.setValue(false);	
-					flgFondiPNRRItem.setValue(false);					
+					flgFondiPNRRItem.setValue(false);
+					flgLiquidazioneMAASPNCItem.setValue(false);
 				}
 			}
 		});
@@ -14688,6 +14815,40 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 			@Override
 			public boolean execute(FormItem item, Object value, DynamicForm form) {				
 				return showFlgFondiPNRRRigenItem();
+			}
+		});
+		
+		SpacerItem spacerFlgLiquidazioneMAASPNCItem = new SpacerItem();
+		spacerFlgLiquidazioneMAASPNCItem.setColSpan(1);
+		spacerFlgLiquidazioneMAASPNCItem.setStartRow(true);
+		spacerFlgLiquidazioneMAASPNCItem.setShowIfCondition(new FormItemIfFunction() {
+			
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {							
+				return  showFlgLiquidazioneMAASPNCItem();
+			}
+		});
+		
+		flgLiquidazioneMAASPNCItem = new CheckboxItem("flgLiquidazioneMAASPNC", getTitleFlgLiquidazioneMAASPNCItem());
+		flgLiquidazioneMAASPNCItem.setDefaultValue(getDefaultValueAsBooleanFlgLiquidazioneMAASPNCItem());
+		flgLiquidazioneMAASPNCItem.setColSpan(18);
+		flgLiquidazioneMAASPNCItem.setWidth("*");	
+		flgLiquidazioneMAASPNCItem.addChangedHandler(new ChangedHandler() {
+			
+			@Override
+			public void onChanged(ChangedEvent event) {
+				if (event.getValue() != null && (Boolean) event.getValue()) {
+					flgFondiEuropeiPONItem.setValue(false);	
+					flgFondiPNRRItem.setValue(false);	
+					flgFondiPNRRRigenItem.setValue(false);					
+				}
+			}
+		});
+		flgLiquidazioneMAASPNCItem.setShowIfCondition(new FormItemIfFunction() {
+			
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {				
+				return showFlgLiquidazioneMAASPNCItem();
 			}
 		});
 		
@@ -15084,7 +15245,16 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 			
 			@Override
 			public void onChanged(ChangedEvent event) {
+				if(AurigaLayout.isAttivoClienteCMTO()) {
+					if (event.getValue() != null && _FLG_SI.equalsIgnoreCase((String)event.getValue())) {
+						if(showFlgBeniServiziItem()) {
+							flgBeniServiziItem.setValue(_FLG_NO);
+//							flgBeniServiziItem.fireEvent(new ChangedEvent(flgBeniServiziItem.getJsObj()));
+						}
+					}
+				}
 				caratteristicheProvvedimentoForm.markForRedraw();
+				showHideSections();
 			}
 		});
 		
@@ -15108,8 +15278,11 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 			}
 		});
 		
-		numProgettoLLPPItem = new TextItem("numProgettoLLPP", getTitleNumProgettoLLPPItem());
+		numProgettoLLPPItem = new TextItem("numProgettoLLPP", "&nbsp;&nbsp;" + getTitleNumProgettoLLPPItem());
 		numProgettoLLPPItem.setColSpan(1);
+		if(AurigaLayout.isAttivoClienteCMTO()) {
+			numProgettoLLPPItem.setWidth(150);
+		}
 		if(isRequiredNumProgettoLLPPItem()) {
 			numProgettoLLPPItem.setAttribute("obbligatorio", true);
 		}
@@ -15156,6 +15329,14 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 			
 			@Override
 			public void onChanged(ChangedEvent event) {
+				if(AurigaLayout.isAttivoClienteCMTO()) {
+					if (event.getValue() != null && _FLG_SI.equalsIgnoreCase((String)event.getValue())) {
+						if(showFlgLLPPItem()) {
+							flgLLPPItem.setValue(_FLG_NO);
+//							flgLLPPItem.fireEvent(new ChangedEvent(flgLLPPItem.getJsObj()));
+						}
+					}
+				}
 				caratteristicheProvvedimentoForm.markForRedraw();
 				showHideSections();
 			}
@@ -15181,8 +15362,11 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 			}
 		});
 		
-		numProgettoBeniServiziItem = new TextItem("numProgettoBeniServizi", getTitleNumProgettoBeniServiziItem());
+		numProgettoBeniServiziItem = new TextItem("numProgettoBeniServizi", "&nbsp;&nbsp;" + getTitleNumProgettoBeniServiziItem());
 		numProgettoBeniServiziItem.setColSpan(1);
+		if(AurigaLayout.isAttivoClienteCMTO()) {
+			numProgettoBeniServiziItem.setWidth(150);
+		}
 		if(isRequiredNumProgettoBeniServiziItem()) {
 			numProgettoBeniServiziItem.setAttribute("obbligatorio", true);
 		}
@@ -15515,7 +15699,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 			spacerFlgDecretoReggioItem, flgDecretoReggioItem,
 			spacerFlgAvvocaturaItem, flgAvvocaturaItem,
 			spacerFlgDeterminaArchiviazioneItem, flgDeterminaArchiviazioneItem,
-			spacerFlgContributiItem, flgContributiItem, // il check "contributi" non è esclusivo come gli altri sopra			
+			spacerFlgContributiItem, flgContributiItem,			
 			flgSpesaItem,
 			spacerFlgDatiRilevantiGSAItem, flgDatiRilevantiGSAItem,
 			infoDatiRilevantiGSAButton,
@@ -15542,6 +15726,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 			flgFondiPNRRRadioItem,
 			spacerFlgFondiPNRRItem, flgFondiPNRRItem,
 			spacerFlgFondiPNRRRigenItem, flgFondiPNRRRigenItem,
+			spacerFlgLiquidazioneMAASPNCItem, flgLiquidazioneMAASPNCItem,
 			spacerFlgFondiPRUItem, flgFondiPRUItem,
 			spacerFlgVistoUtenzeItem, flgVistoUtenzeItem,
 			spacerFlgVistoCapitolatiSottoSogliaItem, flgVistoCapitolatiSottoSogliaItem,
@@ -15567,15 +15752,30 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		);	
 	}
 	
-	/********************************* 
-	 * DATI SCHEDA - DEST. VANTAGGIO *
-	 *********************************/	
+	/************************************************************************** 
+	 * DATI SCHEDA - DEST. VANTAGGIO / DETTAGLI VANTAGGI ECONOMICI/CONTRIBUTI *
+	 **************************************************************************/
+	
+	public boolean showDetailSectionDettVantaggiContributi() {
+		return ((showFlgVantaggiEconomiciItem() && isVantaggiEconomici()) || (showFlgContributiItem() && isContributi())) && showAttributoCustomCablato("DETT_VANTAGGI_CONTRIBUTI");
+	}
+	
+	public String getTitleDetailSectionDettVantaggiContributi() {
+		String label = getLabelAttributoCustomCablato("DETT_VANTAGGI_CONTRIBUTI");
+		if(label != null && !"".equals(label)) {
+			return label;
+		}
+		return "Dettagli vantaggi economici/contributi";
+	}
 	
 	public boolean showDetailSectionDestVantaggio() {
-		return showDestVantaggioItem();
+		return showDetailSectionDettVantaggiContributi() || showDestVantaggioItem();
 	}	
 	
-	public String getTitleDetailSectionDestVantaggio() {		
+	public String getTitleDetailSectionDestVantaggio() {
+		if(showAttributoCustomCablato("DETT_VANTAGGI_CONTRIBUTI")) {
+			return getTitleDetailSectionDettVantaggiContributi();
+		}
 		return getTitleDestVantaggioItem();
 	}
 	
@@ -15586,12 +15786,13 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 	protected void createDetailSectionDestVantaggio() {
 		
 		createDestVantaggioForm();
-		
-		detailSectionDestVantaggio = new NuovaPropostaAtto2CompletaDetailSection(getTitleDetailSectionDestVantaggio(), true, true, isRequiredDetailSectionDestVantaggio(), destVantaggioForm);
+		createDettVantaggiContributiForm();
+
+		detailSectionDestVantaggio = new NuovaPropostaAtto2CompletaDetailSection(getTitleDetailSectionDestVantaggio(), true, true, isRequiredDetailSectionDestVantaggio(), destVantaggioForm, dettVantaggiContributiForm);
 	}
 	
 	public boolean showDestVantaggioItem() {
-		return showFlgVantaggiEconomiciItem() && isVantaggiEconomici() && showAttributoCustomCablato("DEST_VANTAGGIO");
+		return ((showFlgVantaggiEconomiciItem() && isVantaggiEconomici()) || (showFlgContributiItem() && isContributi())) && showAttributoCustomCablato("DEST_VANTAGGIO");
 	}
 	
 	public boolean isRequiredDestVantaggioItem() {
@@ -15698,6 +15899,24 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 			public Boolean getShowRemoveButton() {
 				return true;
 			}
+			
+			@Override
+			protected VLayout creaVLayout() {
+				VLayout lVLayout = super.creaVLayout();
+				if(showAttributoCustomCablato("DETT_VANTAGGI_CONTRIBUTI")) {
+					lVLayout.setWidth100();
+					lVLayout.setPadding(11);
+					lVLayout.setMargin(4);
+					lVLayout.setIsGroup(true);
+					lVLayout.setStyleName(it.eng.utility.Styles.detailSection);
+					if(getFlgObbligatorioAttributoCustomCablato("DEST_VANTAGGIO")) {
+						lVLayout.setGroupTitle("<span class=\"" + it.eng.utility.Styles.headerDetailSectionTitle + "\">" + FrontendUtil.getRequiredFormItemTitle(getTitleDestVantaggioItem()) + "</span>");
+					} else {
+						lVLayout.setGroupTitle("<span class=\"" + it.eng.utility.Styles.headerDetailSectionTitle + "\">" + getTitleDestVantaggioItem() + "</span>");
+					}	
+				}
+				return lVLayout;
+			}			
 		};
 		listaDestVantaggioItem.setName("listaDestVantaggio");
 		listaDestVantaggioItem.setShowTitle(false);
@@ -15723,6 +15942,289 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		});	
 		
 		destVantaggioForm.setFields(listaDestVantaggioItem);	
+	}
+	
+	public boolean showNormaAttribuzioneItem() {
+		return showDetailSectionDettVantaggiContributi() && showAttributoCustomCablato("NORMA_ATTRIBUZIONE");
+	}
+	
+	public String getTitleNormaAttribuzioneItem() {
+		String label = getLabelAttributoCustomCablato("NORMA_ATTRIBUZIONE");
+		if(label != null && !"".equals(label)) {
+			return label;
+		}
+		return "Norma/titolo attribuzione"; 
+	}
+	
+	public boolean isRequiredNormaAttribuzioneItem() {
+		return showNormaAttribuzioneItem() && getFlgObbligatorioAttributoCustomCablato("NORMA_ATTRIBUZIONE");
+	}
+	
+	public String getAltriParamLoadComboNormaAttribuzioneItem() {
+		return getAltriParametriLoadComboAttributoCustomCablato("NORMA_ATTRIBUZIONE");
+	}
+	
+	public boolean showRespProcAttribuzioneItem() {
+		return showDetailSectionDettVantaggiContributi() && showAttributoCustomCablato("RESP_PROC_ATTRIBUZIONE");
+	}
+	
+	public String getTitleRespProcAttribuzioneItem() {
+		String label = getLabelAttributoCustomCablato("RESP_PROC_ATTRIBUZIONE");
+		if(label != null && !"".equals(label)) {
+			return label;
+		}
+		return "Funzionario/dirigente responsabile del procedimento"; 
+	}
+	
+	public boolean isRequiredRespProcAttribuzioneItem() {
+		return showRespProcAttribuzioneItem() && getFlgObbligatorioAttributoCustomCablato("RESP_PROC_ATTRIBUZIONE");
+	}
+	
+	public String getAltriParamLoadComboRespProcAttribuzioneItem() {
+		return getAltriParametriLoadComboAttributoCustomCablato("RESP_PROC_ATTRIBUZIONE");
+	}
+	
+	public boolean isRespProcAttribuzioneCodUoFieldWithFilter() {
+		String altriParamLoadCombo = getAltriParamLoadComboRespProcAttribuzioneItem();
+		return altriParamLoadCombo != null && altriParamLoadCombo.indexOf("NRI_LIVELLI_UO|*|") != -1;
+	}
+	
+	public boolean isRespProcAttribuzioneDescrizioneFieldWithFilter() {		
+		String altriParamLoadCombo = getAltriParamLoadComboRespProcAttribuzioneItem();
+		return altriParamLoadCombo != null && altriParamLoadCombo.indexOf("STR_IN_DES|*|") != -1;
+	}
+	
+	public boolean showUffRespProcAttribuzioneItem() {
+		return showDetailSectionDettVantaggiContributi() && showAttributoCustomCablato("UFF_RESP_PROC_ATTRIBUZIONE");
+	}
+	
+	public String getTitleUffRespProcAttribuzioneItem() {
+		String label = getLabelAttributoCustomCablato("UFF_RESP_PROC_ATTRIBUZIONE");
+		if(label != null && !"".equals(label)) {
+			return label;
+		}
+		return "Ufficio responsabile del procedimento"; 
+	}
+	
+	public boolean showModalitaAttribuzioneItem() {
+		return showDetailSectionDettVantaggiContributi() && showAttributoCustomCablato("MODALITA_ATTRIBUZIONE");
+	}
+	
+	public String getTitleModalitaAttribuzioneItem() {
+		String label = getLabelAttributoCustomCablato("MODALITA_ATTRIBUZIONE");
+		if(label != null && !"".equals(label)) {
+			return label;
+		}
+		return "Modalità individuazione beneficiari"; 
+	}
+	
+	public boolean isRequiredModalitaAttribuzioneItem() {
+		return showModalitaAttribuzioneItem() && getFlgObbligatorioAttributoCustomCablato("MODALITA_ATTRIBUZIONE");
+	}
+	
+	public String getAltriParamLoadComboModalitaAttribuzioneItem() {
+		return getAltriParametriLoadComboAttributoCustomCablato("MODALITA_ATTRIBUZIONE");
+	}
+	
+	protected void createDettVantaggiContributiForm() {
+		
+		dettVantaggiContributiForm = new DynamicForm();
+		dettVantaggiContributiForm.setValuesManager(vm);
+		dettVantaggiContributiForm.setWidth100();
+		dettVantaggiContributiForm.setPadding(5);
+		dettVantaggiContributiForm.setWrapItemTitles(false);
+		dettVantaggiContributiForm.setNumCols(12);
+		dettVantaggiContributiForm.setColWidths(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, "*", "*");
+		dettVantaggiContributiForm.setTabSet(tabSet);
+		dettVantaggiContributiForm.setTabID(_TAB_DATI_SCHEDA_ID);
+		dettVantaggiContributiForm.setHeight(1);
+		
+		GWTRestDataSource normaAttribuzioneDS = new GWTRestDataSource("LoadComboValoriDizionarioDataSource", "key", FieldType.TEXT);
+		normaAttribuzioneDS.addParam("altriParamLoadCombo", getAltriParamLoadComboNormaAttribuzioneItem());
+		
+		normaAttribuzioneItem = new SelectItem("normaAttribuzione", getTitleNormaAttribuzioneItem());
+		normaAttribuzioneItem.setStartRow(true);
+		normaAttribuzioneItem.setWidth(500);
+		normaAttribuzioneItem.setValueField("key");
+		normaAttribuzioneItem.setDisplayField("value");
+		normaAttribuzioneItem.setOptionDataSource(normaAttribuzioneDS);
+		normaAttribuzioneItem.setAutoFetchData(false);
+		normaAttribuzioneItem.setAlwaysFetchMissingValues(true);
+		normaAttribuzioneItem.setFetchMissingValues(true);
+		normaAttribuzioneItem.setClearable(true);		
+		normaAttribuzioneItem.setValidators(new RequiredIfValidator(new RequiredIfFunction() {
+			
+			@Override
+			public boolean execute(FormItem formItem, Object value) {
+				return isRequiredNormaAttribuzioneItem();
+			}
+		}));
+		normaAttribuzioneItem.setShowIfCondition(new FormItemIfFunction() {
+			
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				if(isRequiredNormaAttribuzioneItem()) {
+					normaAttribuzioneItem.setAttribute("obbligatorio", true);
+					normaAttribuzioneItem.setTitle(FrontendUtil.getRequiredFormItemTitle(getTitleNormaAttribuzioneItem()));
+				} else {
+					normaAttribuzioneItem.setAttribute("obbligatorio", false);
+					normaAttribuzioneItem.setTitle(getTitleNormaAttribuzioneItem());
+				}
+				return showNormaAttribuzioneItem();
+			}
+		});
+		
+		SelectGWTRestDataSource respProcAttribuzioneDS = new SelectGWTRestDataSource("LoadComboScrivanieOrganigrammaDataSource", "idSv", FieldType.TEXT, new String[]{"codUo", "descrizione"}, true);
+		if(getAltriParamLoadComboRespProcAttribuzioneItem() != null) {
+			respProcAttribuzioneDS.addParam("altriParamLoadCombo", getAltriParamLoadComboRespProcAttribuzioneItem());			
+		}
+		respProcAttribuzioneItem = new FilteredSelectItemWithDisplay("respProcAttribuzione", respProcAttribuzioneDS) {
+			
+			@Override
+			protected ListGrid builPickListProperties() {
+				ListGrid respProcAttribuzionePickListProperties = super.builPickListProperties();
+				if(respProcAttribuzionePickListProperties == null) {
+					respProcAttribuzionePickListProperties = new ListGrid();
+				}
+				if(!isRespProcAttribuzioneCodUoFieldWithFilter() && !isRespProcAttribuzioneDescrizioneFieldWithFilter()) {
+					respProcAttribuzionePickListProperties.setShowFilterEditor(false); 
+				}
+				respProcAttribuzionePickListProperties.addFetchDataHandler(new FetchDataHandler() {
+
+					@Override
+					public void onFilterData(FetchDataEvent event) {
+						GWTRestDataSource respProcAttribuzioneDS = (GWTRestDataSource) respProcAttribuzioneItem.getOptionDataSource();
+//						respProcAttribuzioneDS.addParam("idSv", (String) respProcAttribuzioneFromLoadDettHiddenItem.getValue());
+						respProcAttribuzioneItem.setOptionDataSource(respProcAttribuzioneDS);
+						respProcAttribuzioneItem.invalidateDisplayValueCache();
+					}
+				});
+				return respProcAttribuzionePickListProperties;				
+			}
+			
+			@Override
+			public void onOptionClick(Record record) {
+				super.onOptionClick(record);				
+				dettVantaggiContributiForm.clearErrors(true);
+				if(record.getAttributeAsString("codUo") != null && !"".equals(record.getAttributeAsString("codUo")) && record.getAttributeAsString("descrizione") != null && !"".equals(record.getAttributeAsString("descrizione"))) {
+					dettVantaggiContributiForm.setValue("uffRespProcAttribuzione", record.getAttributeAsString("codUo") + " - " + record.getAttributeAsString("descrizione").substring(0, record.getAttributeAsString("descrizione").lastIndexOf("|")).trim());
+				}
+			}
+
+			@Override
+			protected void clearSelect() {
+				super.clearSelect();
+				dettVantaggiContributiForm.clearErrors(true);				
+				dettVantaggiContributiForm.setValue("respProcAttribuzione", "");
+				dettVantaggiContributiForm.setValue("uffRespProcAttribuzione", "");
+			};
+
+			@Override
+			public void setValue(String value) {
+				super.setValue(value);
+				if (value == null || "".equals(value)) {
+					dettVantaggiContributiForm.clearErrors(true);				
+					dettVantaggiContributiForm.setValue("respProcAttribuzione", "");
+					dettVantaggiContributiForm.setValue("uffRespProcAttribuzione", "");
+				}
+			}
+		};
+		respProcAttribuzioneItem.setStartRow(true);
+		respProcAttribuzioneItem.setTitle(getTitleRespProcAttribuzioneItem());
+//		respProcAttribuzioneItem.setTitleOrientation(TitleOrientation.TOP);		
+		respProcAttribuzioneItem.setWidth(500);
+		respProcAttribuzioneItem.setStartRow(true);		
+		respProcAttribuzioneItem.setValueField("idSv");		
+		ListGridField codUoField = new ListGridField("codUo", "Cod. U.O.");
+		codUoField.setWidth(120);
+		codUoField.setCanFilter(isRespProcAttribuzioneCodUoFieldWithFilter());
+		ListGridField descrizioneField = new ListGridField("descrizione", "Descrizione");
+		descrizioneField.setWidth("*");
+		descrizioneField.setCanFilter(isRespProcAttribuzioneDescrizioneFieldWithFilter());
+		respProcAttribuzioneItem.setPickListFields(codUoField, descrizioneField);		
+		if(isRespProcAttribuzioneCodUoFieldWithFilter() || isRespProcAttribuzioneDescrizioneFieldWithFilter()) {
+			respProcAttribuzioneItem.setEmptyPickListMessage("Nessun record trovato o filtri incompleti o poco restrittivi: aggiungere dei filtri");
+		} else {
+			respProcAttribuzioneItem.setEmptyPickListMessage("Nessun record trovato");		
+		}		
+		respProcAttribuzioneItem.setAllowEmptyValue(false);
+		respProcAttribuzioneItem.setAutoFetchData(false);
+		respProcAttribuzioneItem.setAlwaysFetchMissingValues(true);
+		respProcAttribuzioneItem.setFetchMissingValues(true);
+		respProcAttribuzioneItem.setClearable(true);
+		respProcAttribuzioneItem.setValidators(new RequiredIfValidator(new RequiredIfFunction() {
+
+			@Override
+			public boolean execute(FormItem formItem, Object value) {
+				return isRequiredRespProcAttribuzioneItem();
+			}
+		}));
+		respProcAttribuzioneItem.setShowIfCondition(new FormItemIfFunction() {
+			
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				if(isRequiredRespProcAttribuzioneItem()) {
+					respProcAttribuzioneItem.setAttribute("obbligatorio", true);
+					respProcAttribuzioneItem.setTitle(FrontendUtil.getRequiredFormItemTitle(getTitleRespProcAttribuzioneItem()));
+				} else {
+					respProcAttribuzioneItem.setAttribute("obbligatorio", false);
+					respProcAttribuzioneItem.setTitle(getTitleRespProcAttribuzioneItem());
+				}
+				return showRespProcAttribuzioneItem();
+			}
+		});
+		
+		uffRespProcAttribuzioneItem = new TextItem("uffRespProcAttribuzione", getTitleUffRespProcAttribuzioneItem());
+		uffRespProcAttribuzioneItem.setWidth(500);
+		uffRespProcAttribuzioneItem.setStartRow(true);
+		uffRespProcAttribuzioneItem.setShowIfCondition(new FormItemIfFunction() {
+			
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				if(showUffRespProcAttribuzioneItem()) {
+					return value != null && !"".equals((String) value);
+				}
+				return false;
+			}
+		});
+		
+		GWTRestDataSource modalitaAttribuzioneDS = new GWTRestDataSource("LoadComboValoriDizionarioDataSource", "key", FieldType.TEXT);
+		modalitaAttribuzioneDS.addParam("altriParamLoadCombo", getAltriParamLoadComboModalitaAttribuzioneItem());
+		
+		modalitaAttribuzioneItem = new SelectItem("modalitaAttribuzione", getTitleModalitaAttribuzioneItem());
+		modalitaAttribuzioneItem.setStartRow(true);
+		modalitaAttribuzioneItem.setWidth(500);
+		modalitaAttribuzioneItem.setValueField("key");
+		modalitaAttribuzioneItem.setDisplayField("value");
+		modalitaAttribuzioneItem.setOptionDataSource(modalitaAttribuzioneDS);
+		modalitaAttribuzioneItem.setAutoFetchData(false);
+		modalitaAttribuzioneItem.setAlwaysFetchMissingValues(true);
+		modalitaAttribuzioneItem.setFetchMissingValues(true);
+		modalitaAttribuzioneItem.setClearable(true);
+		modalitaAttribuzioneItem.setValidators(new RequiredIfValidator(new RequiredIfFunction() {
+			
+			@Override
+			public boolean execute(FormItem formItem, Object value) {
+				return isRequiredModalitaAttribuzioneItem();
+			}
+		}));
+		modalitaAttribuzioneItem.setShowIfCondition(new FormItemIfFunction() {
+			
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				if(isRequiredModalitaAttribuzioneItem()) {
+					modalitaAttribuzioneItem.setAttribute("obbligatorio", true);
+					modalitaAttribuzioneItem.setTitle(FrontendUtil.getRequiredFormItemTitle(getTitleModalitaAttribuzioneItem()));
+				} else {
+					modalitaAttribuzioneItem.setAttribute("obbligatorio", false);
+					modalitaAttribuzioneItem.setTitle(getTitleModalitaAttribuzioneItem());
+				}
+				
+				return showModalitaAttribuzioneItem();
+			}
+		});
+		
+		dettVantaggiContributiForm.setFields(normaAttribuzioneItem, respProcAttribuzioneItem, uffRespProcAttribuzioneItem, modalitaAttribuzioneItem);	
 	}
 	
 	/************************************************** 
@@ -17351,7 +17853,39 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 				
 		classFascForm.setFields(listaClassFascItem);			
 	}
+	
+	public boolean showFlgVisibPubblicaPostAdozioneItemInTabPrincipale() {
+		return !showTabPubblicazioneNotifiche() && showAttributoCustomCablato("TASK_RESULT_2_VISIB_PUBBLICA_POST_ADOZIONE");
+	}
 		
+	protected void createVisibPubblicaPostAdozioneFormInTabPrincipale() {
+		
+		visibPubblicaPostAdozioneForm = new DynamicForm();
+		visibPubblicaPostAdozioneForm.setValuesManager(vm);
+		visibPubblicaPostAdozioneForm.setWidth100();
+		visibPubblicaPostAdozioneForm.setPadding(5);
+		visibPubblicaPostAdozioneForm.setWrapItemTitles(false);
+		visibPubblicaPostAdozioneForm.setNumCols(20);
+		visibPubblicaPostAdozioneForm.setColWidths(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, "*", "*");
+		visibPubblicaPostAdozioneForm.setTabSet(tabSet);
+		visibPubblicaPostAdozioneForm.setTabID(_TAB_DATI_SCHEDA_ID);
+		visibPubblicaPostAdozioneForm.setHeight(1);
+		
+		flgVisibPubblicaPostAdozioneItem = new CheckboxItem("flgVisibPubblicaPostAdozione", getTitleFlgVisibPubblicaPostAdozioneItem());
+		flgVisibPubblicaPostAdozioneItem.setDefaultValue(getDefaultValueAsBooleanFlgVisibPubblicaPostAdozioneItem());
+		flgVisibPubblicaPostAdozioneItem.setColSpan(1);
+		flgVisibPubblicaPostAdozioneItem.setWidth("*");			
+		flgVisibPubblicaPostAdozioneItem.setShowIfCondition(new FormItemIfFunction() {
+			
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {				
+				return showFlgVisibPubblicaPostAdozioneItemInTabPrincipale();
+			}
+		});
+		
+		visibPubblicaPostAdozioneForm.setFields(flgVisibPubblicaPostAdozioneItem);			
+	}
+	
 	/************************ 
 	 * TAB DATI DISPOSITIVO *
 	 ************************/
@@ -18559,6 +19093,11 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 				}
 				
 				@Override
+				public boolean getFlgAllegAttoNoPubblDefault() {
+					return AurigaLayout.getParametroDBAsBoolean("FLG_ALLEG_ATTO_ESCLUDI_PUBBL_DEFAULT");
+				}
+				
+				@Override
 				public boolean getFlgAllegAttoPubblSepDefault() {
 					return getFlgAllegAttoPubblSepDefaultXTipoAtto();
 				}
@@ -19011,6 +19550,11 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 						return getFlgAllegAttoParteIntDefaultOrdTemporanea();
 					}
 					return getFlgAllegAttoParteIntDefaultXTipoAtto();
+				}
+				
+				@Override
+				public boolean getFlgAllegAttoNoPubblDefault() {
+					return AurigaLayout.getParametroDBAsBoolean("FLG_ALLEG_ATTO_ESCLUDI_PUBBL_DEFAULT");
 				}
 				
 				@Override
@@ -22685,7 +23229,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		visibPubblicaPostAdozioneForm.setNumCols(20);
 		visibPubblicaPostAdozioneForm.setColWidths(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, "*", "*");
 		visibPubblicaPostAdozioneForm.setTabSet(tabSet);
-		visibPubblicaPostAdozioneForm.setTabID(_TAB_DATI_SCHEDA_ID);
+		visibPubblicaPostAdozioneForm.setTabID(_TAB_DATI_PUBBL_ID);
 		visibPubblicaPostAdozioneForm.setHeight(1);
 		
 		flgVisibPubblicaPostAdozioneItem = new CheckboxItem("flgVisibPubblicaPostAdozione", getTitleFlgVisibPubblicaPostAdozioneItem());
@@ -29447,6 +29991,10 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		manageLoadSelectInEditNewRecord(initialValues, codProcedimentoRdPUgualeAdottanteItem, "codProcedimento", new String[] {"desProcedimento"}, "", "key");
 		manageLoadSelectInEditNewRecord(initialValues, codProcedimentoRdPItem, "codProcedimento", new String[] {"desProcedimento"}, "", "key");
 		
+		manageLoadSelectInEditNewRecord(initialValues, normaAttribuzioneItem, "normaAttribuzione", new String[] {"desNormaAttribuzione"}, "", "key");
+		manageLoadSelectInEditNewRecord(initialValues, respProcAttribuzioneItem, "respProcAttribuzione", new String[] {"codUoRespProcAttribuzione", "desRespProcAttribuzione"}, " - ", "idSv");
+		manageLoadSelectInEditNewRecord(initialValues, modalitaAttribuzioneItem, "modalitaAttribuzione", new String[] {"desModalitaAttribuzione"}, "", "key");
+		
 		/* Inizio Trasparenza AVB */
 //		manageLoadSelectInEditNewRecord(initialValues, sottotipoTrasparenzaVantEconItem, "sottotipoTrasparenzaVantEcon", "desSottotipoTrasparenzaVantEcon", "key");
 //		manageLoadSelectInEditNewRecord(initialValues, sottotipoInterventiItem, "sottotipoInterventi", "desSottotipoInterventi", "key");
@@ -29731,6 +30279,10 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		record.setAttribute("codProcedimentoRdP", record.getAttribute("codProcedimento"));
 		manageLoadSelectInEditRecord(record, codProcedimentoRdPUgualeAdottanteItem, "codProcedimento", new String[] {"desProcedimento"}, "", "key");
 		manageLoadSelectInEditRecord(record, codProcedimentoRdPItem, "codProcedimento", new String[] {"desProcedimento"}, "", "key");
+		
+		manageLoadSelectInEditRecord(record, normaAttribuzioneItem, "normaAttribuzione", new String[] {"desNormaAttribuzione"}, "", "key");
+		manageLoadSelectInEditRecord(record, respProcAttribuzioneItem, "respProcAttribuzione", new String[] {"codUoRespProcAttribuzione", "desRespProcAttribuzione"}, " - ", "idSv");
+		manageLoadSelectInEditRecord(record, modalitaAttribuzioneItem, "modalitaAttribuzione", new String[] {"desModalitaAttribuzione"}, "", "key");
 		
 		/* Inizio Trasparenza AVB */
 //		manageLoadSelectInEditRecord(record, sottotipoTrasparenzaVantEconItem, "sottotipoTrasparenzaVantEcon", "desSottotipoTrasparenzaVantEcon", "key");
@@ -30209,7 +30761,14 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		if(detailSectionDestVantaggio != null) {
 			if(showDetailSectionDestVantaggio()) {				
 				detailSectionDestVantaggio.show();
-				detailSectionDestVantaggio.setRequired(isRequiredDetailSectionDestVantaggio());				
+				detailSectionDestVantaggio.setRequired(isRequiredDetailSectionDestVantaggio());			
+				if(dettVantaggiContributiForm != null) {
+					if(showDetailSectionDettVantaggiContributi()) {
+						dettVantaggiContributiForm.show();					
+					} else {
+						dettVantaggiContributiForm.hide();					
+					}
+				}
 			} else {
 				detailSectionDestVantaggio.hide();	
 			}
@@ -30804,14 +31363,16 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 					lRecordToSave.setAttribute("codUfficioProponente", listaProponenti.get(0).getAttribute("codRapido"));
 					lRecordToSave.setAttribute("desUfficioProponente", listaProponenti.get(0).getAttribute("descrizione"));				
 				}
-			} else {
-				RecordList listaProponenti = ruoliForm != null ? ruoliForm.getValueAsRecordList("listaProponenti") : null;
-				if(listaProponenti != null && listaProponenti.getLength() == 1) {
-					lRecordToSave.setAttribute("ufficioProponente", listaProponenti.get(0).getAttribute("idUo"));		
-					lRecordToSave.setAttribute("codUfficioProponente", listaProponenti.get(0).getAttribute("codRapido"));
-					lRecordToSave.setAttribute("desUfficioProponente", listaProponenti.get(0).getAttribute("descrizione"));				
-				}
 			}
+			// altrimenti non devo mai passarla come UO di registrazione, anche quando ce n'è una sola, quindi commento il pezzo sotto
+//			else {
+//				RecordList listaProponenti = ruoliForm != null ? ruoliForm.getValueAsRecordList("listaProponenti") : null;
+//				if(listaProponenti != null && listaProponenti.getLength() == 1) {
+//					lRecordToSave.setAttribute("ufficioProponente", listaProponenti.get(0).getAttribute("idUo"));		
+//					lRecordToSave.setAttribute("codUfficioProponente", listaProponenti.get(0).getAttribute("codRapido"));
+//					lRecordToSave.setAttribute("desUfficioProponente", listaProponenti.get(0).getAttribute("descrizione"));				
+//				}
+//			}
 		} else {
 			if(isAbilToSelUffPropEsteso()) {
 				RecordList listaUfficioProponente = ruoliForm != null ? ruoliForm.getValueAsRecordList("listaUfficioProponente") : null;
@@ -31520,11 +32081,22 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		
 	}
 	
-	public void caricaAttributiDinamiciDoc(String nomeFlussoWF, String processNameWF, String activityName, String idTipoDoc, String rowidDoc) {
-		
-		final String start = DateTimeFormat.getFormat("HH:mm:ss").format(new Date());
-		
+	public void caricaAttributiDinamiciDoc(String nomeFlussoWF, String processNameWF, String activityName, String idTipoDoc, String rowidDoc) {		
+		final String start = DateTimeFormat.getFormat("HH:mm:ss").format(new Date());		
 		final boolean isReload = (attributiAddDocDetails != null && attributiAddDocDetails.size() > 0);
+		if(attributiAddDocLayouts != null) {
+			for (String key : attributiAddDocLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddDocLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddDocDetails != null) {
+			for (String key : attributiAddDocDetails.keySet()) {
+				try { attributiAddDocDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
 		attributiAddDocLayouts = new HashMap<String, VLayout>();
 		attributiAddDocDetails = new HashMap<String, AttributiDinamiciDetail>();
 		if (attributiAddDocTabs != null && attributiAddDocTabs.size() > 0) {
@@ -31623,15 +32195,13 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 							}
 						}						
 					}
-					afterCaricaAttributiDinamiciDoc();
-					
+					afterCaricaAttributiDinamiciDoc();			
 					GWT.log("caricaAttributiDinamiciDoc() started at " + start + " ended at " + DateTimeFormat.getFormat("HH:mm:ss").format(new Date()));							
 				}
 			});
 		} else {
 			ricaricaTabSet();
-			afterCaricaAttributiDinamiciDoc();
-			
+			afterCaricaAttributiDinamiciDoc();		
 			GWT.log("caricaAttributiDinamiciDoc() started at " + start + " ended at " + DateTimeFormat.getFormat("HH:mm:ss").format(new Date()));									
 		}
 	}
@@ -31882,6 +32452,19 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		return -1;
 	}
 	
+	// Recupero la posizione dell'allegato in base all'idDoc
+	public int getPosAllegatoFromIdDoc(String idDoc, RecordList listaAllegati) {
+		if (listaAllegati != null) {
+			for (int i = 0; i < listaAllegati.getLength(); i++) {
+				Record allegato = listaAllegati.get(i);
+				if (allegato.getAttribute("idDocAllegato") != null && allegato.getAttribute("idDocAllegato").equalsIgnoreCase(idDoc)) {
+					return i;
+				}
+			}
+		}
+		return -1;
+	}
+	
 	@Override
 	public void setCanEdit(boolean canEdit) {
 		
@@ -32069,12 +32652,6 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 			oggettoHtmlItem.setCanEdit((!isPresenteAttributoCustomCablato("OGGETTO_HTML") || getFlgEditabileAttributoCustomCablato("OGGETTO_HTML")) ? canEdit : false);
 		}
 		setCanEditReplicableItemAttributoCustomCablato(listaAttiRiferimentoItem, "ATTO_RIFERIMENTO", canEdit);
-//		flgAttoRifASistemaItem.setCanEdit(getFlgEditabileAttributoCustomCablato("ATTO_RIF_A_SISTEMA") ? canEdit : false);
-//		categoriaRegAttoDeterminaAContrarreItem.setCanEdit(getFlgEditabileAttributoCustomCablato("ATTO_RIFERIMENTO") ? canEdit : false);
-//		siglaAttoDeterminaAContrarreItem.setCanEdit(getFlgEditabileAttributoCustomCablato("ATTO_RIFERIMENTO") ? canEdit : false);
-//		numeroAttoDeterminaAContrarreItem.setCanEdit(getFlgEditabileAttributoCustomCablato("ATTO_RIFERIMENTO") ? canEdit : false);
-//		annoAttoDeterminaAContrarreItem.setCanEdit(getFlgEditabileAttributoCustomCablato("ATTO_RIFERIMENTO") ? canEdit : false);	
-//		lookupArchivioAttoDeterminaAContrarreButton.setCanEdit(getFlgEditabileAttributoCustomCablato("ATTO_RIFERIMENTO") ? canEdit : false);	
 		oggLiquidazioneItem.setCanEdit(getFlgEditabileAttributoCustomCablato("TASK_RESULT_2_OGG_LIQUIDAZIONE") ? canEdit : false);  
 		dataScadenzaLiquidazioneItem.setCanEdit(getFlgEditabileAttributoCustomCablato("SCADENZA_LIQUIDAZIONE") ? canEdit : false);  
 		urgenzaLiquidazioneItem.setCanEdit(getFlgEditabileAttributoCustomCablato("URGENZA_LIQUIDAZIONE") ? canEdit : false);  
@@ -32119,6 +32696,7 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		flgFondiPNRRRadioItem.setCanEdit(getFlgEditabileAttributoCustomCablato("TASK_RESULT_2_FONDI_PNRR_RADIO") ? canEdit : false);
 		flgFondiPNRRItem.setCanEdit(getFlgEditabileAttributoCustomCablato("TASK_RESULT_2_FONDI_PNRR") ? canEdit : false);
 		flgFondiPNRRRigenItem.setCanEdit(getFlgEditabileAttributoCustomCablato("TASK_RESULT_2_FONDI_PNRR_RIGEN") ? canEdit : false);
+		flgLiquidazioneMAASPNCItem.setCanEdit(getFlgEditabileAttributoCustomCablato("TASK_RESULT_2_MAAS_PNC") ? canEdit : false);	
 		flgFondiPRUItem.setCanEdit(getFlgEditabileAttributoCustomCablato("TASK_RESULT_2_FONDI_PRU") ? canEdit : false);
 		flgVistoUtenzeItem.setCanEdit(getFlgEditabileAttributoCustomCablato("TASK_RESULT_2_FLG_VISTO_UTENZE") ? canEdit : false);
 		flgVistoCapitolatiSottoSogliaItem.setCanEdit(getFlgEditabileAttributoCustomCablato("TASK_RESULT_2_VISTO_CAPITOLATI_SOTTO_SOGLIA") ? canEdit : false);
@@ -32146,6 +32724,10 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		flgControlloLegittimitaItem.setCanEdit(getFlgEditabileAttributoCustomCablato("FLG_CONTROLLO_LEGITTIMITA") ? canEdit : false);				
 		motivazioniEsclControlloLegittimitaItem.setCanEdit(getFlgEditabileAttributoCustomCablato("MOTIVAZIONI_ESCL_CONTROLLO_LEGITTIMITA") ? canEdit : false);		
 		setCanEditReplicableItemAttributoCustomCablato(listaDestVantaggioItem, "DEST_VANTAGGIO", canEdit);
+		normaAttribuzioneItem.setCanEdit(getFlgEditabileAttributoCustomCablato("NORMA_ATTRIBUZIONE") ? canEdit : false);				
+		respProcAttribuzioneItem.setCanEdit(getFlgEditabileAttributoCustomCablato("RESP_PROC_ATTRIBUZIONE") ? canEdit : false);
+		uffRespProcAttribuzioneItem.setCanEdit(false);
+		modalitaAttribuzioneItem.setCanEdit(getFlgEditabileAttributoCustomCablato("MODALITA_ATTRIBUZIONE") ? canEdit : false);				
 		setCanEditReplicableItemAttributoCustomCablato(listaUfficioDefinizioneSpesaItem, "ID_UO_COMP_SPESA", canEdit);
 		opzAssCompSpesaItem.setCanEdit(getFlgEditabileAttributoCustomCablato("TASK_RESULT_2_OPZ_ASS_COMP_SPESA") ? canEdit : false);
 		flgAdottanteUnicoRespPEGItem.setCanEdit(getFlgEditabileAttributoCustomCablato("TASK_RESULT_2_FLG_ADOTTANTE_UNICO_RESP_SPESA") ? canEdit : false);	
@@ -32454,6 +33036,10 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 	
 	public boolean isDeterminaArchiviazione() {
 		return showFlgDeterminaArchiviazioneItem() && getValueAsBoolean("flgDeterminaArchiviazione");
+	}
+	
+	public boolean isContributi() {
+		return showFlgContributiItem() && getValueAsBoolean("flgContributi");
 	}
 	
 	public boolean isPubblAlbo() {
@@ -33271,138 +33857,6 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 		
 	}
 	
-	@Override
-	protected void onDestroy() {
-		if(saveModelloWindow != null) {
-			saveModelloWindow.destroy();
-		}
-		if(modelliDS != null) {
-			modelliDS.destroy();
-		}
-		if(vm != null) {
-			HashSet<DetailSection> setDetailSections = new HashSet<DetailSection>();
-			for (DynamicForm form : vm.getMembers()) {
-				if(form.getDetailSection() != null) {
-					setDetailSections.add(form.getDetailSection());
-				}
-				for (FormItem item : form.getFields()) {
-					if (item != null) {
-						if (item instanceof ReplicableItem) {
-							((ReplicableItem)item).manageOnDestroy();
-						} else if (item instanceof GridItem) {
-							((GridItem)item).manageOnDestroy();
-						} else if (item instanceof IEditorItem) {
-							((IEditorItem)item).manageOnDestroy();
-						} else if (item instanceof DocumentItem) {
-							((DocumentItem)item).manageOnDestroy();
-						} 						
-					}
-				}	
-				form.destroy();
-			}		
-			for (DetailSection section : setDetailSections) {
-				section.destroy();
-			}	
-			try { 
-				vm.destroy(); 
-			} catch(Exception e) {				
-			}
-		}
-		if (attributiAddDocDetails != null) {
-			for (String key : attributiAddDocDetails.keySet()) {
-				if (attributiAddDocDetails.get(key) != null) {
-					attributiAddDocDetails.get(key).destroy();
-				}
-			}
-		}
-		super.onDestroy();
-	}
-	
-	/*
-	public void recuperaIdUdAttoDeterminaAContrarre(final ServiceCallback<String> callback) {
-		if(showFlgAttoRifASistemaItem() && _FLG_NO.equalsIgnoreCase(getValueAsString("flgAttoRifASistema"))) {
-			return;
-		}
-		String categoriaReg = categoriaRegAttoDeterminaAContrarreItem.getValueAsString() != null ? categoriaRegAttoDeterminaAContrarreItem.getValueAsString() : "";
-		String sigla = siglaAttoDeterminaAContrarreItem.getValueAsString() != null ? siglaAttoDeterminaAContrarreItem.getValueAsString() : "";
-		String numero = numeroAttoDeterminaAContrarreItem.getValueAsString() != null ? numeroAttoDeterminaAContrarreItem.getValueAsString() : "";
-		String anno = annoAttoDeterminaAContrarreItem.getValueAsString() != null ? annoAttoDeterminaAContrarreItem.getValueAsString() : "";									
-		if (("PG".equals(categoriaReg) || !"".equals(sigla)) && !"".equals(numero) && !"".equals(anno)) {
-			Record lRecord = new Record();			
-			lRecord.setAttribute("categoriaRegAttoDeterminaAContrarre", categoriaReg);
-			lRecord.setAttribute("siglaAttoDeterminaAContrarre", sigla);
-			lRecord.setAttribute("numeroAttoDeterminaAContrarre", numero);
-			lRecord.setAttribute("annoAttoDeterminaAContrarre", anno);
-			new OneCallGWTRestDataSource("NuovaPropostaAtto2CompletaDataSource").performCustomOperation("recuperaIdUdAttoDeterminaAContrarre", getRecordToSave(), new DSCallback() {							
-				@Override
-				public void execute(DSResponse response, Object rawData, DSRequest request) {
-					if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
-						if(callback != null) {
-							callback.execute(response.getData()[0].getAttributeAsString("idUdAttoDeterminaAContrarre"));
-						} 
-					} else {
-						if(callback != null) {
-							callback.execute(null);
-						} 
-					}
-				}
-			});
-		}		
-	}	
-	
-	private void setFormValuesFromRecordArchivio(Record record) {
-		attoRiferimentoForm.clearErrors(true);
-		attoRiferimentoForm.setValue("idUdAttoDeterminaAContrarre", record.getAttribute("idUdFolder"));
-		String segnaturaXOrd = record.getAttribute("segnaturaXOrd");	
-		if(segnaturaXOrd != null) {
-			StringSplitterClient st = new StringSplitterClient(segnaturaXOrd, "-");						
-			if(st.getTokens()[0] != null) {
-				if("1".equals(st.getTokens()[0])) {
-					attoRiferimentoForm.setValue("categoriaRegAttoDeterminaAContrarre", "PG");							
-				} else if("4".equals(st.getTokens()[0])) {
-					attoRiferimentoForm.setValue("categoriaRegAttoDeterminaAContrarre", "R");						
-				}
-			}
-			attoRiferimentoForm.setValue("siglaAttoDeterminaAContrarre", st.getTokens()[1] != null ? st.getTokens()[1].trim() : null);
-			attoRiferimentoForm.setValue("annoAttoDeterminaAContrarre", st.getTokens()[2] != null ? st.getTokens()[2].trim() : null);
-			attoRiferimentoForm.setValue("numeroAttoDeterminaAContrarre", st.getTokens()[3] != null ? st.getTokens()[3].trim() : null);
-		}
-		attoRiferimentoForm.markForRedraw();
-	}	
-	
-	public class AttoDeterminaAContrarreLookupArchivio extends LookupArchivioPopup {
-
-		public AttoDeterminaAContrarreLookupArchivio(Record record, String idRootNode) {
-			super(record, idRootNode, true);
-		}
-		
-		@Override
-		public String getWindowTitle() {
-			return "Seleziona da archivio";
-		}
-		
-		@Override
-		public String getFinalita() {
-			return "SEL_ATTI";
-		}
-
-		@Override
-		public void manageLookupBack(Record record) {
-			setFormValuesFromRecordArchivio(record);
-		}
-
-		@Override
-		public void manageMultiLookupBack(Record record) {
-
-		}
-
-		@Override
-		public void manageMultiLookupUndo(Record record) {
-
-		}
-	}
-	*/
-	
 	public class InvioMailMultiLookupRubricaEmailPopup extends LookupRubricaEmailPopup {
 
 		private DynamicForm form;
@@ -34051,6 +34505,62 @@ public class NuovaPropostaAtto2CompletaDetail extends CustomDetail {
 	
 	private boolean isEnablePreviewModal() {
 		return !AurigaLayout.getParametroDBAsBoolean("PREVIEW_NON_MODALE_ATTI");
+	}
+	
+	@Override
+	protected void onDestroy() {
+		if(saveModelloWindow != null) {
+			saveModelloWindow.destroy();
+		}
+		if(modelliDS != null) {
+			modelliDS.destroy();
+		}
+		if(vm != null) {
+			HashSet<DetailSection> setDetailSections = new HashSet<DetailSection>();
+			for (DynamicForm form : vm.getMembers()) {
+				if(form.getDetailSection() != null) {
+					setDetailSections.add(form.getDetailSection());
+				}
+				for (FormItem item : form.getFields()) {
+					if (item != null) {
+						if (item instanceof ReplicableItem) {
+							((ReplicableItem)item).manageOnDestroy();
+						} else if (item instanceof GridItem) {
+							((GridItem)item).manageOnDestroy();
+						} else if (item instanceof IEditorItem) {
+							((IEditorItem)item).manageOnDestroy();
+						} else if (item instanceof DocumentItem) {
+							((DocumentItem)item).manageOnDestroy();
+						} 						
+					}
+				}	
+				form.destroy();
+			}		
+			for (DetailSection section : setDetailSections) {
+				section.destroy();
+			}	
+			try { 
+				vm.destroy(); 
+			} catch(Exception e) {				
+			}
+		}
+		super.onDestroy();
+		if(attributiAddDocLayouts != null) {
+			for (String key : attributiAddDocLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddDocLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddDocDetails != null) {
+			for (String key : attributiAddDocDetails.keySet()) {
+				try { attributiAddDocDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
+		attributiAddDocTabs = null;
+		attributiAddDocLayouts = null;		
+		attributiAddDocDetails = null;
 	}
 	
 }

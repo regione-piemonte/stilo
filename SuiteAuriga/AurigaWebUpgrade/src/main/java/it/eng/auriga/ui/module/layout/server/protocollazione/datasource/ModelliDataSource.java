@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -17,6 +18,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import fr.opensagres.xdocreport.document.json.JSONArray;
+import fr.opensagres.xdocreport.document.json.JSONException;
 import fr.opensagres.xdocreport.document.json.JSONObject;
 import it.eng.auriga.database.store.dmpk_load_combo.bean.DmpkLoadComboDmfn_load_comboBean;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
@@ -38,6 +40,7 @@ import it.eng.document.function.bean.FileSavedIn;
 import it.eng.document.function.bean.FileSavedOut;
 import it.eng.core.business.TPagingList;
 import it.eng.utility.module.config.StorageImplementation;
+import it.eng.utility.storageutil.exception.StorageException;
 import it.eng.utility.ui.module.core.server.bean.AdvancedCriteria;
 import it.eng.utility.ui.module.core.server.bean.Criterion;
 import it.eng.utility.ui.module.core.server.bean.OrderByBean;
@@ -272,8 +275,7 @@ public class ModelliDataSource extends AbstractFetchDataSource<ModelloBean> {
 	 * andrebbe in errore.
 	 */
 	private String replaceCharJson(String jsonString) {
-		String regExp = "new\\sDate\\([0-9]{13}\\)";
-		return jsonString.replaceAll(regExp, "\"2018-01-01'T'00:00:00\"");
+		return jsonString.replaceAll("\"new\\sDate\\([0-9]{13}\\)\"", "\"2018-01-01'T'00:00:00\"").replaceAll("new\\sDate\\([0-9]{13}\\)", "\"2018-01-01'T'00:00:00\"");
 	}
 	
 	private String  getRowIdIndirizzoSoggetto(String idSoggetto) throws Exception {
@@ -488,25 +490,36 @@ public class ModelliDataSource extends AbstractFetchDataSource<ModelloBean> {
 		}
 
 		if (bean.getValue()!= null) {
-			//			Controllo gli uri degli excel della listaDestinatari per accertarmi che non siano storati sulla temporanea, in tal caso li salvo in repository e aggiorno il json con l'uri definitivo 
+			// Controllo gli uri degli excel della listaDestinatari per accertarmi che non siano storati sulla temporanea, in tal caso li salvo in repository e aggiorno il json con l'uri definitivo 
 			JSONObject jsonObj = new JSONObject(bean.getValue());
 			if (jsonObj.containsKey("listaDestinatari")) {
 				JSONArray optJSONArray = jsonObj.getJSONArray("listaDestinatari");
 				for (int i = 0; i < optJSONArray.length(); i++) {
 					JSONObject jsonObject = optJSONArray.getJSONObject(i);
-					String uriFileExcel = jsonObject.containsKey("uriFileExcel") ? jsonObject.getString("uriFileExcel") : "";
-					if (uriFileExcel != null && (uriFileExcel.contains("TEMP") || uriFileExcel.contains("temp"))) {
-						AurigaLoginBean lAurigaLoginBean = AurigaUserUtil.getLoginInfo(getSession());
-						Locale local = new Locale(lAurigaLoginBean.getLinguaApplicazione());
-						File lFileToSave = StorageImplementation.getStorage().extractFile(uriFileExcel);
-						FileSavedIn lFileSavedIn = new FileSavedIn();
-						lFileSavedIn.setSaved(lFileToSave);
-						SalvataggioFile lSalvataggioFile = new SalvataggioFile();
-						FileSavedOut out = lSalvataggioFile.savefile(local, lAurigaLoginBean, lFileSavedIn);
-						jsonObject.put("uriFileExcel", out.getUri());
+					try {
+						String uriFileExcel = jsonObject.containsKey("uriFileExcel") && !jsonObject.isNull("uriFileExcel") && jsonObject.get("uriFileExcel") instanceof String ? jsonObject.getString("uriFileExcel") : "";
+						if (uriFileExcel != null && (uriFileExcel.contains("TEMP") || uriFileExcel.contains("temp"))) {
+							AurigaLoginBean lAurigaLoginBean = AurigaUserUtil.getLoginInfo(getSession());
+							Locale local = new Locale(lAurigaLoginBean.getLinguaApplicazione());
+							File lFileToSave = StorageImplementation.getStorage().extractFile(uriFileExcel);
+							FileSavedIn lFileSavedIn = new FileSavedIn();
+							lFileSavedIn.setSaved(lFileToSave);
+							SalvataggioFile lSalvataggioFile = new SalvataggioFile();
+							FileSavedOut out = lSalvataggioFile.savefile(local, lAurigaLoginBean, lFileSavedIn);
+							// Sostituisco il vecchio uri con il nuovo direttamente nella stringa del json originale che è in bean.getValue(), e non in jsonObj come facevo prima (leggi il commento dopo il ciclo for)
+//							jsonObject.put("uriFileExcel", out.getUri());
+							bean.setValue(bean.getValue().replace(uriFileExcel, out.getUri()));
+						}
+					} catch (JSONException e) {
+						mLogger.error("Errore durante l elaborazione del json: ", e);
+					} catch (StorageException e) {
+						mLogger.error("Errore durante il salvataggio del file excel: ", e);
+					} catch (Exception e) {
+						mLogger.error("Eccezione: ", e);
 					}
 				}
-				bean.setValue(jsonObj.toString());
+				// Commento la riga qui sotto perchè se prendo il json da jsonObj poi mi scombina tutte le date, mettendo new Date(...) tra doppi apici, e va in errore durante il parsing
+//				bean.setValue(jsonObj.toString());
 			}
 		}
 		
@@ -577,19 +590,30 @@ public class ModelliDataSource extends AbstractFetchDataSource<ModelloBean> {
 				JSONArray optJSONArray = jsonObj.getJSONArray("listaDestinatari");
 				for (int i = 0; i < optJSONArray.length(); i++) {
 					JSONObject jsonObject = optJSONArray.getJSONObject(i);
-					String uriFileExcel = jsonObject.containsKey("uriFileExcel") ? jsonObject.getString("uriFileExcel") : "";
-					if (uriFileExcel != null && (uriFileExcel.contains("TEMP") || uriFileExcel.contains("temp"))) {
-						AurigaLoginBean lAurigaLoginBean = AurigaUserUtil.getLoginInfo(getSession());
-						Locale local = new Locale(lAurigaLoginBean.getLinguaApplicazione());
-						File lFileToSave = StorageImplementation.getStorage().extractFile(uriFileExcel);
-						FileSavedIn lFileSavedIn = new FileSavedIn();
-						lFileSavedIn.setSaved(lFileToSave);
-						SalvataggioFile lSalvataggioFile = new SalvataggioFile();
-						FileSavedOut out = lSalvataggioFile.savefile(local, lAurigaLoginBean, lFileSavedIn);
-						jsonObject.put("uriFileExcel", out.getUri());
+					try {
+						String uriFileExcel = jsonObject.containsKey("uriFileExcel") && !jsonObject.isNull("uriFileExcel") && jsonObject.get("uriFileExcel") instanceof String ? jsonObject.getString("uriFileExcel") : "";
+						if (uriFileExcel != null && (uriFileExcel.contains("TEMP") || uriFileExcel.contains("temp"))) {
+							AurigaLoginBean lAurigaLoginBean = AurigaUserUtil.getLoginInfo(getSession());
+							Locale local = new Locale(lAurigaLoginBean.getLinguaApplicazione());
+							File lFileToSave = StorageImplementation.getStorage().extractFile(uriFileExcel);
+							FileSavedIn lFileSavedIn = new FileSavedIn();
+							lFileSavedIn.setSaved(lFileToSave);
+							SalvataggioFile lSalvataggioFile = new SalvataggioFile();
+							FileSavedOut out = lSalvataggioFile.savefile(local, lAurigaLoginBean, lFileSavedIn);
+							// Sostituisco il vecchio uri con il nuovo direttamente nella stringa del json originale che è in bean.getValue(), e non in jsonObj come facevo prima (leggi il commento dopo il ciclo for)
+//							jsonObject.put("uriFileExcel", out.getUri());
+							bean.setValue(bean.getValue().replace(uriFileExcel, out.getUri()));
+						}
+					} catch (JSONException e) {
+						mLogger.error("Errore durante l elaborazione del json: ", e);
+					} catch (StorageException e) {
+						mLogger.error("Errore durante il salvataggio del file excel: ", e);
+					} catch (Exception e) {
+						mLogger.error("Eccezione: ", e);
 					}
 				}
-				bean.setValue(jsonObj.toString());
+				// Commento la riga qui sotto perchè se prendo il json da jsonObj poi mi scombina tutte le date, mettendo new Date(...) tra doppi apici, e va in errore durante il parsing
+//				bean.setValue(jsonObj.toString());
 			}
 		}
 		PreferenceBean preferenceBean = new PreferenceBean();

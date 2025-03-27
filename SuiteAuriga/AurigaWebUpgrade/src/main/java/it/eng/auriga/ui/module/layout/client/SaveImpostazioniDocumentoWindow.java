@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client;
 
 import java.util.LinkedHashMap;
 
@@ -110,6 +111,16 @@ public class SaveImpostazioniDocumentoWindow extends ModalWindow {
 	private HiddenItem flgOggettoNonObbligRepertorioUscitaItem;	
 	private CheckboxItem skipSceltaTipologiaRepertorioUscitaItem;
 	
+	protected DetailSection detailSectionDocumentoRisposta;
+	private DynamicForm documentoRispostaForm;
+	private SelectItem idTipoDocumentoRispostaItem;
+	private HiddenItem descTipoDocumentoRispostaItem;
+	private HiddenItem codCategoriaAltraNumerazioneRispostaItem;
+	private HiddenItem siglaAltraNumerazioneRispostaItem;
+	private HiddenItem flgTipoDocConVieProtRispostaItem;
+	private HiddenItem flgOggettoNonObbligProtRispostaItem;	
+	private CheckboxItem skipSceltaTipologiaDocumentoRispostaItem;
+	
 	protected DetailSection detailSectionRegistroFatture;
 	private DynamicForm registroFattureForm;
 	private SelectItem idTipoDocumentoRegistroFattureItem;
@@ -200,6 +211,10 @@ public class SaveImpostazioniDocumentoWindow extends ModalWindow {
 			detailSectionRepertorioUscita = new DetailSection("A repertorio in uscita", true, true, false, repertorioUscitaForm);
 			layout.addMember(detailSectionRepertorioUscita);
 		}
+		
+		buildFormDocumentoRisposta();
+		detailSectionDocumentoRisposta = new DetailSection("Documento di risposta", true, true, false, documentoRispostaForm);
+		layout.addMember(detailSectionDocumentoRisposta);
 		
 		if(Layout.isPrivilegioAttivo("RGF")) {			
 			buildFormRegistroFatture();
@@ -990,6 +1005,66 @@ public class SaveImpostazioniDocumentoWindow extends ModalWindow {
 			flgTipoDocConVieRepertorioUscitaItem,
 			flgOggettoNonObbligRepertorioUscitaItem,
 			skipSceltaTipologiaRepertorioUscitaItem
+		);
+	}
+	
+	private void buildFormDocumentoRisposta() {
+		documentoRispostaForm = new DynamicForm();
+		documentoRispostaForm.setKeepInParentRect(true);
+		documentoRispostaForm.setWrapItemTitles(false);
+		documentoRispostaForm.setNumCols(5);
+		documentoRispostaForm.setColWidths(10, 10, 10, 10, "*");
+		documentoRispostaForm.setPadding(5);
+		documentoRispostaForm.setAlign(Alignment.LEFT);
+		documentoRispostaForm.setTop(50);
+		documentoRispostaForm.setValuesManager(vm);
+		
+		descTipoDocumentoRispostaItem = new HiddenItem("descTipoDocumentoRisposta");
+		codCategoriaAltraNumerazioneRispostaItem = new HiddenItem("codCategoriaAltraNumerazioneRisposta");
+		siglaAltraNumerazioneRispostaItem = new HiddenItem("siglaAltraNumerazioneRisposta");
+		flgTipoDocConVieProtRispostaItem = new HiddenItem("flgTipoDocConVieProtRisposta");
+		flgOggettoNonObbligProtRispostaItem = new HiddenItem("flgOggettoNonObbligProtRisposta");
+		
+		String categoriaReg = AurigaLayout.getParametroDBAsBoolean("ATTIVA_REGISTRO_PG_X_PROT_INTERNA") ? "PG" : "I";
+		String siglaReg = AurigaLayout.getParametroDBAsBoolean("ATTIVA_REGISTRO_PG_X_PROT_INTERNA") ? null : "P.I.";
+		GWTRestDataSource idTipoDocumentoRispostaDS = new GWTRestDataSource("LoadComboTipoDocumentoDataSource", "idTipoDocumento", FieldType.TEXT, true);
+		idTipoDocumentoRispostaDS.addParam("categoriaReg", categoriaReg);
+		idTipoDocumentoRispostaDS.addParam("siglaReg", siglaReg);
+
+		idTipoDocumentoRispostaItem = new SelectItem("idTipoDocumentoRisposta") {
+
+			@Override
+			public void onOptionClick(Record record) {
+				idTipoDocumentoRispostaItem.setValue(record.getAttribute("idTipoDocumento"));
+				descTipoDocumentoRispostaItem.setValue(record.getAttribute("descTipoDocumento"));
+				codCategoriaAltraNumerazioneRispostaItem.setValue(record.getAttribute("codCategoriaAltraNumerazione"));
+				siglaAltraNumerazioneRispostaItem.setValue(record.getAttribute("siglaAltraNumerazione"));
+				flgTipoDocConVieProtRispostaItem.setValue(record.getAttributeAsBoolean("flgTipoDocConVie"));
+				flgOggettoNonObbligProtRispostaItem.setValue(record.getAttributeAsBoolean("flgOggettoNonObblig"));				
+			}
+		};
+		idTipoDocumentoRispostaItem.setShowTitle(true);
+		idTipoDocumentoRispostaItem.setTitle(setTitleAlign("Tipologia documentale da preimpostare", 220, false));
+		idTipoDocumentoRispostaItem.setStartRow(true);
+		idTipoDocumentoRispostaItem.setWidth(300);
+		idTipoDocumentoRispostaItem.setColSpan(2);
+		idTipoDocumentoRispostaItem.setAlign(Alignment.CENTER);
+		idTipoDocumentoRispostaItem.setValueField("idTipoDocumento");
+		idTipoDocumentoRispostaItem.setDisplayField("descTipoDocumento");
+		idTipoDocumentoRispostaItem.setOptionDataSource(idTipoDocumentoRispostaDS);
+		idTipoDocumentoRispostaItem.setAllowEmptyValue(true);
+		
+		skipSceltaTipologiaDocumentoRispostaItem = new CheckboxItem("skipSceltaTipologiaDocumentoRisposta", setTitleAlign("Salta scelta tipologia", 200, false));
+		skipSceltaTipologiaDocumentoRispostaItem.setStartRow(false);
+		
+		documentoRispostaForm.setFields(
+				idTipoDocumentoRispostaItem,
+				descTipoDocumentoRispostaItem,
+				codCategoriaAltraNumerazioneRispostaItem,
+				siglaAltraNumerazioneRispostaItem,
+				flgTipoDocConVieProtRispostaItem,
+				flgOggettoNonObbligProtRispostaItem,
+				skipSceltaTipologiaDocumentoRispostaItem
 		);
 	}
 

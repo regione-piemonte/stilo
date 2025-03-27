@@ -1,35 +1,34 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
-
-import it.eng.utility.ui.servlet.fileExtractor.FileExtractor;
-import it.eng.utility.ui.servlet.fileExtractor.FileExtractorInstance;
-import it.eng.utility.ui.servlet.fileExtractor.impl.LocalFileExtractor;
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.servlet;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import it.eng.utility.ui.servlet.fileExtractor.FileExtractor;
+import it.eng.utility.ui.servlet.fileExtractor.FileExtractorInstance;
+import it.eng.utility.ui.servlet.fileExtractor.impl.LocalFileExtractor;
+
 /**
  * Servlet di init per istanziare il server ADempiere
+ * 
  * @author michele
  *
  */
@@ -41,27 +40,25 @@ public class DownloadServlet {
 
 	Logger logger = Logger.getLogger(DownloadServlet.class);
 
-	@RequestMapping(value="", method=RequestMethod.GET)
+	@RequestMapping(value = "", method = RequestMethod.GET)
 	@ResponseBody
-	public HttpEntity download(HttpServletRequest req, HttpServletResponse resp)
-	throws ServletException, IOException {
-
-		HttpHeaders header = new HttpHeaders();
-		header.setContentType(new MediaType("octet", "stream"));
+	public void download(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		String filename = null;
-		byte[] documentBody = null;
-
-		//Distinguo che tiupo di download sto facendo
-		Boolean fromRecord = StringUtils.isNotBlank(req.getParameter("fromRecord")) ? Boolean.valueOf(req.getParameter("fromRecord")) : null;
+		long fileLength = 0;
+		// Distinguo che tiupo di download sto facendo
+		Boolean fromRecord = StringUtils.isNotBlank(req.getParameter("fromRecord"))
+				? Boolean.valueOf(req.getParameter("fromRecord"))
+				: null;
 		try {
-			if(fromRecord != null) {
+			InputStream stream = null;
+			if (fromRecord != null) {
 				FileExtractor lFileExtractor;
-				InputStream stream;
-				if (!fromRecord){
+				if (!fromRecord) {
 					try {
 						lFileExtractor = new LocalFileExtractor(req);
 						filename = lFileExtractor.getFileName();
 						stream = lFileExtractor.getStream();
+						fileLength = lFileExtractor.getFileLength();
 					} catch (Exception e) {
 						throw new ServletException(e);
 					}
@@ -71,90 +68,75 @@ public class DownloadServlet {
 						lFileExtractor = FileExtractorInstance.getInstance().getRelatedFileExtractor(recordType, req);
 						filename = lFileExtractor.getFileName();
 						stream = lFileExtractor.getStream();
+						fileLength = lFileExtractor.getFileLength();
 					} catch (Exception e) {
 						throw new ServletException(e);
 					}
 				}
-				try {
-					documentBody = IOUtils.toByteArray(stream);
-				} catch (Exception e2) {
-					throw new ServletException(e2);
-				}
 			} else {
 				filename = (String) req.getParameter("filename");
 				String uri = (String) req.getParameter("uri");
-				if(uri != null && !"".equals(uri)) {
-					File file = new File(uri);	
-					try {
-						documentBody = IOUtils.toByteArray(FileUtils.openInputStream(file));
-					} catch (Exception e2) {
-						throw new ServletException(e2);
-					}
-				} 
+				if (uri != null && !"".equals(uri)) {
+					File file = new File(uri);
+					fileLength = file.length();
+					stream = FileUtils.openInputStream(file);
+				}
 
 			}
-			header.set("Content-Disposition",
-					"attachment; filename=\"" + filename+"\"");
-			header.setContentLength(documentBody.length);
-			return new HttpEntity<byte[]>(documentBody, header);
+			
+			resp.setContentType(MediaType.APPLICATION_OCTET_STREAM.toString());
+			resp.addHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+			resp.setHeader("Content-Length", ""+fileLength);
+//			resp.setContentLength((int) fileLength);
+//			resp.setContentLength(stream.available()); //aviable da un numero non corretto
+			//per far uscire la dimensione totale durante il download è necessario settare in questo punto la grandezza del file
+
+			try (InputStream inputStream = new BufferedInputStream(stream);
+					OutputStream outputStream = new BufferedOutputStream(resp.getOutputStream())) {
+
+				byte[] buffer = new byte[4096]; // Dimensione del buffer in byte
+				int bytesRead;
+				long totalBytesRead = 0;
+
+				while ((bytesRead = inputStream.read(buffer)) != -1) {
+					outputStream.write(buffer, 0, bytesRead);
+					outputStream.flush();
+					totalBytesRead += bytesRead;
+				}
+				
+			    resp.setHeader("Content-Length", String.valueOf(totalBytesRead));
+			    outputStream.close();
+			} catch (IOException e) {
+			    throw new ServletException(e);
+			} 
 		} catch (Exception e) {
+			
 			logger.error("Errore download " + e.getMessage(), e);
-			HttpHeaders responseHeaders = new HttpHeaders();
-			responseHeaders.setContentType(MediaType.TEXT_HTML);
-			responseHeaders.setCacheControl("private, no-store, no-cache, must-revalidate");
-			responseHeaders.add("Content-Type", "text/html;charset=ISO-8859-1");
-			responseHeaders.add("Cache-Control", "private, no-store, no-cache, must-revalidate");
+
+			// Imposta il tipo di contenuto della risposta
+			resp.setContentType(MediaType.TEXT_HTML.toString());
+			resp.addHeader("Content-Type", "text/html;charset=ISO-8859-1");
+			resp.addHeader("Cache-Control", "private, no-store, no-cache, must-revalidate");
+
+			resp.setStatus(HttpServletResponse.SC_OK);
+
 			StringBuffer lStringBuffer = new StringBuffer();
 			lStringBuffer.append("<html>");
 			lStringBuffer.append("<head>");
 			lStringBuffer.append("<body>");
 			lStringBuffer.append("<script>");
-			lStringBuffer.append("try {window.top.errorCallback('Impossibile effettuare il download del file'); } " +
-			"catch(err) {for (var p in err) alert(err[p])}");
+			lStringBuffer.append("try {window.top.errorCallback('Impossibile effettuare il download del file'); } "
+					+ "catch(err) {for (var p in err) alert(err[p])}");
 			lStringBuffer.append("</script>");
 			lStringBuffer.append("</body>");
 			lStringBuffer.append("</html>");
-			return new ResponseEntity<String>(lStringBuffer.toString(), responseHeaders, HttpStatus.OK);
+
+			// Scrivi il contenuto del StringBuffer nella risposta
+			PrintWriter writer = resp.getWriter();
+			writer.print(lStringBuffer.toString());
+			writer.flush();
+			writer.close();
 		}
 	}
 
-
-
-	/**
-	 * Scrive il file sullo stream di output
-	 * @param fileName
-	 * @param file
-	 * @param pHttpServletResponse 
-	 * @throws IOException 
-	 * @throws Exception 
-	 */
-	private void writeStreamToStream(String fileName, InputStream inputStream, HttpServletResponse pHttpServletResponse) throws IOException  {
-		BufferedInputStream lBufferedInputStream = null;
-		BufferedOutputStream lBufferedOutputStream = null;
-		try {	
-			pHttpServletResponse.setHeader("Content-Type", "octet/stream");
-			pHttpServletResponse.setHeader("Content-Length", String.valueOf(inputStream.available()));
-			pHttpServletResponse.setHeader("Content-disposition", "attachment;filename=\"" + fileName + "\"");
-			lBufferedInputStream = new BufferedInputStream(inputStream);
-			lBufferedOutputStream = new BufferedOutputStream(pHttpServletResponse.getOutputStream());
-			byte[] buf = new byte[1024];
-			while (true) {
-				int length = lBufferedInputStream.read(buf);
-				if (length == -1)
-					break;
-				lBufferedOutputStream.write(buf, 0, length);
-			}
-			lBufferedOutputStream.flush();	        
-		} catch (IOException e) {
-			throw e;
-		} finally {
-			try {lBufferedOutputStream.close();} catch (Exception e) {}
-			try {lBufferedInputStream.close();} catch (Exception e) {}
-		}		
-	}
-
 }
-
-
-
-

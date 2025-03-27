@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.stilo.logic.type;
 
 public enum EIntegrationResourceRP {
 
@@ -21,13 +22,13 @@ public enum EIntegrationResourceRP {
 	DELIBERA_GIUNTA_OMISSIS("DELGRO", "yyyy", 12, EDocumentFormat.DELIBERA_GIUNTA_OMISSIS, EEfficacy.PERFECT_EFFICACY, 5, 99),
 	ALLEGATO_DELIBERA_GIUNTA_OMISSIS("DELGRO_ALL",  EDocumentFormat.DELIBERA_GIUNTA_OMISSIS, EEfficacy.PERFECT_EFFICACY),
 	
-	REGISTRO_DETERMINE("DDRT", "yyyy", 12, EDocumentFormat.REGISTRO_DETERMINE,
+	REGISTRO_DETERMINE("REGDD", "yyyy", 12, EDocumentFormat.REGISTRO_DETERMINE,
             EEfficacy.PERFECT_EFFICACY_UNSIGNED, 5, 99),
-	REGISTRO_DECRETI_PRESIDENTE_GIUNTA("DDRT", "yyyy", 12, EDocumentFormat.REGISTRO_DETERMINE,
+	REGISTRO_DECRETI_PRESIDENTE_GIUNTA("REGDPGR", "yyyy", 12, EDocumentFormat.REGISTRO_DECRETI_PRESIDENTE_GIUNTA,
             EEfficacy.PERFECT_EFFICACY_UNSIGNED, 5, 99),
-	REGISTRO_ORDINANZE("DDRT", "yyyy", 12, EDocumentFormat.REGISTRO_DETERMINE,
+	REGISTRO_ORDINANZE("REGORD", "yyyy", 12, EDocumentFormat.REGISTRO_ORDINANZE,
             EEfficacy.PERFECT_EFFICACY_UNSIGNED, 5, 99),
-	REGISTRO_DELIBERE_GIUNTA("DDRT", "yyyy", 12, EDocumentFormat.REGISTRO_DETERMINE,
+	REGISTRO_DELIBERE_GIUNTA("REGDGR", "yyyy", 12, EDocumentFormat.REGISTRO_DELIBERE_GIUNTA,
             EEfficacy.PERFECT_EFFICACY_UNSIGNED, 5, 99),
     
 	REGISTRO_PUBBLICAZIONI("RPUBBL", "yyyy", 12, EDocumentFormat.REGISTRO_PUBBLICAZIONI,

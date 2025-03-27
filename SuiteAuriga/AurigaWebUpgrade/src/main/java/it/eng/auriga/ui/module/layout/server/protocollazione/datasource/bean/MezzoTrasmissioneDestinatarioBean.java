@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean;
 
 import java.util.Date;
 
@@ -29,8 +30,10 @@ public class MezzoTrasmissioneDestinatarioBean {
 	private String appendici;
 	private String tipoToponimo;
 	private String descrizioneMezzoTrasmissioneDestinatario;
+	private String flgObbligDettagliMezzoTrasmissioneDestinatario;
 	private String descrizioneIndirizzo;
 	private String ciToponimo;
+	private String indirizzoRubrica;
 	
 	public String getMezzoTrasmissioneDestinatario() {
 		return mezzoTrasmissioneDestinatario;
@@ -182,6 +185,12 @@ public class MezzoTrasmissioneDestinatarioBean {
 	public void setDescrizioneMezzoTrasmissioneDestinatario(String descrizioneMezzoTrasmissioneDestinatario) {
 		this.descrizioneMezzoTrasmissioneDestinatario = descrizioneMezzoTrasmissioneDestinatario;
 	}
+	public String getFlgObbligDettagliMezzoTrasmissioneDestinatario() {
+		return flgObbligDettagliMezzoTrasmissioneDestinatario;
+	}
+	public void setFlgObbligDettagliMezzoTrasmissioneDestinatario(String flgObbligDettagliMezzoTrasmissioneDestinatario) {
+		this.flgObbligDettagliMezzoTrasmissioneDestinatario = flgObbligDettagliMezzoTrasmissioneDestinatario;
+	}
 	public String getDescrizioneIndirizzo() {
 		return descrizioneIndirizzo;
 	}
@@ -193,6 +202,12 @@ public class MezzoTrasmissioneDestinatarioBean {
 	}
 	public void setCiToponimo(String ciToponimo) {
 		this.ciToponimo = ciToponimo;
+	}
+	public String getIndirizzoRubrica() {
+		return indirizzoRubrica;
+	}
+	public void setIndirizzoRubrica(String indirizzoRubrica) {
+		this.indirizzoRubrica = indirizzoRubrica;
 	}
 	    
 }

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.inviodoc;
 
 import it.eng.auriga.database.store.dmpk_int_mgo_email.bean.DmpkIntMgoEmailTrovarichinvioemailBean;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
@@ -99,8 +100,15 @@ public class RichiesteDocViaPecDataSource extends AbstractFetchDataSource<InvioD
 		Date dtInvioEmailA = null;
 
 		if (criteria != null && criteria.getCriteria() != null) {
+			boolean flgRicercaRicorsivaSettato = false;
 			for (Criterion crit : criteria.getCriteria()) {
-				if ("applicazioneRichiedente".equals(crit.getFieldName())) {
+				if ("flgRicercaRicorsiva".equals(crit.getFieldName())) {
+					if (StringUtils.isNotBlank((String) crit.getValue())) {
+						boolean flgRicorsiva = new Boolean((String) crit.getValue());
+						includiSottoCartelle = flgRicorsiva ? "1" : "0";
+						flgRicercaRicorsivaSettato = true;
+					} 
+				} else if ("applicazioneRichiedente".equals(crit.getFieldName())) {
 					String value = getTextFilterValue(crit);
 					if (StringUtils.isNotBlank(value)) {
 						lInvioDocViaMailFilterSezioneCache.setCodApplRichiedenti(value);
@@ -130,16 +138,15 @@ public class RichiesteDocViaPecDataSource extends AbstractFetchDataSource<InvioD
 				/*
 				else if ("searchFulltext".equals(crit.getFieldName())) {
 					// se sono entrato qui sono in modalità di ricerca con i filtri quindi imposto il valore di default a 1
-					includiSottoCartelle = "1";
+					 * if (!flgRicercaRicorsivaSettato) {
+						// Lo setto solamente non ho già settato il valore tramite il criterio flgRicercaRicorsiva
+						includiSottoCartelle = "1";
+					}
 					if (crit.getValue() != null) {					
 						Map map = (Map) crit.getValue();
 						filtroFullText = (String) map.get("parole");
 						ArrayList<String> lArrayList = (ArrayList<String>) map.get("attributi");
 						checkAttributes = lArrayList != null ? lArrayList.toArray(new String[] {}) : null;
-						Boolean flgRicorsiva = (Boolean) map.get("flgRicorsiva");
-						if (flgRicorsiva != null) {
-							includiSottoCartelle = flgRicorsiva ? "1" : "0";
-						}
 						String operator = crit.getOperator();
 						if (StringUtils.isNotBlank(operator)) {
 							if ("allTheWords".equals(operator)) {

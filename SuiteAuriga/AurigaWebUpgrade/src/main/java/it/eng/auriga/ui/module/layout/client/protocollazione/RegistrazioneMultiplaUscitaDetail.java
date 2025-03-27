@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -81,6 +82,7 @@ public class RegistrazioneMultiplaUscitaDetail extends ProtocollazioneDetailUsci
 	protected HiddenItem uriFileXlsDestinatariDiversiXRegItem;
 	protected HiddenItem idFoglioXlsDestinatariDiversiXRegItem;
 	protected HiddenItem destinatariDiversiXRegItem;
+	protected HiddenItem mimeFileXlsDestinatariDiversiXReg;
 	
 	private RecordList listaRecordCaricatiInUploadMultiplo = new RecordList();
 	
@@ -420,6 +422,7 @@ public class RegistrazioneMultiplaUscitaDetail extends ProtocollazioneDetailUsci
 				uploadFileXlsDestinatariDiversiXRegItem.getCanvas().redraw();
 				destinatariDiversiXRegForm.setValue("nomeFileXlsDestinatariDiversiXReg", "");
 				destinatariDiversiXRegForm.setValue("uriFileXlsDestinatariDiversiXReg", "");
+				destinatariDiversiXRegForm.setValue("mimeFileXlsDestinatariDiversiXReg", "");
 				idFoglioXlsDestinatariDiversiXRegItem.setValue("");
 				destinatariDiversiXRegItem.setValue(new RecordList());
 				destinatariDiversiXRegForm.markForRedraw();
@@ -434,6 +437,7 @@ public class RegistrazioneMultiplaUscitaDetail extends ProtocollazioneDetailUsci
 					GWTRestDataSource.printMessage(new MessageBean("Il file risulta in un formato non riconosciuto o non ammesso. I formati validi risultano essere xls/xlsx", "", MessageType.ERROR));
 					destinatariDiversiXRegForm.setValue("nomeFileXlsDestinatariDiversiXReg", "");
 					destinatariDiversiXRegForm.setValue("uriFileXlsDestinatariDiversiXReg", "");
+					destinatariDiversiXRegForm.setValue("mimeFileXlsDestinatariDiversiXReg", "");
 					idFoglioXlsDestinatariDiversiXRegItem.setValue("");
 					destinatariDiversiXRegItem.setValue(new RecordList());
 					destinatariDiversiXRegForm.markForRedraw();														
@@ -501,9 +505,9 @@ public class RegistrazioneMultiplaUscitaDetail extends ProtocollazioneDetailUsci
 			
 			@Override
 			public void onIconClick(IconClickEvent event) {
-				String uriTemplateFileExcel = AurigaLayout.getParametroDB("URI_TEMPLATE_DEST_DA_XLS");
+				String uriTemplateFileExcel = AurigaLayout.getParametroDB("URI_TEMPLATE_DEST_REG_MULTI_DA_XLS");
 				Record lRecord = new Record();
-				lRecord.setAttribute("displayFilename", "Destinatari.xlsx");
+				lRecord.setAttribute("displayFilename", "Template_DestinatariRegistrazioniMultiple.xlsx");
 				lRecord.setAttribute("uri", uriTemplateFileExcel);
 				lRecord.setAttribute("sbustato", "false");
 				lRecord.setAttribute("remoteUri", "true");
@@ -514,7 +518,7 @@ public class RegistrazioneMultiplaUscitaDetail extends ProtocollazioneDetailUsci
 			
 			@Override
 			public boolean execute(FormItem item, Object value, DynamicForm form) {
-				String uriTemplateFileExcel = AurigaLayout.getParametroDB("URI_TEMPLATE_DEST_DA_XLS");
+				String uriTemplateFileExcel = AurigaLayout.getParametroDB("URI_TEMPLATE_DEST_REG_MULTI_DA_XLS");
 				return uriTemplateFileExcel!=null && !"".equalsIgnoreCase(uriTemplateFileExcel);
 			}
 		});
@@ -522,8 +526,10 @@ public class RegistrazioneMultiplaUscitaDetail extends ProtocollazioneDetailUsci
 		uriFileXlsDestinatariDiversiXRegItem = new HiddenItem("uriFileXlsDestinatariDiversiXReg");
 		idFoglioXlsDestinatariDiversiXRegItem = new HiddenItem("idFoglioXlsDestinatariDiversiXReg");
 		destinatariDiversiXRegItem = new HiddenItem("listaDestinatariDiversiXReg");			
+		mimeFileXlsDestinatariDiversiXReg = new HiddenItem("mimeFileXlsDestinatariDiversiXReg");			
 				
-		destinatariDiversiXRegForm.setFields(nomeFileXlsDestinatariDiversiXRegItem, uploadFileXlsDestinatariDiversiXRegItem, downloadFileXlsDestinatariDiversiXRegButton, downloadTemplateXlsDestinatariDiversiXRegButton, uriFileXlsDestinatariDiversiXRegItem, idFoglioXlsDestinatariDiversiXRegItem, destinatariDiversiXRegItem);
+		destinatariDiversiXRegForm.setFields(nomeFileXlsDestinatariDiversiXRegItem, uploadFileXlsDestinatariDiversiXRegItem, downloadFileXlsDestinatariDiversiXRegButton, downloadTemplateXlsDestinatariDiversiXRegButton, 
+				uriFileXlsDestinatariDiversiXRegItem, mimeFileXlsDestinatariDiversiXReg, idFoglioXlsDestinatariDiversiXRegItem, destinatariDiversiXRegItem);
 	}
 	
 	/**
@@ -547,6 +553,7 @@ public class RegistrazioneMultiplaUscitaDetail extends ProtocollazioneDetailUsci
 				lRecordFileXls.setAttribute("mimeType", infoFile.getMimetype());
 				lRecordFileXls.setAttribute("uriExcel", record.getAttribute("uriFileImportExcel"));
 				lRecordFileXls.setAttribute("nomeFile", record.getAttribute("nomeFile"));
+				destinatariDiversiXRegForm.setValue("mimeFileXlsDestinatariDiversiXReg", infoFile.getMimetype());
 				listaFileXls.add(lRecordFileXls);
 			}
 		}		
@@ -590,6 +597,7 @@ public class RegistrazioneMultiplaUscitaDetail extends ProtocollazioneDetailUsci
 					if (listaDestinatariCaricatiInError.getLength() > 0) {
 						destinatariDiversiXRegForm.setValue("nomeFileXlsDestinatariDiversiXReg", "");
 						destinatariDiversiXRegForm.setValue("uriFileXlsDestinatariDiversiXReg", "");
+						destinatariDiversiXRegForm.setValue("mimeFileXlsDestinatariDiversiXReg", "");
 						idFoglioXlsDestinatariDiversiXRegItem.setValue("");
 						destinatariDiversiXRegItem.setValue(new RecordList());
 						ErroreMassivoPopup erroreMassivoPopup = new ErroreMassivoPopup(getName(), "Riga", listaDestinatariCaricatiInError, numDestinatari, LARG_POPUP_ERR_MASS, ALT_POPUP_ERR_MASS, "Righe in errore dell'excel importato dei destinatari" );
@@ -870,10 +878,15 @@ public class RegistrazioneMultiplaUscitaDetail extends ProtocollazioneDetailUsci
 
 			@Override
 			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				makeFilePrimarioRequired();
 				if(flgFilePrincipaleUgualeXTutteRegItem.getValue() != null && _FLG_SI.equals(flgFilePrincipaleUgualeXTutteRegItem.getValue())) {
 					filePrimarioForm.show();
+//					filePrimarioForm.markForRedraw();
 				} else {
+//					nomeFilePrimarioItem.setAttribute("obbligatorio", false);
+//					nomeFilePrimarioItem.setTitle(getTitleNomeFilePrimario());
 					filePrimarioForm.hide();
+//					filePrimarioForm.markForRedraw();
 				}
 				return true;
 			}
@@ -1217,6 +1230,7 @@ public class RegistrazioneMultiplaUscitaDetail extends ProtocollazioneDetailUsci
 //				callback.execute(false);
 //			}
 		} else if(callback != null) {
+			Layout.addMessage(new MessageBean(I18NUtil.getMessages().validateError_message(), "", MessageType.ERROR));
 			callback.execute(false);
 		}
 	}
@@ -1235,7 +1249,7 @@ public class RegistrazioneMultiplaUscitaDetail extends ProtocollazioneDetailUsci
 					manageClickRegistra(lRecordToSave);		
 				} else {
 					abilRegistraButton = true; //Riabilito il pulsante di salvataggio
-					Layout.addMessage(new MessageBean(I18NUtil.getMessages().validateError_message(), "", MessageType.ERROR));
+//					Layout.addMessage(new MessageBean(I18NUtil.getMessages().validateError_message(), "", MessageType.ERROR));
 				}
 			}			
 		});		
@@ -1416,6 +1430,95 @@ public class RegistrazioneMultiplaUscitaDetail extends ProtocollazioneDetailUsci
 				});
 				erroreMassivoPopup.show();
 			}
+		}
+	}
+	
+
+	@Override
+	public boolean isRequiredFilePrimario() {
+		return flgFilePrincipaleUgualeXTutteRegItem != null && flgFilePrincipaleUgualeXTutteRegItem.getValue() != null && _FLG_SI.equals(flgFilePrincipaleUgualeXTutteRegItem.getValue());
+	}
+	
+	private void makeFilePrimarioRequired() {
+		if(showFilePrimarioForm()) {
+			
+			List<CustomValidator> filePrimarioValidators = new ArrayList<CustomValidator>();
+			
+			if(AurigaLayout.getParametroDBAsBoolean("FILE_REG_IN_UNICA_SOLUZIONE") && !isProtocollazioneDetailBozze()) {
+				CustomValidator lRequiredIfAllegatiPresenti = new CustomValidator() {
+					
+					@Override
+					protected boolean condition(Object value) {
+						boolean isValorizzatoPrimario = (value != null && !"".equals(value)) && uriFilePrimarioItem.getValue() != null
+								&& !"".equals(uriFilePrimarioItem.getValue());
+						RecordList listaAllegati = fileAllegatiForm.getValuesAsRecord().getAttributeAsRecordList("listaAllegati");
+						boolean isValorizzatoAllegati = listaAllegati != null && listaAllegati.get(0) != null && listaAllegati.get(0).getAttribute("uriFileAllegato") != null && !"".equals(listaAllegati.get(0).getAttributeAsString("uriFileAllegato"));
+						if (!isValorizzatoPrimario && isValorizzatoAllegati) {
+							return false;
+						} 
+						return true;
+					}
+				};
+				lRequiredIfAllegatiPresenti.setErrorMessage("File primario obbligatorio se presenti allegati");
+				filePrimarioValidators.add(lRequiredIfAllegatiPresenti);
+			}
+
+			if (isRequiredFilePrimario()) {
+				nomeFilePrimarioItem.setAttribute("obbligatorio", true);
+				nomeFilePrimarioItem.setTitle(FrontendUtil.getRequiredFormItemTitle(getTitleNomeFilePrimario()));
+				CustomValidator lRequiredFilePrimarioValidator = new CustomValidator() {
+	
+					@Override
+					protected boolean condition(Object value) {
+						if(isRequiredNomeFilePrimarioItem()) {
+							return (value != null && !"".equals(value)) && uriFilePrimarioItem.getValue() != null
+									&& !"".equals(uriFilePrimarioItem.getValue());
+						}
+						return true;
+					}
+				};
+				lRequiredFilePrimarioValidator.setErrorMessage("Campo obbligatorio");
+				filePrimarioValidators.add(lRequiredFilePrimarioValidator);
+			} else {
+				nomeFilePrimarioItem.setAttribute("obbligatorio", false);
+				nomeFilePrimarioItem.setTitle(getTitleNomeFilePrimario());
+			}
+	
+			CustomValidator lFormatoAmmessoFilePrimarioValidator = new CustomValidator() {
+	
+				@Override
+				protected boolean condition(Object value) {
+					InfoFileRecord infoFile = filePrimarioForm.getValue("infoFile") != null
+							? new InfoFileRecord(filePrimarioForm.getValue("infoFile")) : null;
+					return isFormatoAmmessoFilePrimario(infoFile);
+				}
+			};
+			lFormatoAmmessoFilePrimarioValidator.setErrorMessage("Formato non ammesso");
+			filePrimarioValidators.add(lFormatoAmmessoFilePrimarioValidator);
+			
+			CustomValidator lRequiredA2A = new CustomValidator() {
+				
+				@Override
+				protected boolean condition(Object value) {
+					
+					if(AurigaLayout.isAttivoClienteA2A() && (uriFilePrimarioItem.getValue() == null || "".equals(uriFilePrimarioItem.getValue()))) {
+						//REPERTORIO/PROTOCOLLO INTERNO SENZA FILE PRIMARIO
+						if(isRepertorioDetailInterno() || isProtocollazioneDetailInterna()) {
+							return false;
+						}
+						//REPERTORIO/PROTOCOLLO IN USCITA SENZA FILE PRIMARIO SE SENZA UO ABILITATA ALLA SCANSIONE
+						if((isRepertorioDetailUscita() || isProtocollazioneDetailUscita()) &&
+								(!isUOAbilitatoScansioneMassiva())) {
+							return false;
+						}						
+					}					
+					return true;
+				}
+			};
+			lRequiredA2A.setErrorMessage("Obbligatorio caricare il file primario");
+			filePrimarioValidators.add(lRequiredA2A);
+	
+			nomeFilePrimarioItem.setValidators(filePrimarioValidators.toArray(new CustomValidator[filePrimarioValidators.size()]));
 		}
 	}
 

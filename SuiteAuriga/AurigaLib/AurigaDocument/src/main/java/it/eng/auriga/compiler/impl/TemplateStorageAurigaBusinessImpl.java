@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.compiler.impl;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,6 +44,9 @@ public class TemplateStorageAurigaBusinessImpl implements TemplateStorage {
 		return lWSFileUtils.extract(null, storageUri);
 	}
 	
+	/**
+	 * STORE DEL FILE NELLA CARTELLA TEMPORANEA DELLO STORAGE
+	 */
 	@Override
 	public String store(File fileToStore, String... params) throws Exception{
 		WSFileUtils lWSFileUtils = new WSFileUtils();

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean;
 
 import it.eng.document.NumeroColonna;
 
@@ -24,9 +25,6 @@ public class TipoDocInProcessBean {
 	
 	@NumeroColonna(numero = "7")
 	private String flgPubblicaSeparato;
-	
-	@NumeroColonna(numero = "8")
-	private String flgRichiestaFirmaDigitale;
 		
 	public String getIdTipoDoc() {
 		return idTipoDoc;
@@ -82,14 +80,6 @@ public class TipoDocInProcessBean {
 	
 	public void setFlgPubblicaSeparato(String flgPubblicaSeparato) {
 		this.flgPubblicaSeparato = flgPubblicaSeparato;
-	}
-
-	public String getFlgRichiestaFirmaDigitale() {
-		return flgRichiestaFirmaDigitale;
-	}
-
-	public void setFlgRichiestaFirmaDigitale(String flgRichiestaFirmaDigitale) {
-		this.flgRichiestaFirmaDigitale = flgRichiestaFirmaDigitale;
 	}
 
 }

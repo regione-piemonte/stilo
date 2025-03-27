@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.job.generaRelataPubbl;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -233,6 +234,7 @@ public class GeneraRelataPubblicazioneJob extends AbstractJob<String> {
 					logger.info("Iniziata elaborazione del URI_MODELLO_RELATA " + currentJob.getIdJob());
 					
 					// Parametro TOKEN
+					/*
 					JobParameterBean filterBean4 = new JobParameterBean();
 					filterBean4.setIdJob(currentJob.getIdJob());
 					filterBean4.setParameterId(new BigDecimal(1));
@@ -240,8 +242,10 @@ public class GeneraRelataPubblicazioneJob extends AbstractJob<String> {
                     TFilterFetch<JobParameterBean> filter4 = new TFilterFetch<JobParameterBean>();
 					filter4.setFilter(filterBean4);
 					logger.info("Iniziata elaborazione TOKEN " + currentJob.getIdJob());
+					*/
 					
 					// Parametro ID_LAVORO
+					/*
 					JobParameterBean filterBean5 = new JobParameterBean();
 					filterBean5.setIdJob(currentJob.getIdJob());
 					filterBean5.setParameterId(new BigDecimal(1));
@@ -249,8 +253,10 @@ public class GeneraRelataPubblicazioneJob extends AbstractJob<String> {
                     TFilterFetch<JobParameterBean> filter5 = new TFilterFetch<JobParameterBean>();
 					filter5.setFilter(filterBean5);
 					logger.info("Iniziata elaborazione ID_LAVORO " + currentJob.getIdJob());
+					*/
 					
 					// Parametro FIRMA_REMOTA
+					/*
 					JobParameterBean filterBean6 = new JobParameterBean();
 					filterBean6.setIdJob(currentJob.getIdJob());
 					filterBean6.setParameterId(new BigDecimal(1));
@@ -258,6 +264,7 @@ public class GeneraRelataPubblicazioneJob extends AbstractJob<String> {
                     TFilterFetch<JobParameterBean> filter6 = new TFilterFetch<JobParameterBean>();
 					filter6.setFilter(filterBean6);
 					logger.info("Iniziata elaborazione FIRMA_REMOTA " + currentJob.getIdJob());
+					*/
 					
 					try {
                         
@@ -272,6 +279,7 @@ public class GeneraRelataPubblicazioneJob extends AbstractJob<String> {
 						bean.setUriModello(parameter3.getParameterValue());
 						
 						// recupero parametro token
+						/*
 						BmtJobParameters parameter4 = bmtJobParametersClient
 								.get(filterBean4);
 						
@@ -284,8 +292,10 @@ public class GeneraRelataPubblicazioneJob extends AbstractJob<String> {
 							String token = (String) getAttribute(JOBATTRKEY_TOKEN);
 							aurigaLoginBean.setToken(token);
 						}
+						*/
 						
 						// recupero parametro idUserLavoro
+						/*
 						BmtJobParameters parameter5 = bmtJobParametersClient
 								.get(filterBean5);
 						
@@ -298,8 +308,10 @@ public class GeneraRelataPubblicazioneJob extends AbstractJob<String> {
 							String idLavoro = (String) getAttribute(JOBATTRKEY_Id_LAVORO);
 							aurigaLoginBean.setIdUserLavoro(idLavoro);
 						}
+						*/
 						
 						// recupero parametro firma remota
+						/*
 						BmtJobParameters parameter6 = bmtJobParametersClient
 								.get(filterBean6);
 						
@@ -313,7 +325,8 @@ public class GeneraRelataPubblicazioneJob extends AbstractJob<String> {
 							firmaremota = (String) getAttribute(JOBATTRKEY_FIRMA_REMOTA);
 						}
 						
-						//String firmaremota = (String) getAttribute(JOBATTRKEY_FIRMA_REMOTA);
+						String firmaremota = (String) getAttribute(JOBATTRKEY_FIRMA_REMOTA);
+						*/
 						
 						logger.info(String.format("Il job %1$s è stato caricato in con successo ",currentJob.getIdJob()));
                         
@@ -350,7 +363,7 @@ public class GeneraRelataPubblicazioneJob extends AbstractJob<String> {
 								File allegatoDoc = ModelliUtility.getInstance().generaRelataAtto(aurigaLoginBean, bean);
 								
 								logger.info("FINE GENERA MODELLO");
-								//String firmaremota = (String) getAttribute(JOBATTRKEY_FIRMA_REMOTA);
+								String firmaremota = (String) getAttribute(JOBATTRKEY_FIRMA_REMOTA);
 								
 								if(firmaremota != null && 
 								   !firmaremota.equals("") &&
@@ -360,7 +373,8 @@ public class GeneraRelataPubblicazioneJob extends AbstractJob<String> {
 								
 								byte[] fileFirmato = null;
 								HsmArubaPdf pades = new HsmArubaPdf();
-								fileFirmato = pades.firmaPades(allegatoDoc, currentJob.getIdSpAoo());
+								fileFirmato = pades.firmaPades(allegatoDoc);
+								//fileFirmato = pades.firmaPades(allegatoDoc, currentJob.getIdSpAoo());
 								
 								logger.info("FINE FIRMA FILE");
 								logger.info("INIZIO SCRITTURA FILE");
@@ -794,8 +808,8 @@ public class GeneraRelataPubblicazioneJob extends AbstractJob<String> {
 
 		valid = tipoDominioValue != null && !tipoDominioValue.isEmpty();
 		
-		//String token = (String) getAttribute(JOBATTRKEY_TOKEN);
-		//String idLavoro = (String) getAttribute(JOBATTRKEY_Id_LAVORO);
+		String token = (String) getAttribute(JOBATTRKEY_TOKEN);
+		String idLavoro = (String) getAttribute(JOBATTRKEY_Id_LAVORO);
 		
 		if (valid) {
 
@@ -805,8 +819,8 @@ public class GeneraRelataPubblicazioneJob extends AbstractJob<String> {
 			specializzazioneBean.setTipoDominio(Integer.valueOf(tipoDominio));
 
 			aurigaLoginBean.setSpecializzazioneBean(specializzazioneBean);
-			//aurigaLoginBean.setToken(token);
-			//aurigaLoginBean.setIdUserLavoro(idLavoro);
+			aurigaLoginBean.setToken(token);
+			aurigaLoginBean.setIdUserLavoro(idLavoro);
 		} else {
 			logger.error("Tipo dominio non specificato");
 			return valid;

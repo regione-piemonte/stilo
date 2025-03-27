@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean.restrepresentation.output;
 
 import java.io.Serializable;
 import java.net.URL;
@@ -24,6 +25,7 @@ public class RicercaAgibilitaResponse implements Serializable {
 	private String protocollo;
 	private ElencoAgibilita elencoAgibilita;
 	private String pathServiceFile;
+	private String idRicerca;
 
 	public String getEsito() {
 		return esito;
@@ -63,5 +65,13 @@ public class RicercaAgibilitaResponse implements Serializable {
 
 	public void setPathServiceFile(String pathServiceFile) {
 		this.pathServiceFile = pathServiceFile;
+	}
+
+	public String getIdRicerca() {
+		return idRicerca;
+	}
+
+	public void setIdRicerca(String idRicerca) {
+		this.idRicerca = idRicerca;
 	}
 }

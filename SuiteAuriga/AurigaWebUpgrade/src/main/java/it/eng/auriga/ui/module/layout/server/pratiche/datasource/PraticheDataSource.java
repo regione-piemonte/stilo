@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.pratiche.datasource;
 
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
@@ -269,6 +270,14 @@ public class PraticheDataSource extends AbstractFetchDataSource<PraticaBean>{
 				bean.setIdDocAttestatoAvvioProc(scXmlDatiProc.getIdDocAttestatoAvvioProc());	
 				bean.setMessaggioUltimaAttivita(scXmlDatiProc.getMessaggioUltimaAttivita());
 				bean.setListaModelliAttivita(scXmlDatiProc.getListaModelliAttivita());
+				// Stampo dei log per verificare i dati dei modelli
+				if (bean.getListaModelliAttivita() != null && bean.getListaModelliAttivita().size() > 0) {
+					String logListaModelliAttivita = "(UtenteLoggato: " + loginBean.getDenominazione() + ", UtenteDelega: " + loginBean.getDelegaDenominazione() + ") Lista modelli attività: ";
+					for (ModelloAttivitaBean lModelloAttivitaBean : bean.getListaModelliAttivita()) {
+						logListaModelliAttivita += "[" + lModelloAttivitaBean.toString() + "]";
+					}
+					log.debug(logListaModelliAttivita);
+				}
 				bean.setWarningConcorrenza(scXmlDatiProc.getWarningConcorrenza());
 				bean.setIsAtto(scXmlDatiProc.getIsAtto());
 			}
@@ -282,10 +291,10 @@ public class PraticheDataSource extends AbstractFetchDataSource<PraticaBean>{
 	
 	public void setTestData(PraticaBean bean) {
 		
-		List<ModelloAttivitaBean> listaModelliAttivita = new ArrayList<ModelloAttivitaBean>();
+//		List<ModelloAttivitaBean> listaModelliAttivita = new ArrayList<ModelloAttivitaBean>();
 		
 //		ModelloAttivitaBean lModelloAttivitaBean = new ModelloAttivitaBean();	
-//		lModelloAttivitaBean.setActivityName("redazione_testo");
+//		lModelloAttivitaBean.setActivityName("redazione_testo_proposta");
 //		lModelloAttivitaBean.setIdTipoDoc(null);
 //		lModelloAttivitaBean.setNomeTipoDoc(null);
 //		lModelloAttivitaBean.setIdModello("111");
@@ -299,18 +308,27 @@ public class PraticheDataSource extends AbstractFetchDataSource<PraticaBean>{
 //		lModelloAttivitaBean.setPasswordFirmaAuto("kVGDxMzlLVyY");
 //		lModelloAttivitaBean.setFlgDelegaFirmaAuto(true);
 //		lModelloAttivitaBean.setFlgPostAvanzamentoFlusso(true);
+//		lModelloAttivitaBean.setIdDocAllegatoDaFirmare("11111111");
 //		listaModelliAttivita.add(lModelloAttivitaBean);
 		
 		
 //		ModelloAttivitaBean lModelloAttivitaBean1 = new ModelloAttivitaBean();	
-//		lModelloAttivitaBean1.setActivityName("firma_adottante");
+//		lModelloAttivitaBean1.setActivityName("redazione_testo_proposta");
 //		lModelloAttivitaBean1.setIdTipoDoc("9999");
 //		lModelloAttivitaBean1.setNomeTipoDoc("Proposta di decreto");
 //		lModelloAttivitaBean1.setIdModello("175");
 //		lModelloAttivitaBean1.setNomeModello("Parere di regolarità tecnica delibera di Giunta");
 //		lModelloAttivitaBean1.setFlgDaFirmare(true);
+//		lModelloAttivitaBean1.setFlgFirmaAuto(true);
+//		lModelloAttivitaBean1.setProviderFirmaAuto("ARUBA_FA");
+//		lModelloAttivitaBean1.setFirmaInDelegaFirmaAuto("mferrign");
+//		lModelloAttivitaBean1.setUserIdFirmaAuto("cosnigro");
+//		lModelloAttivitaBean1.setPasswordFirmaAuto("kVGDxMzlLVyY");
+//		lModelloAttivitaBean1.setFlgDelegaFirmaAuto(true);
 //		lModelloAttivitaBean1.setNomeFile("modello_firma_adottante_1");
-//		lModelloAttivitaBean1.setEsitiXGenModello("esito1|*|esito2");
+//		lModelloAttivitaBean1.setEsitiXGenModello("pronta, prosegui iter");
+//		lModelloAttivitaBean1.setIdDocAllegatoDaFirmare("8418447");
+//		lModelloAttivitaBean1.setFlgParteDispositivo(true);
 //		listaModelliAttivita.add(lModelloAttivitaBean1);
 //		ModelloAttivitaBean lModelloAttivitaBean2 = new ModelloAttivitaBean();	
 //		lModelloAttivitaBean2.setActivityName("firma_adottante");

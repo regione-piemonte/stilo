@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.LinkedHashMap;
 
@@ -680,6 +681,8 @@ public class MittenteProtEntrataCanvas extends IndirizzoCanvas {
 
 			@Override
 			public void onChanged(ChangedEvent event) {
+				boolean checked = event.getValue() != null && (Boolean) event.getValue();
+				flgAssegnaAlMittenteItem.setAttribute("valueAfterChange", checked ? "true" : "false");
 				((MittenteProtItem) getItem()).manageChangedFlgAssegnaAlMittente(mDynamicForm.getValuesAsRecord());
 				mDynamicForm.redraw();
 			}
@@ -856,7 +859,13 @@ public class MittenteProtEntrataCanvas extends IndirizzoCanvas {
 					}
 					// se il soggetto è selezionabile per l'assegnazione allora setto il check al valore di default
 					if(flgSelXAssegnazione) {
-						mDynamicForm.setValue("flgAssegnaAlMittente", ((MittenteProtItem) getItem()).getFlgAssegnaAlMittenteDefault());
+						// se l'utente ha modificato il valore del check "effettua assegnazione", rispetto a quello di default, allora devo caricare quello
+						Boolean flgAssegnaAlMittenteValueAfterChange = flgAssegnaAlMittenteItem.getAttribute("valueAfterChange") != null ? "true".equals(flgAssegnaAlMittenteItem.getAttribute("valueAfterChange")) : null;
+						if(flgAssegnaAlMittenteValueAfterChange != null) {
+							mDynamicForm.setValue("flgAssegnaAlMittente", flgAssegnaAlMittenteValueAfterChange);
+						} else {
+							mDynamicForm.setValue("flgAssegnaAlMittente", ((MittenteProtItem) getItem()).getFlgAssegnaAlMittenteDefault());
+						}
 						((MittenteProtItem) getItem()).manageChangedFlgAssegnaAlMittente(mDynamicForm.getValuesAsRecord());
 					} 
 				}						

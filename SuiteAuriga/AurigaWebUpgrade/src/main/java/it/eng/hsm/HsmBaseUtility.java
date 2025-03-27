@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.hsm;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -70,6 +71,7 @@ import it.eng.utility.storageutil.StorageService;
 import it.eng.utility.ui.servlet.bean.MimeTypeFirmaBean;
 import it.eng.utility.ui.user.AurigaUserUtil;
 import it.eng.utility.ui.user.ParametriDBUtil;
+import it.eng.xml.XmlUtilityDeserializer;
 
 
 /**
@@ -588,7 +590,7 @@ public class HsmBaseUtility {
 		return bean;
 	}
 
-	private static void apriSessioneFirmaSeRichiesto(HttpSession session, Hsm hsmClient) throws HsmClientConfigException, HsmClientSignatureException {
+	protected static void apriSessioneFirmaSeRichiesto(HttpSession session, Hsm hsmClient) throws HsmClientConfigException, HsmClientSignatureException {
 		if (hsmClient.getHsmConfig().getClientConfig().isRequireSignatureInSession()) {
 			// Se richiesto dal provider, devo eseguire tutte le firme nella stessa sessione. Ne apro una e salvo il suo id
 			try {
@@ -612,7 +614,7 @@ public class HsmBaseUtility {
 		}
 	}
 	
-	private static void chiudiSessioneFirmaSeRichiesto(HttpSession session, Hsm hsmClient) throws HsmClientConfigException {
+	protected static void chiudiSessioneFirmaSeRichiesto(HttpSession session, Hsm hsmClient) throws HsmClientConfigException {
 		if (hsmClient.getHsmConfig().getClientConfig().isRequireSignatureInSession()) {
 			// Se avevo aperto una sessione di firma, la devo chiudere
 			try {
@@ -824,6 +826,39 @@ public class HsmBaseUtility {
 		}
 		userDescription += ")";
 		return userDescription;
+	}
+	
+	public static String getTipoHsm(String providerHsm, boolean returnDefaultDBValueIfNull, HttpSession session) throws Exception {
+		String xmlParametriHsm;
+		if (StringUtils.isNotBlank(providerHsm)) {
+			xmlParametriHsm = ParametriDBUtil.getParametroDB(session, "HSM_PARAMETERS_" + providerHsm);
+		} else {
+			xmlParametriHsm = ParametriDBUtil.getParametroDB(session, "HSM_PARAMETERS");
+		}
+		
+		XmlUtilityDeserializer lXmlUtility = new XmlUtilityDeserializer();
+		try {
+			ClientConfig clientConfig = lXmlUtility.unbindXml(xmlParametriHsm, ClientConfig.class);
+			
+			if (StringUtils.isNotBlank(clientConfig.getHsmType())) {
+				return clientConfig.getHsmType();
+			} else {
+				if (returnDefaultDBValueIfNull) {
+					return ParametriDBUtil.getParametroDB(session, "TIPO_HSM");
+				} else {
+					log.error("Errore nel recupero di ClientConfig per determinare il providerHsm. providerHsm: " + providerHsm);
+					throw new Exception("Errore nel recupero del parametro hsmType dalla stringa di configurazione");
+				}
+			}
+		} catch(Exception e) {
+			if (returnDefaultDBValueIfNull) {
+				log.error("Errore nel recupero di ClientConfig per determinare il providerHsm. Uso quello nel parametro DB TIPO_HSM", e);
+				return ParametriDBUtil.getParametroDB(session, "TIPO_HSM");
+			} else {
+				log.error("Errore nel recupero di ClientConfig per determinare il providerHsm. providerHsm: " + providerHsm);
+				throw new Exception("Errore nel recupero del parametro hsmType dalla stringa di configurazione");
+			}
+		}
 	}
 
 }

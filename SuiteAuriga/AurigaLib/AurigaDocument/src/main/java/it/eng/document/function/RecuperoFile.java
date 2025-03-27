@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -6,13 +7,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+
 import it.eng.auriga.database.store.dmpk_core.bean.DmpkCoreExtractverdocBean;
 import it.eng.auriga.database.store.dmpk_core.store.Extractverdoc;
 import it.eng.auriga.database.store.result.bean.StoreResultBean;
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
-import it.eng.auriga.repository2.jaxws.webservices.addunitadoc.AttachWSBean;
 import it.eng.core.annotation.Operation;
 import it.eng.core.annotation.Service;
+import it.eng.document.function.bean.AttachWSBean;
 import it.eng.document.function.bean.ExtractVerDocOutBean;
 import it.eng.document.function.bean.FileExtractedIn;
 import it.eng.document.function.bean.FileExtractedOut;

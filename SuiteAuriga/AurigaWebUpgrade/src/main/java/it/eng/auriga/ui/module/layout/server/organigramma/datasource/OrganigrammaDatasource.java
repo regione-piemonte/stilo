@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.organigramma.datasource;
 
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -1447,8 +1448,15 @@ public class OrganigrammaDatasource extends AurigaAbstractFetchDatasource<Organi
 		
 		
 		if (criteria != null && criteria.getCriteria() != null) {
+			boolean flgRicercaRicorsivaSettato = false;
 			for (Criterion crit : criteria.getCriteria()) {
-				if ("idFolder".equals(crit.getFieldName())) {
+				if ("flgRicercaRicorsiva".equals(crit.getFieldName())) {
+					if (StringUtils.isNotBlank((String) crit.getValue())) {
+						boolean flgRicorsiva = new Boolean((String) crit.getValue());
+						includiSottoCartelle = flgRicorsiva ? "1" : "0";
+						flgRicercaRicorsivaSettato = true;
+					}
+				} else if ("idFolder".equals(crit.getFieldName())) {
 					if (StringUtils.isNotBlank((String) crit.getValue())) {
 						idFolder = new Integer(String.valueOf(crit.getValue()));
 					}
@@ -1479,16 +1487,15 @@ public class OrganigrammaDatasource extends AurigaAbstractFetchDatasource<Organi
 					}
 				} else if ("searchFulltext".equals(crit.getFieldName())) {
 					// se sono entrato qui sono in modalitÃ  di ricerca con i filtri quindi imposto il valore di default a 1
-					includiSottoCartelle = "1";
+					if (!flgRicercaRicorsivaSettato) {
+						// Lo setto solamente non ho già settato il valore tramite il criterio flgRicercaRicorsiva
+						includiSottoCartelle = "1";
+					}
 					if (crit.getValue() != null) {
 						Map map = (Map) crit.getValue();
 						filtroFullText = (String) map.get("parole");
 						ArrayList<String> lArrayList = (ArrayList<String>) map.get("attributi");
 						checkAttributes = lArrayList != null ? lArrayList.toArray(new String[] {}) : null;
-						Boolean flgRicorsiva = (Boolean) map.get("flgRicorsiva");
-						if (flgRicorsiva != null) {
-							includiSottoCartelle = flgRicorsiva ? "1" : "0";
-						}
 						String operator = crit.getOperator();
 						if (StringUtils.isNotBlank(operator)) {
 							if ("allTheWords".equals(operator)) {

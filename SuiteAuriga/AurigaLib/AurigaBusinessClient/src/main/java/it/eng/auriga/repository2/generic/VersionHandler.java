@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.repository2.generic;
 
 import it.eng.auriga.function.bean.FindElenchiAlbiResultBean;
 import it.eng.auriga.repository2.lucene.LuceneParameterFilter;

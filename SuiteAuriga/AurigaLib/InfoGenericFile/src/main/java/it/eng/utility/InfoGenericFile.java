@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility;
 
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -81,6 +82,7 @@ public class InfoGenericFile {
 						lFirmatario.setCodiceActivityFirma(busta.getCodiceActivityFirma());
 						lFirmatario.setIdUtenteLavoroFirma(busta.getIdUtenteLavoroFirma());
 						lFirmatario.setIdUtenteLoggatoFirma(busta.getIdUtenteLoggatoFirma());
+						lFirmatario.setCfFirmatario(busta.getCfFirmatario());
 						Firmatario lFirmatarioControFirma = null;
 						if (busta.getControFirma() != null) {
 							Firmatari bustaControFirma = busta.getControFirma();
@@ -93,6 +95,7 @@ public class InfoGenericFile {
 							lFirmatarioControFirma.setInfoFirma(bustaControFirma.getInfoFirma());
 							lFirmatarioControFirma.setTipoFirma(bustaControFirma.getTipoFirma());
 							lFirmatarioControFirma.setBustaEsterna(("1".equalsIgnoreCase(bustaControFirma.getFiglioDi())) ? Flag.SETTED : Flag.NOT_SETTED);
+							lFirmatarioControFirma.setCfFirmatario(bustaControFirma.getCfFirmatario());
 						}
 						lFirmatario.setDataOraEmissioneCertificatoFirma(busta.getDataEmissione());
 						lFirmatario.setDataOraScadenzaCertificatoFirma(busta.getDataScadenza());

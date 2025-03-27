@@ -1,10 +1,10 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean.restrepresentation.input;
 
 import java.io.Serializable;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 
@@ -14,30 +14,24 @@ public class RicercaAgibilitaRequest implements Serializable {
 	
 
 	private static final long serialVersionUID = 2889372497024071623L;
-	@XmlElement(required = true)
 	private String codiceFiscaleRichiedente;
-	@XmlElement(required = true)
 	private String cognomeRichiedente;
-	@XmlElement(required = true)
 	private String nomeRichiedente;
-	@XmlElement(required = true)
 	private String emailRichiedente;
 	private String numeroTelefonoRichiedente;
 	private String codiceFiscaleDelegante;
 	private String cognomeDelegante;
 	private String nomeDelegante;
-	@XmlElement(required = true)
 	private String codiceToponomasticoViaImmobile;
-	@XmlElement(required = true)
 	private String viaImmobile;
-	@XmlElement(required = true)
 	private Integer numeroCivico;
 	private String appendiceCivico;
-	@XmlElement(required = true)
 	private String classificazioneRichiedente;
-	@XmlElement(required = true)
 	private String motivazioniRichiesta;
 	private String note;
+	private String TipoRequest; 
+	private String IdRicerca;
+	private String TipoRichiesta;
 	
 	//Parametri LogIn esterna
 	private String codApplicazione;
@@ -191,6 +185,34 @@ public class RicercaAgibilitaRequest implements Serializable {
 
 	public String getNote() {
 		return note;
+	}
+
+	public String getTipoRequest() {
+		return TipoRequest;
+	}
+
+	public void setTipoRequest(String tipoRequest) {
+		TipoRequest = tipoRequest;
+	}
+
+	public String getIdRicerca() {
+		return IdRicerca;
+	}
+
+	public void setIdRicerca(String idRicerca) {
+		IdRicerca = idRicerca;
+	}
+
+	public String getTipoRichiesta() {
+		return TipoRichiesta;
+	}
+
+	public void setTipoRichiesta(String tipoRichiesta) {
+		TipoRichiesta = tipoRichiesta;
+	}
+
+	public static long getSerialversionuid() {
+		return serialVersionUID;
 	}
 
 	public void setNote(String note) {

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import it.eng.document.NumeroColonna;
 
@@ -18,6 +19,9 @@ public class DistribuzioneBean implements Serializable{
 	@NumeroColonna(numero = "5")
    	private Flag assegna;
 	
+	@NumeroColonna(numero = "6")
+   	private String mezzoTrasmissioneDestinatario;
+	
 	public String getIdLista() {
 		return idLista;
 	}
@@ -35,6 +39,12 @@ public class DistribuzioneBean implements Serializable{
 	}
 	public void setAssegna(Flag assegna) {
 		this.assegna = assegna;
+	}
+	public String getMezzoTrasmissioneDestinatario() {
+		return mezzoTrasmissioneDestinatario;
+	}
+	public void setMezzoTrasmissioneDestinatario(String mezzoTrasmissioneDestinatario) {
+		this.mezzoTrasmissioneDestinatario = mezzoTrasmissioneDestinatario;
 	}
 	
 }

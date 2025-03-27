@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -68,7 +69,6 @@ public class PropostaAttoDetail extends ProtocollazioneDetailAtti implements Pro
 
 	protected Set<String> esitiTaskOk;
 	
-	protected RecordList listaRecordModelli;
 	protected HashMap<String, Record> controlliXEsitiTaskDoc;
 
 	public PropostaAttoDetail(String nomeEntita, String idProcess, String nomeFlussoWF, String processNameWF, String idUd, Record lRecordEvento,
@@ -107,9 +107,7 @@ public class PropostaAttoDetail extends ProtocollazioneDetailAtti implements Pro
 				Record esito = listaEsitiTaskOk.get(i);
 				esitiTaskOk.add(esito.getAttribute("valore"));
 			}			
-		}
-
-		this.listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
+		}		
 
 		RecordList listaControlliXEsitiTaskDoc = lRecordEvento != null ? lRecordEvento.getAttributeAsRecordList("controlliXEsitiTaskDoc") : null;
 		if (listaControlliXEsitiTaskDoc != null && listaControlliXEsitiTaskDoc.getLength() > 0) {
@@ -413,6 +411,8 @@ public class PropostaAttoDetail extends ProtocollazioneDetailAtti implements Pro
 					rowidDoc = lRecord.getAttribute("rowidDoc");
 					tipoDocumento = lRecord.getAttribute("tipoDocumento");
 					if (isEseguibile() && !isReadOnly()) {
+						// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+						RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 						if(listaRecordModelli != null && listaRecordModelli.getLength() > 0) {
 							RecordList listaAllegati = lRecord.getAttributeAsRecordList("listaAllegati");
 							for (int i = 0; i < listaRecordModelli.getLength(); i++) {
@@ -765,7 +765,9 @@ public class PropostaAttoDetail extends ProtocollazioneDetailAtti implements Pro
 	}
 	
 	public Record getRecordModelloXEsito(String esito) {
-		Record recordModello = null;		
+		Record recordModello = null;	
+		// listaRecordModelli va letta sempre da dettaglio e mai salvata come attributo di classe, altrimenti si perdono le sue modifiche nel passaggio da un task al successivo
+		RecordList listaRecordModelli = dettaglioPraticaLayout.getListaModelliAttivita(activityName);
 		if (listaRecordModelli != null && listaRecordModelli.getLength() > 0) {			
 			for (int i = 0; i < listaRecordModelli.getLength(); i++) {
 				String listaEsitiXGenModello = listaRecordModelli.get(i).getAttribute("esitiXGenModello");					

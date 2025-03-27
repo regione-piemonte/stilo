@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.common;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -107,15 +108,15 @@ public class PreferenceDataSource extends AbstractFetchDataSource<PreferenceBean
 					if(pref != null && pref instanceof NullPreferenceBean) {
 						pref = null;
 					}
-					if (pref != null && pref.getUserid() != null && pref.getUserid().startsWith("PUBLIC.")) {
+					if (pref != null && pref.getUserid() != null && (pref.getUserid().equals("PUBLIC") || pref.getUserid().startsWith("PUBLIC."))) {
 						if(bean.getEscludiPrefPublic() != null && bean.getEscludiPrefPublic()) {
 							pref = null;
 						}					
 					}
 				} else {
-					pref = getUserPreference(bean, startRow, endRow, orderByBeanList);
 //					pref = AurigaService.getDaoTUserPreferences().get(getLocale(), AurigaUserUtil.getLoginInfo(getSession()), bean);
-					if (pref != null && pref.getUserid() != null && pref.getUserid().startsWith("PUBLIC.")) {
+					pref = getUserPreference(bean);
+					if (pref != null && pref.getUserid() != null && (pref.getUserid().equals("PUBLIC") || pref.getUserid().startsWith("PUBLIC."))) {
 						if(bean.getEscludiPrefPublic() != null && bean.getEscludiPrefPublic()) {
 							pref = null;
 						}					
@@ -195,10 +196,9 @@ public class PreferenceDataSource extends AbstractFetchDataSource<PreferenceBean
 		return paginatorBean;
 	}
 	
-	public PreferenceBean getUserPreference(PreferenceBean bean, Integer startRow, Integer endRow,
-			List<OrderByBean> orderByBeanList) throws Exception {
+	public PreferenceBean getUserPreference(PreferenceBean bean) throws Exception {
 		if(StringUtils.isNotBlank(bean.getUserid()) && StringUtils.isNotBlank(bean.getPrefKey()) && StringUtils.isNotBlank(bean.getPrefName())) {				
-			List<PreferenceBean> lista = getListaUserPreference(bean, startRow, endRow, orderByBeanList); 
+			List<PreferenceBean> lista = getListaUserPreference(bean, 0, 1, null); 
 			PreferenceBean pref = lista != null && lista.size() == 1 ? lista.get(0) : null;
 			if (pref != null && pref.getUserid() != null && pref.getUserid().equals(bean.getUserid())) {
 				// devo prendere solo la preference che corrisponde a quell'userid
@@ -250,7 +250,7 @@ public class PreferenceDataSource extends AbstractFetchDataSource<PreferenceBean
 
 			for (PreferenceBean prefBean : lista) {
 				prefBean.setPrefKey(bean.getPrefKey());
-				if (prefBean.getUserid() != null && prefBean.getUserid().startsWith("PUBLIC.")) {
+				if (prefBean.getUserid() != null && (prefBean.getUserid().equals("PUBLIC") || prefBean.getUserid().startsWith("PUBLIC."))) {
 					prefBean.setKey(prefBean.getUserid() + "|*|" + prefBean.getPrefName());					
 					prefBean.setDisplayValue(prefBean.getPrefName() + "&nbsp;<img src=\"images/public.png\" height=\"12\" width=\"12\" align=MIDDLE/>");					
 					if(bean.getEscludiPrefPublic() != null && bean.getEscludiPrefPublic()) {
@@ -408,7 +408,8 @@ public class PreferenceDataSource extends AbstractFetchDataSource<PreferenceBean
 					pref = null;
 				}
 			} else {
-				pref = AurigaService.getDaoTUserPreferences().get(getLocale(), AurigaUserUtil.getLoginInfo(getSession()), bean);
+//				pref = AurigaService.getDaoTUserPreferences().get(getLocale(), AurigaUserUtil.getLoginInfo(getSession()), bean);
+				pref = getUserPreference(bean);
 				if(pref != null) {
 					if(pref.getValue() != null && (pref.getValue().contains("{") || pref.getValue().contains("}"))) {
 						try {
@@ -470,8 +471,9 @@ public class PreferenceDataSource extends AbstractFetchDataSource<PreferenceBean
 			cacheUserPreference.put(getKeyFromPreferenceBean(bean), bean);
 		} catch (Exception e){
 			mLogger.error("Si è verificato un errore durante la save della preference con " + getPreferenceInfo(bean), e);
+			throw new StoreException("Si è verificato un errore durante il salvataggio della preference");
 		}
-		if (bean.getUserid() != null && bean.getUserid().startsWith("PUBLIC.")) {
+		if (bean.getUserid() != null && (bean.getUserid().equals("PUBLIC") || bean.getUserid().startsWith("PUBLIC."))) {
 			bean.setKey(bean.getUserid() + "|*|" + bean.getPrefName());
 			bean.setDisplayValue(bean.getPrefName() + "&nbsp;<img src=\"images/public.png\" height=\"12\" width=\"12\" align=MIDDLE/>");
 		} else {
@@ -518,8 +520,9 @@ public class PreferenceDataSource extends AbstractFetchDataSource<PreferenceBean
 			cacheUserPreference.put(getKeyFromPreferenceBean(bean), bean);
 		} catch (Exception e){
 			mLogger.error("Si è verificato un errore durante l'update della preference con " + getPreferenceInfo(bean), e);
+			throw new StoreException("Si è verificato un errore durante il salvataggio della preference");
 		}
-		if (bean.getUserid() != null && bean.getUserid().startsWith("PUBLIC.")) {
+		if (bean.getUserid() != null && (bean.getUserid().equals("PUBLIC") || bean.getUserid().startsWith("PUBLIC."))) {
 			bean.setKey(bean.getUserid() + "|*|" + bean.getPrefName());
 			bean.setDisplayValue(bean.getPrefName() + "&nbsp;<img src=\"images/public.png\" height=\"12\" width=\"12\" align=MIDDLE/>");
 		} else {
@@ -559,6 +562,7 @@ public class PreferenceDataSource extends AbstractFetchDataSource<PreferenceBean
 			cacheUserPreference.remove(getKeyFromPreferenceBean(bean));
 		} catch (Exception e){
 			mLogger.error("Si è verificato un errore durante la delete della preference con " + getPreferenceInfo(bean), e);
+			throw new StoreException("Si è verificato un errore durante la cancellazione della preference");
 		}
 		return bean;
 	}

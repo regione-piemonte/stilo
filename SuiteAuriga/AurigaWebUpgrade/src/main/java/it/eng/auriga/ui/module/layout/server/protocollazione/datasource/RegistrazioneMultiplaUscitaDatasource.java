@@ -1,19 +1,41 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.protocollazione.datasource;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.Serializable;
+import java.math.BigInteger;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.beanutils.BeanUtilsBean2;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.FormulaEvaluator;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.util.CellReference;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFFormulaEvaluator;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.itextpdf.text.Document;
 import com.itextpdf.text.Element;
@@ -25,8 +47,12 @@ import com.itextpdf.text.pdf.PdfWriter;
 
 import it.eng.auriga.exception.StoreException;
 import it.eng.auriga.module.business.beans.AurigaLoginBean;
+import it.eng.auriga.ui.module.layout.server.caricamentorubriche.datasource.bean.CampoCaricamentoBean;
+import it.eng.auriga.ui.module.layout.server.caricamentorubriche.datasource.bean.XlsColumnRemapping;
 import it.eng.auriga.ui.module.layout.server.common.SezioneCacheAttributiDinamici;
+import it.eng.auriga.ui.module.layout.server.pratiche.nuovapropostaatto2.datasource.bean.ErroreRigaExcelBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.AllegatoProtocolloBean;
+import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.CaricamentoDestinatariExcelBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DestinatariRegistrazioneMultiplaUscitaXmlBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DestinatariXFileXlsRegMultiplaUscitaBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.DestinatarioProtBean;
@@ -34,15 +60,26 @@ import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.Esi
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.FileXlsDestinatariRegMultiplaUscitaBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.ImportaDestinatariFromXlsRegMultiplaUscitaBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.MezzoTrasmissioneDestinatarioBean;
+import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.MittenteProtBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.ProtocollazioneBean;
 import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.RegistrazioneMultiplaUscitaBean;
-import it.eng.client.GestioneDocumenti;
+import it.eng.auriga.ui.module.layout.server.protocollazione.datasource.bean.XmlColonneContenutiBean;
+import it.eng.bean.ExecutionResultBean;
+import it.eng.client.GestioneInserimentoRichXRegMultiplaUscita;
 import it.eng.document.function.bean.CreaDocWithFileBean;
 import it.eng.document.function.bean.CreaDocumentiRegMultiplaUscitaBean;
+import it.eng.document.function.bean.CreaFoglioXImportInBean;
+import it.eng.document.function.bean.FileInfoBean;
+import it.eng.document.function.bean.GenericFile;
+import it.eng.document.function.bean.GestioneInserimentoRichXRegMultiplaUscitaInBean;
+import it.eng.document.function.bean.GestioneInserimentoRichXRegMultiplaUscitaOutBean;
 import it.eng.document.function.bean.TipoNumerazioneBean;
+import it.eng.jaxb.variabili.Lista.Riga;
+import it.eng.jaxb.variabili.Lista.Riga.Colonna;
 import it.eng.jaxb.variabili.SezioneCache;
 import it.eng.jaxb.variabili.SezioneCache.Variabile;
 import it.eng.jaxb.variabili.SezioneCache.Variabile.Lista;
+import it.eng.services.fileop.InfoFileUtility;
 import it.eng.utility.FileUtil;
 import it.eng.utility.module.config.StorageImplementation;
 import it.eng.utility.pdfUtility.PdfUtil;
@@ -85,10 +122,27 @@ public class RegistrazioneMultiplaUscitaDatasource extends AbstractFetchDataSour
 		List<CreaDocWithFileBean> listaDocRegMultiplaUscita = new ArrayList<CreaDocWithFileBean>();
 		
 		if(bean.getListaDestinatariDiversiXReg() != null) {
+			String folderJob = ParametriDBUtil.getParametroDB(getSession(), "FOLDER_TEMP_ELABORAZIONI_FILE_REG_MULTI_USCITA");
+			HashMap<Integer, List<DestinatariRegistrazioneMultiplaUscitaXmlBean>> mappaRegistrazioniDest = new LinkedHashMap<Integer, List<DestinatariRegistrazioneMultiplaUscitaXmlBean>>();
+			int nroRegistrazione = 0;
 			for (DestinatariRegistrazioneMultiplaUscitaXmlBean lDestinatariDiversiXRegBean : bean.getListaDestinatariDiversiXReg()) {
-				
+				// per tutti i destinatari che hanno colonna "stessa reg. dest. precedente" vuota corrisponde una registrazione
+				// tutte le righe successive che hanno colonna "stessa reg. dest. precedente" settata a 1 sono destinatari che andranno nella stessa registrazione del primo (quello con colonna vuota)
+				// leggo i file solo sulla riga del primo destinatario della registrazione (quello con colonna vuota)
+				boolean isStessaRegDestPrec = lDestinatariDiversiXRegBean.getFlgStessaRegDestPrec() != null && "1".equals(lDestinatariDiversiXRegBean.getFlgStessaRegDestPrec());
+				if(isStessaRegDestPrec) {
+					if(mappaRegistrazioniDest.get(nroRegistrazione) != null) {
+						mappaRegistrazioniDest.get(nroRegistrazione).add(lDestinatariDiversiXRegBean);
+					}
+				} else {
+					nroRegistrazione++;
+					mappaRegistrazioniDest.put(nroRegistrazione, new ArrayList<DestinatariRegistrazioneMultiplaUscitaXmlBean>());
+					mappaRegistrazioniDest.get(nroRegistrazione).add(lDestinatariDiversiXRegBean);
+				}
+			}
+			for (Integer nroProgrReg : mappaRegistrazioniDest.keySet()) {
 				// Copio i dati a maschera nel bean di salvataggio
-				ProtocollazioneBean lProtocollazioneBean = createProtocollazioneBeanFromRegistrazioneMultiplaUscitaBean(bean, lDestinatariDiversiXRegBean);
+				ProtocollazioneBean lProtocollazioneBean = createProtocollazioneBeanFromRegistrazioneMultiplaUscitaBean(bean, mappaRegistrazioniDest.get(nroProgrReg), folderJob);
 				CreaDocWithFileBean lCreaDocWithFileBean = getProtocolloDataSource(bean).buildCreaDocWithFileBean(lProtocollazioneBean);
 				if(lProtocollazioneBean.getErroriFile() != null && !lProtocollazioneBean.getErroriFile().isEmpty()) {
 					bean.setErroriFile(lProtocollazioneBean.getErroriFile());
@@ -102,16 +156,59 @@ public class RegistrazioneMultiplaUscitaDatasource extends AbstractFetchDataSour
 		CreaDocumentiRegMultiplaUscitaBean lCreaDocumentiRegMultiplaUscitaBean = new CreaDocumentiRegMultiplaUscitaBean();
 		lCreaDocumentiRegMultiplaUscitaBean.setListaDocRegMultiplaUscita(listaDocRegMultiplaUscita);
 		
-		lCreaDocumentiRegMultiplaUscitaBean = new GestioneDocumenti().creadocumentiregistrazionemultiplauscita(getLocale(), lAurigaLoginBean, lCreaDocumentiRegMultiplaUscitaBean); //TODO come salvo lCreaDocumentoInBean, lFilePrimarioBean, lAllegatiBean in DB per il job di registrazione multipla in uscita?
+//		lCreaDocumentiRegMultiplaUscitaBean = new GestioneDocumenti().creadocumentiregistrazionemultiplauscita(getLocale(), lAurigaLoginBean, lCreaDocumentiRegMultiplaUscitaBean); //TODO come salvo lCreaDocumentoInBean, lFilePrimarioBean, lAllegatiBean in DB per il job di registrazione multipla in uscita?
 		
-		addMessage("Registrazione massiva in uscita effettuata con successo con id " + lCreaDocumentiRegMultiplaUscitaBean.getIdJob(), "", MessageType.INFO);
+		// INIZIO NUOVA GESTIONE
+		GestioneInserimentoRichXRegMultiplaUscitaInBean input = new GestioneInserimentoRichXRegMultiplaUscitaInBean();
+		
+		CreaFoglioXImportInBean importBean = new CreaFoglioXImportInBean();
+		
+		File extractFile = StorageImplementation.getStorage().extractFile(bean.getUriFileXlsDestinatariDiversiXReg());
+		MimeTypeFirmaBean infoFromFile = new InfoFileUtility().getInfoFromFile(extractFile.toURI().toString(), bean.getNomeFileXlsDestinatariDiversiXReg(), false, null);
+//		MimeTypeFirmaBean infoFromFile = new InfoFileUtility().getInfoFromFile(bean.getUriFileXlsDestinatariDiversiXReg(), bean.getNomeFileXlsDestinatariDiversiXReg(), false, null);
+		String algoritmo = infoFromFile.getAlgoritmo();
+		String encoding = infoFromFile.getEncoding();
+		String impronta = infoFromFile.getImpronta();
+		FileInfoBean fib = new FileInfoBean();
+		GenericFile gf = new GenericFile();
+		gf.setAlgoritmo(algoritmo);
+		gf.setEncoding(encoding);
+		gf.setImpronta(impronta);
+		fib.setAllegatoRiferimento(gf);
+		
+		importBean.setTipoContenuto("OP_AURIGA_REG_MULTIPLA_USCITA");
+		importBean.setUriFileExcel(bean.getUriFileXlsDestinatariDiversiXReg());
+		importBean.setInfo(fib);
+//		importBean.setFile(extractFile);
+		input.setXlsXImport(importBean);
+		
+		XmlColonneContenutiBean data = new XmlColonneContenutiBean();
+		data.setUri(bean.getUriFileXlsDestinatariDiversiXReg());
+		data.setMimetype(bean.getMimeFileXlsDestinatariDiversiXReg());
+		XmlColonneContenutiBean xmlFromDocumentRows = getXmlFromDocumentRows(data);
+		
+		input.setDettagliColonneXImportContentFoglio(xmlFromDocumentRows.getDettagliColonne());
+		input.setXmlContenutiXImportContentFoglio(xmlFromDocumentRows.getXmlContenuti());
+		
+		input.setpCreaDocumentiRegMultiplaUscitaBean(lCreaDocumentiRegMultiplaUscitaBean);
+		
+		GestioneInserimentoRichXRegMultiplaUscita service = new GestioneInserimentoRichXRegMultiplaUscita();
+		GestioneInserimentoRichXRegMultiplaUscitaOutBean outResult = service.creafoglioximport(getLocale(), lAurigaLoginBean, input);
+		// FINE NUOVA GESTIONE
+		if (outResult.getDefaultMessage() != null) {
+			logger.error("RegistrazioneMultiplaUscitaDatasource - creafoglioximport: " + outResult.getDefaultMessage());
+			throw new StoreException(outResult);
+		}
+		addMessage("Registrazione massiva in uscita effettuata con successo con id " + outResult.getIdJob(), "", MessageType.INFO);
 
 		return bean;
 	}
 	
-	private ProtocollazioneBean createProtocollazioneBeanFromRegistrazioneMultiplaUscitaBean(RegistrazioneMultiplaUscitaBean pRegistrazioneMultiplaUscitaBean, DestinatariRegistrazioneMultiplaUscitaXmlBean pDestinatariDiversiXRegBean) throws Exception {
+	private ProtocollazioneBean createProtocollazioneBeanFromRegistrazioneMultiplaUscitaBean(RegistrazioneMultiplaUscitaBean pRegistrazioneMultiplaUscitaBean, List<DestinatariRegistrazioneMultiplaUscitaXmlBean> pListaDestinatariDiversiXRegBean, String folderJob) throws Exception {
 
 		if(pRegistrazioneMultiplaUscitaBean != null) {			
+			
+			DestinatariRegistrazioneMultiplaUscitaXmlBean lFirstDestinatariDiversiXRegBean = pListaDestinatariDiversiXRegBean.get(0);
 			
 			ProtocollazioneBean lProtocollazioneBean = new ProtocollazioneBean();
 			
@@ -119,7 +216,7 @@ public class RegistrazioneMultiplaUscitaDatasource extends AbstractFetchDataSour
 			
 			lProtocollazioneBean.setFlgTipoProv("U");
 			
-			lProtocollazioneBean.setOggetto(generaOggettoWithPlaceholder(lProtocollazioneBean.getOggetto(), null, pDestinatariDiversiXRegBean));
+			lProtocollazioneBean.setOggetto(generaOggettoWithPlaceholder(lProtocollazioneBean.getOggetto(), null, lFirstDestinatariDiversiXRegBean));
 			
 			// Aggiungo i valori dei tab dinamici, tutti con il suffisso _Doc				
 			lProtocollazioneBean.setValori(new HashMap<String, Object>());		
@@ -164,60 +261,152 @@ public class RegistrazioneMultiplaUscitaDatasource extends AbstractFetchDataSour
 			
 			// Destinatari
 			List<DestinatarioProtBean> listaDestinatari = new ArrayList<DestinatarioProtBean>();
-			if(pDestinatariDiversiXRegBean != null) {
-//				DestinatarioProtBean lDestinatarioProtBean = new DestinatarioProtBean();
-//				lDestinatarioProtBean.setTipoDestinatario("XLS");
-//				lDestinatarioProtBean.setIdFoglioExcelDestinatari(pRegistrazioneMultiplaUscitaBean.getIdFoglioXlsDestinatariDiversiXReg());
-//				lDestinatarioProtBean.setDisplayFileNameExcel(pRegistrazioneMultiplaUscitaBean.getNomeFileXlsDestinatariDiversiXReg());
-//				listaDestinatari.add(lDestinatarioProtBean);
-				listaDestinatari.add(createDestinatarioProtBeanFromDestinatariDiversiXRegBean(pDestinatariDiversiXRegBean));
+			if(pListaDestinatariDiversiXRegBean != null) {
+				for(DestinatariRegistrazioneMultiplaUscitaXmlBean lDestinatariDiversiXRegBean : pListaDestinatariDiversiXRegBean) {
+//					DestinatarioProtBean lDestinatarioProtBean = new DestinatarioProtBean();
+//					lDestinatarioProtBean.setTipoDestinatario("XLS");
+//					lDestinatarioProtBean.setIdFoglioExcelDestinatari(pRegistrazioneMultiplaUscitaBean.getIdFoglioXlsDestinatariDiversiXReg());
+//					lDestinatarioProtBean.setDisplayFileNameExcel(pRegistrazioneMultiplaUscitaBean.getNomeFileXlsDestinatariDiversiXReg());
+//					listaDestinatari.add(lDestinatarioProtBean);
+					listaDestinatari.add(createDestinatarioProtBeanFromDestinatariDiversiXRegBean(lDestinatariDiversiXRegBean));
+				}
 			}
 			if(pRegistrazioneMultiplaUscitaBean.getListaDestinatari() != null) {
 				listaDestinatari.addAll(pRegistrazioneMultiplaUscitaBean.getListaDestinatari());
 			}
 			lProtocollazioneBean.setListaDestinatari(listaDestinatari);
 			
+			// Mittenti
+			for (MittenteProtBean mittente : lProtocollazioneBean.getListaMittenti()) {
+				String casellaMittente = pRegistrazioneMultiplaUscitaBean.getCasellaMittente();
+				mittente.setEmailMittente(casellaMittente);
+			}
+			
+			String pathDirJobs = "";
+			if ((pRegistrazioneMultiplaUscitaBean.getFlgFilePrincipaleUgualeXTutteReg() != null)
+					|| (lFirstDestinatariDiversiXRegBean != null && StringUtils.isNotBlank(pRegistrazioneMultiplaUscitaBean.getPercorsoFileAllegati()))
+					|| (pRegistrazioneMultiplaUscitaBean.getListaAllegati() != null && pRegistrazioneMultiplaUscitaBean.getListaAllegati().size() > 0)) {
+				long currentTimeMillis = System.currentTimeMillis();
+				pathDirJobs = folderJob + File.separator + currentTimeMillis;
+				File dir = new File(pathDirJobs);
+				if (!dir.exists()) {
+					dir.mkdir();
+				}
+			}
+			
 			// File primario
-			if(pRegistrazioneMultiplaUscitaBean.getFlgFilePrincipaleUgualeXTutteReg() != null && _FLG_NO.equalsIgnoreCase(pRegistrazioneMultiplaUscitaBean.getFlgFilePrincipaleUgualeXTutteReg())) {
-				if(pDestinatariDiversiXRegBean != null && StringUtils.isNotBlank(pRegistrazioneMultiplaUscitaBean.getPercorsoFilePrimari())) {					
-					File filePrimario = recuperaFilePrimarioDestinatario(pRegistrazioneMultiplaUscitaBean.getPercorsoFilePrimari(), pDestinatariDiversiXRegBean.getNomeFilePrimario());
-					if(filePrimario != null) {
-						lProtocollazioneBean.setFilePrimario(filePrimario);
-						lProtocollazioneBean.setPercorsoFilePrimari(pRegistrazioneMultiplaUscitaBean.getPercorsoFilePrimari());
-						lProtocollazioneBean.setNomeFilePrimario(pDestinatariDiversiXRegBean.getNomeFilePrimario());
-//						lProtocollazioneBean.setUriFilePrimario(StorageImplementation.getStorage().storeStream(new FileInputStream(filePrimario))); //TODO devo usare uno storage temporaneo ad hoc? magari creando una cartella con l'id relativo al job... oppure lascio il file nella cartella temporanea indicata e lo salvo nello storage del job di registrazione? quando cancello il file temporaneo dalla cartella temporanea visto che potrebbe essere condiviso per più registrazioni?
-//						lProtocollazioneBean.setRemoteUriFilePrimario(false);
-//						MimeTypeFirmaBean lMimeTypeFirmaBean = new InfoFileUtility().getInfoFromFile(filePrimario.toURI().toString(), filePrimario.getName(), false, null); //TODO non posso fare una chiamata per ogni file, se sono migliaia diventa lentissimo
-//						lProtocollazioneBean.setInfoFile(lMimeTypeFirmaBean);
+			if(pRegistrazioneMultiplaUscitaBean.getFlgFilePrincipaleUgualeXTutteReg() != null) {
+				if (_FLG_NO.equalsIgnoreCase(pRegistrazioneMultiplaUscitaBean.getFlgFilePrincipaleUgualeXTutteReg())) {
+					if(lFirstDestinatariDiversiXRegBean != null && StringUtils.isNotBlank(pRegistrazioneMultiplaUscitaBean.getPercorsoFilePrimari())) {					
+						File filePrimario = recuperaFilePrimarioDestinatario(pRegistrazioneMultiplaUscitaBean.getPercorsoFilePrimari(), lFirstDestinatariDiversiXRegBean.getNomeFilePrimario());
+						if(filePrimario != null) {
+							File filePrimarioCopiato = new File(pathDirJobs + File.separator + lFirstDestinatariDiversiXRegBean.getNomeFilePrimario());
+							if (!filePrimarioCopiato.exists()) {
+								FileUtils.copyFile(filePrimario, filePrimarioCopiato);
+							}
+							lProtocollazioneBean.setFilePrimario(filePrimarioCopiato);
+							lProtocollazioneBean.setPercorsoFilePrimari(pRegistrazioneMultiplaUscitaBean.getPercorsoFilePrimari());
+							lProtocollazioneBean.setNomeFilePrimario(lFirstDestinatariDiversiXRegBean.getNomeFilePrimario());
+							lProtocollazioneBean.setUriFilePrimario(filePrimarioCopiato.getPath()); //TODO devo usare uno storage temporaneo ad hoc? magari creando una cartella con l'id relativo al job... oppure lascio il file nella cartella temporanea indicata e lo salvo nello storage del job di registrazione? quando cancello il file temporaneo dalla cartella temporanea visto che potrebbe essere condiviso per più registrazioni?
+//							lProtocollazioneBean.setUriFilePrimario(StorageImplementation.getStorage().storeStream(new FileInputStream(filePrimario))); //TODO devo usare uno storage temporaneo ad hoc? magari creando una cartella con l'id relativo al job... oppure lascio il file nella cartella temporanea indicata e lo salvo nello storage del job di registrazione? quando cancello il file temporaneo dalla cartella temporanea visto che potrebbe essere condiviso per più registrazioni?
+							lProtocollazioneBean.setRemoteUriFilePrimario(false);
+//							MimeTypeFirmaBean lMimeTypeFirmaBean = new InfoFileUtility().getInfoFromFile(filePrimario.toURI().toString(), filePrimario.getName(), false, null); //TODO non posso fare una chiamata per ogni file, se sono migliaia diventa lentissimo
+//							lProtocollazioneBean.setInfoFile(lMimeTypeFirmaBean);
+						}
+					}
+				} else {
+					if (StringUtils.isNotBlank(pRegistrazioneMultiplaUscitaBean.getUriFilePrimario())) {
+						File filePrimario = StorageImplementation.getStorage().getRealFile(pRegistrazioneMultiplaUscitaBean.getUriFilePrimario());
+						if (filePrimario != null) {
+							File filePrimarioCopiato = new File(pathDirJobs + File.separator + "file_primario_condiviso_per_registrazioni" + File.separator + pRegistrazioneMultiplaUscitaBean.getInfoFile().getCorrectFileName());
+							if (!filePrimarioCopiato.exists()) {
+								FileUtils.copyFile(filePrimario, filePrimarioCopiato);
+							}
+							lProtocollazioneBean.setFilePrimario(filePrimarioCopiato);
+							lProtocollazioneBean.setPercorsoFilePrimari(null);
+							lProtocollazioneBean.setUriFilePrimario(filePrimarioCopiato.getPath());
+							lProtocollazioneBean.setRemoteUriFilePrimario(false);
+							lProtocollazioneBean.setInfoFile(pRegistrazioneMultiplaUscitaBean.getInfoFile()); // qui ho già calcolato l'infoFile quindi me lo passo avanti
+						}
 					}
 				}
 			}
 			
 			// File allegati
 			List<AllegatoProtocolloBean> listaAllegati = new ArrayList<AllegatoProtocolloBean>();
-			if(pDestinatariDiversiXRegBean != null && StringUtils.isNotBlank(pRegistrazioneMultiplaUscitaBean.getPercorsoFileAllegati())) {
-				StringSplitterServer st = new StringSplitterServer(pDestinatariDiversiXRegBean.getNomiFileAllegati(), ";");
-				while(st.hasMoreTokens()) {
-					String nomeFileAllegato = st.nextToken().trim();
-					File fileAllegato = recuperaFileAllegatoDestinatario(pRegistrazioneMultiplaUscitaBean.getPercorsoFileAllegati(), pDestinatariDiversiXRegBean.getPercorsoRelFileAllegati(), nomeFileAllegato);					
+			if(lFirstDestinatariDiversiXRegBean != null && StringUtils.isNotBlank(pRegistrazioneMultiplaUscitaBean.getPercorsoFileAllegati())) {
+				if (lFirstDestinatariDiversiXRegBean.getNomiFileAllegati() != null && lFirstDestinatariDiversiXRegBean.getNomiFileAllegati().contains(";")) {
+					StringSplitterServer st = new StringSplitterServer(lFirstDestinatariDiversiXRegBean.getNomiFileAllegati(), ";");
+					while(st.hasMoreTokens()) {
+						String nomeFileAllegato = st.nextToken().trim();
+						File fileAllegato = recuperaFileAllegatoDestinatario(pRegistrazioneMultiplaUscitaBean.getPercorsoFileAllegati(), lFirstDestinatariDiversiXRegBean.getPercorsoRelFileAllegati(), nomeFileAllegato);					
+						if(fileAllegato != null) {
+							File fileAllegatoCopiato = lFirstDestinatariDiversiXRegBean.getPercorsoRelFileAllegati() != null && !"".equals(lFirstDestinatariDiversiXRegBean.getPercorsoRelFileAllegati()) 
+									? new File(pathDirJobs + File.separator + lFirstDestinatariDiversiXRegBean.getPercorsoRelFileAllegati() + File.separator + nomeFileAllegato) 
+									: new File(pathDirJobs + File.separator + nomeFileAllegato);
+							if (!fileAllegatoCopiato.exists()) {
+								FileUtils.copyFile(fileAllegato, fileAllegatoCopiato);
+							}
+							AllegatoProtocolloBean lAllegatoProtocolloBean = new AllegatoProtocolloBean();
+							lAllegatoProtocolloBean.setFileAllegato(fileAllegatoCopiato);
+							lAllegatoProtocolloBean.setPercorsoRelFileAllegati(lFirstDestinatariDiversiXRegBean.getPercorsoRelFileAllegati());
+							lAllegatoProtocolloBean.setNomeFileAllegato(nomeFileAllegato);
+							lAllegatoProtocolloBean.setUriFileAllegato(fileAllegatoCopiato.getPath()); //TODO devo usare uno storage temporaneo ad hoc? magari creando una cartella con l'id relativo al job... oppure lascio il file nella cartella temporanea indicata e lo salvo nello storage del job di registrazione? quando cancello il file temporaneo dalla cartella temporanea visto che potrebbe essere condiviso per più registrazioni?
+//							lAllegatoProtocolloBean.setUriFileAllegato(StorageImplementation.getStorage().storeStream(new FileInputStream(fileAllegato))); //TODO devo usare uno storage temporaneo ad hoc? magari creando una cartella con l'id relativo al job... oppure lascio il file nella cartella temporanea indicata e lo salvo nello storage del job di registrazione? quando cancello il file temporaneo dalla cartella temporanea visto che potrebbe essere condiviso per più registrazioni?
+							lAllegatoProtocolloBean.setRemoteUri(false);
+//							MimeTypeFirmaBean lMimeTypeFirmaBean = new InfoFileUtility().getInfoFromFile(fileAllegato.toURI().toString(), fileAllegato.getName(), false, null); //TODO non posso fare una chiamata per ogni file, se sono migliaia diventa lentissimo
+//							lAllegatoProtocolloBean.setInfoFile(lMimeTypeFirmaBean);
+							listaAllegati.add(lAllegatoProtocolloBean);						
+						}
+					}
+				} else {
+					String nomeFileAllegato = lFirstDestinatariDiversiXRegBean.getNomiFileAllegati();
+					File fileAllegato = recuperaFileAllegatoDestinatario(pRegistrazioneMultiplaUscitaBean.getPercorsoFileAllegati(), lFirstDestinatariDiversiXRegBean.getPercorsoRelFileAllegati(), nomeFileAllegato);					
 					if(fileAllegato != null) {
+						File fileAllegatoCopiato = lFirstDestinatariDiversiXRegBean.getPercorsoRelFileAllegati() != null && !"".equals(lFirstDestinatariDiversiXRegBean.getPercorsoRelFileAllegati()) 
+								? new File(pathDirJobs + File.separator + lFirstDestinatariDiversiXRegBean.getPercorsoRelFileAllegati() + File.separator + nomeFileAllegato) 
+								: new File(pathDirJobs + File.separator + nomeFileAllegato);
+						if (!fileAllegatoCopiato.exists()) {
+							FileUtils.copyFile(fileAllegato, fileAllegatoCopiato);
+						}
 						AllegatoProtocolloBean lAllegatoProtocolloBean = new AllegatoProtocolloBean();
-						lAllegatoProtocolloBean.setFileAllegato(fileAllegato);
-						lAllegatoProtocolloBean.setPercorsoRelFileAllegati(pDestinatariDiversiXRegBean.getPercorsoRelFileAllegati());
+						lAllegatoProtocolloBean.setFileAllegato(fileAllegatoCopiato);
+						lAllegatoProtocolloBean.setPercorsoRelFileAllegati(lFirstDestinatariDiversiXRegBean.getPercorsoRelFileAllegati());
 						lAllegatoProtocolloBean.setNomeFileAllegato(nomeFileAllegato);
+						lAllegatoProtocolloBean.setUriFileAllegato(pathDirJobs + File.separator + (StringUtils.isNotBlank(lFirstDestinatariDiversiXRegBean.getPercorsoRelFileAllegati()) ? lFirstDestinatariDiversiXRegBean.getPercorsoRelFileAllegati() : "")); //TODO devo usare uno storage temporaneo ad hoc? magari creando una cartella con l'id relativo al job... oppure lascio il file nella cartella temporanea indicata e lo salvo nello storage del job di registrazione? quando cancello il file temporaneo dalla cartella temporanea visto che potrebbe essere condiviso per più registrazioni?
 //						lAllegatoProtocolloBean.setUriFileAllegato(StorageImplementation.getStorage().storeStream(new FileInputStream(fileAllegato))); //TODO devo usare uno storage temporaneo ad hoc? magari creando una cartella con l'id relativo al job... oppure lascio il file nella cartella temporanea indicata e lo salvo nello storage del job di registrazione? quando cancello il file temporaneo dalla cartella temporanea visto che potrebbe essere condiviso per più registrazioni?
-//						lAllegatoProtocolloBean.setRemoteUri(false);
+						lAllegatoProtocolloBean.setRemoteUri(false);
 //						MimeTypeFirmaBean lMimeTypeFirmaBean = new InfoFileUtility().getInfoFromFile(fileAllegato.toURI().toString(), fileAllegato.getName(), false, null); //TODO non posso fare una chiamata per ogni file, se sono migliaia diventa lentissimo
 //						lAllegatoProtocolloBean.setInfoFile(lMimeTypeFirmaBean);
 						listaAllegati.add(lAllegatoProtocolloBean);						
 					}
-	    		}
+				}
 			}
 			if(pRegistrazioneMultiplaUscitaBean.getListaAllegati() != null) {
-				listaAllegati.addAll(pRegistrazioneMultiplaUscitaBean.getListaAllegati());
+				List<AllegatoProtocolloBean> listaAllegatiComuniAlleRegistrazioni = pRegistrazioneMultiplaUscitaBean.getListaAllegati();
+				for (AllegatoProtocolloBean allegato : listaAllegatiComuniAlleRegistrazioni) {
+					File fileAllegato = StorageImplementation.getStorage().getRealFile(allegato.getUriFileAllegato());
+					if (fileAllegato != null) {
+						File fileAllegatoCopiato = new File(pathDirJobs + File.separator + "file_allegati_condivisi_per_registrazioni" + File.separator + allegato.getNomeFileAllegato());
+						if (!fileAllegatoCopiato.exists()) {
+							FileUtils.copyFile(fileAllegato, fileAllegatoCopiato);
+						}
+						AllegatoProtocolloBean lAllegatoProtocolloBean = new AllegatoProtocolloBean();
+						lAllegatoProtocolloBean.setFileAllegato(fileAllegatoCopiato);
+						lAllegatoProtocolloBean.setPercorsoRelFileAllegati(null);
+						lAllegatoProtocolloBean.setNomeFileAllegato(allegato.getNomeFileAllegato());
+						lAllegatoProtocolloBean.setUriFileAllegato(fileAllegatoCopiato.getPath()); //TODO devo usare uno storage temporaneo ad hoc? magari creando una cartella con l'id relativo al job... oppure lascio il file nella cartella temporanea indicata e lo salvo nello storage del job di registrazione? quando cancello il file temporaneo dalla cartella temporanea visto che potrebbe essere condiviso per più registrazioni?
+//						lAllegatoProtocolloBean.setUriFileAllegato(StorageImplementation.getStorage().storeStream(new FileInputStream(fileAllegato))); //TODO devo usare uno storage temporaneo ad hoc? magari creando una cartella con l'id relativo al job... oppure lascio il file nella cartella temporanea indicata e lo salvo nello storage del job di registrazione? quando cancello il file temporaneo dalla cartella temporanea visto che potrebbe essere condiviso per più registrazioni?
+						lAllegatoProtocolloBean.setRemoteUri(false);
+						lAllegatoProtocolloBean.setInfoFile(allegato.getInfoFile()); // qui ho già calcolato l'infoFile quindi me lo passo avanti
+						listaAllegati.add(lAllegatoProtocolloBean);		
+					}
+				}
+//				listaAllegati.addAll(pRegistrazioneMultiplaUscitaBean.getListaAllegati());
 			}
 			lProtocollazioneBean.setListaAllegati(listaAllegati);
 			lProtocollazioneBean.setPercorsoFileAllegati(pRegistrazioneMultiplaUscitaBean.getPercorsoFileAllegati());
+			lProtocollazioneBean.setNumRigaInTabContFoglio(lFirstDestinatariDiversiXRegBean.getNumRigaInTabContFoglio());
 			
 			return lProtocollazioneBean;
 		}
@@ -261,10 +450,19 @@ public class RegistrazioneMultiplaUscitaDatasource extends AbstractFetchDataSour
 					lMezzoTrasmissioneDestinatarioBean.setMezzoTrasmissioneDestinatario("NM");
 				} else if(pDestinatariDiversiXRegBean.getMezzoTrasmissione().equalsIgnoreCase(MezzoTrasmissione.PEC.getValue())) {
 					lMezzoTrasmissioneDestinatarioBean.setMezzoTrasmissioneDestinatario("PEC");
+					if(StringUtils.isNotBlank(pDestinatariDiversiXRegBean.getEmail())) {
+						lMezzoTrasmissioneDestinatarioBean.setIndirizzoPECDestinatario(pDestinatariDiversiXRegBean.getEmail());
+					}
 				} else if(pDestinatariDiversiXRegBean.getMezzoTrasmissione().equalsIgnoreCase(MezzoTrasmissione.PEO.getValue())) {
 					lMezzoTrasmissioneDestinatarioBean.setMezzoTrasmissioneDestinatario("PEO");
+					if(StringUtils.isNotBlank(pDestinatariDiversiXRegBean.getEmail())) {
+						lMezzoTrasmissioneDestinatarioBean.setIndirizzoPEODestinatario(pDestinatariDiversiXRegBean.getEmail());
+					}
 				} else if(pDestinatariDiversiXRegBean.getMezzoTrasmissione().equalsIgnoreCase(MezzoTrasmissione.EMAIL.getValue())) {
 					lMezzoTrasmissioneDestinatarioBean.setMezzoTrasmissioneDestinatario("EMAIL");
+					if(StringUtils.isNotBlank(pDestinatariDiversiXRegBean.getEmail())) {
+						lMezzoTrasmissioneDestinatarioBean.setIndirizzoMailDestinatario(pDestinatariDiversiXRegBean.getEmail());
+					}
 				}
 			}
 			/*
@@ -272,12 +470,12 @@ public class RegistrazioneMultiplaUscitaDatasource extends AbstractFetchDataSour
 			 * - Toponimo => TipoToponimo => TipoToponimo col. 49
 			 * - Indirizzo => Indirizzo e Toponimo => ToponimoIndirizzo col. 25
 			 * - NumCivico => Civico => Civico col. 27
-			 * - AppendiceCivico => Appendici o Interno ? => Appendici col. 47 o Interno col. 28 ?
+			 * - AppendiceCivico => Appendici => Appendici col. 47
 			 * - ComuneCittaEstera => NomeComune e Citta => NomeComuneCitta col. 33 (e cod. istat Comune col. 32 ?)
 			 * - Cap => Cap => Cap col. 31
 			 * - StatoEstero => NomeStato => NomeStato col. 35 (e cod. istat Stato col. 34 ?)
-			 * - Localita => Zona o Frazione ? => Zona col. 45 o Frazione col. 26 ?
-			 * - IndirizzoRubrica => ? => ?		
+			 * - Localita => Frazione => Frazione col. 26
+			 * - IndirizzoRubrica => ? => col. 58		
 			 */
 			if(ParametriDBUtil.getParametroDBAsBoolean(getSession(), "ATTIVA_INDIRIZZO_DEST_ESTESI")) {
 				// dati indirizzo
@@ -293,20 +491,24 @@ public class RegistrazioneMultiplaUscitaDatasource extends AbstractFetchDataSour
 					lDestinatarioProtBean.setToponimo(pDestinatariDiversiXRegBean.getIndirizzo());
 //					lDestinatarioProtBean.setComune();
 					lDestinatarioProtBean.setNomeComune(pDestinatariDiversiXRegBean.getComuneCittaEstera());
-//					lDestinatarioProtBean.setFrazione();
+					lDestinatarioProtBean.setFrazione(pDestinatariDiversiXRegBean.getLocalita());
 					lDestinatarioProtBean.setCap(pDestinatariDiversiXRegBean.getCap());
+					lDestinatarioProtBean.setIndirizzoRubrica(pDestinatariDiversiXRegBean.getIndirizzoRubrica());
 				}
 				lDestinatarioProtBean.setCivico(pDestinatariDiversiXRegBean.getNumCivico());
 //				lDestinatarioProtBean.setInterno();
 //				lDestinatarioProtBean.setZona();
 //				lDestinatarioProtBean.setComplementoIndirizzo();
-//				lDestinatarioProtBean.setAppendici();
+				lDestinatarioProtBean.setAppendici(pDestinatariDiversiXRegBean.getAppendiceCivico());
+				if(StringUtils.isNotBlank(pDestinatariDiversiXRegBean.getEmail())) {
+					lDestinatarioProtBean.setIndirizzoMailDestinatario(pDestinatariDiversiXRegBean.getEmail());
+				}
 			} else {						
 				lMezzoTrasmissioneDestinatarioBean.setTipoToponimo(pDestinatariDiversiXRegBean.getToponimo());
 //				lMezzoTrasmissioneDestinatarioBean.setCiToponimo();
 				lMezzoTrasmissioneDestinatarioBean.setIndirizzo(pDestinatariDiversiXRegBean.getIndirizzo());
 //				lMezzoTrasmissioneDestinatarioBean.setIndirizzoDestinatario();
-//				lMezzoTrasmissioneDestinatarioBean.setFrazione();
+				lMezzoTrasmissioneDestinatarioBean.setFrazione(pDestinatariDiversiXRegBean.getLocalita());
 				lMezzoTrasmissioneDestinatarioBean.setCivico(pDestinatariDiversiXRegBean.getNumCivico());
 //				lMezzoTrasmissioneDestinatarioBean.setInterno();
 //				lMezzoTrasmissioneDestinatarioBean.setScala();
@@ -323,7 +525,8 @@ public class RegistrazioneMultiplaUscitaDatasource extends AbstractFetchDataSour
 				}				
 //				lMezzoTrasmissioneDestinatarioBean.setZona();
 //				lMezzoTrasmissioneDestinatarioBean.setComplementoIndirizzo();
-//				lMezzoTrasmissioneDestinatarioBean.setAppendici();
+				lMezzoTrasmissioneDestinatarioBean.setAppendici(pDestinatariDiversiXRegBean.getAppendiceCivico());
+				lMezzoTrasmissioneDestinatarioBean.setIndirizzoRubrica(pDestinatariDiversiXRegBean.getIndirizzoRubrica());
 			}
 			lDestinatarioProtBean.setMezzoTrasmissioneDestinatario(lMezzoTrasmissioneDestinatarioBean);
 			
@@ -355,6 +558,7 @@ public class RegistrazioneMultiplaUscitaDatasource extends AbstractFetchDataSour
 		};		
 		lProtocolloDataSource.setSession(getSession());
 		Map<String, String> extraparams = getExtraparams();
+		extraparams.put("isRegMultiplaUscita", "true");
 		if(pRegistrazioneMultiplaUscitaBean.getTipoRegistrazioneMultipla() != null && _TIPO_REG_R.equalsIgnoreCase(pRegistrazioneMultiplaUscitaBean.getTipoRegistrazioneMultipla())) {
 			extraparams.put("isRepertorio", "true");
 		}
@@ -439,20 +643,24 @@ public class RegistrazioneMultiplaUscitaDatasource extends AbstractFetchDataSour
 			if(bean.getFlgFilePrincipaleUgualeXTutteReg() != null && _FLG_NO.equalsIgnoreCase(bean.getFlgFilePrincipaleUgualeXTutteReg()) && StringUtils.isNotBlank(bean.getPercorsoFilePrimari())) {
 				for(int i = 0; i < bean.getListaDestinatariDiversiXReg().size(); i++) {
 					DestinatariRegistrazioneMultiplaUscitaXmlBean dest = bean.getListaDestinatariDiversiXReg().get(i);
-					if(StringUtils.isNotBlank(dest.getNomeFilePrimario())) {	
-						File filePrimario = recuperaFilePrimarioDestinatario(bean.getPercorsoFilePrimari(), dest.getNomeFilePrimario());
-						if(filePrimario == null) {
+					if (StringUtils.isBlank(dest.getFlgStessaRegDestPrec())) {
+						if(StringUtils.isNotBlank(dest.getNomeFilePrimario())) {	
+							File filePrimario = recuperaFilePrimarioDestinatario(bean.getPercorsoFilePrimari(), dest.getNomeFilePrimario());
+							if(filePrimario == null) {
+								lEsitoValidazioneBean.setEsitoValidazione(false);
+								lEsitoValidazioneBean.getErrorMessages().put("" + (Integer.parseInt(dest.getNumRigaInTabContFoglio()) + 1), "In riga " + (Integer.parseInt(dest.getNumRigaInTabContFoglio()) + 1) + " il file primario " + dest.getNomeFilePrimario() + " non è presente nel percorso indicato.");							
+							}
+						} else {
 							lEsitoValidazioneBean.setEsitoValidazione(false);
-							lEsitoValidazioneBean.getErrorMessages().put("" + (i+1), "In riga " + (i+1) + " il file primario " + dest.getNomeFilePrimario() + " non è presente nel percorso indicato.");							
+							lEsitoValidazioneBean.getErrorMessages().put("" + (Integer.parseInt(dest.getNumRigaInTabContFoglio()) + 1), "In riga " + (Integer.parseInt(dest.getNumRigaInTabContFoglio()) + 1) + " non è indicato il file primario.");							
 						}
-					} else {
-						lEsitoValidazioneBean.setEsitoValidazione(false);
-						lEsitoValidazioneBean.getErrorMessages().put("" + (i+1), "In riga " + (i+1) + " non è indicato il file primario.");							
 					}
 				}				
 			} else {
-				lEsitoValidazioneBean.setEsitoValidazione(false);
-				lEsitoValidazioneBean.getErrorMessages().put("", "Non è indicato il percorso da cui recuperare i file primari.");		
+				if (StringUtils.isBlank(bean.getUriFilePrimario())) {
+					lEsitoValidazioneBean.setEsitoValidazione(false);
+					lEsitoValidazioneBean.getErrorMessages().put("", "Non è indicato il percorso da cui recuperare i file primari.");		
+				}
 			}	
 		} else {
 			lEsitoValidazioneBean.setEsitoValidazione(false);
@@ -489,7 +697,7 @@ public class RegistrazioneMultiplaUscitaDatasource extends AbstractFetchDataSour
 			List<DestinatariRegistrazioneMultiplaUscitaXmlBean> listaDestDiversiXRegConAllegati = new ArrayList<DestinatariRegistrazioneMultiplaUscitaXmlBean>();
 			for(int i = 0; i < bean.getListaDestinatariDiversiXReg().size(); i++) {
 				DestinatariRegistrazioneMultiplaUscitaXmlBean dest = bean.getListaDestinatariDiversiXReg().get(i);
-				if(StringUtils.isNotBlank(dest.getNomiFileAllegati())) {
+				if(StringUtils.isBlank(dest.getFlgStessaRegDestPrec()) && StringUtils.isNotBlank(dest.getNomiFileAllegati())) {
 					listaDestDiversiXRegConAllegati.add(dest);
 				} 
 			}
@@ -503,9 +711,9 @@ public class RegistrazioneMultiplaUscitaDatasource extends AbstractFetchDataSour
 							File fileAllegato = recuperaFileAllegatoDestinatario(bean.getPercorsoFileAllegati(), dest.getPercorsoRelFileAllegati(), nomeFileAllegato);
 							if(fileAllegato == null) {
 								lEsitoValidazioneBean.setEsitoValidazione(false);
-								lEsitoValidazioneBean.getErrorMessages().put("" + (i+1), "In riga " + (i+1) + " il file allegato " + nomeFileAllegato + " non è presente nel percorso indicato.");							
+								lEsitoValidazioneBean.getErrorMessages().put("" + (Integer.parseInt(dest.getNumRigaInTabContFoglio()) + 1), "In riga " + (Integer.parseInt(dest.getNumRigaInTabContFoglio()) + 1) + " il file allegato " + nomeFileAllegato + " non è presente nel percorso indicato.");							
 							}					
-			    		}
+						}
 					}
 				} else {
 					lEsitoValidazioneBean.setEsitoValidazione(false);
@@ -692,6 +900,667 @@ public class RegistrazioneMultiplaUscitaDatasource extends AbstractFetchDataSour
 
 		bean.setListaDestinatariXFileXls(listaDestinatariXls);
 		return bean;
+	}
+	
+	private XmlColonneContenutiBean getXmlFromDocumentRows(XmlColonneContenutiBean data) {
+		XmlColonneContenutiBean retValue = new XmlColonneContenutiBean();
+		retValue.setSuccessful(true);
+
+		String mimeType = data.getMimetype();
+
+		boolean isXls = mimeType.equals("application/excel");
+		boolean isXlsx = mimeType.equals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+		if (isXls) {
+
+			retValue = saveXls(data);
+
+		} else if (isXlsx) {
+
+			retValue = saveXlsx(data);
+
+		} else {
+
+			String message = String.format(
+					"Il formato %1$s del documento non è supportato, solo xls e xlsx sono ammessi come documenti validi",
+					data.getMimetype());
+			logger.error(message);
+
+			retValue.setSuccessful(false);
+			retValue.setMessage(message);
+
+		}
+
+		return retValue;
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private XmlColonneContenutiBean saveXlsx(XmlColonneContenutiBean data) {
+
+		int numColonne = 0;
+		XmlColonneContenutiBean xmlColonneContenuti = new XmlColonneContenutiBean();
+		CaricamentoDestinatariExcelBean retValue = new CaricamentoDestinatariExcelBean();
+		List<ErroreRigaExcelBean> listaRigheInErrore = new ArrayList<ErroreRigaExcelBean>();
+
+		BufferedInputStream documentStream = null;
+		InputStream is = null;
+		int numRigheDestinatari = 0;
+		
+		
+		try {
+
+			File document = StorageImplementation.getStorage().getRealFile(data.getUri());
+
+			is = new FileInputStream(document);
+			documentStream = new BufferedInputStream(is);
+
+			XSSFWorkbook wb = new XSSFWorkbook(documentStream);
+
+			ExecutionResultBean result = populateDettagliColonne(data, wb, null);
+
+			@SuppressWarnings("unchecked")
+			List<XlsColumnRemapping> cellReferences = (List<XlsColumnRemapping>) result
+					.getAdditionalInformation("cellReferences");
+
+			it.eng.jaxb.variabili.Lista dettagliColonne = (it.eng.jaxb.variabili.Lista) result.getAdditionalInformation("dettagliColonne");
+
+			it.eng.jaxb.variabili.Lista xmlContenuti = new it.eng.jaxb.variabili.Lista();
+
+			for (int sheetIndex = 0; sheetIndex < wb.getNumberOfSheets(); sheetIndex++) {
+
+					XSSFSheet currentSheet = wb.getSheetAt(sheetIndex);
+
+					// verifico se ci sono righe con celle valorizzate
+					int nonEmptyRows = currentSheet.getPhysicalNumberOfRows();
+					
+					numRigheDestinatari = nonEmptyRows;
+					
+					numColonne = getNumberOfColumn(wb, null);
+
+					if (nonEmptyRows > 0) {
+
+						// la prima riga è di intestazione
+						// la condizione su nonEmptyRows mi evita di scansionare
+						// il numero massimo di righe che possono essere
+						// presenti
+						// nel foglio
+						for (int rowIndex = currentSheet.getFirstRowNum(); rowIndex <= currentSheet.getLastRowNum()
+								&& nonEmptyRows > 0; rowIndex++) {
+
+							Row row = currentSheet.getRow(rowIndex);
+							
+							if (row.getCell(0) != null
+									&& row.getCell(0).getCellType()!=Cell.CELL_TYPE_BLANK
+									&& row.getCell(0).getCellType()==Cell.CELL_TYPE_STRING
+									&& row.getCell(0).getStringCellValue().equalsIgnoreCase("Stessa reg. dest. prec.")) {
+								
+								numRigheDestinatari = nonEmptyRows-1;
+								
+								continue;
+							}
+
+							if (row != null) {
+								retValue = populateRiga(cellReferences, xmlContenuti, nonEmptyRows, row);
+
+								if (retValue.isSuccessful()) {
+
+									Riga currentRiga = (Riga) retValue.getResult();
+
+									if (currentRiga != null) {
+										Colonna colValue = new Colonna();
+										colValue.setNro(BigInteger.valueOf(numColonne + 1));
+										colValue.setContent("da_effettuare");
+										currentRiga.getColonna().add(colValue);
+										
+										Colonna colValue1 = new Colonna();
+										colValue1.setNro(BigInteger.valueOf(numColonne + 2));
+										colValue1.setContent(retValue.getInvioMailPrevisto());
+										currentRiga.getColonna().add(colValue1);
+										
+										Colonna colValue2 = new Colonna();
+										colValue2.setNro(BigInteger.valueOf(numColonne + 3));
+										colValue2.setContent("0");
+										currentRiga.getColonna().add(colValue2);
+										
+										Colonna colValue3 = new Colonna();
+										colValue3.setNro(BigInteger.valueOf(numColonne + 4));
+										colValue3.setContent("0");
+										currentRiga.getColonna().add(colValue3);
+										
+										Colonna colValue4 = new Colonna();
+										colValue4.setNro(BigInteger.valueOf(numColonne + 5));
+										colValue4.setContent("");
+										currentRiga.getColonna().add(colValue4);
+										
+										Colonna colValue5 = new Colonna();
+										colValue5.setNro(BigInteger.valueOf(numColonne + 6));
+										colValue5.setContent("");
+										currentRiga.getColonna().add(colValue5);
+										
+										Colonna colValue6 = new Colonna();
+										colValue6.setNro(BigInteger.valueOf(numColonne + 7));
+										colValue6.setContent("");
+										currentRiga.getColonna().add(colValue6);
+										
+										Colonna colValue7 = new Colonna();
+										colValue7.setNro(BigInteger.valueOf(numColonne + 8));
+										colValue7.setContent("");
+										currentRiga.getColonna().add(colValue7);
+										
+										xmlContenuti.getRiga().add(currentRiga);
+									}
+
+								} else {
+									ErroreRigaExcelBean erroreRiga = new ErroreRigaExcelBean();
+									erroreRiga.setNumeroRiga(String.valueOf(rowIndex + 1));
+									erroreRiga.setMotivo(retValue.getMessage());
+
+									listaRigheInErrore.add(erroreRiga);
+								}
+							}
+						}
+					}
+				}
+				
+				if(listaRigheInErrore!=null && listaRigheInErrore.size()>0) {
+					
+					xmlColonneContenuti.setMessage("Errore durante l'elaborazione del file Excel, dati in formato non valido");
+					xmlColonneContenuti.setSuccessful(false);
+					xmlColonneContenuti.setNumRigheDestinatari(String.valueOf(numRigheDestinatari));
+					xmlColonneContenuti.setListaExcelDatiInError(listaRigheInErrore);
+				} else {
+					xmlColonneContenuti.setDettagliColonne(dettagliColonne);
+					xmlColonneContenuti.setXmlContenuti(xmlContenuti);
+				}
+
+		} catch (Exception e) {
+
+			String message = "Durante il caricamento delle righe del documento si è verificata la seguente eccezione %1$s";
+
+			String exceptionMessage = e.getMessage() != null ? e.getMessage() : e.toString();
+
+			String infoMessage = String.format(message, exceptionMessage);
+
+			logger.error(String.format(message, ExceptionUtils.getFullStackTrace(e)));
+
+
+			xmlColonneContenuti.setSuccessful(false);
+			xmlColonneContenuti.setMessage(infoMessage);
+
+		} finally {
+			if(is != null) {
+				try {
+					is.close();
+				} catch (Exception e) {}
+			}
+			if(documentStream != null) {
+				try {
+					documentStream.close();
+				} catch (Exception e) {
+					logger.error(String.format(
+							"Impossibile chiudere lo stream legato al documento a causa della seguente eccezione "), e);
+				}
+			}
+		}
+
+		return xmlColonneContenuti;
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private XmlColonneContenutiBean saveXls(XmlColonneContenutiBean data) {
+
+		XmlColonneContenutiBean xmlColonneContenuti = new XmlColonneContenutiBean();
+		CaricamentoDestinatariExcelBean retValue = new CaricamentoDestinatariExcelBean();
+		List<ErroreRigaExcelBean> listaRigheInErrore = new ArrayList<ErroreRigaExcelBean>();
+		int numColonne = 0;
+		
+		BufferedInputStream documentStream = null;
+		InputStream is = null;
+		
+		int numRigheDestinatari = 0;
+		try {
+
+			File document = StorageImplementation.getStorage().getRealFile(data.getUri());
+
+			is = new FileInputStream(document);
+			documentStream = new BufferedInputStream(is);
+
+			HSSFWorkbook wb = new HSSFWorkbook(documentStream);
+
+			ExecutionResultBean result = populateDettagliColonne(data, null, wb);
+
+			@SuppressWarnings("unchecked")
+			List<XlsColumnRemapping> cellReferences = (List<XlsColumnRemapping>) result
+					.getAdditionalInformation("cellReferences");
+
+			it.eng.jaxb.variabili.Lista dettagliColonne = (it.eng.jaxb.variabili.Lista) result.getAdditionalInformation("dettagliColonne");
+
+			it.eng.jaxb.variabili.Lista xmlContenuti = new it.eng.jaxb.variabili.Lista();
+
+			badRow: {
+
+				for (int sheetIndex = 0; sheetIndex < wb.getNumberOfSheets(); sheetIndex++) {
+
+					HSSFSheet currentSheet = wb.getSheetAt(sheetIndex);
+
+					// verifico se ci sono righe con celle valorizzate
+					int nonEmptyRows = currentSheet.getPhysicalNumberOfRows();
+					
+					numRigheDestinatari = nonEmptyRows;
+					
+					numColonne = getNumberOfColumn(null, wb);
+
+					if (nonEmptyRows > 0) {
+				
+						for (int rowIndex = currentSheet.getFirstRowNum(); rowIndex <= currentSheet.getLastRowNum()
+								&& nonEmptyRows > 0; rowIndex++) {
+
+							Row row = currentSheet.getRow(rowIndex);
+							
+							if (row.getCell(0) != null
+									&& row.getCell(0).getCellType()!=Cell.CELL_TYPE_BLANK
+									&& row.getCell(0).getCellType()==Cell.CELL_TYPE_STRING
+									&& row.getCell(0).getStringCellValue().equalsIgnoreCase("Stessa reg. dest. prec.")) {
+								
+								numRigheDestinatari = nonEmptyRows-1;
+								
+								continue;
+							}
+
+							if (row != null) {
+								retValue = populateRiga(cellReferences, xmlContenuti, nonEmptyRows, row);
+
+								if (retValue.isSuccessful()) {
+
+									it.eng.jaxb.variabili.Lista.Riga currentRiga = (it.eng.jaxb.variabili.Lista.Riga) retValue.getResult();
+
+									if (currentRiga != null) {
+										Colonna colValue = new Colonna();
+										colValue.setNro(BigInteger.valueOf(numColonne + 1));
+										colValue.setContent("da_effettuare");
+										currentRiga.getColonna().add(colValue);
+										
+										Colonna colValue1 = new Colonna();
+										colValue1.setNro(BigInteger.valueOf(numColonne + 2));
+										colValue1.setContent(retValue.getInvioMailPrevisto());
+										currentRiga.getColonna().add(colValue1);
+										
+										Colonna colValue2 = new Colonna();
+										colValue2.setNro(BigInteger.valueOf(numColonne + 3));
+										colValue2.setContent("0");
+										currentRiga.getColonna().add(colValue2);
+										
+										Colonna colValue3 = new Colonna();
+										colValue3.setNro(BigInteger.valueOf(numColonne + 4));
+										colValue3.setContent("0");
+										currentRiga.getColonna().add(colValue3);
+										
+										Colonna colValue4 = new Colonna();
+										colValue4.setNro(BigInteger.valueOf(numColonne + 5));
+										colValue4.setContent("");
+										currentRiga.getColonna().add(colValue4);
+										
+										Colonna colValue5 = new Colonna();
+										colValue5.setNro(BigInteger.valueOf(numColonne + 6));
+										colValue5.setContent("");
+										currentRiga.getColonna().add(colValue5);
+										
+										Colonna colValue6 = new Colonna();
+										colValue6.setNro(BigInteger.valueOf(numColonne + 7));
+										colValue6.setContent("");
+										currentRiga.getColonna().add(colValue6);
+										
+										Colonna colValue7 = new Colonna();
+										colValue7.setNro(BigInteger.valueOf(numColonne + 8));
+										colValue7.setContent("");
+										currentRiga.getColonna().add(colValue7);
+										
+										xmlContenuti.getRiga().add(currentRiga);
+									}
+
+								} else {
+									ErroreRigaExcelBean erroreRiga = new ErroreRigaExcelBean();
+									erroreRiga.setNumeroRiga(String.valueOf(rowIndex + 1));
+									erroreRiga.setMotivo(retValue.getMessage());
+
+									listaRigheInErrore.add(erroreRiga);
+								}
+							}
+						}
+					}
+				}
+
+				if(listaRigheInErrore!=null && listaRigheInErrore.size()>0) {
+					
+					xmlColonneContenuti.setMessage("Errore durante l'elaborazione del file Excel, dati in formato non valido");
+					xmlColonneContenuti.setNumRigheDestinatari(String.valueOf(numRigheDestinatari));
+					xmlColonneContenuti.setSuccessful(false);
+					xmlColonneContenuti.setListaExcelDatiInError(listaRigheInErrore);
+					
+				} else {
+					xmlColonneContenuti.setDettagliColonne(dettagliColonne);
+					xmlColonneContenuti.setXmlContenuti(xmlContenuti);
+				}
+			}
+		} catch (Exception e) {
+
+			String message = "Durante il caricamento delle righe del documento si è verificata la seguente eccezione %1$s";
+
+			String exceptionMessage = e.getMessage() != null ? e.getMessage() : e.getCause().getMessage();
+
+			String infoMessage = String.format(message, exceptionMessage);
+
+			logger.error(String.format(message, ExceptionUtils.getFullStackTrace(e)));
+
+//			updateDocumentStateError(data.getMimetype(), documentId, infoMessage);
+
+			xmlColonneContenuti.setSuccessful(false);
+			xmlColonneContenuti.setMessage(infoMessage);
+
+		} finally {
+			if(is != null) {
+				try {
+					is.close();
+				} catch (Exception e) {}
+			}
+			if(documentStream != null) {
+				try {
+					documentStream.close();
+				} catch (Exception e) {
+					logger.error(String.format(
+							"Impossibile chiudere lo stream legato al documento a causa della seguente eccezione "), e);
+				}
+			}
+		}
+
+		return xmlColonneContenuti;
+	}
+	
+	@SuppressWarnings("rawtypes")
+	protected ExecutionResultBean populateDettagliColonne(XmlColonneContenutiBean data, XSSFWorkbook xb, HSSFWorkbook hb) {
+
+		ExecutionResultBean result = new ExecutionResultBean();
+
+		int colIndex = 1;
+		
+		it.eng.jaxb.variabili.Lista dettagliColonne = new it.eng.jaxb.variabili.Lista();
+
+		List<XlsColumnRemapping> cellReferences = new ArrayList<XlsColumnRemapping>();
+		
+		List<CampoCaricamentoBean> listaCampiDestinatariCaricamento = getListaCampiDestinatariCaricamento(xb, hb);
+
+		for (CampoCaricamentoBean currentCampoCaricamento : listaCampiDestinatariCaricamento) {
+
+			Riga riga = new Riga();
+			Colonna[] cols = new Colonna[3];
+
+			// identificativo della colonna che permette di referenziare gli
+			// oggetti presenti nelle due Lista, quella che identifica le
+			// colonne e quella che contiene i dati
+			Colonna index = new Colonna();
+			index.setContent(String.valueOf(colIndex));
+			index.setNro(new BigInteger("1"));
+			cols[0] = index;
+			colIndex++;
+			riga.getColonna().add(index);
+
+			// colonna associata al campo
+			Colonna field = new Colonna();
+			cols[1] = field;
+			field.setContent(currentCampoCaricamento.getNomeCampo());
+			field.setNro(new BigInteger("2"));
+			riga.getColonna().add(field);
+
+			// tipo di campo, "S"tringa, "N"umerico o "D"ata, viene popolato a
+			// posteriori durante la scansione delle righe
+			Colonna fieldType = new Colonna();
+			cols[2] = fieldType;
+			fieldType.setContent(currentCampoCaricamento.getType());
+			fieldType.setNro(new BigInteger("3"));
+			riga.getColonna().add(fieldType);
+
+			dettagliColonne.getRiga().add(riga);
+
+			cellReferences.add(new XlsColumnRemapping(currentCampoCaricamento.getNomeCampo(),
+					currentCampoCaricamento.getColonnaRif(), index, fieldType));
+		}
+
+		List<CampoCaricamentoBean> listaCampiAggiuntiviDestinatariCaricamento = new LinkedList<CampoCaricamentoBean>();
+		
+		CampoCaricamentoBean campoCaricamentoBean = new CampoCaricamentoBean();
+		campoCaricamentoBean.setType("S");
+		campoCaricamentoBean.setColonnaRif("");
+		campoCaricamentoBean.setNomeCampo("91-StatoRegistrazione");
+		listaCampiAggiuntiviDestinatariCaricamento.add(campoCaricamentoBean);
+		
+		CampoCaricamentoBean campoCaricamentoBean1 = new CampoCaricamentoBean();
+		campoCaricamentoBean1.setType("S");
+		campoCaricamentoBean1.setColonnaRif("");
+		campoCaricamentoBean1.setNomeCampo("92-StatoInvioEmail");
+		listaCampiAggiuntiviDestinatariCaricamento.add(campoCaricamentoBean1);
+		
+		CampoCaricamentoBean campoCaricamentoBean2 = new CampoCaricamentoBean();
+		campoCaricamentoBean2.setType("N");
+		campoCaricamentoBean2.setColonnaRif("");
+		campoCaricamentoBean2.setNomeCampo("93-NroTryRegistrazione");
+		listaCampiAggiuntiviDestinatariCaricamento.add(campoCaricamentoBean2);
+		
+		CampoCaricamentoBean campoCaricamentoBean3 = new CampoCaricamentoBean();
+		campoCaricamentoBean3.setType("N");
+		campoCaricamentoBean3.setColonnaRif("");
+		campoCaricamentoBean3.setNomeCampo("94-NroTryInvioEmail");
+		listaCampiAggiuntiviDestinatariCaricamento.add(campoCaricamentoBean3);
+		
+		CampoCaricamentoBean campoCaricamentoBean4 = new CampoCaricamentoBean();
+		campoCaricamentoBean4.setType("S");
+		campoCaricamentoBean4.setColonnaRif("");
+		campoCaricamentoBean4.setNomeCampo("95-MsgErrRegistrazione");
+		listaCampiAggiuntiviDestinatariCaricamento.add(campoCaricamentoBean4);
+		
+		CampoCaricamentoBean campoCaricamentoBean5 = new CampoCaricamentoBean();
+		campoCaricamentoBean5.setType("S");
+		campoCaricamentoBean5.setColonnaRif("");
+		campoCaricamentoBean5.setNomeCampo("96-MsgErrInvioEmail");
+		listaCampiAggiuntiviDestinatariCaricamento.add(campoCaricamentoBean5);
+		
+		CampoCaricamentoBean campoCaricamentoBean6 = new CampoCaricamentoBean();
+		campoCaricamentoBean6.setType("S");
+		campoCaricamentoBean6.setColonnaRif("");
+		campoCaricamentoBean6.setNomeCampo("97-IdUD");
+		listaCampiAggiuntiviDestinatariCaricamento.add(campoCaricamentoBean6);
+		
+		CampoCaricamentoBean campoCaricamentoBean7 = new CampoCaricamentoBean();
+		campoCaricamentoBean7.setType("S");
+		campoCaricamentoBean7.setColonnaRif("");
+		campoCaricamentoBean7.setNomeCampo("98-IdEmail");
+		listaCampiAggiuntiviDestinatariCaricamento.add(campoCaricamentoBean7);
+		
+		for (CampoCaricamentoBean currentCampoCaricamento : listaCampiAggiuntiviDestinatariCaricamento) {
+
+			Riga riga = new Riga();
+			Colonna[] cols = new Colonna[3];
+
+			// identificativo della colonna che permette di referenziare gli
+			// oggetti presenti nelle due Lista, quella che identifica le
+			// colonne e quella che contiene i dati
+			Colonna index = new Colonna();
+			index.setContent(String.valueOf(colIndex));
+			index.setNro(new BigInteger("1"));
+			cols[0] = index;
+			colIndex++;
+			riga.getColonna().add(index);
+
+			// colonna associata al campo
+			Colonna field = new Colonna();
+			cols[1] = field;
+			field.setContent(currentCampoCaricamento.getNomeCampo());
+			field.setNro(new BigInteger("2"));
+			riga.getColonna().add(field);
+
+			// tipo di campo, "S"tringa, "N"umerico o "D"ata, viene popolato a
+			// posteriori durante la scansione delle righe
+			Colonna fieldType = new Colonna();
+			cols[2] = fieldType;
+			fieldType.setContent(currentCampoCaricamento.getType());
+			fieldType.setNro(new BigInteger("3"));
+			riga.getColonna().add(fieldType);
+
+			dettagliColonne.getRiga().add(riga);
+
+		}
+
+		result.setSuccessful(true);
+		result.addAdditionalInformation("dettagliColonne", dettagliColonne);
+		result.addAdditionalInformation("cellReferences", cellReferences);
+
+		return result;
+	}
+	
+	private List<CampoCaricamentoBean> getListaCampiDestinatariCaricamento(XSSFWorkbook xb, HSSFWorkbook hb) {
+		
+		List<CampoCaricamentoBean> listaCampoCaricamentoBean = new ArrayList<CampoCaricamentoBean>();
+		
+		if (xb == null) {
+			FormulaEvaluator formulaEvaluator = hb.getCreationHelper().createFormulaEvaluator();
+			HSSFSheet sheet = hb.getSheetAt(0);
+			HSSFRow row = sheet.getRow(0);
+			int physicalNumberOfCells = row.getPhysicalNumberOfCells();
+			for (int i = 0; i < physicalNumberOfCells; i++) {
+				HSSFCell cell = row.getCell(i);
+				if (cell != null) {
+					CampoCaricamentoBean campoCaricamentoBean = new CampoCaricamentoBean();
+					campoCaricamentoBean.setType("S");
+					String column_letter = CellReference.convertNumToColString(cell.getColumnIndex());
+					campoCaricamentoBean.setColonnaRif(column_letter);
+					campoCaricamentoBean.setNomeCampo( i + 1 < 10 ? "0"+ (i + 1) +"-"+ cell.getStringCellValue() : (i + 1) +"-"+ cell.getStringCellValue());
+					listaCampoCaricamentoBean.add(campoCaricamentoBean);
+				}
+			}
+		} else {
+			XSSFFormulaEvaluator formulaEvaluator = xb.getCreationHelper().createFormulaEvaluator();
+			XSSFSheet sheet = xb.getSheetAt(0);
+			XSSFRow row = sheet.getRow(0);
+			int physicalNumberOfCells = row.getPhysicalNumberOfCells();
+			for (int i = 0; i < physicalNumberOfCells; i++) {
+				XSSFCell cell = row.getCell(i);
+				if (cell != null) {
+					CampoCaricamentoBean campoCaricamentoBean = new CampoCaricamentoBean();
+					campoCaricamentoBean.setType("S");
+					String column_letter = CellReference.convertNumToColString(cell.getColumnIndex());
+					campoCaricamentoBean.setColonnaRif(column_letter);
+					campoCaricamentoBean.setNomeCampo( i + 1 < 10 ? "0"+ (i + 1) +"-"+ cell.getStringCellValue() : (i + 1) +"-"+ cell.getStringCellValue());
+					listaCampoCaricamentoBean.add(campoCaricamentoBean);
+				}
+			}
+		}
+		
+		return listaCampoCaricamentoBean;
+	}
+	
+	private int getNumberOfColumn(XSSFWorkbook xb, HSSFWorkbook hb) {
+		if (xb == null) {
+			FormulaEvaluator formulaEvaluator = hb.getCreationHelper().createFormulaEvaluator();
+			HSSFSheet sheet = hb.getSheetAt(0);
+			HSSFRow row = sheet.getRow(0);
+			int physicalNumberOfCells = row.getPhysicalNumberOfCells();
+			return physicalNumberOfCells;
+		} else {
+			XSSFFormulaEvaluator formulaEvaluator = xb.getCreationHelper().createFormulaEvaluator();
+			XSSFSheet sheet = xb.getSheetAt(0);
+			XSSFRow row = sheet.getRow(0);
+			int physicalNumberOfCells = row.getPhysicalNumberOfCells();
+			return physicalNumberOfCells;
+		}
+	}
+	
+	@SuppressWarnings("rawtypes")
+	protected CaricamentoDestinatariExcelBean populateRiga(List<XlsColumnRemapping> cellReferences, it.eng.jaxb.variabili.Lista xmlContenuti,
+			int nonEmptyRows, Row row) throws NumberFormatException, IndexOutOfBoundsException {
+
+		CaricamentoDestinatariExcelBean retValue = new CaricamentoDestinatariExcelBean();
+		retValue.setSuccessful(Boolean.TRUE);
+
+		Riga riga = new Riga();
+
+		// mi permette di determinare se almeno una delle
+		// colonne della riga è valorizzata. Questo perchè le
+		// righe
+		// potrebbero essere valorizzate a scacchiera, oppure
+		// valorizzate e poi cancellate (selezionando una riga e
+		// premendo canc il contenuto viene valorizzzato con "")
+		boolean saveRiga = false;
+
+		// verifico se la riga ha celle valorizzate
+		if (row.getPhysicalNumberOfCells() > 0) {
+
+			for (XlsColumnRemapping cellReference : cellReferences) {
+
+				int cellColumnIndex = Integer.valueOf(cellReference.getIndex().getContent()) - 1;
+				Cell cell = row.getCell(cellColumnIndex);
+				
+				String value = "";
+
+				if (cell != null) {
+					String cellFieldName = cellReference.getFieldName();
+					int rowNum = row.getRowNum();
+					String fieldType = cellReference.getFieldType().getContent();
+					
+					try {
+						/**
+						 * IL TIPO DATA E NUMERO VENGONO RICONOSCIUTI COME CELL_TYPE_NUMERIC
+						 */
+						if (row.getCell(cellColumnIndex).getCellType() == Cell.CELL_TYPE_NUMERIC) {
+							/**
+							 * VERIFICA SE E' UN NUMERO
+							 */
+							try {
+//									value = String.valueOf(cell.getNumericCellValue());
+								value = new DecimalFormat("#").format(cell.getNumericCellValue());
+								value = value.replace(".", ",");
+							} catch (Exception e1) {
+	
+								value = cell.getStringCellValue();
+								value = value.replace(".", ",");
+							}		
+						} else if (row.getCell(cellColumnIndex).getCellType() == Cell.CELL_TYPE_STRING) {							
+							value = cell.getStringCellValue();
+						} else if (row.getCell(cellColumnIndex).getCellType() == Cell.CELL_TYPE_BLANK) {							
+							value = cell.getStringCellValue();						
+						}	
+						if (cellFieldName.contains("Invia e-mail")) {
+							retValue.setInvioMailPrevisto("NO".equalsIgnoreCase(value) ? "non_previsto" : "da_effettuare");
+						}
+					} catch (Exception e) {
+
+						String message = String.format(
+								"Dato non valido per la colonna %1$s, nome campo %2$s, tipo %4$s, controllare il formato della cella",
+								cellColumnIndex, cellFieldName, rowNum, fieldType);
+
+						retValue.setMessage(message);
+						retValue.setSuccessful(false);
+
+						break;
+					}
+
+					if (StringUtils.isNotBlank(value)) {
+						saveRiga = true;
+					}
+				}
+
+				Colonna colValue = new Colonna();
+				colValue.setNro(new BigInteger(cellReference.getIndex().getContent()));
+				colValue.setContent(value);
+				riga.getColonna().add(colValue);
+			}
+		}
+
+		if (saveRiga) {
+
+			retValue.setResult(riga);
+		}
+		--nonEmptyRows;
+
+		return retValue;
 	}
 	
 	public enum TipoDestinatario implements Serializable {

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.hsm;
 
 import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
@@ -15,9 +16,12 @@ import it.eng.hsm.client.config.ArubaConfig;
 import it.eng.hsm.client.config.HsmConfig;
 import it.eng.hsm.client.config.HsmType;
 import it.eng.hsm.client.config.InfoCertConfig;
+import it.eng.hsm.client.config.InfocertCSIConfig;
+import it.eng.hsm.client.config.LambdaServiceConfig;
 import it.eng.hsm.client.config.MedasConfig;
 import it.eng.hsm.client.config.PkBoxConfig;
 import it.eng.hsm.client.config.TypeOtp;
+import it.eng.hsm.client.config.UanatacaCSIConfig;
 import it.eng.hsm.client.impl.HsmImpl;
 import it.eng.hsm.client.option.MedasOption;
 import it.eng.utility.ui.user.ParametriDBUtil;
@@ -27,8 +31,7 @@ public class HsmClientFactory {
 
 	private static Logger mLogger = Logger.getLogger(HsmClientFactory.class);
 	
-	public static Hsm getHsmClient(HttpSession session, FirmaHsmBean firmaHsmBean)
-			throws JAXBException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ParseException {
+	public static Hsm getHsmClient(HttpSession session, FirmaHsmBean firmaHsmBean) throws Exception {
 		HsmConfig hsmConfig = new HsmConfig();
 		HsmType hsmType = HsmType.valueOf(firmaHsmBean.getHsmType());
 		if (hsmType.equals(HsmType.ARUBA)) {
@@ -39,14 +42,18 @@ public class HsmClientFactory {
 			hsmConfig = getInfoCertHsmConfig(session, firmaHsmBean);
 		} else if (hsmType.equals(HsmType.PKBOX)) {
 			hsmConfig = getPkBoxHsmConfig(session, firmaHsmBean);
-		}
+		} else if (hsmType.equals(HsmType.UANATACA_CSI)) {
+			hsmConfig = getUanatacaCsiHsmConfig(session, firmaHsmBean);
+		} else if (hsmType.equals(HsmType.INFOCERT_CSI)) {
+			hsmConfig = getInfocertCsiHsmConfig(session, firmaHsmBean);
+		} else if (hsmType.equals(HsmType.LAMBDA_SERVICE)) {
+			hsmConfig = getLambdaServiceHsmConfig(session, firmaHsmBean);
+		} 
 		Hsm hsm = HsmImpl.getNewInstance(hsmConfig);
 		return hsm;
 	}
 
-	protected static HsmConfig getArubaHsmConfig(HttpSession session, FirmaHsmBean firmaHsmBean)
-			throws JAXBException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ParseException {
-		
+	protected static HsmConfig getArubaHsmConfig(HttpSession session, FirmaHsmBean firmaHsmBean) throws JAXBException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ParseException {
 		// Flag che indica se sto firmando in delega
 		boolean firmaInDelega = false;
 
@@ -153,9 +160,7 @@ public class HsmClientFactory {
 		return hsmConfig;
 	}
 	
-	protected static HsmConfig getPkBoxHsmConfig(HttpSession session, FirmaHsmBean firmaHsmBean)
-			throws JAXBException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ParseException {
-		
+	protected static HsmConfig getPkBoxHsmConfig(HttpSession session, FirmaHsmBean firmaHsmBean) throws JAXBException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ParseException {
 		// Flag che indica se sto firmando in delega
 		boolean firmaInDelega = false;
 
@@ -267,9 +272,7 @@ public class HsmClientFactory {
 		return hsmConfig;
 	}
 
-	protected static HsmConfig getMedasHsmConfig(HttpSession session, FirmaHsmBean firmaHsmBean)
-			throws JAXBException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ParseException {
-		
+	protected static HsmConfig getMedasHsmConfig(HttpSession session, FirmaHsmBean firmaHsmBean) throws JAXBException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ParseException {
 		String username = firmaHsmBean.getUsername();
 		String password = firmaHsmBean.getPassword();
 		String certId = firmaHsmBean.getCertId();
@@ -329,4 +332,111 @@ public class HsmClientFactory {
 		return hsmConfig;
 	}
 
+	protected static HsmConfig getUanatacaCsiHsmConfig(HttpSession session, FirmaHsmBean firmaHsmBean) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, JAXBException, ParseException {
+		String username = firmaHsmBean.getUsername();
+		String password = firmaHsmBean.getPassword();
+		String authPin = firmaHsmBean.getAuthPIN();
+		String otp = firmaHsmBean.getCodiceOtp();
+		boolean parametriHSMFromGui = firmaHsmBean.getParametriHSMFromGui() != null ? firmaHsmBean.getParametriHSMFromGui() : false; 
+		
+		HsmType hsmType = HsmType.UANATACA_CSI;
+		
+		String xmlParametriHsm;
+		if (StringUtils.isNotBlank(firmaHsmBean.getProviderHsmFromPreference())) {
+			xmlParametriHsm = ParametriDBUtil.getParametroDB(session, "HSM_PARAMETERS_" + firmaHsmBean.getProviderHsmFromPreference());
+		} else {
+			xmlParametriHsm = ParametriDBUtil.getParametroDB(session, "HSM_PARAMETERS");
+		}
+		XmlUtilityDeserializer lXmlUtility = new XmlUtilityDeserializer();
+		
+		UanatacaCSIConfig uanatacaCsiConfig = lXmlUtility.unbindXml(xmlParametriHsm, UanatacaCSIConfig.class);
+
+		HsmConfig hsmConfig = new HsmConfig();
+		hsmConfig.setHsmType(hsmType);
+		
+		// Verifico se le preferenze arrivano da GUI o da firma automatica
+		if (parametriHSMFromGui) {
+			// Le preferenze di firma arrivano da GUI
+			
+			// Setto username
+			uanatacaCsiConfig.setUser(username);
+			uanatacaCsiConfig.setPassword(password);
+			uanatacaCsiConfig.setPin(authPin);
+			if(otp!=null && !"".equals(otp)) {
+				uanatacaCsiConfig.setOtpPwd(otp);
+			}
+			
+		}
+		hsmConfig.setClientConfig(uanatacaCsiConfig);
+
+		return hsmConfig;
+	}
+	
+	protected static HsmConfig getInfocertCsiHsmConfig(HttpSession session, FirmaHsmBean firmaHsmBean) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, JAXBException, ParseException {
+		String username = firmaHsmBean.getUsername();
+		String password = firmaHsmBean.getPassword();
+		String authPin = firmaHsmBean.getAuthPIN();
+		String otp = firmaHsmBean.getCodiceOtp();
+		boolean parametriHSMFromGui = firmaHsmBean.getParametriHSMFromGui() != null ? firmaHsmBean.getParametriHSMFromGui() : false; 
+		
+		HsmType hsmType = HsmType.INFOCERT_CSI;
+		
+		String xmlParametriHsm;
+		if (StringUtils.isNotBlank(firmaHsmBean.getProviderHsmFromPreference())) {
+			xmlParametriHsm = ParametriDBUtil.getParametroDB(session, "HSM_PARAMETERS_" + firmaHsmBean.getProviderHsmFromPreference());
+		} else {
+			xmlParametriHsm = ParametriDBUtil.getParametroDB(session, "HSM_PARAMETERS");
+		}
+		XmlUtilityDeserializer lXmlUtility = new XmlUtilityDeserializer();
+		
+		InfocertCSIConfig infocertCsiConfig = lXmlUtility.unbindXml(xmlParametriHsm, InfocertCSIConfig.class);
+
+		HsmConfig hsmConfig = new HsmConfig();
+		hsmConfig.setHsmType(hsmType);
+		
+		// Verifico se le preferenze arrivano da GUI o da firma automatica
+		if (parametriHSMFromGui) {
+			// Le preferenze di firma arrivano da GUI
+			
+			// Setto username
+			infocertCsiConfig.setUser(username);
+			infocertCsiConfig.setCodiceFiscale(username);
+			infocertCsiConfig.setPassword(password);
+			if(otp!=null && !"".equals(otp)) {
+				infocertCsiConfig.setOtpPwd(otp);
+			}
+			
+		}
+		hsmConfig.setClientConfig(infocertCsiConfig);
+
+		return hsmConfig;
+	}
+	
+	protected static HsmConfig getLambdaServiceHsmConfig(HttpSession session, FirmaHsmBean firmaHsmBean) throws Exception {
+		String secret = firmaHsmBean.getSecret();
+		String key = firmaHsmBean.getKey();
+		
+		HsmType hsmType = HsmType.LAMBDA_SERVICE;
+		
+		String xmlParametriHsm;
+		xmlParametriHsm = ParametriDBUtil.getParametroDB(session, "HSM_PARAMETERS_" + firmaHsmBean.getProviderHsmFromPreference());
+		if (StringUtils.isBlank(xmlParametriHsm)) {
+			mLogger.error("Parametro DB HSM_PARAMETERS_" + firmaHsmBean.getProviderHsmFromPreference() + " non configurato");
+			throw new Exception("Parametro DB HSM_PARAMETERS_" + firmaHsmBean.getProviderHsmFromPreference() + " non configurato");
+		}
+		
+		XmlUtilityDeserializer lXmlUtility = new XmlUtilityDeserializer();
+		
+		LambdaServiceConfig lambdaServiceConfig = lXmlUtility.unbindXml(xmlParametriHsm, LambdaServiceConfig.class);
+		lambdaServiceConfig.setSecret(secret);
+		lambdaServiceConfig.setKey(key);
+
+		HsmConfig hsmConfig = new HsmConfig();
+		hsmConfig.setHsmType(hsmType);
+		
+		hsmConfig.setClientConfig(lambdaServiceConfig);
+
+		return hsmConfig;
+	}
+	
 }

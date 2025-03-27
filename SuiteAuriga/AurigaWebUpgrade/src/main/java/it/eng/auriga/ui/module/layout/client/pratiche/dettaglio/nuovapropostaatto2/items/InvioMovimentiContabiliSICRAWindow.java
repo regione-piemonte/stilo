@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovapropostaatto2.items;
 
 import java.util.HashMap;
 
@@ -60,26 +61,34 @@ public class InvioMovimentiContabiliSICRAWindow extends ModalWindow {
 				public void onClick(ClickEvent event) {
 					saveButton.focusAfterGroup();
 					if(detail.validate()) {
-						detail.controlloWarningImportoSuperioreDisponibilita(new BooleanCallback() {
+						detail.controlloWarningCUPNonValorizzatoSuImpegniConTitolo2Spesa(new BooleanCallback() {
 							
 							@Override
 							public void execute(Boolean value) {
 								if(value != null && value) {
-									final Record lRecord = detail.getRecordToSave();
-									if(lRecord.getAttribute("flgCodiceSoggNonTrovato")!=null && "true".equalsIgnoreCase(lRecord.getAttribute("flgCodiceSoggNonTrovato"))) {
-										SC.say("Codice soggetto non presente in anagrafe fornitori: il codice verrà sbiancato", new BooleanCallback() {
-											
-											@Override
-											public void execute(Boolean value) {
-												manageSaveData(isNew, lRecord);
+									detail.controlloWarningImportoSuperioreDisponibilita(new BooleanCallback() {
+										
+										@Override
+										public void execute(Boolean value) {
+											if(value != null && value) {
+												final Record lRecord = detail.getRecordToSave();
+												if(lRecord.getAttribute("flgCodiceSoggNonTrovato")!=null && "true".equalsIgnoreCase(lRecord.getAttribute("flgCodiceSoggNonTrovato"))) {
+													SC.say("Codice soggetto non presente in anagrafe fornitori: il codice verrà sbiancato", new BooleanCallback() {
+														
+														@Override
+														public void execute(Boolean value) {
+															manageSaveData(isNew, lRecord);
+														}
+													});
+												} else {
+													manageSaveData(isNew, lRecord);
+												}
 											}
-										});
-									} else {
-										manageSaveData(isNew, lRecord);
-									}
+										}
+									});	
 								}
 							}
-						});												
+						});										
 					} else {
 						Layout.addMessage(new MessageBean(I18NUtil.getMessages().validateError_message(), "", MessageType.ERROR));
 					}

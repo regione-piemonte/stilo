@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.restresource;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,6 +15,7 @@ import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -122,6 +124,7 @@ import it.eng.utility.TimbraUtil;
 import it.eng.utility.crypto.CryptoUtility;
 import it.eng.utility.storageutil.exception.StorageException;
 import it.eng.utility.ui.module.layout.shared.bean.OpzioniCopertinaTimbroBean;
+import it.eng.utility.ui.servlet.bean.Firmatari;
 import it.eng.utility.ui.servlet.bean.MimeTypeFirmaBean;
 import it.eng.xml.XmlUtilityDeserializer;
 import it.eng.xml.XmlUtilitySerializer;
@@ -225,64 +228,10 @@ public class AurigaAgibilitaResource {
 			/* 3) --------------- INVOCO LA STORE DI RICERCA DEI DOCUMENTI DELL'AGIBILITA */
 			logger.debug("Effettuo chiamata alla store Richiestaagibilita");
 
-			 lRicercaAgibilitaStoreOutBean = callStoreRicercaAgibilita(lRicercaAgibilitaWSConfigBean, xmlInputBean, xmlFileAgibilita);
-
-
-			/* 4) --------------- INIZIALIZZO AURIGALOGINBEAN --------------------- */
-			SpecializzazioneBean lSpecBean = new SpecializzazioneBean();
-			lSpecBean.setIdDominio(lRicercaAgibilitaStoreOutBean.getIdDominio());
-			lAurigaLoginBean.setSpecializzazioneBean(lSpecBean);
-			lAurigaLoginBean.setToken(lRicercaAgibilitaStoreOutBean.getConnectionToken());
-
-		} catch (Exception e) {
-
-//			logger.error(e.getMessage(), e);
-			throw new AurigaRestServiceException(AurigaRestServiceMessages.ERROR_SERVICE + ": " + e.getMessage(),
-					Status.INTERNAL_SERVER_ERROR);
-		}
-
-		/* 5) ------------ STORE IN ERRORE RITORNO RESPONSE */
-		if (lRicercaAgibilitaStoreOutBean.getErrMsg() != null) {
-			Errore errore = new Errore();
-			response.setEsito("KO");
-			errore.setCodice(lRicercaAgibilitaStoreOutBean.getErrorCode().toString());
-			errore.setMessaggio(lRicercaAgibilitaStoreOutBean.getErrMsg());
-			response.setErrore(errore);
-
-			String responseString = convertBeanToXml(response);
-			logger.error("Esito richiesta: KO - Response restituita: \n" + responseString);
-		} else {
-
-			/*
-			 * 6) ------------ COSTRUZIONE DEL PATH DEL SERVIZIO CON I DOCUMENTI RESTITUITI DALLA STORE
-			 */
-			
-			
-			/* TIMBO I FILE DELL'AGIBILITA RITORNATI DALLA STORE, CON IL TIMBRO DI COPIA CONFORME AL CARTACEO*/
-			logger.debug("Timbro i file di agbilita ritornati dalla store con il timbro di copia conforme al cartaceo");
-			timbraFileAgibilita(lRicercaAgibilitaStoreOutBean);
-
-			logger.debug("Creo path del servizio che scarica il file");
-			String pathServiceFile = createPathForService(lRicercaAgibilitaStoreOutBean);
-
-			/* 7) ------------ CONFEZIONAMENTO DELLA RISPOSTA DEL SERVIZIO */
-			// !!!!! TODO: DA VERIFICARE IN CHE CASI LA STORE MI DA ERRORE, in caso togliere
-			// if else, lasciare solo if
-			if (lRicercaAgibilitaStoreOutBean.getEstremiProtRichiesta() != null
-					&& lRicercaAgibilitaStoreOutBean.getListaCertificati() != null && pathServiceFile != null
-					&& !"".equalsIgnoreCase(pathServiceFile)) {
-				response.setEsito("OK");
-				response.setProtocollo(lRicercaAgibilitaStoreOutBean.getEstremiProtRichiesta());
-
-				ElencoAgibilita elencoAgibilita = new ElencoAgibilita();
-				elencoAgibilita.setAgibilita(lRicercaAgibilitaStoreOutBean.getListaCertificati());
-
-				response.setElencoAgibilita(elencoAgibilita);
-				response.setPathServiceFile(pathServiceFile);
-
-				String responseString = convertBeanToXml(response);
-				logger.debug("Esito richiesta: OK - Response restituita: \n" + responseString);
-			} else {
+			lRicercaAgibilitaStoreOutBean = callStoreRicercaAgibilita(lRicercaAgibilitaWSConfigBean, xmlInputBean, xmlFileAgibilita);
+			 
+			/* 4) ------------ STORE IN ERRORE RITORNO RESPONSE */
+			if (lRicercaAgibilitaStoreOutBean.getErrMsg() != null) {
 				Errore errore = new Errore();
 				response.setEsito("KO");
 				errore.setCodice(lRicercaAgibilitaStoreOutBean.getErrorCode().toString());
@@ -290,188 +239,255 @@ public class AurigaAgibilitaResource {
 				response.setErrore(errore);
 
 				String responseString = convertBeanToXml(response);
-				logger.error("Esito richiesta: KO- Response restituita: \n" + responseString);
-
+				logger.error("Esito richiesta: KO - Response restituita: \n" + responseString);
+				
 				return response;
-			}
+			} 
 
-			/* 8) ------------ SALVO NEI TEMPORANEI I FILE RICEVUTI DAL PORTALE */
-			/*
-			 * List<FileAgibilitaOutBean> listaFilesPortale = null; if(files != null) {
-			 * logger.debug("Salvo nei temporanei i file in input"); listaFilesPortale =
-			 * creaTempFilePortale(files); }else {
-			 * logger.debug("File in input non presenti!"); }
-			 */
+		} catch (Exception e) {
 
-			Session session = null;
-			File pdfDaModello = null;
-			File pdfTimbrato = null;
-			String uriPdfTimbratoVersionato = null;
-
-			/**
-			 * INIZIO TRANSAZIONE
-			 */
-
-			try {
-
-				SubjectBean subject = new SubjectBean();
-				subject.setIdDominio(lAurigaLoginBean.getSchema());
-				SubjectUtil.subject.set(subject);
-
-				session = HibernateUtil.begin();
-				Transaction lTransaction = session.beginTransaction();
-
-				/**ORA LA PROTOCOLLAZIONE LA FA LA STORE QUINDI I METODI SOTTO NON SERVONO MA LASCIO COMMENTATI*/
-				/*
-				 * 9) --- CARICO I FILE SALVATI NEI TEMPORANEI COME ALLEGATI DELL'UD CREATA
-				 * DALLA STORE
-				 */
-				/*
-				 * if (listaFilesPortale != null && !listaFilesPortale.isEmpty()) { logger.
-				 * debug("Carico i file in input al servizio come allegati dell ud creata dala store"
-				 * ); aggiungiAllegatiUD(lRicercaAgibilitaStoreOutBean, listaFilesPortale,
-				 * session); logger.
-				 * debug("Sono stati allegati i file in input all'UD con identificativo: " +
-				 * lRicercaAgibilitaStoreOutBean.getIdUDRichiesta()); }
-				 */
-
-				/*
-				 * 10) --- INIEZIONE NEL MODELLO DEI DATI RICEVUTI DALA STORE E CONVERSIONE PDF
-				 */
-				logger.debug("Innietto i dati nel modello");
-				pdfDaModello = creaPdfDaModello(lRicercaAgibilitaStoreOutBean);
-				logger.debug("Creato pdf: " + pdfDaModello.getName() + " con i dati inniettati nel modello");
-
-				
-				/*
-				 * 11) --- TIMBRO IL FILE PDF CON I DATI DI CONFIGURAZIONE E QUELLI RITORNATI DALLA STORE
-				 */
-				try {
-					logger.debug("Timbro il file generato da modello");
-					pdfTimbrato = timbraFile(pdfDaModello, lRicercaAgibilitaStoreOutBean.getTestoInChiaroBarcode(), lRicercaAgibilitaStoreOutBean.getContenutoBarcode(),
-							lRicercaAgibilitaWSConfigBean.getOpzioniTimbro());
-					logger.debug("File timbrato");
-				} catch (Exception e) {
-					logger.error(e.getMessage(), e);
-				}
-
-				/** PREPARO IL FILE DA VERSIONARE */
-				RebuildedFile lRebuildedFile = new RebuildedFile();
-				lRebuildedFile.setIdDocumento(lRicercaAgibilitaStoreOutBean.getIdDocRisposta());
-
-				// Se il file e stato timbrato correttamente lo versiono
-				if (pdfTimbrato != null) {
-					lRebuildedFile.setFile(pdfTimbrato);
-					lRebuildedFile.setInfo(getFileInfoBean(pdfTimbrato));
-				}
-				// Se c'e stato un errore durante la timbratura versiono il file non timbrato
-				else if (pdfDaModello != null) {
-					lRebuildedFile.setFile(pdfDaModello);
-					lRebuildedFile.setInfo(getFileInfoBean(pdfDaModello));
-				}
-
-				/* 12) --- VERSIONO IL FILE */
-				logger.debug("Versiono il file");
-				uriPdfTimbratoVersionato = versionaDocumento(getVersionaDocumentoInBean(lRebuildedFile), session);
-
-				if (uriPdfTimbratoVersionato != null) {
-					logger.debug("Il File e' stato versionato");
-				} else {
-					throw new Exception("Errore durante il versionamento del file timbrato: uriPdfTimbratoVersionato = null");
-				}
-
-				/**
-				 * SE TUTTO E ANDATO A BUON FINE, COMMIT
-				 */
-				session.flush();
-				lTransaction.commit();
-
-			} catch (Exception e) {
-//				logger.error(e.getMessage(), e);
-			} finally {
-
-				/**
-				 * CHIUSURA DELLA SESSIONE HIBERNATE : SE ERRORI, ROLLBACK
-				 */
-				HibernateUtil.release(session);
-			}
-
-			/*
-			 * 13) --- INVIO LA MAIL AL RICHIEDENTE CON I DATI DELL'AGIBILITA E IL PDF GENERATO
-			 */
-			EmailSentReferenceBean referenceBeanMail = null;
-			FileAgibilitaOutBean fileModello = new FileAgibilitaOutBean();
-			try {
-				// Creo la lista di file da allegare alla mail
-				List<FileAgibilitaOutBean> listaAllegatiMail = new ArrayList<FileAgibilitaOutBean>();
-				
-				
-				String nomeFileModello = StringUtils.isNotBlank(lRicercaAgibilitaWSConfigBean.getNomeModello()) ? lRicercaAgibilitaWSConfigBean.getNomeModello() : "Esito_richiesta_certificati_agibilità.pdf";
-
-				// Se il file creato da modello e stato timbrato e versionato
-				if (uriPdfTimbratoVersionato != null) {
-					fileModello.setUri(uriPdfTimbratoVersionato);
-					fileModello.setNomeFile(nomeFileModello);
-					fileModello.setDimensione(new BigDecimal(pdfTimbrato.length()));
-					fileModello.setMimetype("application\\pdf");
-
-					listaAllegatiMail.add(fileModello);
-				}
-				// Se invece il file non e stato versionato
-				else if (pdfTimbrato != null) {
-					logger.error("C'e stato un errore nel versionamento del file lo allego comunque alla mail");
-					String uriPdfTimbrato = DocumentStorage.store(pdfTimbrato, null);
-					fileModello.setUri(uriPdfTimbrato);
-					fileModello.setNomeFile(nomeFileModello);
-					fileModello.setDimensione(new BigDecimal(pdfTimbrato.length()));
-					fileModello.setMimetype("application\\pdf");
-
-					listaAllegatiMail.add(fileModello);
-				}
-				// Se invece il file non e stato ne timbrato ne versionato
-				else if (pdfDaModello != null) {
-					logger.error("C'e stato un errore nel versionamento e nella timbratura del file lo allego comunque alla mail");
-					String uriPdfDaModello = DocumentStorage.store(pdfDaModello, null);
-					fileModello.setUri(uriPdfDaModello);
-					fileModello.setNomeFile(nomeFileModello);
-					fileModello.setDimensione(new BigDecimal(pdfDaModello.length()));
-					fileModello.setMimetype("application\\pdf");
-
-					listaAllegatiMail.add(fileModello);
-				}
-				// Se c'e stato un errore nela generazione del file da modello
-				else {
-					logger.error("C'e stato un errore durante la generazione del file, non lo allego alla mail");
-				}
-
-				if (lRicercaAgibilitaStoreOutBean.getFlgFileAllegatiMail()) {
-					listaAllegatiMail.addAll(lRicercaAgibilitaStoreOutBean.getFilesAgibilita());
-				}
-
-				logger.debug("Invio mail");
-				referenceBeanMail = invioMailModello(lRicercaAgibilitaStoreOutBean, listaAllegatiMail, nomeFileModello);
-				logger.debug("Mail inviata a: " + lRicercaAgibilitaStoreOutBean.getDestinatariMail() +" da casella mail: " + lRicercaAgibilitaStoreOutBean.getAccountMittenteMail());
-
-			} catch (Exception e) {
-				logger.error("Errore durante l'invio della mail: " + e.getMessage(), e);
-			}
-
-			/* 14) --- ASSOCIO LE MAIL INVIATE ALL'ID_UD TORNATO DALLA STORE */
-			try {
-				logger.debug("Associo le mails all'ID_UD"); 
-				if (referenceBeanMail.getIdEmails() != null) {
-					for (String idMail : referenceBeanMail.getIdEmails()) {
-						associaMailToIdud(idMail, lRicercaAgibilitaStoreOutBean.getIdUDRisposta());
-						logger.debug("Mail con id:" + idMail + " associata all ID_UD: " + lRicercaAgibilitaStoreOutBean.getIdUDRisposta());
-					}
-				}
-
-			} catch (Exception e) {
-				logger.error("Errore durante l'associazione delle mail al id_ud: "
-						+ lRicercaAgibilitaStoreOutBean.getIdUDRisposta() + "\n" + e.getMessage(), e);
-			}
-
+//			logger.error(e.getMessage(), e);
+			throw new AurigaRestServiceException(AurigaRestServiceMessages.ERROR_SERVICE + ": " + e.getMessage(),
+					Status.INTERNAL_SERVER_ERROR);
 		}
+		
+		
+		/* 5) --------------- INIZIALIZZO AURIGALOGINBEAN --------------------- */
+		SpecializzazioneBean lSpecBean = new SpecializzazioneBean();
+		lSpecBean.setIdDominio(lRicercaAgibilitaStoreOutBean.getIdDominio());
+		lAurigaLoginBean.setSpecializzazioneBean(lSpecBean);
+		lAurigaLoginBean.setToken(lRicercaAgibilitaStoreOutBean.getConnectionToken());
+		
+		 /**
+		  * 
+		  * AGGIORNAMENTO IL WS VIENE DIVISO IN DUE TRONCONI PERCHE VIENE INVOCATO IN DUE MOMENTI DIVERSI
+		  * 
+		  * LA PRIMA VOLTA PER LA RICHIESTA DEI FILE E LA STORE CREA UNA BOZZA
+		  * 
+		  * UNA SECONDA VOLTA VIENE INVOCATO DOPO L'EFFETTIVO PAGAMENTO E SI PUO RITORNARE IN OUTPUT I FILE
+		  * 
+		  * ****/
+		 /*Questo è il caso in cui è stato chiamato la prima volta facendo la richeista e non devo ritornare i file ma solo l'idRicerca*/
+		 
+		 if(lRicercaAgibilitaStoreOutBean.getTipoRequest().equalsIgnoreCase("Ricerca")) {
+				response.setEsito("OK");
+				response.setIdRicerca(lRicercaAgibilitaStoreOutBean.getIdRicerca());
+				ElencoAgibilita elencoAgibilita = new ElencoAgibilita();
+				elencoAgibilita.setAgibilita(lRicercaAgibilitaStoreOutBean.getListaCertificati());
+				response.setElencoAgibilita(elencoAgibilita);
+				String responseString = convertBeanToXml(response);
+				logger.debug("Esito richiesta: OK - Response restituita: \n" + responseString);
+				
+				return response;
+			
+		 }else {
+					/*
+					 * 6) ------------ COSTRUZIONE DEL PATH DEL SERVIZIO CON I DOCUMENTI RESTITUITI DALLA STORE
+					 */
+					
+					
+					/* TIMBO I FILE DELL'AGIBILITA RITORNATI DALLA STORE, CON IL TIMBRO DI COPIA CONFORME AL CARTACEO*/
+					logger.debug("Timbro i file di agbilita ritornati dalla store con il timbro di copia conforme al cartaceo");
+					timbraFileAgibilita(lRicercaAgibilitaStoreOutBean);
+
+					logger.debug("Creo path del servizio che scarica il file");
+					String pathServiceFile = createPathForService(lRicercaAgibilitaStoreOutBean);
+
+					/* 7) ------------ CONFEZIONAMENTO DELLA RISPOSTA DEL SERVIZIO */
+					// !!!!! TODO: DA VERIFICARE IN CHE CASI LA STORE MI DA ERRORE, in caso togliere
+					// if else, lasciare solo if
+					response.setEsito("OK");
+					response.setProtocollo(lRicercaAgibilitaStoreOutBean.getEstremiProtRichiesta());
+
+					ElencoAgibilita elencoAgibilita = new ElencoAgibilita();
+					elencoAgibilita.setAgibilita(lRicercaAgibilitaStoreOutBean.getListaCertificati());
+
+					response.setElencoAgibilita(elencoAgibilita);
+					response.setPathServiceFile(pathServiceFile);
+
+					String responseString = convertBeanToXml(response);
+					logger.debug("Esito richiesta: OK - Response restituita: \n" + responseString);
+					
+
+					/* 8) ------------ SALVO NEI TEMPORANEI I FILE RICEVUTI DAL PORTALE */
+					/*
+					 * List<FileAgibilitaOutBean> listaFilesPortale = null; if(files != null) {
+					 * logger.debug("Salvo nei temporanei i file in input"); listaFilesPortale =
+					 * creaTempFilePortale(files); }else {
+					 * logger.debug("File in input non presenti!"); }
+					 */
+
+					Session session = null;
+					File pdfDaModello = null;
+					File pdfTimbrato = null;
+					String uriPdfTimbratoVersionato = null;
+
+					/**
+					 * INIZIO TRANSAZIONE
+					 */
+
+					try {
+
+						SubjectBean subject = new SubjectBean();
+						subject.setIdDominio(lAurigaLoginBean.getSchema());
+						SubjectUtil.subject.set(subject);
+
+						session = HibernateUtil.begin();
+						Transaction lTransaction = session.beginTransaction();
+
+						/**ORA LA PROTOCOLLAZIONE LA FA LA STORE QUINDI I METODI SOTTO NON SERVONO MA LASCIO COMMENTATI*/
+						/*
+						 * 9) --- CARICO I FILE SALVATI NEI TEMPORANEI COME ALLEGATI DELL'UD CREATA
+						 * DALLA STORE
+						 */
+						/*
+						 * if (listaFilesPortale != null && !listaFilesPortale.isEmpty()) { logger.
+						 * debug("Carico i file in input al servizio come allegati dell ud creata dala store"
+						 * ); aggiungiAllegatiUD(lRicercaAgibilitaStoreOutBean, listaFilesPortale,
+						 * session); logger.
+						 * debug("Sono stati allegati i file in input all'UD con identificativo: " +
+						 * lRicercaAgibilitaStoreOutBean.getIdUDRichiesta()); }
+						 */
+
+						/*
+						 * 10) --- INIEZIONE NEL MODELLO DEI DATI RICEVUTI DALA STORE E CONVERSIONE PDF
+						 */
+						logger.debug("Innietto i dati nel modello");
+						pdfDaModello = creaPdfDaModello(lRicercaAgibilitaStoreOutBean);
+						logger.debug("Creato pdf: " + pdfDaModello.getName() + " con i dati inniettati nel modello");
+
+						
+						/*
+						 * 11) --- TIMBRO IL FILE PDF CON I DATI DI CONFIGURAZIONE E QUELLI RITORNATI DALLA STORE
+						 */
+						try {
+							logger.debug("Timbro il file generato da modello");
+							pdfTimbrato = timbraFile(pdfDaModello, lRicercaAgibilitaStoreOutBean.getTestoInChiaroBarcode(), lRicercaAgibilitaStoreOutBean.getContenutoBarcode(),
+									lRicercaAgibilitaWSConfigBean.getOpzioniTimbro());
+							logger.debug("File timbrato");
+						} catch (Exception e) {
+							logger.error(e.getMessage(), e);
+						}
+
+						/** PREPARO IL FILE DA VERSIONARE */
+						RebuildedFile lRebuildedFile = new RebuildedFile();
+						lRebuildedFile.setIdDocumento(lRicercaAgibilitaStoreOutBean.getIdDocRisposta());
+
+						// Se il file e stato timbrato correttamente lo versiono
+						if (pdfTimbrato != null) {
+							lRebuildedFile.setFile(pdfTimbrato);
+							lRebuildedFile.setInfo(getFileInfoBean(pdfTimbrato, "RispostaRichAgibilitaProtN<" + lRicercaAgibilitaStoreOutBean.getEstremiProtRichiesta() + ">.pdf"));
+						}
+						// Se c'e stato un errore durante la timbratura versiono il file non timbrato
+						else if (pdfDaModello != null) {
+							lRebuildedFile.setFile(pdfDaModello);
+							lRebuildedFile.setInfo(getFileInfoBean(pdfDaModello, "RispostaRichAgibilitaProtN<" + lRicercaAgibilitaStoreOutBean.getEstremiProtRichiesta() + ">.pdf"));
+						}
+
+						/* 12) --- VERSIONO IL FILE */
+						logger.debug("Versiono il file");
+						uriPdfTimbratoVersionato = versionaDocumento(getVersionaDocumentoInBean(lRebuildedFile), session);
+
+						if (uriPdfTimbratoVersionato != null) {
+							logger.debug("Il File e' stato versionato");
+						} else {
+							throw new Exception("Errore durante il versionamento del file timbrato: uriPdfTimbratoVersionato = null");
+						}
+
+						/**
+						 * SE TUTTO E ANDATO A BUON FINE, COMMIT
+						 */
+						session.flush();
+						lTransaction.commit();
+
+					} catch (Exception e) {
+//						logger.error(e.getMessage(), e);
+					} finally {
+
+						/**
+						 * CHIUSURA DELLA SESSIONE HIBERNATE : SE ERRORI, ROLLBACK
+						 */
+						HibernateUtil.release(session);
+					}
+
+					/*
+					 * 13) --- INVIO LA MAIL AL RICHIEDENTE CON I DATI DELL'AGIBILITA E IL PDF GENERATO
+					 */
+					EmailSentReferenceBean referenceBeanMail = null;
+					FileAgibilitaOutBean fileModello = new FileAgibilitaOutBean();
+					try {
+						// Creo la lista di file da allegare alla mail
+						List<FileAgibilitaOutBean> listaAllegatiMail = new ArrayList<FileAgibilitaOutBean>();
+						
+						
+						String nomeFileModello = StringUtils.isNotBlank(lRicercaAgibilitaWSConfigBean.getNomeModello()) ? lRicercaAgibilitaWSConfigBean.getNomeModello() : "Esito_richiesta_certificati_agibilità.pdf";
+
+						// Se il file creato da modello e stato timbrato e versionato
+						if (uriPdfTimbratoVersionato != null) {
+							fileModello.setUri(uriPdfTimbratoVersionato);
+							fileModello.setNomeFile(nomeFileModello);
+							fileModello.setDimensione(new BigDecimal(pdfTimbrato.length()));
+							fileModello.setMimetype("application\\pdf");
+
+							listaAllegatiMail.add(fileModello);
+						}
+						// Se invece il file non e stato versionato
+						else if (pdfTimbrato != null) {
+							logger.error("C'e stato un errore nel versionamento del file lo allego comunque alla mail");
+							String uriPdfTimbrato = DocumentStorage.store(pdfTimbrato, null);
+							fileModello.setUri(uriPdfTimbrato);
+							fileModello.setNomeFile(nomeFileModello);
+							fileModello.setDimensione(new BigDecimal(pdfTimbrato.length()));
+							fileModello.setMimetype("application\\pdf");
+
+							listaAllegatiMail.add(fileModello);
+						}
+						// Se invece il file non e stato ne timbrato ne versionato
+						else if (pdfDaModello != null) {
+							logger.error("C'e stato un errore nel versionamento e nella timbratura del file lo allego comunque alla mail");
+							String uriPdfDaModello = DocumentStorage.store(pdfDaModello, null);
+							fileModello.setUri(uriPdfDaModello);
+							fileModello.setNomeFile(nomeFileModello);
+							fileModello.setDimensione(new BigDecimal(pdfDaModello.length()));
+							fileModello.setMimetype("application\\pdf");
+
+							listaAllegatiMail.add(fileModello);
+						}
+						// Se c'e stato un errore nela generazione del file da modello
+						else {
+							logger.error("C'e stato un errore durante la generazione del file, non lo allego alla mail");
+						}
+
+						if (lRicercaAgibilitaStoreOutBean.getFlgFileAllegatiMail()) {
+							listaAllegatiMail.addAll(lRicercaAgibilitaStoreOutBean.getFilesAgibilita());
+						}
+
+						logger.debug("Invio mail");
+						referenceBeanMail = invioMailModello(lRicercaAgibilitaStoreOutBean, listaAllegatiMail, nomeFileModello);
+						logger.debug("Mail inviata a: " + lRicercaAgibilitaStoreOutBean.getDestinatariMail() +" da casella mail: " + lRicercaAgibilitaStoreOutBean.getAccountMittenteMail());
+
+					} catch (Exception e) {
+						logger.error("Errore durante l'invio della mail: " + e.getMessage(), e);
+					}
+
+					/* 14) --- ASSOCIO LE MAIL INVIATE ALL'ID_UD TORNATO DALLA STORE */
+					try {
+						logger.debug("Associo le mails all'ID_UD"); 
+						if (referenceBeanMail.getIdEmails() != null) {
+							for (String idMail : referenceBeanMail.getIdEmails()) {
+								associaMailToIdud(idMail, lRicercaAgibilitaStoreOutBean.getIdUDRisposta());
+								logger.debug("Mail con id:" + idMail + " associata all ID_UD: " + lRicercaAgibilitaStoreOutBean.getIdUDRisposta());
+							}
+						}
+
+					} catch (Exception e) {
+						logger.error("Errore durante l'associazione delle mail al id_ud: "
+								+ lRicercaAgibilitaStoreOutBean.getIdUDRisposta() + "\n" + e.getMessage(), e);
+					}
+
+				
+		 }
+	
 
 		logger.debug("Fine servizio: RicercaAgibilita");
 
@@ -878,6 +894,61 @@ public class AurigaAgibilitaResource {
 					}
 					file.setFirmatari(firmatari);
 				}
+				
+				file.setTipoFirma(lMimeTypeFirmaBean.getTipoFirma());
+				
+				file.setInfoVerificaFirma(lMimeTypeFirmaBean.getInfoFirma());								
+				
+				if(lMimeTypeFirmaBean.getInfoFirmaMarca()!=null) {
+					file.setInfoVerificaMarca(lMimeTypeFirmaBean.getInfoFirmaMarca().getInfoMarcaTemporale());
+					
+					file.setDataOraMarca(lMimeTypeFirmaBean.getInfoFirmaMarca().getDataOraMarcaTemporale());
+					
+					file.setTipoMarca(lMimeTypeFirmaBean.getInfoFirmaMarca().getTipoMarcaTemporale());
+				}
+				
+				
+				// Prendo i firmatari
+				String listDataOraEmissioneCertificatoFirma = "";
+				String listDataOraScadenzaCertificatoFirma = "";	
+				String listTipoFirmaQA = "";
+				String listCfFirmatario = "";
+				SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+				if (lMimeTypeFirmaBean.getBuste() != null) { 
+					for (Firmatari bustaFileFirmato : lMimeTypeFirmaBean.getBuste()) {
+						
+						if (bustaFileFirmato!=null && bustaFileFirmato.getDataFirma() != null){
+							
+							// Leggo la data emissione certificato firmatario
+							if (bustaFileFirmato.getDataEmissione()!=null){
+								String dataEmissione = sdf.format(bustaFileFirmato.getDataEmissione());
+								listDataOraEmissioneCertificatoFirma = listDataOraEmissioneCertificatoFirma + dataEmissione + ";";
+							}
+							
+							// Leggo la data scadenza certificato firmatario
+							if (bustaFileFirmato.getDataScadenza()!=null){
+								String dataScadenza = sdf.format(bustaFileFirmato.getDataScadenza());
+								listDataOraScadenzaCertificatoFirma = listDataOraScadenzaCertificatoFirma + dataScadenza + ";";
+							}
+							
+							// Leggo il tipo di firma
+							if (bustaFileFirmato.getTipoFirmaQA()!=null){
+								String tipoFirmaQA = bustaFileFirmato.getTipoFirmaQA();
+								listTipoFirmaQA = listTipoFirmaQA + tipoFirmaQA + ";";
+							}
+							
+							// Leggo il cf del firmatario
+							if (bustaFileFirmato.getCfFirmatario()!=null){
+								String cfFirmatario = bustaFileFirmato.getCfFirmatario();
+								listCfFirmatario = listCfFirmatario + cfFirmatario + ";";
+							}
+						}
+					}
+				}
+				file.setDataOraEmissioneCertificatoFirma(listDataOraEmissioneCertificatoFirma);
+				file.setDataOraScadenzaCertificatoFirma(listDataOraScadenzaCertificatoFirma);
+				file.setTipoFirmaQA(listTipoFirmaQA);
+				file.setCfFirmatario(listCfFirmatario);
 	
 				listaFiles.add(file);
 			}
@@ -1239,6 +1310,7 @@ public class AurigaAgibilitaResource {
 	
 	
 				if (lResultStore.getResultBean() != null) {
+					logger.debug("Dati ritornati dalla store: " + lResultStore.getResultBean().getDatirispostaxmlout());
 					// costruisco il bean con i dati restituiti dalla store
 					XmlUtilityDeserializer lXmlUtility = new XmlUtilityDeserializer();
 					XmlRicercaAgibilitaOutBean lXmlRicercaAgibilitaOutBean = lXmlUtility.unbindXml(lResultStore.getResultBean().getDatirispostaxmlout(),
@@ -1266,6 +1338,9 @@ public class AurigaAgibilitaResource {
 					lRicercaAgibilitaStoreOutBean.setUriTemplate(lXmlRicercaAgibilitaOutBean.getUriModelloRisposta());
 					lRicercaAgibilitaStoreOutBean.setDestinatariMail(lXmlRicercaAgibilitaOutBean.getDestinatariEmailRisposta());
 					lRicercaAgibilitaStoreOutBean.setConnectionToken(lXmlRicercaAgibilitaOutBean.getConnectionToken());
+					lRicercaAgibilitaStoreOutBean.setConnectionToken(lXmlRicercaAgibilitaOutBean.getConnectionToken());
+					lRicercaAgibilitaStoreOutBean.setIdRicerca(lXmlRicercaAgibilitaOutBean.getIdRicerca());
+					lRicercaAgibilitaStoreOutBean.setTipoRequest(lXmlRicercaAgibilitaOutBean.getTipoRequest());
 	
 					// recupero la lista dei certificati
 					if (lXmlRicercaAgibilitaOutBean.getListaAgibilita() != null) {
@@ -1384,7 +1459,7 @@ public class AurigaAgibilitaResource {
 						} else {
 							if (StringUtils.isNotBlank(listaFile.get(i).getUri())) {
 								File file = new File(listaFile.get(i).getUri());
-								FileInfoBean info = getFileInfoBean(file);
+								FileInfoBean info = getFileInfoBean(file, listaFile.get(i).getNomeFile());
 								RebuildedFile lRebuildedFile = new RebuildedFile();
 								lRebuildedFile.setFile(file);
 								lRebuildedFile.setInfo(info);
@@ -1415,7 +1490,7 @@ public class AurigaAgibilitaResource {
 
 	}
 
-	protected FileInfoBean getFileInfoBean(File file) throws Exception {
+	protected FileInfoBean getFileInfoBean(File file, String nomeFile) throws Exception {
 		MimeTypeFirmaBean lMimeTypeFirmaBean = new MimeTypeFirmaBean();
 		try {
 		lMimeTypeFirmaBean = new InfoFileUtility().getInfoFromFile(file.toURI().toString(), file.getName(), false,
@@ -1425,7 +1500,7 @@ public class AurigaAgibilitaResource {
 			throw new Exception(e.getMessage(), e);
 		}
 		GenericFile allegatoRiferimento = new GenericFile();
-		allegatoRiferimento.setDisplayFilename(file.getName());
+		allegatoRiferimento.setDisplayFilename(nomeFile);
 		allegatoRiferimento.setImpronta(lMimeTypeFirmaBean.getImpronta());
 		allegatoRiferimento.setMimetype(lMimeTypeFirmaBean.getMimetype());
 		allegatoRiferimento.setAlgoritmo(lMimeTypeFirmaBean.getAlgoritmo());
@@ -1733,6 +1808,10 @@ public class AurigaAgibilitaResource {
 		
 		Collegaregtoemail service = new Collegaregtoemail();
 		StoreResultBean<DmpkIntMgoEmailCollegaregtoemailBean> storeResultBean = service.execute(lAurigaLoginBean, lDmpkIntMgoEmailCollegaregtoemailBean);
+		
+		if(StringUtils.isNotBlank(storeResultBean.getDefaultMessage())) {
+			logger.error("Errore durante l'associazione della mail all idud: " + storeResultBean.getDefaultMessage());
+		}
 
 		
 	}

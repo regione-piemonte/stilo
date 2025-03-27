@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.document.function.bean;
 
 import it.eng.document.NumeroColonna;
 import it.eng.document.TipoData;
@@ -117,6 +118,9 @@ public class DestinatariBean implements Serializable{
     
     @NumeroColonna(numero = "57")
    	private Flag assegna;
+    
+    @NumeroColonna(numero = "58")
+    private String indirizzoRubrica;
     
 	public String getIdRubrica() {
 		return idRubrica;
@@ -397,6 +401,14 @@ public class DestinatariBean implements Serializable{
 
 	public void setPartitaIva(String partitaIva) {
 		this.partitaIva = partitaIva;
+	}
+
+	public String getIndirizzoRubrica() {
+		return indirizzoRubrica;
+	}
+
+	public void setIndirizzoRubrica(String indirizzoRubrica) {
+		this.indirizzoRubrica = indirizzoRubrica;
 	}
 	
 }

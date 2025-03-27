@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.stilo.logic.listener;
 
 import it.eng.stilo.logic.exception.DatabaseException;
 import it.eng.stilo.logic.service.GenericDataAccessEJB;

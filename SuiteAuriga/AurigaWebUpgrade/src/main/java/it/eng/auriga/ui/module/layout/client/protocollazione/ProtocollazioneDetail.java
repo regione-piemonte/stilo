@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.protocollazione;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -53,11 +54,14 @@ import com.smartgwt.client.widgets.form.fields.CanvasItem;
 import com.smartgwt.client.widgets.form.fields.FormItem;
 import com.smartgwt.client.widgets.form.fields.HiddenItem;
 import com.smartgwt.client.widgets.form.fields.RadioGroupItem;
+import com.smartgwt.client.widgets.form.fields.RichTextItem;
 import com.smartgwt.client.widgets.form.fields.SpacerItem;
 import com.smartgwt.client.widgets.form.fields.events.ChangeEvent;
 import com.smartgwt.client.widgets.form.fields.events.ChangeHandler;
 import com.smartgwt.client.widgets.form.fields.events.ChangedEvent;
 import com.smartgwt.client.widgets.form.fields.events.ChangedHandler;
+import com.smartgwt.client.widgets.form.fields.events.DataArrivedEvent;
+import com.smartgwt.client.widgets.form.fields.events.DataArrivedHandler;
 import com.smartgwt.client.widgets.form.fields.events.IconClickEvent;
 import com.smartgwt.client.widgets.form.fields.events.IconClickHandler;
 import com.smartgwt.client.widgets.form.validator.CustomValidator;
@@ -83,6 +87,8 @@ import com.smartgwt.client.widgets.menu.MenuItemIfFunction;
 import com.smartgwt.client.widgets.menu.events.MenuItemClickEvent;
 import com.smartgwt.client.widgets.tab.Tab;
 import com.smartgwt.client.widgets.tab.TabSet;
+import com.smartgwt.client.widgets.tab.events.TabSelectedEvent;
+import com.smartgwt.client.widgets.tab.events.TabSelectedHandler;
 import com.smartgwt.client.widgets.toolbar.ToolStrip;
 import com.smartgwt.client.widgets.toolbar.ToolStripButton;
 
@@ -100,12 +106,15 @@ import it.eng.auriga.ui.module.layout.client.ScanUtility;
 import it.eng.auriga.ui.module.layout.client.ScanUtility.ScanCallback;
 import it.eng.auriga.ui.module.layout.client.StampaEtichettaUtility;
 import it.eng.auriga.ui.module.layout.client.StampaEtichettaUtility.StampaEtichettaCallback;
+import it.eng.auriga.ui.module.layout.client.TipologiaAllegatiInvioMailCostants;
 import it.eng.auriga.ui.module.layout.client.anagrafiche.LookupTopograficoPopup;
 import it.eng.auriga.ui.module.layout.client.anagrafiche.SalvaTopograficoPopup;
 import it.eng.auriga.ui.module.layout.client.archivio.ArchivioLayout;
 import it.eng.auriga.ui.module.layout.client.archivio.ArchivioList;
 import it.eng.auriga.ui.module.layout.client.archivio.AssegnazionePopup;
 import it.eng.auriga.ui.module.layout.client.archivio.AzioneApposizionePopup;
+import it.eng.auriga.ui.module.layout.client.archivio.AzioneSuccessivaIterFirmaBozzePopup;
+import it.eng.auriga.ui.module.layout.client.archivio.AzioneSuccessivaPopup;
 import it.eng.auriga.ui.module.layout.client.archivio.ClassificazioneFascicolazionePopup;
 import it.eng.auriga.ui.module.layout.client.archivio.CondivisionePopup;
 import it.eng.auriga.ui.module.layout.client.archivio.InviiEffettuatiWindow;
@@ -130,9 +139,12 @@ import it.eng.auriga.ui.module.layout.client.osservazioniNotifiche.OsservazioniN
 import it.eng.auriga.ui.module.layout.client.postaElettronica.DettaglioPostaElettronica;
 import it.eng.auriga.ui.module.layout.client.postaElettronica.DettaglioRegProtAssociatoWindow;
 import it.eng.auriga.ui.module.layout.client.postaElettronica.DettaglioRispostaProtWindow;
+import it.eng.auriga.ui.module.layout.client.postaElettronica.EditorEmailWindow;
 import it.eng.auriga.ui.module.layout.client.postaElettronica.NuovoMessaggioWindow;
 import it.eng.auriga.ui.module.layout.client.postainarrivo.PostaInArrivoRegistrazioneWindow;
 import it.eng.auriga.ui.module.layout.client.postainuscita.PostaInUscitaRegistrazioneWindow;
+import it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.AzioneIstruttoriaPubblicazionePopup;
+import it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.CollegaComeIstanzaConcorrentePopup;
 import it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.TaskDettUdGenDetail;
 import it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.TaskFlussoInterface;
 import it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.frontoffice.items.CustomTaskButton;
@@ -142,6 +154,7 @@ import it.eng.auriga.ui.module.layout.client.protocollazione.pgweb.AltreVieItem;
 import it.eng.auriga.ui.module.layout.client.protocollazione.pgweb.EsibentiItem;
 import it.eng.auriga.ui.module.layout.client.protocollazione.pgweb.InteressatiItem;
 import it.eng.auriga.ui.module.layout.client.pubblicazioneAlbo.DettaglioRichiestaPubblicazioneWindow;
+import it.eng.auriga.ui.module.layout.client.pubblicazioneAlbo.NuovaRichiestaPubblicazioneWindow;
 import it.eng.auriga.ui.module.layout.client.scrivania.ScrivaniaLayout;
 import it.eng.auriga.ui.module.layout.client.timbra.CopertinaEtichettaUtil;
 import it.eng.auriga.ui.module.layout.client.timbra.CopertinaTimbroBean;
@@ -220,9 +233,12 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 
 	// Modalità della maschera (new|view|edit)
 	protected String mode;
-	// Modalità in editing della maschera
-	// (aggiuntaFile|modificaDatiReg|protocollaRegEmergenza|protocollazioneMail)
+	
+	// Modalità in editing della maschera (aggiuntaFile|modificaDatiReg|protocollaRegEmergenza|protocollazioneMail)
 	protected String editMode;
+
+	// Se sono in modalità view da portlet
+	protected boolean viewFromPortletMode;
 
 	// Mappa dei valori originali caricati in maschera
 	protected Map valuesOrig;
@@ -274,6 +290,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	protected Tab tabDelegatoEFirmatari;
 	protected Tab tabAltreVie;
 	protected Tab tabPubblicazione;
+	protected Tab tabIterFirmeTrasmissione;
 	
 	protected ToolStrip detailToolStrip;
 	protected DetailToolStripButton anteprimaModelloButton;
@@ -287,6 +304,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	protected DetailToolStripButton salvaRegistraButton;
 	protected DetailToolStripButton presaInCaricoButton;
 	protected DetailToolStripButton restituisciButton;
+	protected DetailToolStripButton rilasciaButton;
 	protected DetailToolStripButton segnaComeVisionatoButton;
 	protected DetailToolStripButton classificazioneFascicolazioneButton;
 	protected DetailToolStripButton modificaButton;
@@ -298,8 +316,10 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	protected DetailToolStripButton protocollazioneUscitaButton;
 	protected DetailToolStripButton protocollazioneInternaButton;
 	protected DetailToolStripButton invioPECButton;
+	protected FrecciaDetailToolStripButton frecciaInvioPECButton;
 	protected DetailToolStripButton invioMailRicevutaButton;
 	protected DetailToolStripButton invioPEOButton;
+	protected FrecciaDetailToolStripButton frecciaInvioPEOButton;
 	protected DetailToolStripButton invioRaccomandataButton;
 	protected DetailToolStripButton invioPostaPrioritariaButton;
 	protected DetailToolStripButton verificaRegistrazioneButton;
@@ -319,12 +339,15 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	protected DetailToolStripButton rispondiButton;
 //	protected DetailToolStripButton condivisioneButton;
 //	protected FrecciaDetailToolStripButton frecciaCondivisioneButton;
+	protected DetailToolStripButton azioniIstruttoriaPubblButton;
+	protected DetailToolStripButton avviaIterFirmeButton;
 	protected DetailToolStripButton osservazioniNotificheButton;
 	protected DetailToolStripButton apposizioneFirmaButton;
 	protected DetailToolStripButton apposizioneFirmaProtocollazioneButton;
 	protected DetailToolStripButton rifiutoApposizioneFirmaButton;
 	protected DetailToolStripButton apposizioneVistoButton;
 	protected DetailToolStripButton rifiutoApposizioneVistoButton;
+	protected DetailToolStripButton pubblicazioneButton;
 	protected DetailToolStripButton pubblicazioneTraspAmmButton;
 	
 	protected SaveModelloWindow saveModelloWindow;
@@ -346,6 +369,19 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	protected HiddenItem idProcessHiddenItem;
 	protected HiddenItem estremiProcessHiddenItem;
 	protected HiddenItem ruoloSmistamentoAttoHiddenItem;
+	protected HiddenItem idUdAvvioPraticheSUAHiddenItem;
+	protected HiddenItem idDocAvvioPraticheSUAHiddenItem;
+	protected HiddenItem nomeFileDocAvvioPraticheSUAHiddenItem;
+	protected HiddenItem listaAllegatiAvvioPraticheSUAHiddenItem;
+	protected HiddenItem nroProtocolloAvvioPraticheSUAHiddenItem;
+	protected HiddenItem dataProtocolloAvvioPraticheSUAHiddenItem;
+	protected HiddenItem sceltaGiorniTermineProcConcADSPHiddenItem;
+	protected HiddenItem dataFinePubblicazioneHiddenItem;
+	protected HiddenItem listaDatiIstanzeConcorrentiSUAADSPHiddenItem;
+	protected HiddenItem codPraticheConcorrentiSUAADSPDaVerificareHiddenItem;
+	protected HiddenItem codPraticheConcorrentiSUAADSPHiddenItem;
+	protected HiddenItem nroProtIstanzaSUAPadreHiddenItem;
+	protected HiddenItem codPraticaSUAPadreHiddenItem;
 	protected HiddenItem tipoDocumentoSalvatoHiddenItem;
 	protected HiddenItem tipoDocumentoHiddenItem;
 	protected HiddenItem nomeTipoDocumentoHiddenItem;
@@ -398,6 +434,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	protected HiddenItem documentiDaCollegareItem;
 	protected ImgButtonItem documentiCollegatiButton;
 	protected ImgButtonItem collegaDocumentiButton;
+	protected HiddenItem listaAltriRiferimentiHiddenItem;
 	protected ImgButtonItem altriRiferimentiButton;
 	protected ImgButtonItem conDatiAnnullatiButton;
 	
@@ -579,6 +616,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	protected DynamicForm fileAllegatiForm;
 	protected CanvasItem fileAllegatiItem;
 	
+	protected DynamicForm verificaPreFirmaForm;
+	protected TextItem autoreVerificaPreFirmaItem;
+	protected DateTimeItem dataVerificaPreFirmaItem;
+	protected TextAreaItem noteVerificaPreFirmaItem;
+	
 	protected DynamicForm regEmergenzaForm;
 	protected ExtendedTextItem rifRegEmergenzaItem;
 	protected ExtendedNumericItem nroRegEmergenzaItem;
@@ -597,11 +639,25 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	protected ImgButtonItem salvaInTopograficoCollocazioneFisicaButton;
 
 	protected DynamicForm altriDatiForm;
+	protected RichTextItem bodyEmailItem; 
+	protected ImgButtonItem editBodyEmailImgButton;
 	protected DateItem dataDocumentoItem;
 	protected TextAreaItem noteItem;
 
 	protected DynamicForm periziaForm;
 	protected PeriziaItem periziaItem; 
+	
+	protected DynamicForm concessioneForm;
+	protected ConcessioneItem concessioneItem; 
+	
+	/*AZIONI SUCCESSIVE FIRMA*/
+	protected HiddenItem prossimaAzioneItem;
+	protected HiddenItem prossimaAzioneIdFirmatarioItem;
+	protected HiddenItem prossimaAzioneNomeFirmatarioItem;
+	protected HiddenItem prossimaAzioneIdUOAssItem;
+	protected HiddenItem prossimaAzioneCodRapioUOAssItem;
+	protected HiddenItem prossimaAzioneDesUOAssItem;
+	
 	
 	protected ProtocollazioneHeaderDetailSection detailSectionRegistrazione;
 	protected ProtocollazioneHeaderDetailSection detailSectionNuovaRegistrazione;
@@ -615,12 +671,14 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	protected ProtocollazioneDetailSection detailSectionDestinatari;
 	protected ProtocollazioneDetailSection detailSectionContenuti;
 	protected ProtocollazioneDetailSection detailSectionAllegati;
+	protected ProtocollazioneDetailSection detailSectionVerificaPreFirma;
 	protected ProtocollazioneDetailSection detailSectionDatiRicezione;
 	protected ProtocollazioneDetailSection detailSectionDocCollegato;
 	protected ProtocollazioneDetailSection detailSectionRegEmergenza;
 	protected ProtocollazioneDetailSection detailSectionCollocazioneFisica;
 	protected ProtocollazioneDetailSection detailSectionAltriDati;	
 	protected ProtocollazioneDetailSection detailSectionPerizia;
+	protected ProtocollazioneDetailSection detailSectionConcessione;
 	
 
 	/**************************************
@@ -646,10 +704,14 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	protected DynamicForm folderCustomForm;
 	protected FolderCustomItem folderCustomItem;
 
+	protected DynamicForm relVsPraticheApplEsterneForm;
+	protected RelVsPraticheApplEsterneItem relVsPraticheApplEsterneItem;
+	
 	protected ProtocollazioneDetailSection detailSectionAssegnazione;
 	protected ProtocollazioneDetailSection detailSectionCondivisione;
 	protected ProtocollazioneDetailSection detailSectionClassificazioneFascicolazione;
 	protected ProtocollazioneDetailSection detailSectionFolderCustom;
+	protected ProtocollazioneDetailSection detailSectionRelVsPraticheApplEsterne;
 
 	/******************************
 	 * TAB ESIBENTI E INTERESSATI *
@@ -720,6 +782,32 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	
 	protected ProtocollazioneDetailSection detailSectionPubblicazione;
 	protected ProtocollazioneDetailSection detailSectionRipubblicazione;
+	
+	/**********************************
+	 * TAB ITER FIRME E TRASMISSIONE  *
+	 **********************************/
+	 
+	protected DynamicForm firmatariIterFirmaForm;
+	protected FirmatariIterFirmaItem firmatariIterFirmaItem;
+	
+	protected DynamicForm coredattoriIterFirmaForm;
+	protected CoredattoriIterFirmaItem coredattoriIterFirmaItem;
+	
+	protected DynamicForm regTrasmTermineIterFirmaForm;
+	protected SelectItem idCasellaMittenteItem;
+	protected HiddenItem desCasellaMittenteItem;
+	protected RadioGroupItem opzProtAutoInIterFirmaItem;
+	protected RadioGroupItem opzRegAutoInIterFirmaItem;
+	protected SelectItem desRegistroRegAutoInIterFirmaItem;
+	protected HiddenItem codCategoriaRegAutoInIterFirmaItem;
+	protected SelezionaUOItem strutturaRegPostIterFirma;
+	protected CheckboxItem flgEmailAutoTermineIterFirmaRegItem;
+	
+	protected RecordList listaRegistriAutoTermineIterFirma;
+	
+	protected ProtocollazioneDetailSection detailSectionFirmatariIterFirma;
+	protected ProtocollazioneDetailSection detailSectionCoredattoriIterFirma;
+	protected ProtocollazioneDetailSection detailSectionRegTrasmTermineIterFirma;
 
 	/******************************
 	 * TAB ATTRIBUTI DINAMICI DOC *
@@ -789,6 +877,22 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	}
 	
 	/**
+	 * Metodo che indica se è una unità documentale di pregresso (sarà sempre read-only)
+	 *  
+	 */
+	public boolean isPregresso() {
+		return false;
+	}
+	
+	/**
+	 * Metodo che indica il record di dettaglio caricato all'apertura della maschera
+	 *  
+	 */
+	public Record getRecordDettaglio() {
+		return null;
+	}
+
+	/**
 	 * Metodo astratto che indica se è attiva nella maschera la modalità wizard
 	 *  
 	 */
@@ -837,7 +941,12 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				}
 
 				@Override
-				public boolean isPregresso() {
+				public boolean isPresentiFileConOmissis() {
+					return ProtocollazioneUtil.isPresentiFileConOmissis(record);
+				}
+				
+				@Override
+				public boolean isAttoPregresso() {
 					return flgAttoPregresso != null && flgAttoPregresso;
 				}
 			};
@@ -870,7 +979,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 //			return new ProtocollazioneDetailAtti("protocollazione_atti", null) {
 //
 //				@Override
-//				public boolean isPregresso() {
+//				public boolean isAttoPregresso() {
 //					return flgAttoPregresso != null && flgAttoPregresso;
 //				}
 //			};
@@ -1805,6 +1914,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		createSalvaRegistraButton();
 		createPresaInCaricoButton();
 		createRestituisciButton();
+		createRilasciaButton();
 		createSegnaComeVisionatoButton();
 		createClassificiazioneFascicolazioneButton();
 		createModificaButton();
@@ -1816,8 +1926,10 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		createProtocollazioneUscitaButton();
 		createProtocollazioneInternaButton();
 		createInvioPECButton();
+		createFrecciaInvioPECButton();
 		createInvioMailRicevutaButton();
 		createInvioPEOButton();
+		createFrecciaInvioPEOButton();
 		createInviaRaccomandataButton();
 		createInviaPostaPrioritariaButton();
 		createVerificaRegistrazioneButton();
@@ -1837,10 +1949,13 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		createRispondiButton();
 //		createCondivisioneButton();
 //		createFrecciaCondivisioneButton();
+		createAzioniIstruttoriaPubblButton();
+		createAvviaIterFirmeButton();
 		createOsservazioniNotificheButton();
 		createFirmaButton();
 		createApposizioneFirmaProtocollazioneButton();
 		createVistoButton();
+		createPubblicazioneButton();
 		createPubblicazioneTraspAmmButton();
 		
 		detailToolStrip = new ToolStrip();
@@ -1852,6 +1967,8 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		if (AurigaLayout.getIsAttivaAccessibilita()) {
 			detailToolStrip.setCanFocus(true);		
 		} 
+		detailToolStrip.addButton(azioniIstruttoriaPubblButton);
+		detailToolStrip.addButton(avviaIterFirmeButton);
 		detailToolStrip.addButton(anteprimaModelloButton);
 		detailToolStrip.addButton(stampaEtichettaButton);
 		detailToolStrip.addButton(frecciaStampaEtichettaButton);
@@ -1864,6 +1981,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		detailToolStrip.addButton(salvaRegistraButton);
 		detailToolStrip.addButton(presaInCaricoButton);
 		detailToolStrip.addButton(restituisciButton);
+		detailToolStrip.addButton(rilasciaButton);
 		detailToolStrip.addButton(segnaComeVisionatoButton);
 		detailToolStrip.addButton(classificazioneFascicolazioneButton);
 		detailToolStrip.addButton(modificaButton);
@@ -1875,7 +1993,9 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		detailToolStrip.addButton(protocollazioneUscitaButton);
 		detailToolStrip.addButton(protocollazioneInternaButton);
 		detailToolStrip.addButton(invioPECButton);
+		detailToolStrip.addButton(frecciaInvioPECButton);
 		detailToolStrip.addButton(invioPEOButton);
+		detailToolStrip.addButton(frecciaInvioPEOButton);
 		detailToolStrip.addButton(invioRaccomandataButton);
 		detailToolStrip.addButton(invioPostaPrioritariaButton);
 		detailToolStrip.addButton(verificaRegistrazioneButton);
@@ -1901,8 +2021,142 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		detailToolStrip.addButton(rifiutoApposizioneFirmaButton);
 		detailToolStrip.addButton(apposizioneVistoButton);
 		detailToolStrip.addButton(rifiutoApposizioneVistoButton);
+		detailToolStrip.addButton(pubblicazioneButton);
 		detailToolStrip.addButton(pubblicazioneTraspAmmButton);
 	}
+
+	private void createFrecciaInvioPEOButton() {
+		if(frecciaInvioPEOButton == null) {
+			frecciaInvioPEOButton = new FrecciaDetailToolStripButton();
+			frecciaInvioPEOButton.addClickHandler(new ClickHandler() {
+
+				@Override
+				public void onClick(ClickEvent event) {
+					clickFrecciaInvioPEOButton();
+				}
+			});
+		}	
+	}
+
+
+	protected void clickFrecciaInvioPEOButton() {
+
+
+
+		final Menu invioPEOMenu = new Menu();
+		MenuItem bustaFilePrincipaleMenuItem = new MenuItem("Standard", "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				clickInvioPEOButton(null);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleMenuItem);
+		
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_BUSTA_PDF_FILE_FIRMATO")) {
+			
+			MenuItem filePrincipaleMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.FILE_PRINCIPALE, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+			filePrincipaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+	
+				@Override
+				public void onClick(MenuItemClickEvent event) {
+					clickInvioPEOButton(TipologiaAllegatiInvioMailCostants.FILE_PRINCIPALE);
+				}
+			});
+			invioPEOMenu.addItem(filePrincipaleMenuItem);
+		}
+		
+		MenuItem bustaFilePrincipaleAllegatiEsterniMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI_ESTERNI, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleAllegatiEsterniMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				clickInvioPEOButton(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI_ESTERNI);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleAllegatiEsterniMenuItem);
+		
+		MenuItem bustaFilePrincipaleEAllegatiMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleEAllegatiMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				clickInvioPEOButton(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleEAllegatiMenuItem);
+
+		invioPEOMenu.showContextMenu();	
+	
+		
+	}
+
+
+	private void createFrecciaInvioPECButton() {
+		if(frecciaInvioPECButton == null) {
+			frecciaInvioPECButton = new FrecciaDetailToolStripButton();
+			frecciaInvioPECButton.addClickHandler(new ClickHandler() {
+
+				@Override
+				public void onClick(ClickEvent event) {
+					clickFrecciaInvioPECButton();
+				}
+			});
+		}	
+	}
+
+
+	protected void clickFrecciaInvioPECButton() {
+
+
+		final Menu invioPEOMenu = new Menu();
+		MenuItem bustaFilePrincipaleMenuItem = new MenuItem("Standard", "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				clickInvioPECButton(null);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleMenuItem);
+		
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_BUSTA_PDF_FILE_FIRMATO")) {
+			
+			MenuItem filePrincipaleMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.FILE_PRINCIPALE, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+			filePrincipaleMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+	
+				@Override
+				public void onClick(MenuItemClickEvent event) {
+					clickInvioPECButton(TipologiaAllegatiInvioMailCostants.FILE_PRINCIPALE);
+				}
+			});
+			invioPEOMenu.addItem(filePrincipaleMenuItem);
+		}
+		
+		MenuItem bustaFilePrincipaleAllegatiEsterniMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI_ESTERNI, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleAllegatiEsterniMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				clickInvioPECButton(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI_ESTERNI);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleAllegatiEsterniMenuItem);
+		
+		MenuItem bustaFilePrincipaleEAllegatiMenuItem = new MenuItem(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI, "anagrafiche/soggetti/flgEmailPecPeo/PEO.png");
+		bustaFilePrincipaleEAllegatiMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+			@Override
+			public void onClick(MenuItemClickEvent event) {
+				clickInvioPECButton(TipologiaAllegatiInvioMailCostants.BUSTA_FILE_PRINCIPALE_E_ALLEGATI);
+			}
+		});
+		invioPEOMenu.addItem(bustaFilePrincipaleEAllegatiMenuItem);
+
+		invioPEOMenu.showContextMenu();	
+	}
+
 
 	/**
 	 * Metodo che ritorna tutti i bottoni delle azioni da dettaglio
@@ -1950,7 +2204,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	 */
 	protected void createStampaEtichettaButton() {
 
-		stampaEtichettaButton = new DetailToolStripButton(AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") ? "Timbra" : I18NUtil.getMessages().protocollazione_detail_stampaEtichettaButton_prompt(), "protocollazione/barcode.png");
+		stampaEtichettaButton = new DetailToolStripButton(getTitleStampaEtichetta() , "protocollazione/barcode.png");
 		stampaEtichettaButton.addClickHandler(new ClickHandler() {
 
 			@Override
@@ -1974,7 +2228,9 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	 * 
 	 */
 	public void clickStampaEtichetta(Record detailRecord) {
-		if(AurigaLayout.getImpostazioneStampaAsBoolean("skipSceltaOpzStampa") || AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO")){
+		if(AurigaLayout.getImpostazioneStampaAsBoolean("skipSceltaOpzStampa") || 
+		   (AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") &&
+		   (AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg") == null || "a".equalsIgnoreCase(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg"))))) {
 			manageStampaEtichettaSenzaOpzStampa(detailRecord);
 		} else {
 			StampaEtichettaPopup stampaEtichettaPopup = new StampaEtichettaPopup(detailRecord);
@@ -2798,7 +3054,21 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		values.remove("codStato");
 		values.remove("idProcess");
 		values.remove("estremiProcess");
-		values.remove("ruoloSmistamentoAtto");		
+		values.remove("ruoloSmistamentoAtto");	
+		values.remove("idUdAvvioPraticheSUA");
+		values.remove("idDocAvvioPraticheSUA");
+		values.remove("nomeFileDocAvvioPraticheSUA");
+		values.remove("listaAllegatiAvvioPraticheSUA");
+		values.remove("nroProtocolloAvvioPraticheSUA");
+		values.remove("dataProtocolloAvvioPraticheSUA");
+		values.remove("sceltaGiorniTermineProcConcADSP");
+		values.remove("dataFinePubblicazione");
+		values.remove("listaDatiIstanzeConcorrentiSUAADSP");
+		values.remove("codPraticheConcorrentiSUAADSP");	
+		values.remove("codPraticheConcorrentiSUAADSPDaVerificare");
+		values.remove("codPraticheConcorrentiSUAADSP");
+		values.remove("nroProtIstanzaSUAPadre");
+		values.remove("codPraticaSUAPadre");
 		values.remove("idEmailArrivo");
 		values.remove("casellaIsPEC");
 		values.remove("emailInviataFlgPEC");
@@ -2976,6 +3246,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		values.remove("dataArrivoProtocolloEditabile");	
 		values.remove("dataArrivoProtocollo");	
 		values.remove("dataSpedizioneCartaceo");	
+		values.remove("listaRelVsPraticheApplEsterne");
 	}
 
 	/**
@@ -3612,7 +3883,9 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	 * 
 	 */
 	public boolean showFrecciaStampaEtichettaButton(Record record) {
-		return (!AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO"));
+		return  !AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") ||
+				((AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") &&
+				(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg") != null && "b".equalsIgnoreCase(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg")))));	
 	}	
 
 	/**
@@ -3833,6 +4106,12 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		}
 		if(showDetailSectionDestinatari()) {
 			addFormValues(lRecordToSave, destinatariForm);
+			if(destinatariItem != null && destinatariItem instanceof DestinatarioProtUscitaItem) {
+				boolean flgSegnaInvioMailExtraSistema = ((DestinatarioProtUscitaItem) destinatariItem).isFlgSegnaInvioMailExtraSistema();
+				lRecordToSave.setAttribute("flgSegnaInvioMailExtraSistema", flgSegnaInvioMailExtraSistema);
+				boolean flgInviataMailExtraSistema = ((DestinatarioProtUscitaItem) destinatariItem).isFlgInviataMailExtraSistemaItem();
+				lRecordToSave.setAttribute("flgInviataMailExtraSistema", flgInviataMailExtraSistema);
+			}
 		}
 		addFormValues(lRecordToSave, contenutiForm);
 		if(isProtocollazioneDetailAtti() && AurigaLayout.getParametroDBAsBoolean("UPPERCASE_OGGETTO_ATTO")) {
@@ -3871,9 +4150,12 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				}
 			}
 		}
-		addFormValues(lRecordToSave, condivisioneForm);
+		if(lDetailRecord.getAttribute("idUd") == null || "".equals(lDetailRecord.getAttribute("idUd")) || lDetailRecord.getAttributeAsBoolean("abilCondivisione")){
+			addFormValues(lRecordToSave, condivisioneForm);
+		}
 		addFormValues(lRecordToSave, classificazioneFascicolazioneForm);
 		addFormValues(lRecordToSave, folderCustomForm);
+		addFormValues(lRecordToSave, relVsPraticheApplEsterneForm);
 		if (showDetailSectionEsibenti()) {
 			addFormValues(lRecordToSave, esibentiForm);			
 		}
@@ -3895,6 +4177,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		if(showDetailSectionRipubblicazione()) {
 			addFormValues(lRecordToSave, ripubblicazioneForm);
 		}
+		if(showTabIterFirmeTrasmissione()) {
+			addFormValues(lRecordToSave, firmatariIterFirmaForm);
+			addFormValues(lRecordToSave, coredattoriIterFirmaForm);
+			addFormValues(lRecordToSave, regTrasmTermineIterFirmaForm);
+		}
 		if (motivoVarDatiReg != null && !"".equals(motivoVarDatiReg)) {
 			motivoVariazione = motivoVarDatiReg;
 			lRecordToSave.setAttribute("motivoVarDatiReg", motivoVarDatiReg);
@@ -3903,10 +4190,12 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			lRecordToSave.setAttribute("rowidDoc", rowidDoc);
 			lRecordToSave.setAttribute("valori", getAttributiDinamiciDoc());
 			lRecordToSave.setAttribute("tipiValori", getTipiAttributiDinamiciDoc());
-		}
-				
+		}			
 		if (showDetailSectionPerizia()) {
 			addFormValues(lRecordToSave, periziaForm);			
+		}		
+		if (showDetailSectionConcessione()) {
+			addFormValues(lRecordToSave, concessioneForm);			
 		}
 		
 		return lRecordToSave;
@@ -3938,6 +4227,21 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			@Override
 			public void onClick(ClickEvent event) {
 				clickRestituisci();
+			}
+		});
+	}
+	
+	/**
+	 * Metodo per costruire il bottone "Rilascia"
+	 */
+	protected void createRilasciaButton() {
+		rilasciaButton = new DetailToolStripButton(I18NUtil.getMessages().protocollazione_detail_rilascia_title(),
+				"archivio/rilascia_a_uo.png");
+		rilasciaButton.addClickHandler(new ClickHandler() {
+			
+			@Override
+			public void onClick(ClickEvent event) {
+				clickRilascia();
 			}
 		});
 	}
@@ -4060,31 +4364,19 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 						operationCallbackRestituisci(response, detailRecord, _form, new DSCallback() {
 							
 							@Override
-							public void execute(DSResponse response, Object rawData, DSRequest request) {														
-								
-								Record lRecordToLoad = new Record();
-								lRecordToLoad.setAttribute("idUd", detailRecord.getAttribute("idUd"));
-								GWTRestDataSource lGwtRestDataSourceProtocollo = new GWTRestDataSource("ProtocolloDataSource", "idUd", FieldType.TEXT);
-								if(layout != null && layout instanceof ScrivaniaLayout) {
-									lGwtRestDataSourceProtocollo.addParam("idNode", ((ScrivaniaLayout)layout).getIdNode());
-								}
-								lGwtRestDataSourceProtocollo.getData(lRecordToLoad, new DSCallback() {
-
-									@Override
-									public void execute(DSResponse response, Object rawData, DSRequest request) {
-										if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
-											Record record = response.getData()[0];
-											editRecord(record);
-											setSaved(true);
-											if(layout != null) {
-												layout.viewMode();
-											} else {
-												viewMode();
-											}
-											manageStampaEtichettaPostAssegnazione(record);
-										}
-									}
-								});
+							public void execute(DSResponse response, Object rawData, DSRequest request) {		
+								String idUd = detailRecord != null && detailRecord.getAttribute("idUdFolder") != null ?  detailRecord.getAttribute("idUdFolder") : null;
+								String idDocPrimario = detailRecord != null && detailRecord.getAttribute("idDocPrimario") != null ?  detailRecord.getAttribute("idDocPrimario") : null;
+								String codSupportoOrig = detailRecord != null && detailRecord.getAttributeAsString("codSupportoOrig") != null ?  detailRecord.getAttributeAsString("codSupportoOrig") : null;
+								String segnaturaXOrd = detailRecord != null && detailRecord.getAttributeAsString("segnaturaXOrd") != null ?  detailRecord.getAttributeAsString("segnaturaXOrd") : null;
+								Record recordToPrint = new Record();
+								recordToPrint.setAttribute("idUd", idUd);
+								recordToPrint.setAttribute("idDocPrimario", idDocPrimario);
+								recordToPrint.setAttribute("flgUdFolder", "U");
+								recordToPrint.setAttribute("codSupportoOrig", codSupportoOrig);
+								recordToPrint.setAttribute("segnaturaXOrd", segnaturaXOrd);
+								recordToPrint.setAttribute("listaAllegati", detailRecord.getAttributeAsRecordList("listaAllegati"));																			
+								manageStampaEtichettaPostAssegnazione(recordToPrint);
 							}
 						});
 					}
@@ -4092,6 +4384,66 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			}
 		};
 		restituzionePopup.show();
+	}
+	
+	/**
+	  * Metodo che implementa l'azione del bottone "Rilascia"
+	 */
+	public void clickRilascia() {
+		
+        SC.ask("Sei sicuro di voler rilasciare il documento ?", new BooleanCallback() {
+			
+			@Override
+			public void execute(Boolean value) {
+				if (value) {
+					final Record detailRecord = new Record(vm.getValues());
+					detailRecord.setAttribute("idUdFolder", detailRecord.getAttribute("idUd"));
+					detailRecord.setAttribute("flgUdFolder", "U");
+					final RecordList listaUdFolder = new RecordList();
+					listaUdFolder.add(detailRecord);
+					final Record record = new Record();
+					record.setAttribute("listaRecord", listaUdFolder);
+					GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("RilasciaDataSource");
+					lGwtRestDataSource.addData(record, new DSCallback() {
+
+						@Override
+						public void execute(DSResponse response, Object rawData, DSRequest request) {
+							
+							operationCallbackRilascia(response, detailRecord, new DSCallback() {
+								
+								@Override
+								public void execute(DSResponse response, Object rawData, DSRequest request) {														
+									
+									Record lRecordToLoad = new Record();
+									lRecordToLoad.setAttribute("idUd", detailRecord.getAttribute("idUd"));
+									GWTRestDataSource lGwtRestDataSourceProtocollo = new GWTRestDataSource("ProtocolloDataSource", "idUd", FieldType.TEXT);
+									if(layout != null && layout instanceof ScrivaniaLayout) {
+										lGwtRestDataSourceProtocollo.addParam("idNode", ((ScrivaniaLayout)layout).getIdNode());
+									}
+									lGwtRestDataSourceProtocollo.getData(lRecordToLoad, new DSCallback() {
+
+										@Override
+										public void execute(DSResponse response, Object rawData, DSRequest request) {
+											if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
+												Record record = response.getData()[0];
+												editRecord(record);
+												setSaved(true);
+												if(layout != null) {
+													layout.viewMode();
+												} else {
+													viewMode();
+												}
+											}
+										}
+									});
+								}
+							});
+						}
+					});
+					
+				}
+			}
+		});
 	}
 	
 	/**
@@ -4163,6 +4515,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			} else if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
 				if (data.getAttributeAsInt("flgIgnoreWarning") != 1) {
 					Layout.addMessage(new MessageBean("Restituzione effettuata con successo", "", MessageType.INFO));
+					layout.hideDetailAfterSave();
 					layout.reloadListAndSetCurrentRecord(record);
 					if (callback != null) {
 						callback.execute(new DSResponse(), null, new DSRequest());
@@ -4173,6 +4526,31 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			}
 		}
 	}
+	
+	private void operationCallbackRilascia(DSResponse response, final Record record, final DSCallback callback) {
+		if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
+			Record data = response.getData()[0];
+			Map errorMessages = data.getAttributeAsMap("errorMessages");
+			String errorMsg = null;
+			if (errorMessages != null) {
+				if (errorMessages.get(record.getAttribute("idUd")) != null) {
+					errorMsg = (String) errorMessages.get(record.getAttribute("idUd"));
+				} else {
+					errorMsg = "Si è verificato un errore durante il rilascio!";
+				}
+			}
+			if (errorMsg != null) {
+				Layout.addMessage(new MessageBean(errorMsg, "", MessageType.ERROR));
+			} else if (response.getStatus() == DSResponse.STATUS_SUCCESS) {
+				Layout.addMessage(new MessageBean("Rilascio effettuato con successo", "", MessageType.INFO));
+				layout.reloadListAndSetCurrentRecord(record);
+				if (callback != null) {
+					callback.execute(new DSResponse(), null, new DSRequest());
+				}
+			}
+		}
+	}
+	
 	
 	/**
 	 * Metodo che implementa l'azione del bottone "Segna come visionato"
@@ -4589,7 +4967,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 
 		Record record = new Record(vm.getValues());
 		if (record.getAttributeAsBoolean("abilModificaDati")) {
-			modificaDatiMode();
+			modificaDatiMode(record.getAttributeAsBoolean("abilAggiuntaFile"));
 		} else if (record.getAttributeAsBoolean("abilAggiuntaFile")) {
 			aggiuntaFileMode();
 		} else if (record.getAttributeAsBoolean("abilModificaDatiExtraIter")) {
@@ -5221,7 +5599,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 
 			@Override
 			public void onClick(ClickEvent event) {
-				clickInvioPECButton();
+				clickInvioPECButton(null);
 			}
 		});
 	}
@@ -5247,9 +5625,9 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	 * Metodo che implementa l'azione del bottone "Invio PEC"
 	 * 
 	 */
-	public void clickInvioPECButton() {
+	public void clickInvioPECButton(String tipologiaAllegati) {
 
-		Record record = new Record(vm.getValues());
+		final Record record = new Record(vm.getValues());
 		
 		final Boolean flgInvioPECMulti = record.getAttributeAsBoolean("flgInvioPECMulti") != null &&
 				record.getAttributeAsBoolean("flgInvioPECMulti") ? true : false;
@@ -5260,6 +5638,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			lGwtRestService.extraparam.put("PEC_MULTI", "1");
 		} 
 		lGwtRestService.extraparam.put("tipoMail", "PEC");
+		lGwtRestService.extraparam.put("tipologiaAllegati", tipologiaAllegati);
 		lGwtRestService.call(record, new ServiceCallback<Record>() {
 
 			@Override
@@ -5267,7 +5646,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				
 				if(flgInvioPECMulti) {
 					object.setAttribute("tipoMail", "PEO");
-					InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", new DSCallback() {
+					InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", record.getAttribute("idUd"), new DSCallback() {
 
 						@Override
 						public void execute(DSResponse response, Object rawData, DSRequest request) {
@@ -5286,7 +5665,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 					lInvioUdMailWindow.show();
 					
 				} else {
-					InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEC", new DSCallback() {
+					InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEC", record.getAttribute("idUd"), new DSCallback() {
 
 						@Override
 						public void execute(DSResponse response, Object rawData, DSRequest request) {
@@ -5383,26 +5762,28 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 
 			@Override
 			public void onClick(ClickEvent event) {
-				clickInvioPEOButton();
+				clickInvioPEOButton(null);
 			}
 		});
 	}
 
 	/**
 	 * Metodo che implementa l'azione del bottone "Invio e-mail ordinaria"
+	 * @param filePrincipale 
 	 * 
 	 */
-	public void clickInvioPEOButton() {
+	public void clickInvioPEOButton(String tipologiaAllegati) {
 
-		Record record = new Record(vm.getValues());
+		final Record record = new Record(vm.getValues());
 		GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>(
 				"AurigaInvioUDMailDatasource");
 		lGwtRestService.extraparam.put("tipoMail", "PEO");
+		lGwtRestService.extraparam.put("tipologiaAllegati", tipologiaAllegati);
 		lGwtRestService.call(record, new ServiceCallback<Record>() {
 
 			@Override
 			public void execute(Record object) {
-				InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", new DSCallback() {
+				InvioUDMailWindow lInvioUdMailWindow = new InvioUDMailWindow("PEO", record.getAttribute("idUd"), new DSCallback() {
 
 					@Override
 					public void execute(DSResponse response, Object rawData, DSRequest request) {
@@ -5974,6 +6355,31 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	}
 	
 	/**
+	 * METODO CHE VERIFICA ABILITAZIONE BOTTONE AZIONI ISTRUTTORIA PUBBLICAZIONE
+	 */
+	public boolean showAzioniIstruttoriaPubbl(Record record) {
+		boolean verify = false;
+		if (record.getAttributeAsBoolean("abilIstruttoriaPubblCollegaComeIstConcorrente") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblScollegaDaIstPadre") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblAvvioComparativo") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblAvvio") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblProseguimentoConInterruzioneTermini") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblProseguimentoSenzaInterruzioneTermini") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblRipubblicazione") ||
+			record.getAttributeAsBoolean("abilIstruttoriaPubblPubblicazione") ) {
+				verify = true;
+		}
+		return verify;
+	}
+	
+	/**
+	 * METODO CHE VERIFICA ABILITAZIONE BOTTONE AVVIA ITER FIRME
+	 */
+	public boolean showAvviaIterFirme(Record record) {
+		return record.getAttributeAsBoolean("abilAvviaIterFirme");
+	}
+	
+	/**
 	 * METODO PER VERIFICA ABILITAZIONE BOTTONE OSSERVAZIONI NOTIFICHE
 	 */
 	public boolean showOsservazioniNotifiche(Record record){
@@ -6020,6 +6426,13 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	 */
 	public boolean showFirmaProtocollaButton(Record record) {
 		return record != null && record.getAttributeAsBoolean("abilFirmaProtocolla");
+	}
+	
+	/**
+	 * METODO PER VERIFICA ABILITAZIONE BOTTONE PUBBLICA
+	 */
+	public boolean showPubblicazione(Record record){
+		return record != null && record.getAttributeAsBoolean("abilPubblicazione");
 	}
 	
 	/**
@@ -6109,7 +6522,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		
 		}
 		
-		if(Layout.isPrivilegioAttivo("SCC")) {
+		if(AurigaLayout.showCopiaConformeCustom()) {
 			String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 			MenuItem scaricaFileConformitaCustomMenuItem = new MenuItem("File " + labelConformitaCustom, "buttons/download_zip.png");
 			scaricaFileConformitaCustomMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
@@ -6453,22 +6866,24 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		if(detailRecord != null && detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione") != null) {
 			if(detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione").getLength() == 1 ) {	
 				String idUo = detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione").get(0).getAttributeAsString("idUo");
-				clickInvioAlProtocolloRapido(detailRecord, idUo, "U");	
+				String tipoProtocollante = detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione").get(0).getAttributeAsString("tipo");
+				clickInvioAlProtocolloRapido(detailRecord, idUo, "U", tipoProtocollante);	
 			} else if(detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione").getLength() > 1 ) {
 				final Menu creaInvioAlProtocollo = new Menu();
 				List<MenuItem> listaMenuItem = new ArrayList<MenuItem>();
 				for(int i=0; i < detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione").getLength(); i++) {
 					Record currentRecord = detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione").get(i);
 					final String idUo = currentRecord.getAttributeAsString("idUo");
-					
+					final String tipoProtocollante = currentRecord.getAttributeAsString("tipo");
 					MenuItem item = new MenuItem(currentRecord.getAttributeAsString("descrizione"));
 					final Menu scelteRapide = new Menu();
+									
 					MenuItem invioAlProtocolloMenuRapidoItem = new MenuItem("Rapido");
 					invioAlProtocolloMenuRapidoItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
 						
 						@Override
 						public void onClick(MenuItemClickEvent event) {
-							clickInvioAlProtocolloRapido(detailRecord, idUo, "U");						
+							clickInvioAlProtocolloRapido(detailRecord, idUo, "U", tipoProtocollante);						
 						}
 					});
 					
@@ -6484,7 +6899,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 								public void onClickOkButton(Record record, DSCallback callback) {
 									String messaggioInvio = record != null && record.getAttributeAsString("messaggioInvio") != null
 											? record.getAttributeAsString("messaggioInvio") : null;
-									clickInvioAlProtocolloConMessaggio(detailRecord, idUo, "U", messaggioInvio, callback);
+									clickInvioAlProtocolloConMessaggio(detailRecord, idUo, "U", tipoProtocollante, messaggioInvio, callback);
 								};
 							};
 							destUOProtocollazioneWindow.show();
@@ -6519,13 +6934,14 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				// Voce menu Invio al protocollo - Rapido 
 				
 				final String idUo = detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione").get(0).getAttributeAsString("idUo");
+				final String tipoProtocollante = detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione").get(0).getAttributeAsString("tipo");
 				
 				MenuItem invioAlProtocolloRapidoItem = new MenuItem("Rapido");
 				invioAlProtocolloRapidoItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
 					
 					@Override
 					public void onClick(MenuItemClickEvent event) {						
-						clickInvioAlProtocolloRapido(detailRecord, idUo, "U");
+						clickInvioAlProtocolloRapido(detailRecord, idUo, "U", tipoProtocollante);
 					}
 				});
 				
@@ -6541,7 +6957,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 							public void onClickOkButton(Record record, DSCallback callback) {
 								String messaggioInvio = record != null && record.getAttributeAsString("messaggioInvio") != null
 										? record.getAttributeAsString("messaggioInvio") : null;
-								clickInvioAlProtocolloConMessaggio(detailRecord, idUo, "U", messaggioInvio, callback);
+								clickInvioAlProtocolloConMessaggio(detailRecord, idUo, "U", tipoProtocollante, messaggioInvio, callback);
 							};
 						};
 						destUOProtocollazioneWindow.show();
@@ -6557,6 +6973,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				for(int i=0; i < detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione").getLength(); i++) {
 					Record currentRecord = detailRecord.getAttributeAsRecordList("listaDestinatariUoProtocollazione").get(i);
 					final String idUo = currentRecord.getAttributeAsString("idUo");
+					final String tipoProtocollante = currentRecord.getAttributeAsString("tipo");
 					MenuItem item = new MenuItem(currentRecord.getAttributeAsString("descrizione"));
 					final Menu scelteRapide = new Menu();
 					
@@ -6565,7 +6982,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 						
 						@Override
 						public void onClick(MenuItemClickEvent event) {
-							clickInvioAlProtocolloRapido(detailRecord, idUo, "U");						
+							clickInvioAlProtocolloRapido(detailRecord, idUo, "U", tipoProtocollante);						
 						}
 					});
 					
@@ -6581,7 +6998,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 								public void onClickOkButton(Record record, DSCallback callback) {
 									String messaggioInvio = record != null && record.getAttributeAsString("messaggioInvio") != null
 											? record.getAttributeAsString("messaggioInvio") : null;
-									clickInvioAlProtocolloConMessaggio(detailRecord, idUo, "U", messaggioInvio, callback);
+									clickInvioAlProtocolloConMessaggio(detailRecord, idUo, "U", tipoProtocollante, messaggioInvio, callback);
 								};
 							};
 							destUOProtocollazioneWindow.show();
@@ -6604,7 +7021,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		}
 	}
 
-	private void clickInvioAlProtocolloRapido(final Record detailRecord, final String idUo, final String flgUdFolder) {
+	private void clickInvioAlProtocolloRapido(final Record detailRecord, final String idUo, final String flgUdFolder, final String typeNodo) {
 		
 		final RecordList listaUdFolder = new RecordList();
 		
@@ -6617,7 +7034,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		RecordList listaAssegnazioni = new RecordList();
 		Record recordAssegnazioni = new Record();
 		recordAssegnazioni.setAttribute("idUo", idUo);
-		recordAssegnazioni.setAttribute("typeNodo","UO");
+		recordAssegnazioni.setAttribute("typeNodo", typeNodo);
 		listaAssegnazioni.add(recordAssegnazioni);
 		
 		final Record record = new Record();
@@ -6664,7 +7081,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	}
 	
 	private void clickInvioAlProtocolloConMessaggio(final Record detailRecord, final String idUo,
-			final String flgUdFolder, final String messaggioInvio, final DSCallback callback) {
+			final String flgUdFolder, final String typeNodo, final String messaggioInvio, final DSCallback callback) {
 	
 		final RecordList listaUdFolder = new RecordList();
 		
@@ -6677,7 +7094,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		RecordList listaAssegnazioni = new RecordList();
 		Record recordAssegnazioni = new Record();
 		recordAssegnazioni.setAttribute("idUo", idUo);
-		recordAssegnazioni.setAttribute("typeNodo","UO");
+		recordAssegnazioni.setAttribute("typeNodo",typeNodo);
 		listaAssegnazioni.add(recordAssegnazioni);
 		
 		final Record record = new Record();
@@ -7573,6 +7990,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 					record.setAttribute("flgUdFolder", flgUdFolder);
 					record.setAttribute("listaRecord", listaUdFolder);
 					record.setAttribute("listaAssegnazioni", listaAssegnazioni);
+					record.setAttribute("idUdFolder", detailRecord.getAttribute("idUd"));
 					
 					Layout.showWaitPopup("Assegnazione in corso: potrebbe richiedere qualche secondo. Attendere…");
 					GWTRestDataSource lGwtRestDataSource = new GWTRestDataSource("AssegnazioneSmistamentoDataSource");
@@ -7890,17 +8308,18 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	}
 	
 	public void manageOnClickRispondi() {
-		
 		final Record detailRecord = new Record(vm.getValues());
 		final String idUd = detailRecord.getAttribute("idUd");
-		
 		final Record recordToShow = new Record();
 		recordToShow.setAttribute("idUd", idUd);
+		//TODO da mettere solo se ha come numerazione principale repertorio
+		if(detailRecord.getAttribute("codCategoriaProtocollo") != null && "R".equals(detailRecord.getAttribute("codCategoriaProtocollo"))) {
+			recordToShow.setAttribute("repertorio", detailRecord.getAttribute("siglaProtocollo"));
+		}
 		if (isProtocollazioneDetailEntrata()) {
 			recordToShow.setAttribute("tipoProt", "E");
 			new DettaglioRispostaProtWindow(recordToShow);
 		} else if (isProtocollazioneDetailInterna()) {
-
 			//controllo se il protocollo interno è abilitato alla risposta
 			if(detailRecord.getAttributeAsBoolean("abilRispondiUscita")) {
 				SC.ask("Sono presenti destinatari esterni nella risposta?", new BooleanCallback() {
@@ -7916,7 +8335,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 						new DettaglioRispostaProtWindow(recordToShow);
 					}
 				});
-			}else {
+			} else {
 				recordToShow.setAttribute("tipoProt", "I");
 				new DettaglioRispostaProtWindow(recordToShow);
 			}
@@ -7995,6 +8414,33 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 //		});
 //	}
 	
+	/**
+	 * Metodo per costruire il bottone "Azioni istruttoria pubblicazione"
+	 */
+	protected void createAzioniIstruttoriaPubblButton() {
+		azioniIstruttoriaPubblButton = new DetailToolStripButton("Azioni istruttoria pubblicazione","pratiche/icone/complessa.png");
+		azioniIstruttoriaPubblButton.addClickHandler(new ClickHandler() {
+
+			@Override
+			public void onClick(ClickEvent event) {
+				clickAzioniIstruttoriaPubbl();
+			}
+		}); 
+	}
+	
+	/**
+	 * Metodo per costruire il bottone "Avvia raccolta firme"
+	 */
+	protected void createAvviaIterFirmeButton() {
+		avviaIterFirmeButton = new DetailToolStripButton("Avvia raccolta firme","file/mini_sign.png");
+		avviaIterFirmeButton.addClickHandler(new ClickHandler() {
+
+			@Override
+			public void onClick(ClickEvent event) {
+				clickAvviaIterFirme(avviaIterFirmeButton);
+			}
+		}); 
+	}
 	
 	/**
 	 *  Metodo per costruire il bottone "Osservazioni e notifiche"
@@ -8133,6 +8579,70 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	}
 	
 	/**
+	 *  Metodo per costruire il bottone "Pubblica"
+	 */
+	protected void createPubblicazioneButton() {
+
+		String labelTastoPubblAlbo = AurigaLayout.getParametroDB("LABEL_TASTO_PUBBL_ALBO");
+		if(labelTastoPubblAlbo == null || "".equals(labelTastoPubblAlbo)) {
+			labelTastoPubblAlbo = "Pubblica";
+		}	
+		
+		pubblicazioneButton = new DetailToolStripButton(labelTastoPubblAlbo, "buttons/richiesta_pubblicazione.png");
+		pubblicazioneButton.addClickHandler(new ClickHandler() {
+
+			@Override
+			public void onClick(ClickEvent event) {
+				final Record detailRecord = new Record(vm.getValues());
+				final String idUd = detailRecord.getAttribute("idUd");
+				final Record recordPubblicazione = new Record(vm.getValues());
+				recordPubblicazione.setAttribute("statoAtto", "presente");
+				recordPubblicazione.setAttribute("tipoRegNum", detailRecord.getAttribute("tipoProtocollo"));
+				recordPubblicazione.setAttribute("siglaRegNum", detailRecord.getAttribute("siglaProtocollo"));
+				recordPubblicazione.setAttribute("annoRegNum", detailRecord.getAttribute("annoProtocollo"));
+				recordPubblicazione.setAttribute("nroRegNum", detailRecord.getAttribute("nroProtocollo"));
+				NuovaRichiestaPubblicazioneWindow lNuovaRichiestaPubblicazioneWindow = new NuovaRichiestaPubblicazioneWindow(recordPubblicazione.toMap(), null, new ServiceCallback<Record>() {
+					
+					@Override
+					public void execute(Record object) {
+						reload(new DSCallback() {
+
+							@Override
+							public void execute(DSResponse response, Object rawData, DSRequest request) {
+								setSaved(true);
+								if(layout != null) {
+									layout.viewMode();
+								} else {
+									viewMode();
+								}
+							}
+						});
+					}
+				}) {
+					
+					@Override
+					public void afterLoadDetail() {
+						if(idUd != null && !"".equals(idUd)) {
+							detail.loadDettaglio(idUd, new ServiceCallback<Record>() {
+
+								@Override
+								public void execute(Record recordDettaglio) {
+									if (recordDettaglio != null) {
+										recordDettaglio.setAttribute("dataAdozione", recordDettaglio.getAttribute("tsRegistrazione"));
+										detail.editRecord(recordDettaglio);
+										detail.markForRedraw();
+										detail.setCanEdit(true);
+									}
+								}
+							});
+						}
+					}
+				};	
+			}
+		});
+	}
+	
+	/**
 	 *  Metodo per costruire il bottone "Pubbl. Trasp. Amm."
 	 */
 	protected void createPubblicazioneTraspAmmButton() {
@@ -8144,6 +8654,391 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			public void onClick(ClickEvent event) {
 				final Record record = new Record(vm.getValues());
 				new PubblicazioneTraspAmmPopup(record.getAttribute("idUd"));
+			}
+		});
+	}
+	
+	/** Metodo che implementa l'azione del bottone "Azioni istruttoria pubblicazione"
+	 */
+	public void clickAzioniIstruttoriaPubbl() {
+		final Record detailRecord = new Record(vm.getValues());
+		final String idUd = idUdHiddenItem.getValue() != null ? String.valueOf(idUdHiddenItem.getValue()) : null;
+		final String idDoc = idDocPrimarioHiddenItem.getValue() != null ? String.valueOf(idDocPrimarioHiddenItem.getValue()) : null;
+		final String estremiUd = getTipoEstremiDocumento();
+		final Record recordIstruttoriaPubbl = new Record();
+		recordIstruttoriaPubbl.setAttribute("idUdAvvio", detailRecord.getAttribute("idUdAvvioPraticheSUA"));
+		recordIstruttoriaPubbl.setAttribute("idDocAvvio", detailRecord.getAttribute("idDocAvvioPraticheSUA"));
+		recordIstruttoriaPubbl.setAttribute("nomeFileDocAvvio", detailRecord.getAttribute("nomeFileDocAvvioPraticheSUA"));
+		recordIstruttoriaPubbl.setAttribute("listaAllegatiAvvio", detailRecord.getAttributeAsRecordList("listaAllegatiAvvioPraticheSUA")); 
+		recordIstruttoriaPubbl.setAttribute("nroProtocolloAvvio", detailRecord.getAttribute("nroProtocolloAvvioPraticheSUA"));
+		recordIstruttoriaPubbl.setAttribute("dataProtocolloAvvio", detailRecord.getAttribute("dataProtocolloAvvioPraticheSUA"));
+		recordIstruttoriaPubbl.setAttribute("sceltaGiorni", detailRecord.getAttribute("sceltaGiorniTermineProcConcADSP"));
+		recordIstruttoriaPubbl.setAttribute("dataFinePubblicazione", detailRecord.getAttribute("dataFinePubblicazione"));
+		recordIstruttoriaPubbl.setAttribute("listaDatiIstanzeConcorrenti", detailRecord.getAttributeAsRecordList("listaDatiIstanzeConcorrentiSUAADSP"));
+		recordIstruttoriaPubbl.setAttribute("codPraticheConcorrenti", detailRecord.getAttribute("codPraticheConcorrentiSUAADSP"));	
+		recordIstruttoriaPubbl.setAttribute("codPraticheConcorrenti", detailRecord.getAttribute("codPraticheConcorrentiSUAADSP"));
+		String statoAtto = "presente";
+		String tipoRegNum = tipoProtocolloItem.getValue() != null ? String.valueOf(tipoProtocolloItem.getValue()) : null;
+		String siglaRegNum = siglaProtocolloItem.getValue() != null ? String.valueOf(siglaProtocolloItem.getValue()) : null;
+		String annoRegNum = detailRecord.getAttribute("annoProtocollo") != null ? detailRecord.getAttribute("annoProtocollo") : null;
+		String nroRegNum = nroProtocolloItem.getValue() != null ? String.valueOf(nroProtocolloItem.getValue()) : null;
+		final Record recordPubblicazione = new Record(vm.getValues());
+		recordPubblicazione.setAttribute("statoAtto", statoAtto);
+		recordPubblicazione.setAttribute("tipoRegNum", tipoRegNum);
+		recordPubblicazione.setAttribute("siglaRegNum", siglaRegNum);
+		recordPubblicazione.setAttribute("annoRegNum", annoRegNum);
+		recordPubblicazione.setAttribute("nroRegNum", nroRegNum);
+		final List<MenuItem> listaAzioniMenuItems = new ArrayList<MenuItem>();
+		if (detailRecord.getAttributeAsBoolean("abilIstruttoriaPubblCollegaComeIstConcorrente")) {
+			MenuItem collegaComeIstConcorrenteMenuItem = new MenuItem("Collega ad altra istanza come concorrente");
+			collegaComeIstConcorrenteMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+				@Override
+				public void onClick(MenuItemClickEvent event) {
+					CollegaComeIstanzaConcorrentePopup lCollegaComeIstanzaConcorrentePopup = new CollegaComeIstanzaConcorrentePopup(idUd, estremiUd, new ServiceCallback<Record>() {
+
+						@Override
+						public void execute(Record object) {
+							final Record lRecord = new Record();
+							lRecord.setAttribute("idUd", idUd);
+							lRecord.setAttribute("idDoc", idDoc);
+							lRecord.setAttribute("idUdDaCollegare", object.getAttribute("idUdDaCollegare"));
+							Layout.showWaitPopup("Collegamento ad altra istanza come concorrente in corso: potrebbe richiedere qualche secondo. Attendere...");		
+							new GWTRestService<Record, Record>("AzioneIstruttoriaPubblicazioneDataSource").executecustom("collegaComeIstanzaConcorrente", lRecord, new DSCallback() {
+								
+								@Override
+								public void execute(DSResponse response, Object rawData, DSRequest request) {
+									Layout.hideWaitPopup();
+									if (response.getStatus() == DSResponse.STATUS_SUCCESS) {	
+										AurigaLayout.addMessage(new MessageBean("Collegamento ad altra istanza come concorrente effettuato con successo", "", MessageType.INFO));
+										reload(new DSCallback() {
+
+											@Override
+											public void execute(DSResponse response, Object rawData, DSRequest request) {
+												setSaved(true);
+												if(layout != null) {
+													layout.viewMode();
+												} else {
+													viewMode();
+												}
+											}
+										});
+									}
+								}
+							});
+						}
+					});
+					lCollegaComeIstanzaConcorrentePopup.show();
+				}
+			});	
+			listaAzioniMenuItems.add(collegaComeIstConcorrenteMenuItem);
+		}
+		if (detailRecord.getAttributeAsBoolean("abilIstruttoriaPubblScollegaDaIstPadre")) {
+			MenuItem scollegaDaIstPadreMenuItem = new MenuItem("Scollega istanza concorrente");
+			scollegaDaIstPadreMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+				@Override
+				public void onClick(MenuItemClickEvent event) {
+					String nroProtIstanzaSUAPadre = nroProtIstanzaSUAPadreHiddenItem.getValue() != null ? String.valueOf(nroProtIstanzaSUAPadreHiddenItem.getValue()) : null;
+					String codPraticaSUAPadre = codPraticaSUAPadreHiddenItem.getValue() != null ? String.valueOf(codPraticaSUAPadreHiddenItem.getValue()) : null;								
+					SC.ask("Sei sicuro di voler scollegare dall'istanza Prot. " + nroProtIstanzaSUAPadre + ", cod. pratica " + codPraticaSUAPadre + ", a cui è stata collegata in back-office quale istanza concorrente ?", new BooleanCallback() {
+
+						@Override
+						public void execute(Boolean value) {
+							if (value) {
+								final Record lRecord = new Record();
+								lRecord.setAttribute("idUd", idUd);
+								lRecord.setAttribute("idDoc", idDoc);
+								Layout.showWaitPopup("Scollegamento da istanza concorrente in corso: potrebbe richiedere qualche secondo. Attendere...");		
+								new GWTRestService<Record, Record>("AzioneIstruttoriaPubblicazioneDataSource").executecustom("scollegaIstanzaConcorrente", lRecord, new DSCallback() {
+									
+									@Override
+									public void execute(DSResponse response, Object rawData, DSRequest request) {
+										Layout.hideWaitPopup();
+										if (response.getStatus() == DSResponse.STATUS_SUCCESS) {	
+											AurigaLayout.addMessage(new MessageBean("Scollegamento da istanza concorrente effettuato con successo", "", MessageType.INFO));
+											reload(new DSCallback() {
+
+												@Override
+												public void execute(DSResponse response, Object rawData, DSRequest request) {
+													setSaved(true);
+													if(layout != null) {
+														layout.viewMode();
+													} else {
+														viewMode();
+													}
+												}
+											});
+										}
+									}
+								});
+							}
+						}
+					});
+				}
+			});	
+			listaAzioniMenuItems.add(scollegaDaIstPadreMenuItem);
+		}
+		if (detailRecord.getAttributeAsBoolean("abilIstruttoriaPubblAvvioComparativo")) {
+			MenuItem avvioComparativoMenuItem = new MenuItem(AzioneIstruttoriaPubblicazionePopup._AVVIO_COMPARATIVO_ACTION);
+			avvioComparativoMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+				@Override
+				public void onClick(MenuItemClickEvent event) {
+					String codPraticheConcorrentiSUAADSPDaVerificare = codPraticheConcorrentiSUAADSPDaVerificareHiddenItem.getValue() != null ? String.valueOf(codPraticheConcorrentiSUAADSPDaVerificareHiddenItem.getValue()) : null;
+					if(codPraticheConcorrentiSUAADSPDaVerificare != null && !"".equals(codPraticheConcorrentiSUAADSPDaVerificare)) {
+						AurigaLayout.addMessage(new MessageBean("Ci sono istanze concorrenti ancora in attesa di verifica di procedibilità (Codici: " + codPraticheConcorrentiSUAADSPDaVerificare + "): non è pertanto possibile effettuare l'avvio comparativo", "", MessageType.ERROR));
+					} else {
+						AzioneIstruttoriaPubblicazionePopup lAzioneIstruttoriaPubblicazionePopup = new AzioneIstruttoriaPubblicazionePopup(idUd, idDoc, AzioneIstruttoriaPubblicazionePopup._AVVIO_COMPARATIVO_ACTION, recordIstruttoriaPubbl, new ServiceCallback<Record>() {
+							
+							@Override
+							public void execute(Record object) {
+								reload(new DSCallback() {
+
+									@Override
+									public void execute(DSResponse response, Object rawData, DSRequest request) {
+										setSaved(true);
+										if(layout != null) {
+											layout.viewMode();
+										} else {
+											viewMode();
+										}
+									}
+								});
+							}
+						});
+						lAzioneIstruttoriaPubblicazionePopup.show();
+					}
+				}
+			});	
+			listaAzioniMenuItems.add(avvioComparativoMenuItem);
+		}
+		if (detailRecord.getAttributeAsBoolean("abilIstruttoriaPubblAvvio")) {
+			MenuItem avvioMenuItem = new MenuItem(AzioneIstruttoriaPubblicazionePopup._AVVIO_ACTION);
+			avvioMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+				@Override
+				public void onClick(MenuItemClickEvent event) {
+					AzioneIstruttoriaPubblicazionePopup lAzioneIstruttoriaPubblicazionePopup = new AzioneIstruttoriaPubblicazionePopup(idUd, idDoc, AzioneIstruttoriaPubblicazionePopup._AVVIO_ACTION, recordIstruttoriaPubbl, new ServiceCallback<Record>() {
+						
+						@Override
+						public void execute(Record object) {
+							reload(new DSCallback() {
+
+								@Override
+								public void execute(DSResponse response, Object rawData, DSRequest request) {
+									setSaved(true);
+									if(layout != null) {
+										layout.viewMode();
+									} else {
+										viewMode();
+									}
+								}
+							});
+						}
+					});
+					lAzioneIstruttoriaPubblicazionePopup.show();
+				}
+			});	
+			listaAzioniMenuItems.add(avvioMenuItem);
+		}
+		if (detailRecord.getAttributeAsBoolean("abilIstruttoriaPubblProseguimentoConInterruzioneTermini")) {
+			MenuItem proseguimentoIstruttoriaConInterruzioneTerminiMenuItem = new MenuItem(AzioneIstruttoriaPubblicazionePopup._PROSEGUIMENTO_ISTRUTTORIA_CON_INTERRUZIONE_TERMINI_ACTION);
+			proseguimentoIstruttoriaConInterruzioneTerminiMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+				@Override
+				public void onClick(MenuItemClickEvent event) {
+					AzioneIstruttoriaPubblicazionePopup lAzioneIstruttoriaPubblicazionePopup = new AzioneIstruttoriaPubblicazionePopup(idUd, idDoc, AzioneIstruttoriaPubblicazionePopup._PROSEGUIMENTO_ISTRUTTORIA_CON_INTERRUZIONE_TERMINI_ACTION, recordIstruttoriaPubbl, new ServiceCallback<Record>() {
+						
+						@Override
+						public void execute(Record object) {
+							reload(new DSCallback() {
+
+								@Override
+								public void execute(DSResponse response, Object rawData, DSRequest request) {
+									setSaved(true);
+									if(layout != null) {
+										layout.viewMode();
+									} else {
+										viewMode();
+									}
+								}
+							});
+						}
+					});
+					lAzioneIstruttoriaPubblicazionePopup.show();
+				}
+			});	
+			listaAzioniMenuItems.add(proseguimentoIstruttoriaConInterruzioneTerminiMenuItem);
+		}
+		if (detailRecord.getAttributeAsBoolean("abilIstruttoriaPubblProseguimentoSenzaInterruzioneTermini")) {
+			MenuItem proseguimentoIstruttoriaSenzaInterruzioneTerminiMenuItem = new MenuItem(AzioneIstruttoriaPubblicazionePopup._PROSEGUIMENTO_ISTRUTTORIA_SENZA_INTERRUZIONE_TERMINI_ACTION);
+			proseguimentoIstruttoriaSenzaInterruzioneTerminiMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+				@Override
+				public void onClick(MenuItemClickEvent event) {
+					final Record lRecord = new Record();
+					lRecord.setAttribute("idUd", idUd);
+					lRecord.setAttribute("idDoc", idDoc);
+					lRecord.setAttribute("azione", AzioneIstruttoriaPubblicazionePopup._PROSEGUIMENTO_ISTRUTTORIA_SENZA_INTERRUZIONE_TERMINI_ACTION);
+					lRecord.setAttribute("dataFinePubblicazione", recordIstruttoriaPubbl != null ? recordIstruttoriaPubbl.getAttribute("dataFinePubblicazione") : null);
+					lRecord.setAttribute("codPraticheConcorrenti", recordIstruttoriaPubbl != null ? recordIstruttoriaPubbl.getAttribute("codPraticheConcorrenti") : null);
+					Layout.showWaitPopup(AzioneIstruttoriaPubblicazionePopup._PROSEGUIMENTO_ISTRUTTORIA_SENZA_INTERRUZIONE_TERMINI_ACTION + " in corso: potrebbe richiedere qualche secondo. Attendere...");		
+					new GWTRestService<Record, Record>("AzioneIstruttoriaPubblicazioneDataSource").call(lRecord, new ServiceCallback<Record>() {
+						@Override
+						public void execute(Record object) {
+							Layout.hideWaitPopup();
+							if(object.getAttribute("errore") != null && !"".equals(object.getAttribute("errore"))) {
+								AurigaLayout.addMessage(new MessageBean(object.getAttribute("errore"), "", MessageType.ERROR));
+							} else {
+								AurigaLayout.addMessage(new MessageBean(AzioneIstruttoriaPubblicazionePopup._PROSEGUIMENTO_ISTRUTTORIA_SENZA_INTERRUZIONE_TERMINI_ACTION + " effettuato con successo", "", MessageType.INFO));
+								reload(new DSCallback() {
+
+									@Override
+									public void execute(DSResponse response, Object rawData, DSRequest request) {
+										setSaved(true);
+										if(layout != null) {
+											layout.viewMode();
+										} else {
+											viewMode();
+										}
+									}
+								});
+							}
+						}
+					});
+				}
+			});	
+			listaAzioniMenuItems.add(proseguimentoIstruttoriaSenzaInterruzioneTerminiMenuItem);
+		}
+		if (detailRecord.getAttributeAsBoolean("abilIstruttoriaPubblRipubblicazione")) {
+			MenuItem ripubblicazioneMenuItem = new MenuItem(AzioneIstruttoriaPubblicazionePopup._RIPUBBLICAZIONE_ACTION);
+			ripubblicazioneMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+				@Override
+				public void onClick(MenuItemClickEvent event) {
+					NuovaRichiestaPubblicazioneWindow lNuovaRichiestaPubblicazioneWindow = new NuovaRichiestaPubblicazioneWindow(recordPubblicazione.toMap(), null, new ServiceCallback<Record>() {
+						
+						@Override
+						public void execute(Record object) {
+							reload(new DSCallback() {
+
+								@Override
+								public void execute(DSResponse response, Object rawData, DSRequest request) {
+									setSaved(true);
+									if(layout != null) {
+										layout.viewMode();
+									} else {
+										viewMode();
+									}
+								}
+							});
+						}
+					}) {
+						
+						@Override
+						public void afterLoadDetail() {
+							if(idUd != null && !"".equals(idUd)) {
+								detail.loadDettaglio(idUd, new ServiceCallback<Record>() {
+
+									@Override
+									public void execute(Record recordDettaglio) {
+										if (recordDettaglio != null) {
+											recordDettaglio.setAttribute("dataAdozione", recordDettaglio.getAttribute("tsRegistrazione"));
+											detail.editRecord(recordDettaglio);
+											detail.markForRedraw();
+											detail.setCanEdit(true);
+										}
+									}
+								});
+							}
+						}
+					};
+				}
+			});	
+			listaAzioniMenuItems.add(ripubblicazioneMenuItem);
+		}
+		if (detailRecord.getAttributeAsBoolean("abilIstruttoriaPubblPubblicazione")) {
+			MenuItem pubblicazioneMenuItem = new MenuItem(AzioneIstruttoriaPubblicazionePopup._PUBBLICAZIONE_ACTION);
+			pubblicazioneMenuItem.addClickHandler(new com.smartgwt.client.widgets.menu.events.ClickHandler() {
+
+				@Override
+				public void onClick(MenuItemClickEvent event) {
+					NuovaRichiestaPubblicazioneWindow lNuovaRichiestaPubblicazioneWindow = new NuovaRichiestaPubblicazioneWindow(recordPubblicazione.toMap(), null, new ServiceCallback<Record>() {
+						
+						@Override
+						public void execute(Record object) {
+							reload(new DSCallback() {
+
+								@Override
+								public void execute(DSResponse response, Object rawData, DSRequest request) {
+									setSaved(true);
+									if(layout != null) {
+										layout.viewMode();
+									} else {
+										viewMode();
+									}
+								}
+							});
+						}
+					}) {
+						
+						@Override
+						public void afterLoadDetail() {
+							if(idUd != null && !"".equals(idUd)) {
+								detail.loadDettaglio(idUd, new ServiceCallback<Record>() {
+
+									@Override
+									public void execute(Record recordDettaglio) {
+										if (recordDettaglio != null) {
+											recordDettaglio.setAttribute("dataAdozione", recordDettaglio.getAttribute("tsRegistrazione"));
+											detail.editRecord(recordDettaglio);
+											detail.markForRedraw();
+											detail.setCanEdit(true);
+										}
+									}
+								});
+							}
+						}
+					};
+				}
+			});	
+			listaAzioniMenuItems.add(pubblicazioneMenuItem);
+		}
+		
+		Menu menuAzioni = new Menu();										
+		menuAzioni.setItems(listaAzioniMenuItems.toArray(new MenuItem[listaAzioniMenuItems.size()]));
+		menuAzioni.showContextMenu();
+	}
+	
+	/**
+	 * Metodo che implementa l'azione del bottone "Avvia raccolta firme"
+	 */
+	public void clickAvviaIterFirme(final DetailToolStripButton button) {
+		button.hide();
+		Layout.showWaitPopup("Avvio raccolta firme in corso: potrebbe richiedere qualche secondo. Attendere…");
+		new GWTRestService<Record, Record>("AvviaIterFirmeDataSource").call(getRecordDettaglio(), new ServiceCallback<Record>() {
+			@Override
+			public void execute(Record object) {
+				Layout.hideWaitPopup();
+				AurigaLayout.addMessage(new MessageBean("Avvio raccolta firme effettuato con successo", "", MessageType.INFO));
+				reload(new DSCallback() {
+
+					@Override
+					public void execute(DSResponse response, Object rawData, DSRequest request) {
+						setSaved(true);
+						if(layout != null) {
+							layout.viewMode();
+						} else {
+							viewMode();
+						}
+					}
+				});
+			}
+			
+			@Override
+			public void manageError() {
+				button.show();
 			}
 		});
 	}
@@ -8246,6 +9141,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		if(showTabPubblicazione()) {
 			createTabPubblicazione();
 			tabSet.addTab(tabPubblicazione);
+		}
+		
+		if(showTabIterFirmeTrasmissione()) {
+			createTabIterFirmeTrasmissione();
+			tabSet.addTab(tabIterFirmeTrasmissione);
 		}
 	}
 
@@ -8364,7 +9264,12 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 
 		createDetailSectionAllegati();
 		layoutDatiPrincipali.addMember(detailSectionAllegati);
-
+		
+		if (showDetailSectionVerificaPreFirma()) {
+			createDetailSectionVerificaPreFirma();
+			layoutDatiPrincipali.addMember(detailSectionVerificaPreFirma);
+		}
+		
 		if (showDetailSectionDatiRicezione() && !showDatiRicezioneBeforeMittenti()) {
 			createDetailSectionDatiRicezione();
 			layoutDatiPrincipali.addMember(detailSectionDatiRicezione);
@@ -8380,6 +9285,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			layoutDatiPrincipali.addMember(detailSectionPerizia);
 		}
 		
+		if (showDetailSectionConcessione()) {
+			createDetailSectionConcessione();
+			layoutDatiPrincipali.addMember(detailSectionConcessione);
+		}
+		
 		createDetailSectionAssegnazione();
 		layoutDatiPrincipali.addMember(detailSectionAssegnazione);
 
@@ -8391,6 +9301,10 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		
 		createDetailSectionFolderCustom();
 		layoutDatiPrincipali.addMember(detailSectionFolderCustom);
+		
+		createDetailSectionRelVsPraticheApplEsterne();
+		detailSectionRelVsPraticheApplEsterne.setVisible(false);
+		layoutDatiPrincipali.addMember(detailSectionRelVsPraticheApplEsterne);
 		
 		if (showDetailSectionRegEmergenza()) {
 			createDetailSectionRegEmergenza();
@@ -8482,6 +9396,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 
 		createDetailSectionAllegati();
 		layoutDatiDocumento.addMember(detailSectionAllegati);
+		
+		if (showDetailSectionVerificaPreFirma()) {
+			createDetailSectionVerificaPreFirma();
+			layoutDatiDocumento.addMember(detailSectionVerificaPreFirma);
+		}
 
 		if (showDetailSectionDatiRicezione() && !showDatiRicezioneBeforeMittenti()) {
 			createDetailSectionDatiRicezione();
@@ -8510,6 +9429,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		if (showDetailSectionPerizia()) {
 			createDetailSectionPerizia();
 			layoutDatiDocumento.addMember(detailSectionPerizia);
+		}
+		
+		if (showDetailSectionConcessione()) {
+			createDetailSectionConcessione();
+			layoutDatiDocumento.addMember(detailSectionConcessione);
 		}
 		
 		return layoutDatiDocumento;
@@ -8745,6 +9669,26 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		idProcessHiddenItem = new HiddenItem("idProcess");
 		estremiProcessHiddenItem = new HiddenItem("estremiProcess");
 		ruoloSmistamentoAttoHiddenItem = new HiddenItem("ruoloSmistamentoAtto");
+		idUdAvvioPraticheSUAHiddenItem = new HiddenItem("idUdAvvioPraticheSUA");
+		idDocAvvioPraticheSUAHiddenItem = new HiddenItem("idDocAvvioPraticheSUA");
+		nomeFileDocAvvioPraticheSUAHiddenItem = new HiddenItem("nomeFileDocAvvioPraticheSUA");
+		listaAllegatiAvvioPraticheSUAHiddenItem = new HiddenItem("listaAllegatiAvvioPraticheSUA");
+		nroProtocolloAvvioPraticheSUAHiddenItem = new HiddenItem("nroProtocolloAvvioPraticheSUA");
+		dataProtocolloAvvioPraticheSUAHiddenItem = new HiddenItem("dataProtocolloAvvioPraticheSUA");
+		sceltaGiorniTermineProcConcADSPHiddenItem = new HiddenItem("sceltaGiorniTermineProcConcADSP");
+		dataFinePubblicazioneHiddenItem = new HiddenItem("dataFinePubblicazione");
+		listaDatiIstanzeConcorrentiSUAADSPHiddenItem = new HiddenItem("listaDatiIstanzeConcorrentiSUAADSP");
+		codPraticheConcorrentiSUAADSPDaVerificareHiddenItem = new HiddenItem("codPraticheConcorrentiSUAADSPDaVerificare");
+		codPraticheConcorrentiSUAADSPHiddenItem = new HiddenItem("codPraticheConcorrentiSUAADSP");
+		nroProtIstanzaSUAPadreHiddenItem = new HiddenItem("nroProtIstanzaSUAPadre");
+		codPraticaSUAPadreHiddenItem = new HiddenItem("codPraticaSUAPadre");
+
+		prossimaAzioneItem = new HiddenItem("prossimaAzione");
+		prossimaAzioneIdFirmatarioItem = new HiddenItem("prossimaAzioneIdFirmatario");
+		prossimaAzioneNomeFirmatarioItem = new HiddenItem("prossimaAzioneNomeFirmatario");
+		prossimaAzioneIdUOAssItem = new HiddenItem("prossimaAzioneIdUOAss");
+		prossimaAzioneCodRapioUOAssItem = new HiddenItem("prossimaAzioneCodRapioUOAss");
+		prossimaAzioneDesUOAssItem = new HiddenItem("prossimaAzioneDesUOAss");
 		
 		if (!showDetailSectionTipoDocumento()) {
 			tipoDocumentoSalvatoHiddenItem= new HiddenItem("tipoDocumento");
@@ -9252,6 +10196,9 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			@Override
 			public void onIconClick(IconClickEvent event) {
 				Record record = new Record(vm.getValues());
+				if(viewFromPortletMode) {
+					record.setAttribute("abilModificaDati", false);
+				}
 				new PermessiUdPopup(record);
 			}
 		});
@@ -9313,6 +10260,10 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				@Override
 				public void onIconClick(IconClickEvent event) {
 					Record record = new Record(vm.getValues());
+					if(viewFromPortletMode) {
+						record.setAttribute("abilModificaDati", false);
+						record.setAttribute("abilGestioneCollegamentiUD", false);
+					}
 					DocumentiCollegatiPopup documentiCollegatiPopup = new DocumentiCollegatiPopup(record) {
 	
 						@Override
@@ -9343,6 +10294,10 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				@Override
 				public void onIconClick(IconClickEvent event) {
 					Record record = new Record(vm.getValues());
+					if(viewFromPortletMode) {
+						record.setAttribute("abilModificaDati", false);
+						record.setAttribute("abilGestioneCollegamentiUD", false);
+					}
 					DocumentiCollegatiPopup documentiCollegatiPopup = new DocumentiCollegatiPopup(record) {
 	
 						@Override
@@ -9360,9 +10315,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			collegaDocumentiButton.setShowIfCondition(new FormItemIfFunction() {
 	
 				@Override
-				public boolean execute(FormItem item, Object value, DynamicForm form) {					
+				public boolean execute(FormItem item, Object value, DynamicForm form) {		
+					if(viewFromPortletMode) {
+						return false;
+					}
 					Record record = new Record(vm.getValues());
-					
 					// Il bottone si abilita se posso modificare i dati oppure se sono abilitato a collegare i documenti
 					boolean show = showDocumentiCollegatiButton(record) && (protocolloGeneraleForm.getValueAsString("presenzaDocCollegati") == null ||  "".equals(protocolloGeneraleForm.getValueAsString("presenzaDocCollegati")) || "0".equals(protocolloGeneraleForm.getValueAsString("presenzaDocCollegati"))); 
 					return show;
@@ -9371,6 +10328,8 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		}
 		
 		if(showAltriRiferimentiButton()) {		
+			
+			listaAltriRiferimentiHiddenItem = new HiddenItem("listaAltriRiferimenti");
 			
 			altriRiferimentiButton = new ImgButtonItem("altriRiferimentiButton", "buttons/altriRiferimenti.png",
 					"Altri riferimenti");
@@ -9381,7 +10340,22 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				@Override
 				public void onIconClick(IconClickEvent event) {
 					Record record = new Record(vm.getValues());
+					if(viewFromPortletMode) {
+						record.setAttribute("abilModificaDati", false);
+					}
 					new AltriRiferimentiPopup(record);
+				}
+			});
+			altriRiferimentiButton.setShowIfCondition(new FormItemIfFunction() {
+				
+				@Override
+				public boolean execute(FormItem item, Object value, DynamicForm form) {		
+					if(viewFromPortletMode) {
+						Record record = new Record(vm.getValues());
+						RecordList listaAltriRiferimenti = record.getAttributeAsRecordList("listaAltriRiferimenti");
+						return listaAltriRiferimenti != null && listaAltriRiferimenti.getLength() > 0;
+					}
+					return true;
 				}
 			});
 		}
@@ -9420,6 +10394,27 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		registrazioneFields.add(idProcessHiddenItem);
 		registrazioneFields.add(estremiProcessHiddenItem);
 		registrazioneFields.add(ruoloSmistamentoAttoHiddenItem);
+		registrazioneFields.add(idUdAvvioPraticheSUAHiddenItem);
+		registrazioneFields.add(idDocAvvioPraticheSUAHiddenItem);
+		registrazioneFields.add(nomeFileDocAvvioPraticheSUAHiddenItem);
+		registrazioneFields.add(listaAllegatiAvvioPraticheSUAHiddenItem);
+		registrazioneFields.add(nroProtocolloAvvioPraticheSUAHiddenItem);
+		registrazioneFields.add(dataProtocolloAvvioPraticheSUAHiddenItem);
+		registrazioneFields.add(sceltaGiorniTermineProcConcADSPHiddenItem);
+		registrazioneFields.add(dataFinePubblicazioneHiddenItem);
+		registrazioneFields.add(listaDatiIstanzeConcorrentiSUAADSPHiddenItem);
+		registrazioneFields.add(codPraticheConcorrentiSUAADSPDaVerificareHiddenItem);
+		registrazioneFields.add(codPraticheConcorrentiSUAADSPHiddenItem);
+		registrazioneFields.add(nroProtIstanzaSUAPadreHiddenItem); 
+		registrazioneFields.add(codPraticaSUAPadreHiddenItem);
+		
+		registrazioneFields.add(prossimaAzioneItem);
+		registrazioneFields.add(prossimaAzioneIdFirmatarioItem);
+		registrazioneFields.add(prossimaAzioneNomeFirmatarioItem);
+		registrazioneFields.add(prossimaAzioneIdUOAssItem);
+		registrazioneFields.add(prossimaAzioneCodRapioUOAssItem);
+		registrazioneFields.add(prossimaAzioneDesUOAssItem);	
+		
 		if (!showDetailSectionTipoDocumento()) {
 			registrazioneFields.add(tipoDocumentoSalvatoHiddenItem);
 			registrazioneFields.add(tipoDocumentoHiddenItem);
@@ -9479,6 +10474,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			registrazioneFields.add(collegaDocumentiButton);
 		}
 		if(showAltriRiferimentiButton()) {
+			registrazioneFields.add(listaAltriRiferimentiHiddenItem);
 			registrazioneFields.add(altriRiferimentiButton);
 		}
 		registrazioneFields.add(conDatiAnnullatiButton);
@@ -9888,6 +10884,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			altraNumerazioneFields.add(collegaDocumentiButton);
 		}
 		if(showAltriRiferimentiButton()) {
+			altraNumerazioneFields.add(listaAltriRiferimentiHiddenItem);
 			altraNumerazioneFields.add(altriRiferimentiButton);
 		}
 				
@@ -10941,6 +11938,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		mittentiItem = new MittenteProtUscitaItem() {
 
 			@Override
+			public boolean isProtPregresso() {
+				return isPregresso();
+			}
+			
+			@Override
 			public boolean getShowItemsIndirizzo() {
 				return false;
 			}
@@ -11227,8 +12229,13 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	 * 
 	 */
 	protected void createDestinatariItem() {
-
+		
 		destinatariItem = new DestinatarioProtUscitaItem() {
+			
+			@Override
+			public boolean isProtPregresso() {
+				return isPregresso();
+			}
 			
 			@Override
 			public boolean isAttivoAssegnatarioUnicoProt() {
@@ -11244,6 +12251,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			public void manageChangedFlgAssegnaAlDestinatario(Record canvasRecord) {
 				manageChangedFlgAssegnaAlMittDest();				
 			}
+			
 		};
 		destinatariItem.setName("listaDestinatari");
 		destinatariItem.setShowTitle(false);
@@ -11586,6 +12594,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			public void onFilterData(FetchDataEvent event) {
 				GWTRestDataSource livelloRiservatezzaDS = (GWTRestDataSource) livelloRiservatezzaItem.getOptionDataSource();
 				livelloRiservatezzaDS.addParam("uoProtocollante", getUoProtocollanteSelezionata());
+				livelloRiservatezzaDS.addParam("isBozza", isProtocollazioneDetailBozze() ? "true" : "");
 				livelloRiservatezzaItem.setOptionDataSource(livelloRiservatezzaDS);
 				livelloRiservatezzaItem.invalidateDisplayValueCache();
 			}
@@ -11737,8 +12746,32 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		return false;
 	}
 	
+	/**
+	 * Metodo che indica se attivare o meno la pre-impostazione del check "apponi timbro"
+	 * 
+	 */
 	public boolean isAttivaTimbraturaFilePostReg() {
-		return AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_FILE_POST_REG") && !isTaskDetail() && !isProtocollazioneDetailBozze();
+		return AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_FILE_POST_REG") && !isTaskDetail() /*&& !isProtocollazioneDetailBozze()*/;
+	}
+	
+	/**
+	 * Metodo che verifica se il formato del file è timbrabile o no considerando il parametro db MIMETYPE_TIMBRABILI
+	 */
+	public static boolean isMimetypeTimbrabile(String mimetype) {	
+		if(AurigaLayout.getParametroDB("MIMETYPE_TIMBRABILI") != null &&
+				!"".equalsIgnoreCase(AurigaLayout.getParametroDB("MIMETYPE_TIMBRABILI"))) {
+			String [] listaMimetypeTimbrabili = AurigaLayout.getParametroDB("MIMETYPE_TIMBRABILI").split(";");
+			boolean isValido = false;
+			for(int i=0; i < listaMimetypeTimbrabili.length; i++) {
+				String item = listaMimetypeTimbrabili[i];
+				if(item.equalsIgnoreCase(mimetype)) {
+					isValido = true;
+					break;
+				}
+			}
+			return isValido;
+		} 
+		return true;
 	}
 	
 	/**
@@ -11783,6 +12816,9 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	 * 
 	 */
 	public boolean showVersioneOmissis() {
+		if(isPresentiFileConOmissis()) {
+			return true;
+		}
 		return AurigaLayout.getParametroDBAsBoolean("SHOW_VERS_CON_OMISSIS") && !showFlgNoPubblPrimarioItem();
 	}
 	
@@ -13123,7 +14159,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				}
 				
 				final InfoFileRecord lInfoFileRecord = InfoFileRecord.buildInfoFileRecord(filePrimarioForm.getValue("infoFile"));
-				if (lInfoFileRecord != null && Layout.isPrivilegioAttivo("SCC")) {
+				if (lInfoFileRecord != null && AurigaLayout.showCopiaConformeCustom()) {
 					String labelConformitaCustom = AurigaLayout.getParametroDB("LABEL_COPIA_CONFORME_CUSTOM");
 					MenuItem timbroConformitaCustomMenuItem = new MenuItem(labelConformitaCustom, "file/copiaConformeCustom.png");
 					timbroConformitaCustomMenuItem.setEnabled(lInfoFileRecord != null && lInfoFileRecord.isConvertibile());
@@ -13549,7 +14585,9 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			altreOpMenuItems.add(firmaMenuItem);
 		}
 		
-		altreOpMenuItems.add(attestatoConformitaOriginaleMenuItem);
+		if(AurigaLayout.showAttestatoConformitaOriginale()) {
+			altreOpMenuItems.add(attestatoConformitaOriginaleMenuItem);
+		}
 		if (!mode.equals("view") && (filePrimarioButtons.isEditing() || forceToShowElimina || isFromEmail())
 				&& nomeFilePrimarioItem.getCanEdit()) {
 			altreOpMenuItems.add(eliminaMenuItem);
@@ -13675,6 +14713,10 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	}
 	
 	public boolean isModalitaAllegatiGrid() {
+		return false;
+	}
+	
+	public boolean isPresentiFileConOmissis() {
 		return false;
 	}
 	
@@ -13833,6 +14875,27 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				}
 				
 				@Override
+				public boolean getShowVersioneOmissis() {
+					if(isPresentiFileConOmissis()) {
+						return true;
+					}
+					return super.getShowVersioneOmissis();
+				}
+				
+				@Override
+				public String getTitleFlgParteDispositivo() {
+					if(isProtocollazioneDetailBozze()) {
+						return "Da firmare";
+					}
+					return super.getTitleFlgParteDispositivo();
+				}
+				
+				@Override
+				public boolean isAllegatiProtocollazioneDetailBozze() {
+					return isProtocollazioneDetailBozze();
+				}
+				
+				@Override
 				public boolean getShowFlgParere() {
 					return showFlgParereInAllegatiItem();
 				}
@@ -13869,7 +14932,6 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 
 				@Override
 				public void onRecordSelected(Record record) {
-					// TODO Auto-generated method stub
 					
 				}
 			};
@@ -14018,6 +15080,27 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				}
 				
 				@Override
+				public boolean getShowVersioneOmissis() {
+					if(isPresentiFileConOmissis()) {
+						return true;
+					}
+					return super.getShowVersioneOmissis();
+				}
+				
+				@Override
+				public String getTitleFlgParteDispositivo() {
+					if(isProtocollazioneDetailBozze()) {
+						return "Da firmare";
+					}
+					return super.getTitleFlgParteDispositivo();
+				}
+				
+				@Override
+				public boolean isAllegatiProtocollazioneDetailBozze() {
+					return isProtocollazioneDetailBozze();
+				}
+				
+				@Override
 				public boolean isShowModalPreview() {
 					return isEnablePreviewModal();
 				}
@@ -14030,6 +15113,83 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			((AllegatiItem)fileAllegatiItem).setShowFlgSostituisciVerPrec(showFlgSostituisciVerPrecItem());
 			((AllegatiItem)fileAllegatiItem).setShowImportaFileDaDocumenti(showImportaFileDaDocumentiInAllegatiItem());
 		}
+	}
+	
+	/**
+	 * Metodo che indica se mostrare la sezione "Verifica pre-firma"
+	 * 
+	 */
+	public boolean showDetailSectionVerificaPreFirma() {
+		Record recordDettaglio = getRecordDettaglio();
+		return recordDettaglio != null && recordDettaglio.getAttributeAsString("autoreVerificaPreFirma") != null && !"".equals(recordDettaglio.getAttributeAsString("autoreVerificaPreFirma"));
+	}
+	
+	/**
+	 * Metodo che restituisce il titolo della sezione "Verifica pre-firma"
+	 * 
+	 */
+	public String getTitleDetailSectionVerificaPreFirma() {		
+		return "Verifica pre-firma";
+	}
+		
+	/**
+	 * Metodo che crea la sezione "Verifica pre-firma"
+	 * 
+	 */
+	protected void createDetailSectionVerificaPreFirma() {
+
+		createVerificaPreFirmaForm();
+
+		detailSectionVerificaPreFirma = new ProtocollazioneDetailSection(getTitleDetailSectionVerificaPreFirma(), true, true, false, verificaPreFirmaForm);
+	}
+	
+	/**
+	 * Metodo che crea il form della sezione "VerificaPreFirma"
+	 * 
+	 */
+	protected void createVerificaPreFirmaForm() {
+
+		verificaPreFirmaForm = new DynamicForm();
+		verificaPreFirmaForm.setValuesManager(vm);
+		verificaPreFirmaForm.setWidth("100%");
+		verificaPreFirmaForm.setPadding(5);
+		verificaPreFirmaForm.setNumCols(10);
+		verificaPreFirmaForm.setColWidths(1, 1, 1, 1, 1, 1, 1, 1, "*", "*");
+		verificaPreFirmaForm.setTabSet(tabSet);
+		verificaPreFirmaForm.setTabID("HEADER");
+		
+		autoreVerificaPreFirmaItem = new TextItem("autoreVerificaPreFirma", "Verifica pre-firma effettuata da") {
+			
+			@Override
+			public void setCanEdit(Boolean canEdit) {
+				super.setCanEdit(false);
+			}
+		};
+		autoreVerificaPreFirmaItem.setStartRow(true);
+		autoreVerificaPreFirmaItem.setColSpan(1);
+		
+		dataVerificaPreFirmaItem = new DateTimeItem("dataVerificaPreFirma", "il") {
+			
+			@Override
+			public void setCanEdit(Boolean canEdit) {
+				super.setCanEdit(false);
+			}
+		};
+		dataVerificaPreFirmaItem.setColSpan(1);
+		
+		noteVerificaPreFirmaItem = new TextAreaItem("noteVerificaPreFirma", "Note apposte") {
+			
+			@Override
+			public void setCanEdit(Boolean canEdit) {
+				super.setCanEdit(false);
+			}
+		};
+		noteVerificaPreFirmaItem.setHeight(40);
+		noteVerificaPreFirmaItem.setWidth(650);
+		noteVerificaPreFirmaItem.setStartRow(true);
+		noteVerificaPreFirmaItem.setColSpan(9);
+		
+		verificaPreFirmaForm.setFields(autoreVerificaPreFirmaItem, dataVerificaPreFirmaItem, noteVerificaPreFirmaItem);
 	}
 
 	/**
@@ -14834,7 +15994,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		createAltriDatiForm();
 
 		detailSectionAltriDati = new ProtocollazioneDetailSection(getTitleDetailSectionAltriDati(),
-				true, false, false, altriDatiForm);
+				true, showOpenDetailSectionAltriDati(), false, altriDatiForm);
 	}
 
 	/**
@@ -14852,20 +16012,78 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		altriDatiForm.setColWidths(1, 1, 1, 1, 1, 1, 1, 1, "*", "*");
 		altriDatiForm.setTabSet(tabSet);
 		altriDatiForm.setTabID("HEADER");
+		
+		bodyEmailItem = new RichTextItem("bodyEmail");
+		bodyEmailItem.setDefaultValue("");
+		bodyEmailItem.setShowTitle(true);
+		bodyEmailItem.setTitle("Testo e-mail");
+		bodyEmailItem.setHeight(300);
+		bodyEmailItem.setWidth(500);
+		bodyEmailItem.setColSpan(6);
+		bodyEmailItem.setStartRow(false);
+		bodyEmailItem.setEndRow(false);
+		bodyEmailItem.setControlGroups("fontControls", "formatControls", "styleControls", "colorControls", "insertControls");
+		bodyEmailItem.setShowIfCondition(new FormItemIfFunction() {
+			
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				return AurigaLayout.getParametroDBAsBoolean("ATTIVA_COMPILAZIONE_TESTO_MAIL_DA_BOZZA") && isProtocollazioneDetailBozze();
+			}
+		});		
+		
+		editBodyEmailImgButton = new ImgButtonItem("editCorpo", "buttons/view_editor.png", I18NUtil.getMessages().posta_elettronica_editor_view_title_new_message());
+		editBodyEmailImgButton.setShowTitle(false);
+		editBodyEmailImgButton.setAlwaysEnabled(true);
+		editBodyEmailImgButton.setWidth(10);
+		editBodyEmailImgButton.setValueIconSize(32);
+		editBodyEmailImgButton.setStartRow(false);
+		editBodyEmailImgButton.setEndRow(true);
+		editBodyEmailImgButton.setColSpan(1);
+		editBodyEmailImgButton.setPrompt("Editor testo email");
+		editBodyEmailImgButton.setVAlign(VerticalAlignment.CENTER);
+		editBodyEmailImgButton.addIconClickHandler(new IconClickHandler() {
 
+			@Override
+			public void onIconClick(IconClickEvent event) {
+				manageEditViewerBody();
+			}
+		});
+		editBodyEmailImgButton.setShowIfCondition(new FormItemIfFunction() {
+			
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				return AurigaLayout.getParametroDBAsBoolean("ATTIVA_COMPILAZIONE_TESTO_MAIL_DA_BOZZA") && isProtocollazioneDetailBozze();
+			}
+		});		
+	
 		// Data stesura
 		dataDocumentoItem = new DateItem("dataDocumento",
 				I18NUtil.getMessages().protocollazione_detail_dataDocumentoItem_title());
 		dataDocumentoItem.setColSpan(1);
+		dataDocumentoItem.setStartRow(true);
 				
 		// Note
 		noteItem = new TextAreaItem("note", I18NUtil.getMessages().protocollazione_detail_noteItem_title());
 		noteItem.setHeight(40);
 		noteItem.setWidth(650);
 		noteItem.setStartRow(true);
-		noteItem.setColSpan(9);
+		noteItem.setColSpan(6);
 
-		altriDatiForm.setFields(dataDocumentoItem, noteItem);
+		altriDatiForm.setFields(bodyEmailItem, editBodyEmailImgButton, dataDocumentoItem, noteItem);
+	}
+	
+	private void manageEditViewerBody(){
+		String body = (String) bodyEmailItem.getValue();
+		
+		final EditorEmailWindow editorEmailWindow = new EditorEmailWindow("Editor testo email",body){
+			
+			@Override
+			public void manageOnCloseClick() {
+				bodyEmailItem.setValue(getCurrentBody());
+				markForDestroy();
+			};
+		};
+		editorEmailWindow.show();
 	}
 
 	/**
@@ -14919,7 +16137,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 
 		createDetailSectionFolderCustom();
 		layoutAssegnazioneEClassificazione.addMember(detailSectionFolderCustom);
-
+		
+		createDetailSectionRelVsPraticheApplEsterne();
+		detailSectionRelVsPraticheApplEsterne.setVisible(false);
+		layoutAssegnazioneEClassificazione.addMember(detailSectionRelVsPraticheApplEsterne);
+		
 		return layoutAssegnazioneEClassificazione;
 	}
 
@@ -14937,6 +16159,9 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	 * 
 	 */
 	public boolean showOpenDetailSectionAssegnazione() {
+		if(AurigaLayout.getParametroDBAsBoolean("SHOW_SINGLE_TAB_HEADER_IN_PROT") && (isProtocollazioneDetailBozze() || isProtocollazioneDetailUscita())) {
+			return false;
+		}
 		return true;
 	}
 
@@ -15178,6 +16403,17 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		confermaAssegnazioneForm.setFields(utentiAbilCPAItem, idUserConfermaAssegnazioneHiddenItem,
 				flgPreviaConfermaAssegnazioneItem);
 	}
+	
+	/**
+	 * Metodo che indica se mostrare già aperta la sezione "Inviato per conoscenza a"
+	 * 
+	 */
+	public boolean showOpenDetailSectionCondivisione() {
+		if(AurigaLayout.getParametroDBAsBoolean("SHOW_SINGLE_TAB_HEADER_IN_PROT") && (isProtocollazioneDetailBozze() || isProtocollazioneDetailUscita())) {
+			return false;
+		}
+		return true;
+	}
 
 	/**
 	 * Metodo che costruisce la sezione "Inviato per conoscenza a"
@@ -15188,7 +16424,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		createCondivisioneForm();
 
 		detailSectionCondivisione = new ProtocollazioneDetailSection(
-				I18NUtil.getMessages().protocollazione_detail_condivisioneForm_title(), true, true, false,
+				I18NUtil.getMessages().protocollazione_detail_condivisioneForm_title(), true, showOpenDetailSectionCondivisione(), false,
 				condivisioneForm);
 	}
 	
@@ -15291,6 +16527,14 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	}
 
 	/**
+	 * Metodo che indica se mostrare o meno la sezione classificazione/fascicolazione
+	 * 
+	 */
+	public boolean showDetailSectionClassificazioneFascicolazione() {
+		return !AurigaLayout.getParametroDBAsBoolean("DISATTIVA_CLASSIFICAZIONE"); 
+	}
+	
+	/**
 	 * Metodo che indica se è obbligatoria la sezione "Classificazione/fascicolazione"
 	 * 
 	 */
@@ -15380,14 +16624,6 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	}
 	
 	/**
-	 * Metodo che indica se mostrare o meno la sezione classificazione/fascicolazione
-	 * 
-	 */
-	public boolean showDetailSectionClassificazioneFascicolazione() {
-		return !AurigaLayout.getParametroDBAsBoolean("DISATTIVA_CLASSIFICAZIONE"); 
-	}
-	
-	/**
 	 * Metodo che indica se mostrare o meno la sezione "Cartelle"
 	 * 
 	 */
@@ -15440,6 +16676,43 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		folderCustomItem.setShowTitle(false);
 
 		folderCustomForm.setFields(folderCustomItem);
+	}
+	
+	/**
+	 * Metodo che costruisce la sezione "Associazione con pratiche sistemi esterni"
+	 * 
+	 */
+	protected void createDetailSectionRelVsPraticheApplEsterne() {
+
+		createRelVsPraticheApplEsterneForm();
+
+		detailSectionRelVsPraticheApplEsterne = new ProtocollazioneDetailSection("Associazione con pratiche sistemi esterni", true, true, false, relVsPraticheApplEsterneForm);
+	}
+
+	/**
+	 * Metodo che costruisce il form della sezione "Associazione con pratiche sistemi esterni"
+	 * 
+	 */
+	protected void createRelVsPraticheApplEsterneForm() {
+
+		relVsPraticheApplEsterneForm = new DynamicForm();
+		relVsPraticheApplEsterneForm.setValuesManager(vm);
+		relVsPraticheApplEsterneForm.setWidth("100%");
+		relVsPraticheApplEsterneForm.setHeight("5");
+		relVsPraticheApplEsterneForm.setPadding(5);
+		relVsPraticheApplEsterneForm.setTabSet(tabSet);
+		if(showSingleTabHeader()) {
+			relVsPraticheApplEsterneForm.setTabID("HEADER");
+		} else {
+			relVsPraticheApplEsterneForm.setTabID("ASSEGN_CLASSIF");
+		}
+
+		relVsPraticheApplEsterneItem = new RelVsPraticheApplEsterneItem();
+		relVsPraticheApplEsterneItem.setName("listaRelVsPraticheApplEsterne");
+		relVsPraticheApplEsterneItem.setShowTitle(false);
+		relVsPraticheApplEsterneItem.setNotReplicable(true);
+		
+		relVsPraticheApplEsterneForm.setFields(relVsPraticheApplEsterneItem);
 	}
 	
 	/**
@@ -15498,6 +16771,15 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		return AurigaLayout.isAttivoClienteADSP();		
 	}
 		
+	
+	/**
+	 * Metodo che indica se mostrare o meno la sezione "Concessione"
+	 * 
+	 */
+	public boolean showDetailSectionConcessione() {
+		return AurigaLayout.isAttivoClienteADSP();		
+	}
+	
 	/**
 	 * Metodo per costruire il tab "Esibente e interessati" / "Interessati"
 	 * 
@@ -15727,6 +17009,54 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		firmatariForm.setFields(firmatariItem);
 	}
 	
+	
+	/**
+	 * Metodo che crea la sezione "Concessione"
+	 * 
+	 */
+	protected void createDetailSectionConcessione() {
+
+		createConcessioneForm();
+
+		detailSectionConcessione = new ProtocollazioneDetailSection(I18NUtil.getMessages().protocollazione_detail_concessioneForm_title(), true, true, false, concessioneForm){
+			@Override
+			public boolean validate() {
+				return validateDetailSectionConcessione();
+			}
+		};
+	}
+	
+	/**
+	 * Metodo che effettua la validazione della sezione "Concessione"
+	 * 
+	 */
+	public boolean validateDetailSectionConcessione() {
+		return periziaItem.validate();
+	}
+	
+	/**
+	 * Metodo che crea il form della sezione "Concessione"
+	 * 
+	 */
+	protected void createConcessioneForm() {
+		
+		concessioneForm = new DynamicForm();
+		concessioneForm.setValuesManager(vm);
+		concessioneForm.setWidth("100%");
+		concessioneForm.setHeight("5");
+		concessioneForm.setPadding(5);
+		concessioneForm.setTabSet(tabSet);
+		concessioneForm.setTabID("HEADER");
+		
+		concessioneItem = new ConcessioneItem();
+		concessioneItem.setName("listaConcessioni");
+		concessioneItem.setShowTitle(false);
+		concessioneItem.setNotReplicable(false);	
+		
+		concessioneForm.setFields(concessioneItem);
+	}
+	
+	
 	/**
 	 * Metodo che crea la sezione "Perizia"
 	 * 
@@ -15889,6 +17219,17 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	 * 
 	 */
 	public boolean isNotReplicableAltreVieItem() {
+		return false;
+	}
+	
+	/**
+	 * Metodo che indica se mostrare già aperta la sezione "Altri dati"
+	 * 
+	 */
+	public boolean showOpenDetailSectionAltriDati() {
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_COMPILAZIONE_TESTO_MAIL_DA_BOZZA") && isProtocollazioneDetailBozze()) {
+			return true;
+		}
 		return false;
 	}
 		
@@ -16609,6 +17950,513 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	}
 	
 	/**
+	 * Metodo che indica se mostrare o meno il tab "Iter firme e trasmissione"
+	 * 
+	 */
+	public boolean showTabIterFirmeTrasmissione() {
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_ITER_FIRME_BOZZE")) {
+			if(isProtocollazioneDetailBozze()) {
+				return true;
+			}
+			Record recordDettaglio = getRecordDettaglio();
+			RecordList listaFirmatariIterFirma = recordDettaglio != null ? recordDettaglio.getAttributeAsRecordList("listaFirmatariIterFirma") : null;
+			return listaFirmatariIterFirma != null && listaFirmatariIterFirma.getLength() > 0;
+		}
+		return false;
+	}
+	
+	/**
+	 * Metodo per costruire il tab "Iter firme e trasmissione"
+	 * 
+	 */
+	public void createTabIterFirmeTrasmissione() {
+		tabIterFirmeTrasmissione = new Tab("<b>" + I18NUtil.getMessages().protocollazione_detail_tabIterFirmeTrasmissione_title() + "</b>");
+		tabIterFirmeTrasmissione.setAttribute("tabID", "ITER_FIRME_TRASM");
+		tabIterFirmeTrasmissione.setPrompt(I18NUtil.getMessages().protocollazione_detail_tabIterFirmeTrasmissione_prompt());
+		tabIterFirmeTrasmissione.setPane(createTabPane(getLayoutIterFirmeTrasmissione()));
+		tabIterFirmeTrasmissione.addTabSelectedHandler(new TabSelectedHandler() {
+
+			@Override
+			public void onTabSelected(TabSelectedEvent arg0) {
+				// solo se sono in bozza
+//				if(isProtocollazioneDetailBozze()) {
+//					//TODO ha senso popolare i regitri e far comparire i check a seconda che ci siano o meno destinatari esterni?
+//					regTrasmTermineIterFirmaForm.markForRedraw();
+//					final String desRegistroRegAutoInIterFirma = desRegistroRegAutoInIterFirmaItem.getValueAsString();
+//					desRegistroRegAutoInIterFirmaItem.fetchData(new DSCallback() {
+//	
+//						@Override
+//						public void execute(DSResponse response, Object rawData, DSRequest request) {
+//							RecordList data = response.getDataAsRecordList();
+//							listaRegistriAutoTermineIterFirma = data;
+//							regTrasmTermineIterFirmaForm.markForRedraw();
+//							if(desRegistroRegAutoInIterFirma != null && !"".equals(desRegistroRegAutoInIterFirma)) {
+//								boolean trovato = false;
+//								if (data.getLength() > 0) {
+//									for (int i = 0; i < data.getLength(); i++) {
+//										String key = data.get(i).getAttribute("key");
+//										if (desRegistroRegAutoInIterFirma.equals(key)) {
+//											trovato = true;
+//											break;
+//										}
+//									}
+//								}
+//								if (!trovato) {
+//									regTrasmTermineIterFirmaForm.setValue("desRegistroRegAutoInIterFirma", "");
+//									regTrasmTermineIterFirmaForm.setValue("codCategoriaRegAutoInIterFirma", "");					
+//								}
+//							}
+//						}
+//					});
+//				}
+			}
+		});
+	}
+	
+	/**
+	 * Metodo che restituisce il layout del tab "Iter firme e trasmissione"
+	 * 
+	 */
+	public VLayout getLayoutIterFirmeTrasmissione() {
+
+		VLayout layoutIterFirmeTrasmissione = new VLayout(5);
+
+		createDetailSectionFirmatariIterFirma();
+		layoutIterFirmeTrasmissione.addMember(detailSectionFirmatariIterFirma);
+		
+		createDetailSectionCoredattoriIterFirma();
+		layoutIterFirmeTrasmissione.addMember(detailSectionCoredattoriIterFirma);
+		
+		createDetailSectionRegTrasmTermineIterFirma();
+		layoutIterFirmeTrasmissione.addMember(detailSectionRegTrasmTermineIterFirma);
+
+		return layoutIterFirmeTrasmissione;
+	}
+		
+	/**
+	 * Metodo che restituisce il titolo della sezione "Firmatari"
+	 * 
+	 */
+	public String getTitleDetailSectionFirmatariIterFirma() {
+		return "Firmatari";
+	}
+	
+	/**
+	 * Metodo che crea la sezione "Firmatari"
+	 * 
+	 */
+	public void createDetailSectionFirmatariIterFirma() {
+		
+		createFirmatariIterFirmaForm();
+
+		detailSectionFirmatariIterFirma = new ProtocollazioneDetailSection(getTitleDetailSectionFirmatariIterFirma(), true, true, false, firmatariIterFirmaForm);						
+	}
+	
+	/**
+	 * Metodo che crea il form della sezione "Firmatari"
+	 * 
+	 */
+	public void createFirmatariIterFirmaForm() {
+
+		firmatariIterFirmaForm = new DynamicForm();
+		firmatariIterFirmaForm.setValuesManager(vm);
+		firmatariIterFirmaForm.setWidth("100%");
+		firmatariIterFirmaForm.setHeight("5");
+		firmatariIterFirmaForm.setPadding(5);
+		firmatariIterFirmaForm.setNumCols(22);
+		firmatariIterFirmaForm.setColWidths(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, "*", "*");		
+		firmatariIterFirmaForm.setWrapItemTitles(false);
+		firmatariIterFirmaForm.setTabSet(tabSet);
+		firmatariIterFirmaForm.setTabID("ITER_FIRME_TRASM");
+		
+		firmatariIterFirmaItem = new FirmatariIterFirmaItem() {
+			
+			@Override
+			public void setCanEdit(Boolean canEdit) {
+				super.setCanEdit(!isProtocollazioneDetailBozze() ? false : canEdit);
+			}
+		};
+		firmatariIterFirmaItem.setName("listaFirmatariIterFirma");
+		firmatariIterFirmaItem.setShowTitle(false);
+		
+		firmatariIterFirmaForm.setFields(firmatariIterFirmaItem);
+	}
+	
+	/**
+	 * Metodo che restituisce il titolo della sezione "Co-redattori"
+	 * 
+	 */
+	public String getTitleDetailSectionCoredattoriIterFirma() {
+		return "Co-redattori";
+	}
+	
+	/**
+	 * Metodo che crea la sezione "Co-redattori"
+	 * 
+	 */
+	public void createDetailSectionCoredattoriIterFirma() {
+		
+		createCoredattoriIterFirmaForm();
+
+		detailSectionCoredattoriIterFirma = new ProtocollazioneDetailSection(getTitleDetailSectionCoredattoriIterFirma(), true, true, false, coredattoriIterFirmaForm);						
+	}
+	
+	/**
+	 * Metodo che crea il form della sezione "Co-redattori"
+	 * 
+	 */
+	public void createCoredattoriIterFirmaForm() {
+
+		coredattoriIterFirmaForm = new DynamicForm();
+		coredattoriIterFirmaForm.setValuesManager(vm);
+		coredattoriIterFirmaForm.setWidth("100%");
+		coredattoriIterFirmaForm.setHeight("5");
+		coredattoriIterFirmaForm.setPadding(5);
+		coredattoriIterFirmaForm.setNumCols(22);
+		coredattoriIterFirmaForm.setColWidths(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, "*", "*");		
+		coredattoriIterFirmaForm.setWrapItemTitles(false);
+		coredattoriIterFirmaForm.setTabSet(tabSet);
+		coredattoriIterFirmaForm.setTabID("ITER_FIRME_TRASM");
+		
+		coredattoriIterFirmaItem = new CoredattoriIterFirmaItem() {
+			
+			@Override
+			public void setCanEdit(Boolean canEdit) {
+				super.setCanEdit(!isProtocollazioneDetailBozze() ? false : canEdit);
+			}
+		};
+		coredattoriIterFirmaItem.setName("listaCoredattoriIterFirma");
+		coredattoriIterFirmaItem.setShowTitle(false);
+		
+		coredattoriIterFirmaForm.setFields(coredattoriIterFirmaItem);
+	}
+	
+	/**
+	 * Metodo che restituisce il titolo della sezione "Azioni collegate all'iter di firma"
+	 * 
+	 */
+	public String getTitleDetailSectionRegTrasmTermineIterFirma() {
+		return "Azioni collegate all'iter di firma";
+	}
+	
+	/**
+	 * Metodo che crea la sezione "Azioni collegate all'iter di firma"
+	 * 
+	 */
+	public void createDetailSectionRegTrasmTermineIterFirma() {
+		
+		createRegTrasmTermineIterFirmaForm();
+
+		detailSectionRegTrasmTermineIterFirma = new ProtocollazioneDetailSection(getTitleDetailSectionRegTrasmTermineIterFirma(), true, true, false, regTrasmTermineIterFirmaForm);						
+	}
+	
+	/**
+	 * Metodo che crea il form della sezione "Azioni collegate all'iter di firma"
+	 * 
+	 */
+	public void createRegTrasmTermineIterFirmaForm() {
+
+		regTrasmTermineIterFirmaForm = new DynamicForm();
+		regTrasmTermineIterFirmaForm.setValuesManager(vm);
+		regTrasmTermineIterFirmaForm.setWidth("100%");
+		regTrasmTermineIterFirmaForm.setHeight("5");
+		regTrasmTermineIterFirmaForm.setPadding(5);
+		regTrasmTermineIterFirmaForm.setNumCols(12);
+		regTrasmTermineIterFirmaForm.setColWidths(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, "*", "*");		
+		regTrasmTermineIterFirmaForm.setWrapItemTitles(false);
+		regTrasmTermineIterFirmaForm.setTabSet(tabSet);
+		regTrasmTermineIterFirmaForm.setTabID("ITER_FIRME_TRASM");
+		
+		opzProtAutoInIterFirmaItem = new RadioGroupItem("opzProtAutoInIterFirma", "Protocollazione automatica") {
+			
+			@Override
+			public void setCanEdit(Boolean canEdit) {
+				super.setCanEdit(!isProtocollazioneDetailBozze() ? false : canEdit);
+			}
+		};
+		opzProtAutoInIterFirmaItem.setStartRow(true);
+		opzProtAutoInIterFirmaItem.setColSpan(1);
+		LinkedHashMap<String, String> opzProtAutoInIterFirmaValueMap = new LinkedHashMap<String, String>();
+		opzProtAutoInIterFirmaValueMap.put("termine_iter", "al termine dell'iter di firma");
+		opzProtAutoInIterFirmaValueMap.put("prima_firma_dig", "prima della firma digitale (con apposizione segnatura sul file da firmare)");
+		opzProtAutoInIterFirmaValueMap.put("", "non prevista");
+		opzProtAutoInIterFirmaItem.setValueMap(opzProtAutoInIterFirmaValueMap);
+		opzProtAutoInIterFirmaItem.setDefaultValue("");
+		opzProtAutoInIterFirmaItem.setVertical(false);
+		opzProtAutoInIterFirmaItem.setWrap(false);
+		opzProtAutoInIterFirmaItem.setShowIfCondition(new FormItemIfFunction() {
+
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				return showOpzProtAutoInIterFirmaItem();
+			}
+		});
+		
+		opzRegAutoInIterFirmaItem = new RadioGroupItem("opzRegAutoInIterFirma", "Numerazione automatica") {
+			
+			@Override
+			public void setCanEdit(Boolean canEdit) {
+				super.setCanEdit(!isProtocollazioneDetailBozze() ? false : canEdit);
+			}
+		};
+		opzRegAutoInIterFirmaItem.setStartRow(true);
+		opzRegAutoInIterFirmaItem.setColSpan(1);
+		LinkedHashMap<String, String> opzRegAutoInIterFirmaValueMap = new LinkedHashMap<String, String>();
+		opzRegAutoInIterFirmaValueMap.put("termine_iter", "al termine dell'iter di firma");
+		opzRegAutoInIterFirmaValueMap.put("prima_firma_dig", "prima della firma digitale (con apposizione segnatura sul file da firmare)");
+		opzRegAutoInIterFirmaValueMap.put("", "non prevista");
+		opzRegAutoInIterFirmaItem.setValueMap(opzRegAutoInIterFirmaValueMap);
+		opzRegAutoInIterFirmaItem.setDefaultValue("");
+		opzRegAutoInIterFirmaItem.setVertical(false);
+		opzRegAutoInIterFirmaItem.setWrap(false);
+		opzRegAutoInIterFirmaItem.setShowIfCondition(new FormItemIfFunction() {
+
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				return showOpzRegAutoInIterFirmaItem();
+			}
+		});
+		opzRegAutoInIterFirmaItem.addChangedHandler(new ChangedHandler() {
+			
+			@Override
+			public void onChanged(ChangedEvent event) {
+				regTrasmTermineIterFirmaForm.markForRedraw();
+			}
+		});
+		
+		GWTRestDataSource gruppiRepertorioDS = new GWTRestDataSource("LoadComboRegistroAutoTermineIterFirmaDataSource", "key", FieldType.TEXT);
+		
+		desRegistroRegAutoInIterFirmaItem = new SelectItem("desRegistroRegAutoInIterFirma", "nel registro") {
+			
+			@Override
+			public void setCanEdit(Boolean canEdit) {
+				super.setCanEdit(!isProtocollazioneDetailBozze() ? false : canEdit);
+			}
+			
+			@Override
+			protected ListGrid builPickListProperties() {
+				ListGrid pickListProperties = super.builPickListProperties();	
+				pickListProperties.addFetchDataHandler(new FetchDataHandler() {
+
+					@Override
+					public void onFilterData(FetchDataEvent event) {
+						GWTRestDataSource gruppiRepertorioDS = (GWTRestDataSource) desRegistroRegAutoInIterFirmaItem.getOptionDataSource();		
+						gruppiRepertorioDS.addParam("tipoDocumento", tipoDocumento);
+						//TODO ha senso popolare i regitri in modo diverso a seconda che ci siano o meno destinatari esterni?
+//						gruppiRepertorioDS.addParam("flgTipoProv", hasDestinatariEsterni() ? "U" : "I");
+						desRegistroRegAutoInIterFirmaItem.setOptionDataSource(gruppiRepertorioDS);
+						desRegistroRegAutoInIterFirmaItem.invalidateDisplayValueCache();
+					}
+				});
+				return pickListProperties;
+			}
+			
+			@Override
+			public void onOptionClick(Record record) {
+				super.onOptionClick(record);
+				regTrasmTermineIterFirmaForm.setValue("codCategoriaRegAutoInIterFirma", record.getAttribute("codCategoria"));
+				markForRedraw();
+			}
+
+			@Override
+			public void setValue(String value) {
+				super.setValue(value);
+				if (value == null || "".equals(value)) {
+					regTrasmTermineIterFirmaForm.setValue("desRegistroRegAutoInIterFirma", "");
+					regTrasmTermineIterFirmaForm.setValue("codCategoriaRegAutoInIterFirma", "");
+				}
+				markForRedraw();
+			}
+
+			@Override
+			protected void clearSelect() {
+				super.clearSelect();
+				regTrasmTermineIterFirmaForm.setValue("desRegistroRegAutoInIterFirma", "");
+				regTrasmTermineIterFirmaForm.setValue("codCategoriaRegAutoInIterFirma", "");
+				markForRedraw();
+			};
+		};
+		//TODO preimpostare il registro in base alla tipologia del documento -> codCategoriaAltraNumerazione e siglaAltraNumerazione
+		desRegistroRegAutoInIterFirmaItem.setColSpan(8);
+		desRegistroRegAutoInIterFirmaItem.setValueField("key");
+		desRegistroRegAutoInIterFirmaItem.setDisplayField("key");
+		desRegistroRegAutoInIterFirmaItem.setOptionDataSource(gruppiRepertorioDS);
+		desRegistroRegAutoInIterFirmaItem.setClearable(true);
+		desRegistroRegAutoInIterFirmaItem.setCachePickListResults(false);
+		desRegistroRegAutoInIterFirmaItem.setAllowEmptyValue(true);
+		desRegistroRegAutoInIterFirmaItem.setAutoFetchData(false);
+		desRegistroRegAutoInIterFirmaItem.setAlwaysFetchMissingValues(true);
+		desRegistroRegAutoInIterFirmaItem.setFetchMissingValues(true);
+		desRegistroRegAutoInIterFirmaItem.setShowIfCondition(new FormItemIfFunction() {
+
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				return showOpzRegAutoInIterFirmaItem() && opzRegAutoInIterFirmaItem.getValueAsString() != null && !"".equals(opzRegAutoInIterFirmaItem.getValueAsString());
+			}
+		});
+		desRegistroRegAutoInIterFirmaItem.setAttribute("obbligatorio", true);		
+		desRegistroRegAutoInIterFirmaItem.setValidators(new RequiredIfValidator(new RequiredIfFunction() {
+			
+			@Override
+			public boolean execute(FormItem formItem, Object value) {
+				return showOpzRegAutoInIterFirmaItem() && opzRegAutoInIterFirmaItem.getValueAsString() != null && !"".equals(opzRegAutoInIterFirmaItem.getValueAsString());
+			}
+		}));
+		desRegistroRegAutoInIterFirmaItem.addDataArrivedHandler(new DataArrivedHandler() {
+
+			@Override
+			public void onDataArrived(DataArrivedEvent event) {
+				listaRegistriAutoTermineIterFirma = event.getData();
+				regTrasmTermineIterFirmaForm.markForRedraw();
+			}
+		});
+		
+		codCategoriaRegAutoInIterFirmaItem = new HiddenItem("codCategoriaRegAutoInIterFirma");
+		
+		strutturaRegPostIterFirma = new SelezionaUOItem() {
+			
+			@Override
+			public String getSelectItemOrganigrammaHint() {
+				return "La compilazione va fatta solo se la struttura che dovrà registrare è diversa sia da struttura mittente che da struttura redattrice";
+			}
+		};
+		strutturaRegPostIterFirma.setName("listaUoRegPostIterFirma");
+		strutturaRegPostIterFirma.setTitle("Protocollazione/repertoriazione manuale a cura di");
+		strutturaRegPostIterFirma.setShowTitle(true);
+		strutturaRegPostIterFirma.setStartRow(true);
+		strutturaRegPostIterFirma.setColSpan(18);
+		strutturaRegPostIterFirma.setNotReplicable(true);
+		
+		SpacerItem spacerFlgEmailAutoTermineIterFirmaRegItem = new SpacerItem();
+		spacerFlgEmailAutoTermineIterFirmaRegItem.setStartRow(true);
+		spacerFlgEmailAutoTermineIterFirmaRegItem.setColSpan(1);
+		spacerFlgEmailAutoTermineIterFirmaRegItem.setWidth(10);	
+		spacerFlgEmailAutoTermineIterFirmaRegItem.setShowIfCondition(new FormItemIfFunction() {
+
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+				return showOpzProtAutoInIterFirmaItem() || showOpzRegAutoInIterFirmaItem();
+			}
+		});
+		
+		flgEmailAutoTermineIterFirmaRegItem = new CheckboxItem("flgEmailAutoTermineIterFirmaReg", "invio e-mail automatico al termine dell'iter di firma e numerazione definitiva") {
+			
+			@Override
+			public void setCanEdit(Boolean canEdit) {
+				super.setCanEdit(!isProtocollazioneDetailBozze() ? false : canEdit);
+			}
+		};
+		flgEmailAutoTermineIterFirmaRegItem.setColSpan(1);
+		flgEmailAutoTermineIterFirmaRegItem.setShowIfCondition(new FormItemIfFunction() {
+
+			@Override
+			public boolean execute(FormItem item, Object value, DynamicForm form) {
+//				if(showOpzProtAutoInIterFirmaItem() && showOpzRegAutoInIterFirmaItem()) {
+//					flgEmailAutoTermineIterFirmaRegItem.setTitle("invio e-mail automatico al termine dell'iter di firma e protocollazione/registrazione");
+//				} else if(showOpzProtAutoInIterFirmaItem()) {
+//					flgEmailAutoTermineIterFirmaRegItem.setTitle("invio e-mail automatico al termine dell'iter di firma e protocollazione");
+//				} else if(showOpzRegAutoInIterFirmaItem()) {
+//					flgEmailAutoTermineIterFirmaRegItem.setTitle("invio e-mail automatico al termine dell'iter di firma e registrazione");
+//				}
+				return showOpzProtAutoInIterFirmaItem() || showOpzRegAutoInIterFirmaItem();
+			}
+		});
+		
+		GWTRestDataSource casellaMittenteDS = new GWTRestDataSource("CasellaMittenteDatasource");
+		
+		idCasellaMittenteItem = new SelectItem("idCasellaMittente", "Casella e-mail mittente") {
+			
+			@Override
+			public void setCanEdit(Boolean canEdit) {
+				super.setCanEdit(!isProtocollazioneDetailBozze() ? false : canEdit);
+			}
+			
+			@Override
+			public void onOptionClick(Record record) {
+				super.onOptionClick(record);
+				regTrasmTermineIterFirmaForm.setValue("desCasellaMittente", record.getAttribute("value"));
+				markForRedraw();
+			}
+
+			@Override
+			public void setValue(String value) {
+				super.setValue(value);
+				if (value == null || "".equals(value)) {
+					regTrasmTermineIterFirmaForm.setValue("idCasellaMittente", "");
+					regTrasmTermineIterFirmaForm.setValue("desCasellaMittente", "");
+				}
+				markForRedraw();
+			}
+
+			@Override
+			protected void clearSelect() {
+				super.clearSelect();
+				regTrasmTermineIterFirmaForm.setValue("idCasellaMittente", "");
+				regTrasmTermineIterFirmaForm.setValue("desCasellaMittente", "");
+				markForRedraw();
+			};
+		};
+		idCasellaMittenteItem.setStartRow(true);
+		idCasellaMittenteItem.setColSpan(8);
+		idCasellaMittenteItem.setValueField("key");
+		idCasellaMittenteItem.setDisplayField("displayValue");
+		idCasellaMittenteItem.setAllowEmptyValue(true);
+		idCasellaMittenteItem.setWidth(250);
+		idCasellaMittenteItem.setAddUnknownValues(false);
+		idCasellaMittenteItem.setRejectInvalidValueOnChange(true);		
+		idCasellaMittenteItem.setOptionDataSource(casellaMittenteDS);
+		
+		desCasellaMittenteItem = new HiddenItem("desCasellaMittente");
+		
+		regTrasmTermineIterFirmaForm.setFields(
+			opzProtAutoInIterFirmaItem,
+			opzRegAutoInIterFirmaItem,
+			desRegistroRegAutoInIterFirmaItem, codCategoriaRegAutoInIterFirmaItem,
+			strutturaRegPostIterFirma,
+			spacerFlgEmailAutoTermineIterFirmaRegItem, flgEmailAutoTermineIterFirmaRegItem,
+			idCasellaMittenteItem, desCasellaMittenteItem
+		);
+	}
+	
+//	public boolean hasDestinatariEsterni() {
+//		RecordList listaDestinatari = new Record(vm.getValues()).getAttributeAsRecordList("listaDestinatari");
+//		boolean hasDestinatariEsterni = false;
+//		if(listaDestinatari != null) {
+//			for(int i = 0; i < listaDestinatari.getLength(); i++) {
+//				Record dest = listaDestinatari.get(i);
+//				String tipoDestinatario = dest.getAttribute("tipoDestinatario");
+//				if(tipoDestinatario == null || "".equals(tipoDestinatario) || ("PA".equals(tipoDestinatario) || "PG".equals(tipoDestinatario))) {
+//					String denominazioneDestinatario = dest.getAttribute("denominazioneDestinatario");
+//					if(denominazioneDestinatario != null && !"".equals(denominazioneDestinatario)) {
+//						hasDestinatariEsterni = true;
+//						break;
+//					}
+//				} else if(tipoDestinatario != null && "PF".equals(tipoDestinatario)) {
+//					String cognomeDestinatario = dest.getAttribute("cognomeDestinatario");
+//					String nomeDestinatario = dest.getAttribute("nomeDestinatario");
+//					if(cognomeDestinatario != null && !"".equals(cognomeDestinatario) && nomeDestinatario != null && !"".equals(nomeDestinatario)) {
+//						hasDestinatariEsterni = true;
+//						break;
+//					}
+//				}
+//			}
+//		}
+//		return hasDestinatariEsterni;
+//	}
+	
+	public boolean showOpzProtAutoInIterFirmaItem() {
+		//TODO ha senso far comparire i check a seconda che ci siano o meno destinatari esterni?
+//		boolean hasDestinatariEsterni = hasDestinatariEsterni();
+//		return (Layout.isPrivilegioAttivo("PRT/U") && hasDestinatariEsterni) || (Layout.isPrivilegioAttivo("PRT/I") && !hasDestinatariEsterni);
+		return true;
+	}
+
+	public boolean showOpzRegAutoInIterFirmaItem() {
+//		return Layout.isPrivilegioAttivo("RPR") || (listaRegistriAutoTermineIterFirma != null && listaRegistriAutoTermineIterFirma.getLength() > 0);
+		return true;
+	}
+	
+	/**
 	 * Metodo che indica se mi trovo nel dettaglio UD di un atto.
 	 * 
 	 */
@@ -16639,7 +18487,6 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	 * 
 	 */
 	protected void caricaAttributiDinamiciDoc(final String idTipoDocumento, final String rowidDoc) {
-
 		if (idTipoDocumento != null && !"".equals(idTipoDocumento)) {
 			Record lRecordLoad = new Record();
 			lRecordLoad.setAttribute("idTipoDocumento", idTipoDocumento);
@@ -16649,13 +18496,25 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 						@Override
 						public void execute(Record object) {
 							final boolean isReload = (attributiAddDocTabs != null && attributiAddDocTabs.size() > 0);
-							attributiAddDocTabs = (LinkedHashMap<String, String>) object
-									.getAttributeAsMap("gruppiAttributiCustomTipoDoc");
+							if(attributiAddDocLayouts != null) {
+								for (String key : attributiAddDocLayouts.keySet()) {
+									// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+									if(key != null && !key.startsWith("HEADER_")) {
+										try { attributiAddDocLayouts.get(key).destroy(); } catch(Exception e) {}
+									}
+								}
+							}
+							if(attributiAddDocDetails != null) {
+								for (String key : attributiAddDocDetails.keySet()) {
+									try { attributiAddDocDetails.get(key).destroy(); } catch(Exception e) {}				
+								}
+							}
+							attributiAddDocTabs = (LinkedHashMap<String, String>) object.getAttributeAsMap("gruppiAttributiCustomTipoDoc");
 							attributiAddDocLayouts = new HashMap<String, VLayout>();
 							attributiAddDocDetails = new HashMap<String, AttributiDinamiciDetail>();
 							if (attributiAddDocTabs != null && attributiAddDocTabs.size() > 0) {
-								GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>(
-										"AttributiDinamiciDatasource");
+								GWTRestService<Record, Record> lGwtRestService = new GWTRestService<Record, Record>("AttributiDinamiciDatasource");
+								lGwtRestService.addParam("flgSkipAttrSenzaCategoria", "true");
 								lGwtRestService.addParam("flgNomeAttrConSuff", "true");
 								// se sono nel dettaglio UD di un atto non devo caricare tutti gli attributi dinamici che vedo nei passi dell'iter, ma solo una parte modificabili anche da dettaglio UD
 								if(isDettaglioUdAtto()) {		
@@ -17378,14 +19237,17 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		setInitialValues();
 		presaInCaricoButton.hide();
 		restituisciButton.hide();
+		rilasciaButton.hide();
 		segnaComeVisionatoButton.hide();
 		classificazioneFascicolazioneButton.hide();
 		modificaButton.hide();
 		regAccessoCivicoButton.hide();
 		modificaDatiRegButton.hide();
 		invioPECButton.hide();
+		frecciaInvioPECButton.hide();
 		invioMailRicevutaButton.hide();
 		invioPEOButton.hide();
+		frecciaInvioPEOButton.hide();
 		invioPostaPrioritariaButton.hide();
 		invioRaccomandataButton.hide();
 		salvaComeModelloButton.hide();
@@ -17441,6 +19303,10 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			}
 		}
 		*/
+		if (detailSectionRelVsPraticheApplEsterne != null) {
+			RecordList listaRelVsPraticheApplEsterne = lRecord != null ? lRecord.getAttributeAsRecordList("listaRelVsPraticheApplEsterne") : null;
+			detailSectionRelVsPraticheApplEsterne.setVisible(listaRelVsPraticheApplEsterne != null && listaRelVsPraticheApplEsterne.getLength() > 0);
+		}
 	}
 
 	/**
@@ -17491,6 +19357,9 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				detailSectionAllegati.openIfhasValue();
 			}
 		}
+		if (detailSectionVerificaPreFirma != null) {
+			detailSectionVerificaPreFirma.openIfhasValue();
+		}
 		if (detailSectionDatiRicezione != null) {
 			if(detailSectionDatiRicezione.isRequired()) {
 				detailSectionDatiRicezione.open();
@@ -17509,12 +19378,23 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		}
 		if (detailSectionAltriDati != null) {
 			detailSectionAltriDati.openIfhasValue();
+			if(showOpenDetailSectionAltriDati()) {
+				detailSectionAltriDati.open();
+			}
 		}
 		if (detailSectionAssegnazione != null) {
-			detailSectionAssegnazione.open();
+			if (detailSectionAssegnazione.showOpen()) {
+				detailSectionAssegnazione.open();
+			} else {
+				detailSectionAssegnazione.openIfhasValue();
+			}
 		}
 		if (detailSectionCondivisione != null) {
-			detailSectionCondivisione.open();
+			if (detailSectionCondivisione.showOpen()) {
+				detailSectionCondivisione.open();
+			} else {
+				detailSectionCondivisione.openIfhasValue();
+			}
 		}
 		if (detailSectionClassificazioneFascicolazione != null) {
 			detailSectionClassificazioneFascicolazione.open();
@@ -17522,6 +19402,9 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		if (detailSectionFolderCustom != null) {
 			detailSectionFolderCustom.open();
 		}		
+		if (detailSectionRelVsPraticheApplEsterne != null) {
+			detailSectionRelVsPraticheApplEsterne.openIfhasValue();
+		}
 		if (detailSectionEsibenti != null) {
 			detailSectionEsibenti.open();
 		}
@@ -17546,6 +19429,10 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	 */
 	@Override
 	public void editNewRecord() {
+		
+		if (detailSectionRelVsPraticheApplEsterne != null) {
+			detailSectionRelVsPraticheApplEsterne.setVisible(false);
+		}
 
 		vm.clearErrors(true);
 		clearTabErrors(tabSet);
@@ -17594,6 +19481,38 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 //			}
 //		}	
 //		valuesFromModello.put("listaAllegati", listaAllegati);
+		if(AurigaLayout.getParametroDBAsBoolean("INIBITA_SEL_MITT_UO_PROT_USCITA") && !Layout.isPrivilegioAttivo("SMR")) {
+			if(isProtocollazioneDetailBozze() || isProtocollazioneDetailUscita() || isProtocollazioneDetailInterna()) {
+				if (uoProtocollanteSelectItem != null) {
+					String uoProtocollante = null;
+					if (getSelezioneUoProtocollanteValueMap().size() == 1) {
+						uoProtocollante = getSelezioneUoProtocollanteValueMap().keySet().toArray(new String[1])[0];
+					}
+					valuesFromModello.put("uoProtocollante", uoProtocollante);
+				}
+				if (mittentiItem != null) {
+					Record lRecord = new Record();
+					if (getSelezioneUoProtocollanteValueMap().size() == 1) {
+						String idUoSoggetto = getSelezioneUoProtocollanteValueMap().keySet().toArray(new String[1])[0];
+						String descrizione = getSelezioneUoProtocollanteValueMap().get(idUoSoggetto);
+						lRecord.setAttribute("tipoMittente", "UOI");
+						if (idUoSoggetto.startsWith("UO")) {
+							lRecord.setAttribute("idUoSoggetto", idUoSoggetto.substring(2));
+							lRecord.setAttribute("organigrammaMittente", idUoSoggetto);
+						} else {
+							lRecord.setAttribute("idUoSoggetto", idUoSoggetto);
+							lRecord.setAttribute("organigrammaMittente", "UO" + idUoSoggetto);
+						}
+						lRecord.setAttribute("codRapidoMittente", descrizione.substring(0, descrizione.indexOf(" - ")));
+						lRecord.setAttribute("denominazioneMittente", descrizione.substring(descrizione.indexOf(" - ") + 3));
+						lRecord.setAttribute("flgAssegnaAlMittente", ((MittenteProtItem) mittentiItem).getFlgAssegnaAlMittenteDefault());
+					}
+					RecordList listaMittenti = new RecordList();
+					listaMittenti.add(lRecord);
+					valuesFromModello.put("listaMittenti", listaMittenti);
+				}
+			}
+		}
 		editNewRecord(valuesFromModello);
 	}
 
@@ -17604,6 +19523,12 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	 */
 	@Override
 	public void editNewRecord(Map initialValues) {
+		
+		if (detailSectionRelVsPraticheApplEsterne != null) {
+			Record lRecord = new Record(initialValues);
+			RecordList listaRelVsPraticheApplEsterne = lRecord != null ? lRecord.getAttributeAsRecordList("listaRelVsPraticheApplEsterne") : null;
+			detailSectionRelVsPraticheApplEsterne.setVisible(listaRelVsPraticheApplEsterne != null && listaRelVsPraticheApplEsterne.getLength() > 0);
+		}
 
 		if (livelloRiservatezzaItem != null) {
 			if (initialValues != null && initialValues.get("livelloRiservatezza") != null && !"".equalsIgnoreCase( String.valueOf(initialValues.get("livelloRiservatezza")))   
@@ -17692,6 +19617,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	
 	public void editRecord(Record record, boolean skipCaricaAttributiDinamiciDoc) {
 		
+		if (detailSectionRelVsPraticheApplEsterne != null) {
+			RecordList listaRelVsPraticheApplEsterne = record != null ? record.getAttributeAsRecordList("listaRelVsPraticheApplEsterne") : null;
+			detailSectionRelVsPraticheApplEsterne.setVisible(listaRelVsPraticheApplEsterne != null && listaRelVsPraticheApplEsterne.getLength() > 0);
+		}
+		
 		if (uoProtocollanteSelectItem != null) {
 			if (record.getAttribute("uoProtocollante") != null && !"".equalsIgnoreCase(record.getAttribute("uoProtocollante"))) {		
 				if(uoProtocollanteSelectItem.getValueMap() != null && uoProtocollanteSelectItem.getValueMap().containsKey(record.getAttribute("uoProtocollante"))) {
@@ -17719,6 +19649,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				livelloRiservatezzaItem.setValue(record.getAttribute("livelloRiservatezza"));			
 			}
 		}
+		
 		if (prioritaRiservatezzaItem != null) {
 			if (record.getAttribute("prioritaRiservatezza") != null && !"".equalsIgnoreCase(record.getAttribute("prioritaRiservatezza")) && 
 				record.getAttribute("descrizionePrioritaRiservatezza") != null && !"".equalsIgnoreCase(record.getAttribute("descrizionePrioritaRiservatezza"))){
@@ -17729,6 +19660,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				prioritaRiservatezzaItem.setValue(record.getAttribute("prioritaRiservatezza"));			
 			}
 		}
+		
 		if (tipoDocumentoItem != null) {
 			if (record.getAttribute("tipoDocumento") != null && !"".equalsIgnoreCase(record.getAttribute("tipoDocumento")) && 
 				record.getAttribute("nomeTipoDocumento") != null && !"".equalsIgnoreCase(record.getAttribute("nomeTipoDocumento"))){
@@ -17754,11 +19686,13 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		vm.clearErrors(true);
 		clearTabErrors(tabSet);
 		valuesOrig = record.toMap();
+		
 		if (showSiglaProtocolloItem()) {
 			siglaProtocolloItem.setTitle(getTitleNroProtocolloItem(record));
 		} else {
 			nroProtocolloItem.setTitle(getTitleNroProtocolloItem(record));
 		}
+		
 		if (tipoDocumentoItem != null) {
 			GWTRestDataSource tipoDocumentoDS = (GWTRestDataSource) tipoDocumentoItem.getOptionDataSource();
 			if (record.getAttribute("tipoDocumento") != null
@@ -17769,10 +19703,13 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			}
 			tipoDocumentoItem.setOptionDataSource(tipoDocumentoDS);
 		}
+		
 		record.setAttribute("nomeFilePrimarioOrig", record.getAttribute("nomeFilePrimario"));	
 		String uniqueUUID = SC.generateID();
 		record.setAttribute("idOperRegistrazione", uniqueUUID);
+		
 		super.editRecord(record);
+		
 		if (!isProtocollazioneDetailBozze()) {
 			String idUserConfermaAssegnazione = record.getAttribute("idUserConfermaAssegnazione");
 			if (idUserConfermaAssegnazione != null && !"".equals(idUserConfermaAssegnazione)) {
@@ -17798,6 +19735,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				utentiAbilCPAItem.setValue((String) null);
 			}
 		}
+		
 		if (!skipCaricaAttributiDinamiciDoc && showAttributiDinamiciDoc()) {
 			this.tipoDocumento = record.getAttribute("tipoDocumento");
 			this.rowidDoc = record.getAttribute("rowidDoc");
@@ -17812,6 +19750,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				}
 			}
 		}
+		
 		if (isAltraNumerazione()) {
 			if(protocolloGeneraleItem != null) {
 				protocolloGeneraleItem.setValue(record.getAttributeAsBoolean("protocolloGenerale") != null && record.getAttributeAsBoolean("protocolloGenerale")); 
@@ -17834,7 +19773,22 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			} else {
 				iconaTipoAltraNumerazioneItem.setPrompt(getTitleAltraNumerazioneProvvisoria());			
 			}
-		}		
+		}	
+		
+		if (destinatariItem != null && destinatariItem instanceof DestinatarioProtUscitaItem) {
+			((DestinatarioProtUscitaItem) destinatariItem).setFlgSegnaInvioMailExtraSistema(record.getAttributeAsBoolean("flgSegnaInvioMailExtraSistema") != null && record.getAttributeAsBoolean("flgSegnaInvioMailExtraSistema"));
+			((DestinatarioProtUscitaItem) destinatariItem).setFlgInviataMailExtraSistemaItem(record.getAttributeAsBoolean("flgInviataMailExtraSistema") != null && record.getAttributeAsBoolean("flgInviataMailExtraSistema"));
+		}
+		
+		if (idCasellaMittenteItem != null) {
+			if (record.getAttribute("idCasellaMittente") != null && !"".equalsIgnoreCase(record.getAttribute("idCasellaMittente")) && 
+				record.getAttribute("desCasellaMittente") != null && !"".equalsIgnoreCase(record.getAttribute("desCasellaMittente"))){
+				LinkedHashMap<String, String> valueMap = new LinkedHashMap<String, String>();
+				valueMap.put(record.getAttribute("idCasellaMittente"), record.getAttribute("desCasellaMittente"));
+				idCasellaMittenteItem.setValueMap(valueMap);
+				idCasellaMittenteItem.setValue(record.getAttribute("idCasellaMittente"));			
+			}
+		}
 	}
 
 	/**
@@ -17877,6 +19831,25 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 					}
 				}
 			}
+		}
+		
+		if(AurigaLayout.getParametroDBAsBoolean("INIBITA_SEL_MITT_UO_PROT_USCITA") && !Layout.isPrivilegioAttivo("SMR")) {
+			if(isProtocollazioneDetailBozze() || isProtocollazioneDetailUscita() || isProtocollazioneDetailInterna()) {
+				if (uoProtocollanteSelectItem != null) {
+					uoProtocollanteSelectItem.setCanEdit(false);
+					if (!AurigaLayout.getIsAttivaAccessibilita()) {
+						uoProtocollanteSelectItem.setTabIndex(-1);
+					}
+				}
+				if (mittentiItem != null) {
+					mittentiItem.setCanEdit(false);
+				}
+			}
+		}
+		
+		if (destinatariItem != null && destinatariItem instanceof DestinatarioProtUscitaItem) {
+			((DestinatarioProtUscitaItem) destinatariItem).setCanEditFlgSegnaInvioMailExtraSistema(canEdit);
+			((DestinatarioProtUscitaItem) destinatariItem).setCanEditFlgInviataMailExtraSistema(canEdit);
 		}
 		
 		setCanEdit(false, protocolloGeneraleForm); // i campi della sezione "Registrazione" devono essere sempre read-only
@@ -18099,6 +20072,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		salvaRegistraButton.show();
 		presaInCaricoButton.hide();
 		restituisciButton.hide();
+		rilasciaButton.hide();
 		segnaComeVisionatoButton.hide();
 		classificazioneFascicolazioneButton.hide();
 		modificaButton.hide();
@@ -18110,8 +20084,10 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		protocollazioneUscitaButton.hide();
 		protocollazioneInternaButton.hide();
 		invioPECButton.hide();
+		frecciaInvioPECButton.hide();
 		invioMailRicevutaButton.hide();
 		invioPEOButton.hide();
+		frecciaInvioPEOButton.hide();
 		invioPostaPrioritariaButton.hide();
 		invioRaccomandataButton.hide();
 		smistaButton.hide();
@@ -18125,13 +20101,17 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		rispondiButton.hide();
 //		condivisioneButton.hide();
 //		frecciaCondivisioneButton.hide();
+		azioniIstruttoriaPubblButton.hide();
+		avviaIterFirmeButton.hide();
 		osservazioniNotificheButton.hide();
 		apposizioneFirmaButton.hide();
 		rifiutoApposizioneFirmaButton.hide();
 		apposizioneFirmaProtocollazioneButton.hide();
 		apposizioneVistoButton.hide();
-		rifiutoApposizioneVistoButton.hide();		
+		rifiutoApposizioneVistoButton.hide();
+		pubblicazioneButton.hide();
 		pubblicazioneTraspAmmButton.hide();
+		
 		if (isProtocollazioneDetailBozze() || isProtocollazioneDetailAtti() /*|| isIstanzeDetail()*/) {
 			verificaRegistrazioneButton.hide();
 		} else {
@@ -18254,6 +20234,24 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 				detailSectionTipologieParticolariA2A.show();
 			} else {
 				detailSectionTipologieParticolariA2A.hide();
+			}
+		}
+	}
+	
+	public void viewFromPortletMode() {
+		viewFromPortletMode = true;
+		viewMode();
+		Record detailRecord = new Record(vm.getValues());
+		if(detailToolStrip != null) {
+			for(Canvas button : detailToolStrip.getMembers()) {
+				button.hide();
+			}
+			if (showDownloadDocZipButton(detailRecord)) {
+				downloadDocZipButton.show();
+				frecciaDownloadZipButton.show();
+			} else {
+				downloadDocZipButton.hide();
+				frecciaDownloadZipButton.hide();
 			}
 		}
 	}
@@ -18406,6 +20404,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		} else {
 			restituisciButton.hide();
 		}
+		if (detailRecord.getAttributeAsBoolean("abilRilascia")) {
+			rilasciaButton.show();
+		} else {
+			rilasciaButton.hide();
+		}
 		if (detailRecord.getAttributeAsBoolean("abilSetVisionato")) {
 			segnaComeVisionatoButton.show();
 		} else {
@@ -18439,8 +20442,14 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		}
 		if (detailRecord.getAttributeAsBoolean("abilInvioPEC")) {
 			invioPECButton.show();
+			if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_OPZ_AVANZATE_INVIO_EMAIL_UD")) {
+				frecciaInvioPECButton.show();
+			}else {
+				frecciaInvioPECButton.hide();
+			}
 		} else {
 			invioPECButton.hide();
+			frecciaInvioPECButton.hide();
 		}
 		if (detailRecord.getAttributeAsBoolean("abilInvioEmailRicevuta")) {
 			invioMailRicevutaButton.show();
@@ -18449,8 +20458,14 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		}
 		if (detailRecord.getAttributeAsBoolean("abilInvioPEO")) {
 			invioPEOButton.show();
+			if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_OPZ_AVANZATE_INVIO_EMAIL_UD")) {
+				frecciaInvioPEOButton.show();
+			}else {
+				frecciaInvioPEOButton.hide();
+			}
 		} else {
 			invioPEOButton.hide();
+			frecciaInvioPEOButton.hide();
 		}
 		if (Layout.isPrivilegioAttivo("PRT/U") && isProtocollazioneDetailUscita() && AurigaLayout.getParametroDB("CLIENTE").equalsIgnoreCase("ARPA_LAZ")){
 			ProtocollazioneUtil.isPossibleToPostel(detailRecord.getAttributeAsInt("idUd"), ETypePoste.POSTA_PRIORITARIA.value(), new ServiceCallback<Record>() {
@@ -18494,6 +20509,16 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			downloadDocZipButton.hide();
 			frecciaDownloadZipButton.hide();
 		}
+		if(showAzioniIstruttoriaPubbl(detailRecord)) {
+			azioniIstruttoriaPubblButton.show();
+		} else {
+			azioniIstruttoriaPubblButton.hide();
+		}	
+		if(showAvviaIterFirme(detailRecord)) {
+			avviaIterFirmeButton.show();
+		} else {
+			avviaIterFirmeButton.hide();
+		}	
 		if(showOsservazioniNotifiche(detailRecord)){
 			osservazioniNotificheButton.show();
 		}else{
@@ -18537,6 +20562,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		}else{
 			apposizioneVistoButton.hide();
 			rifiutoApposizioneVistoButton.hide();
+		}
+		if(showPubblicazione(detailRecord)){
+			pubblicazioneButton.show();
+		}else{
+			pubblicazioneButton.hide();
 		}
 		if(showPubblicazioneTraspAmm(detailRecord)){
 			pubblicazioneTraspAmmButton.show();
@@ -18620,9 +20650,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		}
 		if (mittentiItem != null) {
 			mittentiItem.setShowFlgAssegnaAlMittente(detailRecord.getAttributeAsBoolean("abilAssegnazioneSmistamento"));
+			//TODO devo fare la stessa cosa per flgPC con abilCondivisione?
 		}
 		if (destinatariItem != null) {
 			destinatariItem.setShowFlgAssegnaAlDestinatario(detailRecord.getAttributeAsBoolean("abilAssegnazioneSmistamento"));
+			//TODO devo fare la stessa cosa per flgPC con abilCondivisione?
 		}
 		if(fileAllegatiItem != null && (fileAllegatiItem instanceof AllegatiItem)) {
 			((AllegatiItem)fileAllegatiItem).setDetailRecord(detailRecord);
@@ -18711,6 +20743,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		salvaRegistraButton.show();
 		presaInCaricoButton.hide();
 		restituisciButton.hide();
+		rilasciaButton.hide();
 		segnaComeVisionatoButton.hide();
 		classificazioneFascicolazioneButton.hide();
 		modificaButton.hide();
@@ -18718,15 +20751,20 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		regAccessoCivicoButton.hide();
 		modificaDatiRegButton.hide();
 		invioPECButton.hide();
+		frecciaInvioPECButton.hide();
 		invioMailRicevutaButton.hide();
-		invioPEOButton.hide();		
+		invioPEOButton.hide();	
+		frecciaInvioPEOButton.hide();
 		invioPostaPrioritariaButton.hide();
 		invioRaccomandataButton.hide();
+		azioniIstruttoriaPubblButton.hide();
+		avviaIterFirmeButton.hide();
 		apposizioneFirmaButton.hide();
 		rifiutoApposizioneFirmaButton.hide();
 		apposizioneFirmaProtocollazioneButton.hide();
 		apposizioneVistoButton.hide();
 		rifiutoApposizioneVistoButton.hide();
+		pubblicazioneButton.hide();
 		pubblicazioneTraspAmmButton.hide();
 		if (isProtocollazioneDetailBozze() || isProtocollazioneDetailAtti() /*|| isIstanzeDetail()*/) {
 			verificaRegistrazioneButton.hide();
@@ -18816,9 +20854,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		}
 		if (mittentiItem != null) {
 			mittentiItem.setShowFlgAssegnaAlMittente(detailRecord.getAttributeAsBoolean("abilAssegnazioneSmistamento"));
+			//TODO devo fare la stessa cosa per flgPC con abilCondivisione?
 		}
 		if (destinatariItem != null) {
 			destinatariItem.setShowFlgAssegnaAlDestinatario(detailRecord.getAttributeAsBoolean("abilAssegnazioneSmistamento"));
+			//TODO devo fare la stessa cosa per flgPC con abilCondivisione?
 		}
 		if(fileAllegatiItem != null && (fileAllegatiItem instanceof AllegatiItem)) {
 			((AllegatiItem)fileAllegatiItem).setDetailRecord(detailRecord);
@@ -18891,6 +20931,13 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			} else {
 				detailSectionCondivisione.show();
 			}
+			if (condivisioneItem != null) {
+				if (detailRecord.getAttributeAsBoolean("abilCondivisione")) {				
+					condivisioneItem.show();
+				} else {
+					condivisioneItem.hide();
+				}
+			}
 			if(condivisioneItem.getValueAsRecordList() != null && condivisioneItem.getValueAsRecordList().getLength() > 0 && condivisioneItem.hasValue()) {				
 				Record lRecord = new Record();
 				lRecord.setAttribute("listaDestInvioCCSalvati", condivisioneItem.getValueAsRecordList());
@@ -18957,9 +21004,8 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	 * 
 	 */
 	public void modificaDatiMode() {
-		modificaDatiMode("modificaDati", null);
+		modificaDatiMode(null);
 	}
-	
 	
 	public void modificaDatiMode(Boolean abilAggiuntaFile) {
 		modificaDatiMode("modificaDati", abilAggiuntaFile);
@@ -18984,8 +21030,10 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		}		
 		if (destinatariItem != null) {
 			destinatariItem.setCanEdit(false);
-			if (isProtocollazioneDetailUscita()) {
+			if (destinatariItem instanceof DestinatarioProtUscitaItem) {
 				destinatariItem.setCanEditMezzoTrasmissioneMode(false);
+				((DestinatarioProtUscitaItem) destinatariItem).setCanEditFlgSegnaInvioMailExtraSistema(true);
+				((DestinatarioProtUscitaItem) destinatariItem).setCanEditFlgInviataMailExtraSistema(true);
 			}
 		}
 		if (destinatariForm != null) {
@@ -20358,7 +22406,8 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	 */
 	protected void manageStampaEtichettaSenzaOpzStampa(final Record record) {
 		
-		if (AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO")) {
+		if (AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") &&
+			(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg") == null || "a".equalsIgnoreCase(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg")))){
 			// Stampa con stampigliatrice
 			/**
 			 * Viene verificato che sia stata selezionata una porta in precedenza
@@ -20428,7 +22477,9 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		Record impostazioniStampa = AurigaLayout.getImpostazioneStampa();
 		lRecord.setAttribute("flgPrimario", impostazioniStampa != null ? AurigaLayout.getImpostazioneStampaAsBoolean("flgPrimario") : true);
 		lRecord.setAttribute("flgAllegati", impostazioniStampa != null ? AurigaLayout.getImpostazioneStampaAsBoolean("flgAllegati") : true);
-		if (AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO")) {
+
+		if (AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") &&
+			(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg") == null || "a".equalsIgnoreCase(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg")))){
 			lRecord.setAttribute("flgSegnRegPrincipale", true);
 		} else {
 			lRecord.setAttribute("flgSegnRegPrincipale", impostazioniStampa != null ? AurigaLayout.getImpostazioneStampaAsBoolean("flgSegnRegPrincipale") : true);
@@ -21767,6 +23818,14 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		
 		String idUd = new Record(vm.getValues()).getAttribute("idUd");
 		if (idUd != null && !"".equals(idUd)) {
+
+			if (AurigaLayout.getParametroDBAsBoolean("SHOW_BARCODE_MENU")) {
+				altreOpMenu.addItem(barcodeA4MenuItem);
+				altreOpMenu.addItem(barcodeA4MultipliMenuItem);
+				altreOpMenu.addItem(barcodeEtichettaMenuItem);
+				altreOpMenu.addItem(barcodeEtichettaMultiploMenuItem);
+			}
+			
 			// Se ho piu voci aggiungo il sottoMenu Timbra
 			if (flgAddSubMenuTimbra) {
 				altreOpMenu.addItem(timbraMenuItem);
@@ -21776,13 +23835,6 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 					timbraDatiSegnaturaMenuItem.setTitle("Timbra");
 					altreOpMenu.addItem(timbraDatiSegnaturaMenuItem);
 				}
-			}
-
-			if (AurigaLayout.getParametroDBAsBoolean("SHOW_BARCODE_MENU")) {
-				altreOpMenu.addItem(barcodeA4MenuItem);
-				altreOpMenu.addItem(barcodeA4MultipliMenuItem);
-				altreOpMenu.addItem(barcodeEtichettaMenuItem);
-				altreOpMenu.addItem(barcodeEtichettaMultiploMenuItem);
 			}
 		}
 	}
@@ -22024,15 +24076,15 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 //	}
 	
 	
-	public void manageFirmaComplessiva(boolean apposizioneForzata, final ServiceCallback<Record> callbackManageFirma) {
+	public void manageFirmaComplessiva(boolean flgApposizione, final ServiceCallback<Record> callbackManageFirma) {
 		
 		Record detailRecord = new Record(getValuesManager().getValues());
 		
 		/*
 		 * detailRecord contiene nel param contrassegnato come idUd l'id dell'ud che si ha selezionato 
 		 */
-		AzioneApposizionePopup popup = new AzioneApposizionePopup(detailRecord, new Record(getValuesManager().getValues()), TipologiaApposizione.FIRMA,
-				apposizioneForzata, null, new ServiceCallback<Record>() {
+		// Se l'azione è di apposizione in AzioneApposizionePopup viene fatta una redirect ad un'altra popup, quindi non faccio qua lo show
+		AzioneApposizionePopup popup = new AzioneApposizionePopup(detailRecord, new Record(getValuesManager().getValues()), TipologiaApposizione.FIRMA, flgApposizione, null, new ServiceCallback<Record>() {
 			
 			@Override
 			public void execute(final Record object) {
@@ -22056,7 +24108,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		}); 
 		
 		//Devo visualizzare il popup per inserire la motivazione nel caso in cui si rifiuti l'apposizione
-		if(!apposizioneForzata){
+		if(!flgApposizione){
 			popup.show();
 		}
 		
@@ -22169,6 +24221,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		final Record detailRecord = new Record(getValuesManager().getValues());
 		detailRecord.setAttribute("idUdFolder", detailRecord.getAttribute("idUd"));
 		detailRecord.setAttribute("flgTipoProv", detailRecord.getAttribute("flgVersoBozza")); // nel dettaglio flgTipoProv è null perchè è una bozza quindi devo passare flgVersoBozza
+		boolean isBozza = detailRecord.getAttributeAsString("tipoProtocollo") != null && "NI".equals(detailRecord.getAttributeAsString("tipoProtocollo"));
+		if(!isBozza) {
+			// se il documento non è una bozza e ha già una numerazione ufficiale non devo protocollarlo, ma solo timbrarlo e firmarlo
+			detailRecord.setAttribute("skipProtBeforeFirma", true);
+   		}
 		final RecordList listaRecord = new RecordList();
 		listaRecord.add(detailRecord);
 		final Record recordDaProtocollare = new Record();
@@ -22179,7 +24236,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			
 			@Override
 			public void execute(DSResponse response) {
-				DSCallback protocollaTimbraEFirmaMassiviCallback = new DSCallback() {
+				final DSCallback protocollaTimbraEFirmaMassiviCallback = new DSCallback() {
 					
 					@Override
 					public void execute(DSResponse response, Object rawData, DSRequest request) {														
@@ -22198,12 +24255,47 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 							}
 						});
 					}
-				};						
+				};
+				final DSCallback azioneFirmaSuccessivaCallback = new DSCallback() {
+					
+					@Override
+					public void execute(DSResponse response, Object rawData, DSRequest request) {
+						// Apro il popup che permette di scegliere l'azione successiva
+						if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_ITER_FIRME_BOZZE")) {
+							AzioneSuccessivaIterFirmaBozzePopup popup = new AzioneSuccessivaIterFirmaBozzePopup(listaRecord, true, TipologiaApposizione.FIRMA_PROTOCOLLA, new ServiceCallback<Record>() {
+
+										@Override
+										public void execute(Record object) {
+											if(protocollaTimbraEFirmaMassiviCallback != null) {
+												protocollaTimbraEFirmaMassiviCallback.execute(new DSResponse(), null, new DSRequest());
+											}
+										}
+									});
+							popup.show();
+						}else {
+							AzioneSuccessivaPopup popup = new AzioneSuccessivaPopup(listaRecord, true, TipologiaApposizione.FIRMA_PROTOCOLLA, new ServiceCallback<Record>() {
+
+										@Override
+										public void execute(Record object) {
+											if(protocollaTimbraEFirmaMassiviCallback != null) {
+												protocollaTimbraEFirmaMassiviCallback.execute(new DSResponse(), null, new DSRequest());
+											}
+										}
+									});
+							popup.show();
+						}
+					}
+				};
 				operationCallback(response, detailRecord,
 						"idUd", "Firma con segnatura di protocollo effettuata con successo",
 						"Errore nella firma con segnatura di protocollo.", 
-						protocollaTimbraEFirmaMassiviCallback, 
+						azioneFirmaSuccessivaCallback, 
 						protocollaTimbraEFirmaMassiviCallback);		
+//				operationCallback(response, detailRecord,
+//						"idUd", "Firma con segnatura di protocollo effettuata con successo",
+//						"Errore nella firma con segnatura di protocollo.", 
+//						protocollaTimbraEFirmaMassiviCallback, 
+//						protocollaTimbraEFirmaMassiviCallback);		
 			}
 		});
 	}
@@ -22211,14 +24303,13 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	/**
 	 * ********************** METODI PER IL VISTO DELLE UD **********************
 	 */
-	public void manageVistoDocumento(boolean apposizioneForzata, final ServiceCallback<Record> callbackManageVistoDocumento){
+	public void manageVistoDocumento(boolean flgApposizione, final ServiceCallback<Record> callbackManageVistoDocumento){
 		Record detailRecord = new Record(getValuesManager().getValues());	
 		
 		/*
 		 * detailRecord contiene nel param contrassegnato come idUd l'id dell'ud che si ha selezionato 
 		 */
-		AzioneApposizionePopup popup = new AzioneApposizionePopup(detailRecord, new Record(getValuesManager().getValues()), 
-							TipologiaApposizione.VISTO, apposizioneForzata, null, new ServiceCallback<Record>() {
+		AzioneApposizionePopup popup = new AzioneApposizionePopup(detailRecord, new Record(getValuesManager().getValues()), TipologiaApposizione.VISTO, flgApposizione, null, new ServiceCallback<Record>() {
 			
 			@Override
 			public void execute(final Record object) {
@@ -22241,7 +24332,7 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 			}
 		}); 
 		//Devo visualizzare il popup per inserire la motivazione nel caso in cui si rifiuti l'apposizione
-		if(!apposizioneForzata){
+		if(!flgApposizione){
 			popup.show();
 		}
 	}
@@ -22348,8 +24439,8 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		else {
 			String mimetype = lInfoFileRecord.getMimetype() != null ? lInfoFileRecord.getMimetype() : "";
 			if (mimetype != null) {
-				if (mimetype.equals("application/pdf") || mimetype.startsWith("image") || lInfoFileRecord.isConvertibile()) {
-					return true;
+				if(mimetype.equals("application/pdf") || mimetype.startsWith("image") || lInfoFileRecord.isConvertibile()) {
+					return isMimetypeTimbrabile(lInfoFileRecord.getMimetype());
 				} else
 					return false;
 			} else
@@ -22390,17 +24481,6 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 		}
 	}
 	
-	@Override
-	protected void onDestroy() {
-		if(saveModelloWindow != null) {
-			saveModelloWindow.destroy();
-		}
-		if(modelliDS != null) {
-			modelliDS.destroy();
-		}
-		super.onDestroy();
-	}
-
 	protected boolean isValidFutureDate(Date dataInput ) {
 		boolean ret = false;
 		Date today = new Date();
@@ -22500,12 +24580,21 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 
 		createDetailSectionAllegati();
 		layoutDatiPrincipaliRER.addMember(detailSectionAllegati);
+		
+		if (showDetailSectionVerificaPreFirma()) {
+			createDetailSectionVerificaPreFirma();
+			layoutDatiPrincipaliRER.addMember(detailSectionVerificaPreFirma);
+		}
 
 		createDetailSectionClassificazioneFascicolazione();
 		layoutDatiPrincipaliRER.addMember(detailSectionClassificazioneFascicolazione);
 	
 		createDetailSectionFolderCustom();
 		layoutDatiPrincipaliRER.addMember(detailSectionFolderCustom);
+		
+		createDetailSectionRelVsPraticheApplEsterne();
+		detailSectionRelVsPraticheApplEsterne.setVisible(false);
+		layoutDatiPrincipaliRER.addMember(detailSectionRelVsPraticheApplEsterne);
 		
 		if (showDetailSectionDatiRicezione()) {
 			createDetailSectionDatiRicezione();
@@ -22586,8 +24675,11 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	}
 	
 	private boolean showOperazioniTimbratura() {
-		return codCategoriaProtocolloItem!=null && codCategoriaProtocolloItem.getValue()!=null && !"".equals(codCategoriaProtocolloItem.getValue()) &&
-				("PP".equals(codCategoriaProtocolloItem.getValue()) || "PG".equals(codCategoriaProtocolloItem.getValue()) || "R".equals(codCategoriaProtocolloItem.getValue()));
+		if(AurigaLayout.showOperazioniTimbratura()) {
+			return codCategoriaProtocolloItem!=null && codCategoriaProtocolloItem.getValue()!=null && !"".equals(codCategoriaProtocolloItem.getValue()) &&
+					("PP".equals(codCategoriaProtocolloItem.getValue()) || "PG".equals(codCategoriaProtocolloItem.getValue()) || "R".equals(codCategoriaProtocolloItem.getValue()));
+		}
+		return false;
 	}
 	
 	public void setModalitaInvio(String modalitaInvio) {
@@ -22597,4 +24689,41 @@ public abstract class ProtocollazioneDetail extends DocumentDetail {
 	protected boolean isEnablePreviewModal() {
 		return !AurigaLayout.getParametroDBAsBoolean("PREVIEW_NON_MODALE");
 	}
+	
+	private String getTitleStampaEtichetta() {
+		if(AurigaLayout.getParametroDBAsBoolean("ATTIVA_TIMBRATURA_CARTACEO") &&
+		   (AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg") == null || "a".equalsIgnoreCase(AurigaLayout.getImpostazioneStampa("sceltaStampaProtReg")))) {
+			return "Timbra";
+		} else {
+			return I18NUtil.getMessages().protocollazione_detail_stampaEtichettaButton_prompt();
+		}
+	}
+	
+	@Override
+	protected void onDestroy() {
+		if(saveModelloWindow != null) {
+			saveModelloWindow.destroy();
+		}
+		if(modelliDS != null) {
+			modelliDS.destroy();
+		}
+		super.onDestroy();		
+		if(attributiAddDocLayouts != null) {
+			for (String key : attributiAddDocLayouts.keySet()) {
+				// se inizia con HEADER_ non devo cancellare il layout perchè è quello del tab principale
+				if(key != null && !key.startsWith("HEADER_")) {
+					try { attributiAddDocLayouts.get(key).destroy(); } catch(Exception e) {}
+				}
+			}
+		}
+		if(attributiAddDocDetails != null) {
+			for (String key : attributiAddDocDetails.keySet()) {
+				try { attributiAddDocDetails.get(key).destroy(); } catch(Exception e) {}				
+			}
+		}
+		attributiAddDocTabs = null;
+		attributiAddDocLayouts = null;		
+		attributiAddDocDetails = null;
+	}
+	
 }

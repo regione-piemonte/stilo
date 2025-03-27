@@ -1,7 +1,10 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.client.pratiche.dettaglio.nuovapropostaatto2.items;
 
+import java.util.Date;
 import java.util.LinkedHashMap;
 
+import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.i18n.client.NumberFormat;
 import com.smartgwt.client.data.Record;
 import com.smartgwt.client.data.RecordList;
@@ -455,6 +458,11 @@ public class DettaglioMovimentiGSADetail extends CustomDetail {
 		listaDatiGsaItem = new DatiGSAItem() {
 			
 			@Override
+			public String getEsercizioCreditoDebitoDefaultValue() {
+				return DateTimeFormat.getFormat("yyyy").format(new Date());
+			}
+			
+			@Override
 			public String getImportoDefaultValue() {
 				return (String) importo.getValue();
 			}
@@ -633,6 +641,7 @@ public class DettaglioMovimentiGSADetail extends CustomDetail {
 					lRecordDatiGsa.setAttribute("flgDareAvere", stc.getTokens()[6]);
 					lRecordDatiGsa.setAttribute("dataCompetenzaDa", stc.getTokens()[7] != null ? DateUtil.parseInput(stc.getTokens()[7]) : null);
 					lRecordDatiGsa.setAttribute("dataCompetenzaA", stc.getTokens()[8] != null ? DateUtil.parseInput(stc.getTokens()[8]) : null);
+					lRecordDatiGsa.setAttribute("esercizioCreditoDebito", stc.getTokens()[9]);
 					listaDatiGsa.add(lRecordDatiGsa);
 				}
 			}
@@ -679,6 +688,7 @@ public class DettaglioMovimentiGSADetail extends CustomDetail {
 				datiGsa += "|*|" + (lRecordDatiGsa.getAttribute("flgDareAvere") != null ? lRecordDatiGsa.getAttribute("flgDareAvere") : "");
 				datiGsa += "|*|" + (lRecordDatiGsa.getAttributeAsDate("dataCompetenzaDa") != null ? DateUtil.format(lRecordDatiGsa.getAttributeAsDate("dataCompetenzaDa")) : "");
 				datiGsa += "|*|" + (lRecordDatiGsa.getAttributeAsDate("dataCompetenzaA") != null ? DateUtil.format(lRecordDatiGsa.getAttributeAsDate("dataCompetenzaA")) : "");
+				datiGsa += "|*|" + (lRecordDatiGsa.getAttribute("esercizioCreditoDebito") != null ? lRecordDatiGsa.getAttribute("esercizioCreditoDebito") : "");
 				datiGsa += "|**|";
 			}
 			lRecordToSave.setAttribute("datiGsa", datiGsa);		

@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+// PER IL CAS DECOMMENTARE QUESTO BLOCCO E COMMENTARE QUELLO DI SOPRA
 package it.eng.auriga.ui.module.layout.server.common;
 
 import it.eng.auriga.ui.module.layout.shared.bean.SchemaBean;

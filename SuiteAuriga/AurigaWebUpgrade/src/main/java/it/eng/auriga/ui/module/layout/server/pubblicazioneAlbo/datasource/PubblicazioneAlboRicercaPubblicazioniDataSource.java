@@ -1,4 +1,5 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.auriga.ui.module.layout.server.pubblicazioneAlbo.datasource;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -1109,8 +1110,15 @@ public class PubblicazioneAlboRicercaPubblicazioniDataSource extends AurigaAbstr
 		List<CriteriPersonalizzati> listCustomFilters = new ArrayList<CriteriPersonalizzati>();
 
 		if (criteria != null && criteria.getCriteria() != null) {
+			boolean flgRicercaRicorsivaSettato = false;
 			for (Criterion crit : criteria.getCriteria()) {
-				if ("idNode".equals(crit.getFieldName())) {
+				if ("flgRicercaRicorsiva".equals(crit.getFieldName())) {
+					if (StringUtils.isNotBlank((String) crit.getValue())) {
+						boolean flgRicorsiva = new Boolean((String) crit.getValue());
+						includiSottoCartelle = flgRicorsiva ? "1" : "0";
+						flgRicercaRicorsivaSettato = true;
+					}
+				} else if ("idNode".equals(crit.getFieldName())) {
 					if (StringUtils.isNotBlank((String) crit.getValue())) {
 						idNode = (String) crit.getValue();
 					}
@@ -1171,16 +1179,15 @@ public class PubblicazioneAlboRicercaPubblicazioniDataSource extends AurigaAbstr
 					}
 				} else if ("searchFulltext".equals(crit.getFieldName())) {
 					// se sono entrato qui sono in modalita' di ricerca con i filtri quindi imposto il valore di default a 1
-					includiSottoCartelle = "1";
+					if (!flgRicercaRicorsivaSettato) {
+						// Lo setto solamente non ho già settato il valore tramite il criterio flgRicercaRicorsiva
+						includiSottoCartelle = "1";
+					}
 					if (crit.getValue() != null) {
 						Map map = (Map) crit.getValue();
 						filtroFullText = (String) map.get("parole");
 						ArrayList<String> lArrayList = (ArrayList<String>) map.get("attributi");
 						checkAttributes = lArrayList != null ? lArrayList.toArray(new String[] {}) : null;
-						Boolean flgRicorsiva = (Boolean) map.get("flgRicorsiva");
-						if (flgRicorsiva != null) {
-							includiSottoCartelle = flgRicorsiva ? "1" : "0";
-						}
 						String operator = crit.getOperator();
 						if (StringUtils.isNotBlank(operator)) {
 							if ("allTheWords".equals(operator)) {

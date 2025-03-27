@@ -1,6 +1,8 @@
-/* * SPDX-License-Identifier: AGPL-3.0-or-later * * C Copyright 2023 Regione Piemonte * */
+/* * SPDX-License-Identifier: AGPL-3.0-or-later * * (C) Copyright 2023 Regione Piemonte * */
+package it.eng.utility.ui.module.core.client;
 
 import com.google.gwt.regexp.shared.RegExp;
+import com.google.gwt.user.client.ui.HTML;
 
 import it.eng.utility.ui.module.core.shared.DefaultScriptPatterns;
 
@@ -34,6 +36,16 @@ public class RequestValidatorClient {
 					}
 				}
 			}			
+			// Verifico che non siano presenti script scritti con caratteri di escape
+			String unescapeStringToCheck = new HTML(stringToCheck).getText();
+			for (String scriptPattern : getPatterns()){
+				if (scriptPattern != null && !"".equalsIgnoreCase(scriptPattern)) {
+					RegExp lRegExp = RegExp.compile(scriptPattern, "im");
+					if(lRegExp.exec(unescapeStringToCheck) != null) {
+						return true;
+					}
+				}
+			}
 		}       
 		return false;
 	};
