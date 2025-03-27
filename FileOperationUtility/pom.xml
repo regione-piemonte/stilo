@@ -29,7 +29,7 @@
 		<!-- definizioni versioni dipendenze presenti in SuiteUtility -->
 		<coreModule.version>1.0.5</coreModule.version>
 		<cryptoSigner.version>1.0.15</cryptoSigner.version>
-		<hsmClient.version>1.0.8</hsmClient.version>
+		<hsmClient.version>1.0.13</hsmClient.version>
 		<archiveUtility.version>1.0.2</archiveUtility.version>
 		<oomanager.version>1.9.7</oomanager.version>
 	</properties>
