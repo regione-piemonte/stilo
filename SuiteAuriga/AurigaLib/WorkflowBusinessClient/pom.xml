@@ -90,7 +90,7 @@
 					<dependency>
 						<groupId>it.eng.auriga</groupId>
 						<artifactId>WorkflowBusinessBodule</artifactId>
-						<version>1.0.1</version>
+						<version>${suiteAuriga.version}</version>
 						<exclusions>
 							<exclusion>
 								<groupId>it.eng.auriga</groupId>
