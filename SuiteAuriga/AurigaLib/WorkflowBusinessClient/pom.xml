@@ -106,7 +106,7 @@
 					<dependency>
 						<groupId>it.eng.auriga</groupId>
 						<artifactId>AurigaBusinessClient</artifactId>
-						<version>1.0.1</version>
+						<version>${suiteAuriga.version}</version>
 						<exclusions>
 							<exclusion>
 								<artifactId>core-module</artifactId>
