@@ -1,0 +1,40 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.semanticdesktop.aperture</groupId>
+		<artifactId>aperture-util</artifactId>
+		<version>1.4.0</version>
+	</parent>
+
+	<artifactId>aperture-util</artifactId>
+	<packaging>bundle</packaging>
+
+	<name>Aperture Core: Util</name>
+	<description>Utilities</description>
+	
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>   
+				<groupId>org.apache.felix</groupId>
+				<artifactId>maven-bundle-plugin</artifactId>
+				<version>${maven.bundle.plugin.version}</version>
+				<extensions>true</extensions>
+				<configuration>
+					<instructions>
+						<Import-Package>org.gnowsis.util;resolution:="optional",*</Import-Package>
+						<Export-Package>org.semanticdesktop.aperture.util</Export-Package>
+					</instructions>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>		
+</project>
