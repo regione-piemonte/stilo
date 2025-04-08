@@ -339,6 +339,10 @@
 					<groupId>gwt.jquery</groupId>
 					<artifactId>gwt-jquery</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.apache.odftoolkit</groupId>
+					<artifactId>simple-odf</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
@@ -514,6 +518,10 @@
 				<exclusion>
 					<groupId>com.itextpdf</groupId>
 					<artifactId>itextpdf</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.apache.odftoolkit</groupId>
+					<artifactId>simple-odf</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -745,11 +753,24 @@
 			<artifactId>ooxml-schemas</artifactId>
 			<version>1.1</version>
 		</dependency>
+		<!--
 		<dependency>
 			<groupId>org.apache.odftoolkit</groupId>
 			<artifactId>simple-odf</artifactId>
 			<version>0.8.2-incubating</version>
 			<exclusions>
+				<exclusion>
+					<artifactId>tools</artifactId>
+					<groupId>com.sun</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		-->
+		<dependency>
+		    <groupId>org.odftoolkit</groupId>
+		    <artifactId>simple-odf</artifactId>
+		    <version>0.9.0</version>
+		    <exclusions>
 				<exclusion>
 					<artifactId>tools</artifactId>
 					<groupId>com.sun</groupId>
@@ -910,6 +931,10 @@
 				<exclusion>
 					<groupId>commons-beanutils</groupId>
 					<artifactId>commons-beanutils-core</artifactId>
+				</exclusion>
+				<exclusion>
+					 <groupId>com.itextpdf</groupId>
+					 <artifactId>itext-pdfa</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
