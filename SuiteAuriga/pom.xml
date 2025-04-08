@@ -138,7 +138,7 @@
 			</properties>
 			<modules>
 				<module>AurigaLib</module>
-				<module>AurigaWeb</module>
+				<module>AurigaWebUpgrade</module>
 			</modules>
 		</profile>
 		
